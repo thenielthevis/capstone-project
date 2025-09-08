@@ -28,7 +28,13 @@ exports.loginUser = async (req, res) => {
     try {
         // Find user by email
         const user = await User.findOne({ email });
-        if (!user || user.password !== password) {
+        if (!user) {
+            return res.status(401).json({ message: 'Invalid credentials' });
+        }
+
+        // Use bcrypt to compare passwords
+        const isMatch = await user.comparePassword(password);
+        if (!isMatch) {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
 
