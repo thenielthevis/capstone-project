@@ -37,9 +37,31 @@ exports.loginUser = async (req, res) => {
         if (!isMatch) {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
-
+        console.log("[LoginUser] User logged in:", user);
         res.status(200).json({ message: 'Login successful' });
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
     }
+};
+
+// Google User Registration/Login
+exports.googleUserController = async (req, res) => {
+  const { username, email, googleId } = req.body;
+  try {
+    console.log("[GoogleUserController] Received:", req.body);
+    let user = await User.findOne({ email });
+    if (!user) {
+      // Use default password for Google accounts
+      const password = "google-auth";
+      user = new User({ username, email, password, googleId });
+      await user.save();
+      console.log("[GoogleUserController] New user created:", user);
+    } else {
+      console.log("[GoogleUserController] User already exists:", user);
+    }
+    res.status(200).json({ message: "Google user registered/logged in" });
+  } catch (error) {
+    console.log("[GoogleUserController] Error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
 };

@@ -28,6 +28,10 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    googleId: {
+        type: String,
+        default: null,
+    },
     // age: {
     //     type: Number,
     //     min: 13
