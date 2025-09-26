@@ -1,30 +1,42 @@
 import React from 'react';
+import logo from '../assets/logo.png';
 
-export default function Footer() {
+const Footer = () => {
   return (
-    <footer className="bg-[#395886] text-white py-6 mt-auto">
-      <div className="max-w-6xl mx-auto px-4">
-        <div className="flex flex-col items-center space-y-2">
-          <p className="text-sm opacity-80">
-            &copy; {new Date().getFullYear()} Lifora. All rights reserved.
-          </p>
-          <div className="flex space-x-4 text-sm opacity-70 hover:opacity-100">
-            <a 
-              href="mailto:contact@lifora.com" 
-              className="hover:text-[#D5DEEF] transition-colors"
-            >
-              Contact
-            </a>
-            <span>|</span>
-            <a 
-              href="#" 
-              className="hover:text-[#D5DEEF] transition-colors"
-            >
-              Privacy Policy
-            </a>
-          </div>
-        </div>
-      </div>
+    
+    <footer className="footer sm:footer-horizontal bg-base-200 text-base-content p-10" data-theme="light">
+      <aside>
+        <img
+          src={logo}
+          alt="Lifora Logo"
+          width="50"
+          height="50"
+          className="fill-current"
+        />
+        <p>
+          <strong>Lifora</strong>
+          <br />
+          Embrace a Healthier You, Strong, Resilient, Future-Ready
+        </p>
+      </aside>
+      <nav>
+        <h6 className="footer-title">Quick Links</h6>
+        <a className="link link-hover">About</a>
+        <a className="link link-hover">Features</a>
+        <a className="link link-hover">Contact</a>
+      </nav>
+      <nav>
+        <h6 className="footer-title">Connect</h6>
+        <a className="link link-hover">GitHub</a>
+        <a className="link link-hover">Email</a>
+        <a className="link link-hover">Phone</a>
+      </nav>
+      <nav>
+        <h6 className="footer-title">Copyright</h6>
+        <p>© 2024 Lifora. All rights reserved.</p>
+      </nav>
     </footer>
   );
-}
+};
+
+export default Footer;
