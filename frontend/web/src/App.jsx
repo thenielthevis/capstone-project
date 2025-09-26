@@ -1,27 +1,19 @@
-
-import { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Header from './components/Header';
+import React from 'react';
+import { Routes, Route } from 'react-router-dom';
 import Footer from './components/Footer';
 import Landing from './pages/Landing';
+import './App.css';
 
 function App() {
-  const [orderCount, setOrderCount] = useState(0);
-  const fetchOrderCount = () => setOrderCount(orderCount + 1); // Dummy handler
-  const hideHeaderFooter = false; // Set logic as needed
-
   return (
-    <Router>
-      <>
-        {!hideHeaderFooter && (
-          <Header orderCount={orderCount} onUpdateOrderCount={fetchOrderCount} />
-        )}
+    <div className="flex flex-col min-h-screen w-full bg-[#F0F3FA]">
+      <div className="flex-grow">
         <Routes>
           <Route path="/" element={<Landing />} />
         </Routes>
-        {!hideHeaderFooter && <Footer />}
-      </>
-    </Router>
+      </div>
+      <Footer />
+    </div>
   );
 }
 

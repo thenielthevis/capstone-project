@@ -1,0 +1,17 @@
+/* @tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+ .feature-card {
+  @apply bg-white p-8 rounded-2xl shadow-xl flex flex-col h-full;
+}
+
+.about-card {
+  @apply bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300;
+}
+
+.team-card {
+  @apply bg-white rounded-2xl p-6 text-center shadow-lg w-full sm:w-64 transform transition-all duration-300 hover:-translate-y-2;
+}
+} */
