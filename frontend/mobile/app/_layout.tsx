@@ -1,8 +1,15 @@
 import { Stack } from "expo-router";
+import { ThemeProvider } from './context/ThemeContext';
 import './globals.css';
 
 export default function RootLayout() {
-  return <Stack 
-    screenOptions={{ headerShown: false }}
-    />;
+  return (
+    <ThemeProvider>
+      <Stack 
+        screenOptions={{ 
+          headerShown: false,
+        }}
+      />
+    </ThemeProvider>
+  );
 }

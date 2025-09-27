@@ -40,6 +40,14 @@
       "@react-native-firebase/auth",
       "@react-native-google-signin/google-signin"
     ],
+    "fonts": {
+      "Inter": "./assets/fonts/Inter_18pt-Regular.ttf",
+      "Inter-Bold": "./assets/fonts/Inter_18pt-Bold.ttf",
+      "Poppins": "./assets/fonts/Poppins-Regular.ttf",
+      "Poppins-Bold": "./assets/fonts/Poppins-Bold.ttf",
+      "Roboto": "./assets/fonts/Roboto-Regular.ttf",
+      "Roboto-Bold": "./assets/fonts/Roboto-Bold.ttf"
+    },
     "experiments": {
       "typedRoutes": true
     },
