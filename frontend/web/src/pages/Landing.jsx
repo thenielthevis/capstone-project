@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import wellnessGif from '../assets/wellness.gif';
 import assessmentGif from '../assets/features/assessment.gif';
 import gamifiedGif from '../assets/features/gamified.gif';
@@ -58,8 +59,8 @@ export default function Landing() {
           </button>
         </div>
         <div className="navbar-end gap-2">
-          <button className="btn btn-outline btn-primary hover:bg-primary hover:text-white transition-all duration-200">Login</button>
-          <button className="btn btn-primary text-white shadow-lg hover:shadow-xl transition-all duration-200">Register</button>
+          <Link to="/login" className="btn btn-outline btn-primary hover:bg-primary hover:text-white transition-all duration-200">Login</Link>
+          <Link to="/register" className="btn btn-primary text-white shadow-lg hover:shadow-xl transition-all duration-200">Register</Link>
         </div>
       </div>
 
@@ -263,16 +264,6 @@ export default function Landing() {
             </div>
           </div>
           <div className="flex justify-center">
-            <div className="card bg-base-200/50 shadow-xl w-80 hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
-              <figure className="px-10 pt-10">
-                <img src={prof} alt="Mrs. Madriaga Pops" className="rounded-xl w-32 h-32 object-cover" />
-              </figure>
-              <div className="card-body items-center text-center">
-                <h2 className="card-title text-secondary">Our Professor</h2>
-                <h3 className="font-semibold text-primary">Mrs. Madriaga Pops</h3>
-                <p className="text-sm text-base-content/80">Project Supervisor</p>
-              </div>
-            </div>
           </div>
         </div>
       </section>

@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, TextInput, ActivityIndicator } from "react-native";
+import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import auth from "@react-native-firebase/auth";
-import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { registerUser, handleGoogleSignInShared } from "../../../utils/auth";
 
 export default function RegisterScreen() {
@@ -20,7 +20,7 @@ export default function RegisterScreen() {
   const handleRegister = async () => {
     try {
       setLoading(true);
-      const response = await registerUser(username, email, password);
+      await registerUser(username, email, password);
       await auth().createUserWithEmailAndPassword(email, password);
       console.log("Firebase email/password sign-up successful");
     } catch (err: any) {
@@ -31,58 +31,97 @@ export default function RegisterScreen() {
   };
 
   return (
-    <View className="flex-1 justify-center items-center">
-      <TouchableOpacity
-        className="bg-blue-500 px-8 py-3 rounded-full"
-        onPress={handleGoogleSignIn}
-      >
-        <Text className="text-white text-lg">Sign up with Google</Text>
-      </TouchableOpacity>
-
-      <Text className="text-2xl m-2">OR</Text>
-
-      <Text className="text-2xl">Username</Text>
-      <TextInput
-        className="border w-3/4 p-2 my-4"
-        placeholder="Enter your username"
-        value={username}
-        onChangeText={setUsername}
-      />
-
-      <Text className="text-2xl">Email</Text>
-      <TextInput
-        className="border w-3/4 p-2 my-4"
-        placeholder="Enter your email"
-        value={email}
-        onChangeText={setEmail}
-      />
-
-      <Text className="text-2xl">Password</Text>
-      <TextInput
-        className="border w-3/4 p-2 my-4"
-        placeholder="Enter your password"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-
-      <TouchableOpacity
-        className="bg-gray-500 px-8 py-3 rounded-full mt-4"
-        onPress={handleRegister}
-      >
-        <Text className="text-white text-lg">Create Account</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity className="mt-4" onPress={() => router.push("./login")}>
-        <Text className="text-blue-500">Already have an account?</Text>
-      </TouchableOpacity>
-
-      {loading && (
-        <View className="absolute inset-0 bg-black/40 justify-center items-center">
-          <ActivityIndicator size="large" color="#fff" />
-          <Text className="text-white mt-2">Please wait...</Text>
+    <ScrollView className="flex-1 bg-gradient-to-br from-base-200 to-base-300" data-theme="light">
+      <View className="flex-1 justify-center px-8 py-12">
+        {/* Header */}
+        <View className="items-center mb-12">
+          <View className="w-20 h-20 bg-primary rounded-full items-center justify-center mb-4 shadow-lg">
+            <Text className="text-white font-bold text-3xl">L</Text>
+          </View>
+          <Text className="text-4xl font-bold text-base-content mb-2">Join Lifora</Text>
+          <Text className="text-lg text-base-content/60 text-center">
+            Transform your wellness journey today
+          </Text>
         </View>
-      )}
-    </View>
+
+        {/* Google Sign-Up Button */}
+        <TouchableOpacity
+          className="btn btn-outline w-full mb-6"
+          onPress={handleGoogleSignIn}
+        >
+          <View className="w-6 h-6 bg-red-500 rounded-full mr-3" />
+          <Text className="text-base-content text-lg font-medium">Sign up with Google</Text>
+        </TouchableOpacity>
+
+        {/* Divider */}
+        <View className="divider">OR</View>
+
+        {/* Form */}
+        <View className="space-y-4">
+          <View>
+            <Text className="text-base-content text-lg font-medium mb-2">Username</Text>
+            <TextInput
+              className="input input-bordered w-full bg-base-100 text-base-content placeholder:text-base-content/60"
+              placeholder="Enter your username"
+              placeholderTextColor="#9CA3AF"
+              value={username}
+              onChangeText={setUsername}
+            />
+          </View>
+
+          <View>
+            <Text className="text-base-content text-lg font-medium mb-2">Email</Text>
+            <TextInput
+              className="input input-bordered w-full bg-base-100 text-base-content placeholder:text-base-content/60"
+              placeholder="Enter your email"
+              placeholderTextColor="#9CA3AF"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+          </View>
+
+          <View>
+            <Text className="text-base-content text-lg font-medium mb-2">Password</Text>
+            <TextInput
+              className="input input-bordered w-full bg-base-100 text-base-content placeholder:text-base-content/60"
+              placeholder="Enter your password"
+              placeholderTextColor="#9CA3AF"
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+            />
+          </View>
+        </View>
+
+        {/* Create Account Button */}
+        <TouchableOpacity
+          className="btn btn-primary w-full mt-8"
+          onPress={handleRegister}
+        >
+          <Text className="text-white text-lg font-bold text-center">Create Account</Text>
+        </TouchableOpacity>
+
+        {/* Login Link */}
+        <TouchableOpacity className="mt-6 items-center" onPress={() => router.push("./login")}>
+          <Text className="text-primary text-lg">
+            Already have an account? <Text className="font-bold">Sign In</Text>
+          </Text>
+        </TouchableOpacity>
+
+        {/* Loading Overlay */}
+        {loading && (
+          <View className="absolute inset-0 bg-black/40 justify-center items-center">
+            <View className="card bg-base-100 p-8 items-center shadow-2xl">
+              <ActivityIndicator size="large" color="#3B82F6" />
+              <Text className="text-base-content mt-4 text-lg font-medium">
+                Creating your account...
+              </Text>
+            </View>
+          </View>
+        )}
+      </View>
+    </ScrollView>
   );
 }
