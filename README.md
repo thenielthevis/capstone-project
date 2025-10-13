@@ -1,6 +1,6 @@
-# FutureProof Capstone Project
+# Lifora Capstone Project
 
-FutureProof is an innovative application that combines the features of Strava and Pou to help users track and improve their well-being. The app reflects the user's self-care through a virtual character that evolves based on recorded activities, food intake, and other lifestyle choices.
+Lifora is an innovative application that combines the features of Strava and Pou to help users track and improve their well-being. The app reflects the user's self-care through a virtual character that evolves based on recorded activities, food intake, and other lifestyle choices.
 
 ## Key Functionalities
 
@@ -33,6 +33,6 @@ FutureProof is an innovative application that combines the features of Strava an
 
 ## Project Overview
 
-FutureProof motivates users to take care of themselves by making healthy choices visible and rewarding. The more users engage in positive activities and habits, the healthier and happier their virtual character becomes.
+Lifora motivates users to take care of themselves by making healthy choices visible and rewarding. The more users engage in positive activities and habits, the healthier and happier their virtual character becomes.
 
 ---

@@ -9,7 +9,7 @@ export const handleGoogleSignInShared = async ({
   router,
 }: {
   setLoading: (val: boolean) => void;
-  onSuccess?: () => void;
+  onSuccess?: (response?: any) => void;
   onError?: (err: any) => void;
   router: any;
 }) => {
@@ -46,7 +46,6 @@ export const handleGoogleSignInShared = async ({
       console.warn("Mongo save failed:", dbErr?.message);
     }
     if (onSuccess) onSuccess();
-    router.push("/");
   } catch (error: any) {
     if (error.code === statusCodes.SIGN_IN_CANCELLED) return;
     if (onError) onError(error);

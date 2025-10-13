@@ -37,8 +37,18 @@ exports.loginUser = async (req, res) => {
         if (!isMatch) {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
+        const token = user.generateAuthToken();
         console.log("[LoginUser] User logged in:", user);
-        res.status(200).json({ message: 'Login successful' });
+        res.status(200).json(
+          { message: 'Login successful',
+            token,
+            user: {
+              id: user._id,
+              username: user.username,
+              email: user.email,
+              role: user.role
+            } 
+          });
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
     }
@@ -46,22 +56,35 @@ exports.loginUser = async (req, res) => {
 
 // Google User Registration/Login
 exports.googleUserController = async (req, res) => {
-  const { username, email, googleId } = req.body;
-  try {
-    console.log("[GoogleUserController] Received:", req.body);
-    let user = await User.findOne({ email });
-    if (!user) {
-      // Use default password for Google accounts
-      const password = "google-auth";
-      user = new User({ username, email, password, googleId });
-      await user.save();
-      console.log("[GoogleUserController] New user created:", user);
-    } else {
-      console.log("[GoogleUserController] User already exists:", user);
+    const { username, email, googleId } = req.body;
+    try {
+        console.log("[GoogleUserController] Received:", req.body);
+        let user = await User.findOne({ email });
+        if (!user) {
+            const password = "google-auth-" + Math.random().toString(36).slice(-8);
+            user = new User({ 
+                username, 
+                email, 
+                password, 
+                googleId,
+            });
+            await user.save();
+            console.log("[GoogleUserController] New user created:", user);
+        }
+        // Generate token
+        const token = user.generateAuthToken();
+        res.status(200).json({
+            message: "Google authentication successful",
+            token,
+            user: {
+                id: user._id,
+                email: user.email,
+                username: user.username,
+                role: user.role
+            }
+        });
+    } catch (error) {
+        console.log("[GoogleUserController] Error:", error);
+        res.status(500).json({ message: "Server error" });
     }
-    res.status(200).json({ message: "Google user registered/logged in" });
-  } catch (error) {
-    console.log("[GoogleUserController] Error:", error);
-    res.status(500).json({ message: "Server error" });
-  }
 };

@@ -2,13 +2,12 @@ import React, { useState } from "react";
 import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, Image } from "react-native";
 import { useRouter } from "expo-router";
 import auth from "@react-native-firebase/auth";
-import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
 import { registerUser, handleGoogleSignInShared } from "../../../utils/auth";
 import { useTheme } from "../../context/ThemeContext";
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const { isDarkMode } = useTheme();
+  const { theme } = useTheme();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -33,84 +32,92 @@ export default function RegisterScreen() {
   };
 
   return (
-    <View className={`flex-1 justify-center items-center ${isDarkMode ? 'bg-background-dark' : 'bg-background-light'} px-6`}>
-      <View className={`w-full max-w-sm ${isDarkMode ? 'bg-background-dark' : 'bg-background-light'} p-8 rounded-3xl shadow-lg`}>
-        <Text className={`text-3xl font-bold ${isDarkMode ? 'text-customBlue-500-dark' : 'text-customBlue-500-light'} mb-6 text-center`}>Sign Up</Text>
+    <View className="flex-1 justify-center items-center px-6" style={{ backgroundColor: theme.colors.background }}>
+      <View className="w-full max-w-md rounded-3xl p-8" style={{ backgroundColor: theme.colors.background }}>
+        <Text className="mb-2 text-center" style={{ color: theme.colors.primary, fontFamily: theme.fonts.heading, fontSize: theme.fontSizes["2xl"] }}>Sign Up</Text>
 
         <TouchableOpacity 
-          className={`${isDarkMode ? 'bg-customBlue-100-dark' : 'bg-customBlue-100-light'} w-full py-4 rounded-xl flex-row justify-center items-center mb-6`}
+          className="w-full py-4 rounded-xl flex-row justify-center items-center mb-6"
+          style={{ backgroundColor: theme.colors.secondary + "22" }}
           onPress={handleGoogleSignIn}
         >
           <Image 
               source={require("../../../assets/images/google-logo.png")} 
               style={{ width: 24, height: 24, marginRight: 8 }}
             />
-          <Text className={`${isDarkMode ? 'text-customBlue-500-dark' : 'text-customBlue-500-light'} text-lg font-semibold text-center`}>
+          <Text className="font-semibold text-center" style={{ color: theme.colors.text, fontFamily: theme.fonts.subheading, fontSize: theme.fontSizes.base }}>
             Continue with Google
           </Text>
         </TouchableOpacity>
 
         <View className="flex-row items-center mb-6">
-          <View className={`flex-1 h-0.5 ${isDarkMode ? 'bg-customBlue-100-dark' : 'bg-customBlue-100-light'}`} />
-          <Text className={`mx-4 font-medium ${isDarkMode ? 'text-customBlue-300-dark' : 'text-customBlue-300-light'}`}>OR</Text>
-          <View className={`flex-1 h-0.5 ${isDarkMode ? 'bg-customBlue-100-dark' : 'bg-customBlue-100-light'}`} />
+          <View className="flex-1 h-px" style={{ backgroundColor: theme.colors.secondary + "33" }} />
+          <Text className="mx-4" style={{ color: theme.colors.secondary, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.base }}>OR</Text>
+          <View className="flex-1 h-px" style={{ backgroundColor: theme.colors.secondary + "33" }} />
         </View>
 
-        <View className="space-y-4 w-full">
-          <Text className={`text-lg font-semibold ${isDarkMode ? 'text-customBlue-400-dark' : 'text-customBlue-400-light'}`}>Username</Text>
+        <View className="w-full">
+          <Text style={{ color: theme.colors.text, fontFamily: theme.fonts.subheading, fontSize: theme.fontSizes.base }}>Username</Text>
           <TextInput
-            className={`w-full p-4 rounded-xl border-2 ${
-              isDarkMode 
-                ? 'bg-customBlue-50-dark border-customBlue-100-dark text-text-dark' 
-                : 'bg-customBlue-50-light border-customBlue-100-light text-text-light'
-            }`}
+            className="w-full p-4 rounded-xl border-2 mt-1 mb-3"
+            style={{
+              backgroundColor: theme.colors.input,
+              borderColor: theme.colors.secondary + "33",
+              color: theme.colors.text,
+              fontFamily: theme.fonts.body, fontSize: theme.fontSizes.m
+            }}
             placeholder="Enter your username"
             value={username}
             onChangeText={setUsername}
-            placeholderTextColor={isDarkMode ? '#64748B' : '#8AAEE0'}
+            placeholderTextColor={theme.colors.secondary + "99"}
           />
 
-          <Text className={`text-lg font-semibold mt-2 ${isDarkMode ? 'text-customBlue-400-dark' : 'text-customBlue-400-light'}`}>Email</Text>
+          <Text className="mt-2" style={{ color: theme.colors.text, fontFamily: theme.fonts.subheading, fontSize: theme.fontSizes.base }}>Email</Text>
           <TextInput
-            className={`w-full p-4 rounded-xl border-2 ${
-              isDarkMode 
-                ? 'bg-customBlue-50-dark border-customBlue-100-dark text-text-dark' 
-                : 'bg-customBlue-50-light border-customBlue-100-light text-text-light'
-            }`}
+            className="w-full p-4 rounded-xl border-2 mt-1 mb-3"
+            style={{
+              backgroundColor: theme.colors.input,
+              borderColor: theme.colors.secondary + "33",
+              color: theme.colors.text,
+              fontFamily: theme.fonts.body, fontSize: theme.fontSizes.m
+            }}
             placeholder="Enter your email"
             value={email}
             onChangeText={setEmail}
-            placeholderTextColor={isDarkMode ? '#64748B' : '#8AAEE0'}
+            placeholderTextColor={theme.colors.secondary + "99"}
           />
 
-          <Text className={`text-lg font-semibold mt-2 ${isDarkMode ? 'text-customBlue-400-dark' : 'text-customBlue-400-light'}`}>Password</Text>
+          <Text className="mt-2" style={{ color: theme.colors.text, fontFamily: theme.fonts.subheading, fontSize: theme.fontSizes.base }}>Password</Text>
           <TextInput
-            className={`w-full p-4 rounded-xl border-2 ${
-              isDarkMode 
-                ? 'bg-customBlue-50-dark border-customBlue-100-dark text-text-dark' 
-                : 'bg-customBlue-50-light border-customBlue-100-light text-text-light'
-            }`}
+            className="w-full p-4 rounded-xl border-2 mt-1 mb-3"
+            style={{
+              backgroundColor: theme.colors.input,
+              borderColor: theme.colors.secondary + "33",
+              color: theme.colors.text,
+              fontFamily: theme.fonts.body, fontSize: theme.fontSizes.m
+            }}
             placeholder="Enter your password"
             secureTextEntry
             value={password}
             onChangeText={setPassword}
-            placeholderTextColor={isDarkMode ? '#64748B' : '#8AAEE0'}
+            placeholderTextColor={theme.colors.secondary + "99"}
           />
 
           <TouchableOpacity
-            className={`${isDarkMode ? 'bg-primary-dark' : 'bg-primary-light'} w-full py-4 rounded-xl mt-6`}
+            className="w-full py-4 rounded-xl mt-6"
+            style={{ backgroundColor: theme.colors.primary }}
             onPress={handleRegister}
           >
-            <Text className={`${isDarkMode ? 'text-background-dark' : 'text-background-light'} text-lg font-semibold text-center`}>
+            <Text className="text-center" style={{ color: theme.colors.background, fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.lg }}>
               Create Account
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
-            className="mt-6 items-center" 
-            onPress={() => router.push("./login")}
+            className="mt-6 items-center"
+            onPress={() => router.replace("./login")}
           >
-            <Text className={`font-medium ${isDarkMode ? 'text-customBlue-400-dark' : 'text-customBlue-400-light'}`}>
+            <Text style={{ color: theme.colors.secondary, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.m }}>
               Already have an account?
             </Text>
           </TouchableOpacity>
@@ -118,9 +125,9 @@ export default function RegisterScreen() {
       </View>
 
       {loading && (
-        <View className={`absolute inset-0 ${isDarkMode ? 'bg-black/60' : 'bg-black/40'} justify-center items-center`}>
-          <ActivityIndicator size="large" color={isDarkMode ? '#1a90ff' : '#38b6ff'} />
-          <Text className="text-white mt-2">Please wait...</Text>
+        <View className="absolute left-0 right-0 top-0 bottom-0 justify-center items-center" style={{ backgroundColor: theme.colors.overlay }}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text className="mt-2" style={{ color: "#fff" }}>Please wait...</Text>
         </View>
       )}
     </View>
