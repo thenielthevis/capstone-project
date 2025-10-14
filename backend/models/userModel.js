@@ -14,7 +14,8 @@ const userSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: true
+        required: true,
+        minLength: 6
     },
     role: {
         type: String,
@@ -45,20 +46,18 @@ const userSchema = new mongoose.Schema({
     age: {
         type: Number,
         min: 13,
-        required: true
     },
     gender: {
         type: String,
         enum: ['male', 'female', 'other'],
-        required: true
     },
     // Physical Metrics
     physicalMetrics: {
         height: {
-            value: { type: Number, required: true }, // in cm
+            value: { type: Number}, // in cm
         },
         weight: {
-            value: { type: Number, required: true }, // in kg
+            value: { type: Number}, // in kg
         },
         bmi: { type: Number }, // Can be calculated automatically
         waistCircumference: { type: Number }, // Important for metabolic risk assessment
@@ -68,7 +67,6 @@ const userSchema = new mongoose.Schema({
         activityLevel: {
             type: String,
             enum: ['sedentary', 'lightly_active', 'moderately_active', 'very_active', 'extremely_active'],
-            required: true
         },
         sleepHours: { type: Number }, // Average hours of sleep per night
     },

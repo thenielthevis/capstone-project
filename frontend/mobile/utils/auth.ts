@@ -1,5 +1,26 @@
 import auth from "@react-native-firebase/auth";
 import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
+import axios from "axios";
+
+export const API_URL = process.env.EXPO_PUBLIC_API_URL;
+
+// Fix: Add profilePicture to the type definition for userInfo
+export const registerGoogleUser = async (userInfo: { username: string; email: string; googleId: string; profilePicture?: string }) => {
+  return axios.post(`${API_URL}/users/google`, {
+    username: userInfo.username,
+    email: userInfo.email,
+    googleId: userInfo.googleId,
+    profilePicture: userInfo.profilePicture,
+  });
+};
+
+export const registerUser = async (username: string, email: string, password: string) => {
+  return axios.post(`${API_URL}/users/register`, { username, email, password });
+};
+
+export const loginUser = async (email: string, password: string) => {
+  return axios.post(`${API_URL}/users/login`, { email, password });
+};
 
 // Shared Google Sign-In handler
 export const handleGoogleSignInShared = async ({
@@ -25,6 +46,7 @@ export const handleGoogleSignInShared = async ({
     const googleUser = await GoogleSignin.signIn();
     const googleUserAny: any = googleUser;
     const user = googleUserAny.data?.user;
+    const profilePicture = user?.photo || user?.photoURL || null;
     const idToken = googleUserAny.data?.idToken;
 
     if (!idToken) {
@@ -35,17 +57,18 @@ export const handleGoogleSignInShared = async ({
     const googleCredential = auth.GoogleAuthProvider.credential(idToken);
     await auth().signInWithCredential(googleCredential);
 
-    // Optionally, save to MongoDB via backend
+    let backendResponse = null;
     try {
-      await registerGoogleUser({
-        username: user?.name || "Google User",
+      backendResponse = await registerGoogleUser({
+        username: user?.name || user?.givenName || "Google User",
         email: user?.email,
         googleId: user?.id,
+        profilePicture,
       });
     } catch (dbErr: any) {
       console.warn("Mongo save failed:", dbErr?.message);
     }
-    if (onSuccess) onSuccess();
+    if (onSuccess) onSuccess(backendResponse);
   } catch (error: any) {
     if (error.code === statusCodes.SIGN_IN_CANCELLED) return;
     if (onError) onError(error);
@@ -53,26 +76,4 @@ export const handleGoogleSignInShared = async ({
   } finally {
     setLoading(false);
   }
-};
-
-// utils/api.ts -----------------------------------------------------------------------
-import axios from "axios";
-
-export const API_URL = process.env.EXPO_PUBLIC_API_URL;
-
-export const registerUser = async (username: string, email: string, password: string) => {
-  return axios.post(`${API_URL}/users/register`, { username, email, password });
-};
-
-export const loginUser = async (email: string, password: string) => {
-  return axios.post(`${API_URL}/users/login`, { email, password });
-};
-
-export const registerGoogleUser = async (userInfo: { username: string; email: string; googleId: string }) => {
-  return axios.post(`${API_URL}/users/google`, {
-    username: userInfo.username,
-    email: userInfo.email,
-    password: "google-oauth",
-    googleId: userInfo.googleId,
-  });
 };

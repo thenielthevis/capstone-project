@@ -1,31 +1,74 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, Image } from "react-native";
+import { View, Text, ActivityIndicator, Image, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
-import auth from "@react-native-firebase/auth";
+import { tokenStorage } from "@/utils/tokenStorage";
 import { registerUser, handleGoogleSignInShared } from "../../../utils/auth";
 import { useTheme } from "../../context/ThemeContext";
+import { TextInput, Button, IconButton } from "react-native-paper";
+import { useUser } from "../../context/UserContext";
 
 export default function RegisterScreen() {
   const router = useRouter();
   const { theme } = useTheme();
+  const { setUser } = useUser();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Email validation helper
+  const isValidEmail = (email: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   // Google Sign-In Handler (shared)
   const handleGoogleSignIn = () =>
-    handleGoogleSignInShared({ setLoading, router });
+    handleGoogleSignInShared({
+      setLoading,
+      router,
+      onSuccess: async (response) => {
+        if (response?.data?.user) {
+          setUser(response.data.user); // Save user globally
+          await tokenStorage.saveToken(response.data.token);
+          await tokenStorage.saveUser(response.data.user);
+          router.dismissAll();
+          router.replace("../../(tabs)/Home");
+        }
+      },
+      onError: (error) => {
+        setError("Google Sign-In failed. Try again.");
+      },
+    });
 
   // Normal registration
   const handleRegister = async () => {
+    setError(null);
+    if (!username.trim()) {
+      setError("Username is required.");
+      return;
+    }
+    if (!isValidEmail(email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
     try {
       setLoading(true);
-      const response = await registerUser(username, email, password);
-      await auth().createUserWithEmailAndPassword(email, password);
-      console.log("Firebase email/password sign-up successful");
+      await registerUser(username, email, password);
+      router.replace("./login");
     } catch (err: any) {
-      console.log("Registration Failed", err);
+      setError("Registration failed. Please try again.");
+      console.log("Registration Error:", err);
     } finally {
       setLoading(false);
     }
@@ -36,19 +79,21 @@ export default function RegisterScreen() {
       <View className="w-full max-w-md rounded-3xl p-8" style={{ backgroundColor: theme.colors.background }}>
         <Text className="mb-2 text-center" style={{ color: theme.colors.primary, fontFamily: theme.fonts.heading, fontSize: theme.fontSizes["2xl"] }}>Sign Up</Text>
 
-        <TouchableOpacity 
-          className="w-full py-4 rounded-xl flex-row justify-center items-center mb-6"
-          style={{ backgroundColor: theme.colors.secondary + "22" }}
-          onPress={handleGoogleSignIn}
-        >
-          <Image 
-              source={require("../../../assets/images/google-logo.png")} 
+        <Button
+          mode="outlined"
+          icon={() => (
+            <Image
+              source={require("../../../assets/images/google-logo.png")}
               style={{ width: 24, height: 24, marginRight: 8 }}
             />
-          <Text className="font-semibold text-center" style={{ color: theme.colors.text, fontFamily: theme.fonts.subheading, fontSize: theme.fontSizes.base }}>
-            Continue with Google
-          </Text>
-        </TouchableOpacity>
+          )}
+          style={{ borderRadius: 12, borderColor: theme.colors.secondary + "22", marginBottom: 8 }}
+          labelStyle={{ color: theme.colors.text, fontFamily: theme.fonts.subheading, fontSize: theme.fontSizes.base }}
+          onPress={handleGoogleSignIn}
+          disabled={loading}
+        >
+          Continue with Google
+        </Button>
 
         <View className="flex-row items-center mb-6">
           <View className="flex-1 h-px" style={{ backgroundColor: theme.colors.secondary + "33" }} />
@@ -57,63 +102,88 @@ export default function RegisterScreen() {
         </View>
 
         <View className="w-full">
-          <Text style={{ color: theme.colors.text, fontFamily: theme.fonts.subheading, fontSize: theme.fontSizes.base }}>Username</Text>
           <TextInput
-            className="w-full p-4 rounded-xl border-2 mt-1 mb-3"
-            style={{
-              backgroundColor: theme.colors.input,
-              borderColor: theme.colors.secondary + "33",
-              color: theme.colors.text,
-              fontFamily: theme.fonts.body, fontSize: theme.fontSizes.m
-            }}
-            placeholder="Enter your username"
+            label="Username"
+            mode="outlined"
             value={username}
             onChangeText={setUsername}
-            placeholderTextColor={theme.colors.secondary + "99"}
+            style={{ marginBottom: 12, backgroundColor: theme.colors.input }}
+            error={!!error && error.toLowerCase().includes("username")}
+            theme={{ colors: { primary: theme.colors.primary } }}
+            autoCapitalize="none"
+            textColor={theme.colors.text}
+            placeholder="Enter your username"
+            right={undefined}
           />
-
-          <Text className="mt-2" style={{ color: theme.colors.text, fontFamily: theme.fonts.subheading, fontSize: theme.fontSizes.base }}>Email</Text>
           <TextInput
-            className="w-full p-4 rounded-xl border-2 mt-1 mb-3"
-            style={{
-              backgroundColor: theme.colors.input,
-              borderColor: theme.colors.secondary + "33",
-              color: theme.colors.text,
-              fontFamily: theme.fonts.body, fontSize: theme.fontSizes.m
-            }}
-            placeholder="Enter your email"
+            label="Email"
+            mode="outlined"
             value={email}
             onChangeText={setEmail}
-            placeholderTextColor={theme.colors.secondary + "99"}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            style={{ marginBottom: 12, backgroundColor: theme.colors.input }}
+            error={!!error && error.toLowerCase().includes("email")}
+            theme={{ colors: { primary: theme.colors.primary } }}
+            textColor={theme.colors.text}
+            placeholder="Enter your email"
+            right={undefined}
           />
-
-          <Text className="mt-2" style={{ color: theme.colors.text, fontFamily: theme.fonts.subheading, fontSize: theme.fontSizes.base }}>Password</Text>
           <TextInput
-            className="w-full p-4 rounded-xl border-2 mt-1 mb-3"
-            style={{
-              backgroundColor: theme.colors.input,
-              borderColor: theme.colors.secondary + "33",
-              color: theme.colors.text,
-              fontFamily: theme.fonts.body, fontSize: theme.fontSizes.m
-            }}
-            placeholder="Enter your password"
-            secureTextEntry
+            label="Password"
+            mode="outlined"
             value={password}
             onChangeText={setPassword}
-            placeholderTextColor={theme.colors.secondary + "99"}
+            secureTextEntry={!showPassword}
+            style={{ marginBottom: 12, backgroundColor: theme.colors.input }}
+            error={!!error && error.toLowerCase().includes("password")}
+            theme={{ colors: { primary: theme.colors.primary } }}
+            textColor={theme.colors.text}
+            placeholder="Enter your password"
+            right={
+              <TextInput.Icon
+                icon={showPassword ? "eye-off" : "eye"}
+                onPress={() => setShowPassword((prev) => !prev)}
+                forceTextInputFocus={false}
+              />
+            }
+          />
+          <TextInput
+            label="Confirm Password"
+            mode="outlined"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry={!showConfirmPassword}
+            style={{ marginBottom: 12, backgroundColor: theme.colors.input }}
+            error={!!error && error.toLowerCase().includes("match")}
+            theme={{ colors: { primary: theme.colors.primary } }}
+            textColor={theme.colors.text}
+            placeholder="Re-enter your password"
+            right={
+              <TextInput.Icon
+                icon={showConfirmPassword ? "eye-off" : "eye"}
+                onPress={() => setShowConfirmPassword((prev) => !prev)}
+                forceTextInputFocus={false}
+              />
+            }
           />
 
-          <TouchableOpacity
-            className="w-full py-4 rounded-xl mt-6"
-            style={{ backgroundColor: theme.colors.primary }}
-            onPress={handleRegister}
-          >
-            <Text className="text-center" style={{ color: theme.colors.background, fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.lg }}>
-              Create Account
-            </Text>
-          </TouchableOpacity>
+          {error && (
+            <Text style={{ color: "red", marginBottom: 8, fontFamily: theme.fonts.body }}>{error}</Text>
+          )}
 
-          <TouchableOpacity 
+          <Button
+            mode="contained"
+            style={{ marginTop: 8, borderRadius: 12, backgroundColor: theme.colors.primary }}
+            labelStyle={{ color: theme.colors.background, fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.lg }}
+            onPress={handleRegister}
+            loading={loading}
+            disabled={loading}
+          >
+            Create Account
+          </Button>
+
+          <TouchableOpacity
             className="mt-6 items-center"
             onPress={() => router.replace("./login")}
           >

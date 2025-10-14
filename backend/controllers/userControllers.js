@@ -1,4 +1,5 @@
 const User = require('../models/userModel');
+const { uploadProfilePicture } = require('../utils/cloudinary');
 
 //User Registration
 exports.registerUser = async (req, res) => {
@@ -39,6 +40,7 @@ exports.loginUser = async (req, res) => {
         }
         const token = user.generateAuthToken();
         console.log("[LoginUser] User logged in:", user);
+        console.log("[LoginUser] Generated token:", token);
         res.status(200).json(
           { message: 'Login successful',
             token,
@@ -56,10 +58,19 @@ exports.loginUser = async (req, res) => {
 
 // Google User Registration/Login
 exports.googleUserController = async (req, res) => {
-    const { username, email, googleId } = req.body;
+    const { username, email, googleId, profilePicture } = req.body;
     try {
-        console.log("[GoogleUserController] Received:", req.body);
         let user = await User.findOne({ email });
+        let cloudinaryUrl = null;
+
+        if (profilePicture) {
+            try {
+                const uploadResult = await uploadProfilePicture(profilePicture, googleId);
+                cloudinaryUrl = uploadResult.secure_url;
+            } catch (err) {
+                console.warn("Cloudinary upload failed:", err.message);
+            }
+        }
         if (!user) {
             const password = "google-auth-" + Math.random().toString(36).slice(-8);
             user = new User({ 
@@ -67,12 +78,21 @@ exports.googleUserController = async (req, res) => {
                 email, 
                 password, 
                 googleId,
+                profilePicture: cloudinaryUrl || null,
             });
             await user.save();
-            console.log("[GoogleUserController] New user created:", user);
+        } else {
+            if (!user.googleId && googleId) {
+                user.googleId = googleId;
+            }
+            if (cloudinaryUrl && !user.profilePicture) {
+                user.profilePicture = cloudinaryUrl;
+            }
+            await user.save();
         }
-        // Generate token
         const token = user.generateAuthToken();
+        console.log("[LoginUser] User logged in:", user);
+        console.log("[LoginUser] Generated token:", token);
         res.status(200).json({
             message: "Google authentication successful",
             token,
@@ -80,7 +100,8 @@ exports.googleUserController = async (req, res) => {
                 id: user._id,
                 email: user.email,
                 username: user.username,
-                role: user.role
+                role: user.role,
+                profilePicture: user.profilePicture
             }
         });
     } catch (error) {

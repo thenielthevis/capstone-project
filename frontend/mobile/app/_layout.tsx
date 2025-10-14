@@ -1,5 +1,6 @@
 import { Stack } from "expo-router";
 import { ThemeProvider } from './context/ThemeContext';
+import { UserProvider } from './context/UserContext';
 import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
@@ -30,11 +31,13 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider>
-      <Stack
-        screenOptions={{
-          headerShown: false,
-        }}
-      />
+      <UserProvider>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+          }}
+        />
+      </UserProvider>
     </ThemeProvider>
   );
 }
