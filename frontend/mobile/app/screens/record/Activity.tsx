@@ -5,17 +5,26 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Animated,
+  Text
 } from "react-native";
-import MapLibreGL from "@maplibre/maplibre-react-native";
+import MapLibreGL, {Logger} from "@maplibre/maplibre-react-native";
 import * as Location from "expo-location";
 import Constants from "expo-constants";
 import { Ionicons } from "@expo/vector-icons";
+import ActivityDrawer from "../../components/ActivityDrawer";
+
+Logger.setLogCallback(log => {
+  const { message } = log;
+    if (  message.match('Request failed due to a permanent error: Canceled')  ) {
+        return true;
+      }
+        return false;
+});
 
 // safer Constants access (fixes common runtime/manifest differences)
 const MAPTILER_KEY =
   Constants?.expoConfig?.extra?.MAPTILER_KEY ||
   process.env.EXPO_PUBLIC_MAPTILER_KEY;
-console.log("MAPTILER_KEY:", MAPTILER_KEY);
 
 export default function TestMap() {
   const [location, setLocation] = useState<[number, number] | null>(null);
@@ -238,51 +247,38 @@ export default function TestMap() {
         style={styles.map}
         mapStyle={`https://api.maptiler.com/maps/streets-v4/style.json?key=${MAPTILER_KEY}`}
         compassEnabled={false}
-        logoEnabled={false}
+        logoEnabled={true}
         rotateEnabled={true}
         pitchEnabled={true}
         onRegionWillChange={onRegionWillChange}
-        // if user touches the map, immediately stop following so they can explore
         onPress={() => {
           if (!isProgrammaticRef.current) setFollowing(false);
         }}
       >
         <MapLibreGL.Camera
           ref={cameraRef}
-          zoomLevel={15}
+          zoomLevel={19}
           centerCoordinate={location}
           animationMode="flyTo"
-          // when following is true, camera is actively moved by watchers above
+          pitch={80}
         />
-
-        {/* remove native blue dot to avoid duplicate markers */}
         <MapLibreGL.UserLocation visible={false} showsUserHeadingIndicator={false} />
-
-        {/* Single custom marker + accuracy/ring.
-            Rotate the whole wrapper with the current heading so "front" triangle points forward. */}
         <MapLibreGL.PointAnnotation id="user-location" coordinate={location}>
           <Animated.View
             style={[
               styles.markerWrapper,
-              { transform: [{ rotate: `${heading}deg` }] }, // immediate rotation for marker front
+              { transform: [{ rotate: `${heading}deg` }] },
             ]}
           >
-            {/* accuracy / covering circle (behind marker) */}
             <View style={styles.accuracyCircle} />
-
-            {/* main circular body */}
             <View style={[styles.markerOuter, following ? styles.markerActive : null]}>
-              {/* small center dot */}
               <View style={styles.markerCenter} />
             </View>
-
-            {/* front-facing triangle (light-like pointer) */}
             <View style={styles.markerPointer} />
           </Animated.View>
         </MapLibreGL.PointAnnotation>
       </MapLibreGL.MapView>
 
-      {/* Single dual-purpose floating compass button (top-right) */}
       <View style={styles.topRightContainer} pointerEvents="box-none">
         <TouchableOpacity
           onPress={handlePrimaryButton}
@@ -298,6 +294,7 @@ export default function TestMap() {
           </Animated.View>
         </TouchableOpacity>
       </View>
+      <ActivityDrawer />
     </View>
   );
 }
