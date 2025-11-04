@@ -33,7 +33,7 @@ export default function Header({
         height: 64,
         shadowOpacity: 0.1,
         shadowRadius: 10,
-        borderBottomColor: theme.colors.secondary + "33",
+        borderBottomColor: theme.colors.secondary + "11",
         borderBottomWidth: 1,
         shadowColor: "#000",
         paddingHorizontal: 16,
