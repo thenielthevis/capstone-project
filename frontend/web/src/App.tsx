@@ -1,18 +1,27 @@
 import { Routes, Route } from 'react-router-dom';
-import Footer from './components/Footer';
 import Landing from './pages/Landing';
-import './App.css';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Dashboard from './pages/Dashboard';
+import TermsAndConditions from './pages/TermsAndConditions';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
-    <div className="flex flex-col min-h-screen w-full bg-[#F0F3FA]">
-      <div className="flex-grow">
-        <Routes>
-          <Route path="/" element={<Landing />} />
-        </Routes>
-      </div>
-      <Footer />
-    </div>
+    <Routes>
+      <Route path="/" element={<Landing />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/terms" element={<TermsAndConditions />} />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+    </Routes>
   );
 }
 

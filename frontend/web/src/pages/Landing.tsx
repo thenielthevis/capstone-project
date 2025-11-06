@@ -1,44 +1,74 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 import './Landing.css';
+import { 
+  MapPin, 
+  Users, 
+  Camera, 
+  TrendingUp, 
+  Award,
+  Mail,
+  Phone,
+  MapPinIcon,
+  Menu,
+  X
+} from 'lucide-react';
 
-// Data para sa Features Section
+// Data for Features Section
 const featuresData = [
   { 
-    title: "Gamified", 
-    description: "Engage in a fun, interactive experience that turns health goals into rewarding challenges.", 
+    title: "Smart Tracking", 
+    description: "GPS-powered activity monitoring to track your wellness journey wherever you go.", 
+    icon: MapPin,
     img: "/src/assets/features/gamified.gif" 
   },
   { 
-    title: "Nutritional Tracking", 
-    description: "Easily track your daily food intake and gain valuable insights into your nutrition.", 
+    title: "AI Insights", 
+    description: "Personalized health analytics powered by artificial intelligence to guide your progress.", 
+    icon: TrendingUp,
     img: "/src/assets/features/nutrition.gif" 
   },
   { 
-    title: "Daily Assessment", 
-    description: "Receive personalized daily assessments to monitor your progress and identify health trends.", 
+    title: "Smart Recognition", 
+    description: "Automatic food & activity logging using advanced image recognition technology.", 
+    icon: Camera,
+    img: "/src/assets/features/assessment.gif" 
+  },
+  { 
+    title: "Community Support", 
+    description: "Connect with like-minded individuals and achieve your goals together.", 
+    icon: Users,
     img: "/src/assets/features/assessment.gif" 
   }
 ];
 
+// Import images properly using explicit imports with ?url or dynamic imports
+import logoImg from '../assets/logo.png';
+import team1Img from '../assets/member/team1.jpg';
+import team2Img from '../assets/member/team2.jpg';
+import team3Img from '../assets/member/team3.png';
+import team4Img from '../assets/member/team4.jpg';
+
 const images = {
-  logo: './src/assets/logo.png',
+  logo: logoImg,
   team: {
-    member1: './src/assets/member/team1.jpg',
-    member2: './src/assets/member/team2.jpg',
-    member3: './src/assets/member/team3.png',
-    member4: './src/assets/member/team4.jpg',
-    professor: './src/assets/member/prof.jpg'
+    member1: team1Img,
+    member2: team2Img,
+    member3: team3Img,
+    member4: team4Img
   }
 };
 
 export default function Landing() {
   const [activeSection, setActiveSection] = useState('home');
-  const [showLogin, setShowLogin] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const scrollToSection = (sectionId) => {
+  const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     element?.scrollIntoView({ behavior: 'smooth' });
     setActiveSection(sectionId);
+    setMobileMenuOpen(false);
   };
 
   const teamMembers = [
@@ -48,122 +78,273 @@ export default function Landing() {
     { name: 'Daniel Davis', role: 'Full Stack Developer', img: images.team.member4 },
   ];
 
-  const professor = { name: 'Mrs. Madriaga Pops', role: 'Project Supervisor', img: images.team.professor };
-
   return (
-    <div className="min-h-screen w-full bg-[#F0F3FA] overflow-x-hidden">
-     
-      <header className="fixed w-full bg-[#395886] text-white z-50 py-1">
-        <div className="max-w-6xl mx-auto px-4 w-full">
-          <div className="flex justify-between items-center h-6">
-            <div className="flex items-center space-x-1.5">
-              <img 
-                src={images.logo} 
-                alt="Lifora Logo" 
-                className="h-3.5 w-3.5 object-contain"
-              />
-              <h1 className="text-sm font-semibold text-[#F0F3FA]">Lifora</h1>
+    <div className="min-h-screen bg-white">
+      {/* Header */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm">
+        <div className="container mx-auto px-6 lg:px-12">
+          <div className="flex items-center justify-between h-20">
+            {/* Logo */}
+            <div className="flex items-center gap-3">
+              <img src={images.logo} alt="Lifora Logo" className="w-10 h-10" />
+              <h1 className="text-2xl font-bold text-gray-900">Lifora</h1>
             </div>
-            <div className="flex items-center space-x-10">
-              {['home', 'features', 'about', 'contact'].map((item) => (
+
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center gap-8">
+              {[
+                { id: 'home', label: 'Home' },
+                { id: 'features', label: 'About Us' },
+                { id: 'contact', label: 'Contact' }
+              ].map((item) => (
                 <button
-                  key={item}
-                  onClick={() => scrollToSection(item)}
-                  className={`capitalize text-xs transition-colors ${
-                    activeSection === item 
-                      ? 'text-[#F0F3FA] border-b border-[#F0F3FA]' 
-                      : 'text-[#D5DEEF] hover:text-[#F0F3FA] border-b border-transparent'
+                  key={item.id}
+                  onClick={() => scrollToSection(item.id)}
+                  className={`text-sm font-medium transition-colors hover:text-blue-600 ${
+                    activeSection === item.id ? 'text-blue-600' : 'text-gray-700'
                   }`}
                 >
-                  {item}
+                  {item.label}
                 </button>
               ))}
-            </div>
-            <div className="flex items-center space-x-3">
-              <button 
-                onClick={() => setShowLogin(true)}
-                className={`px-3 py-0.5 rounded-full text-xs transition-colors ${
-                  showLogin 
-                    ? 'bg-[#F0F3FA] text-[#395886]' 
-                    : 'text-[#D5DEEF] hover:text-[#F0F3FA]'
-                }`}
+            </nav>
+
+            {/* Auth Buttons */}
+            <div className="hidden md:flex items-center gap-3">
+              <Button 
+                variant="ghost"
+                onClick={() => window.location.href = '/login'}
+                className="text-sm font-medium"
               >
                 Login
-              </button>
-              <button 
-                onClick={() => setShowLogin(false)}
-                className={`px-3 py-0.5 rounded-full text-xs transition-colors ${
-                  !showLogin 
-                    ? 'bg-[#F0F3FA] text-[#395886]' 
-                    : 'text-[#D5DEEF] hover:text-[#F0F3FA]'
-                }`}
+              </Button>
+              <Button 
+                onClick={() => window.location.href = '/register'}
+                className="text-sm font-medium bg-black hover:bg-gray-800 text-white rounded-full px-6"
               >
-                Register
-              </button>
+                Start for free
+              </Button>
             </div>
+
+            {/* Mobile Menu Button */}
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="md:hidden"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <X /> : <Menu />}
+            </Button>
           </div>
+
+          {/* Mobile Menu */}
+          {mobileMenuOpen && (
+            <div className="md:hidden py-4 border-t">
+              <nav className="flex flex-col gap-2">
+                {['Home', 'About Us', 'Contact'].map((item, index) => (
+                  <Button
+                    key={item}
+                    variant="ghost"
+                    onClick={() => scrollToSection(['home', 'features', 'contact'][index])}
+                    className="justify-start"
+                  >
+                    {item}
+                  </Button>
+                ))}
+                <div className="flex flex-col gap-2 pt-2 border-t mt-2">
+                  <Button variant="ghost" onClick={() => window.location.href = '/login'}>
+                    Login
+                  </Button>
+                  <Button onClick={() => window.location.href = '/register'} className="bg-black text-white">
+                    Start for free
+                  </Button>
+                </div>
+              </nav>
+            </div>
+          )}
         </div>
       </header>
 
-      <main className="w-full">
-        {/* Home Section */}
-        <section id="home" className="min-h-screen w-full flex items-center justify-center pt-16 bg-gradient-to-b from-[#F0F3FA] via-[#F0F3FA] to-[#B1C9EF]">
-          <div className="max-w-6xl mx-auto px-4 w-full py-20">
-            <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
-              <div className="lg:w-1/2 text-left">
-                <h1 className="text-4xl md:text-5xl font-extrabold text-[#395886] mb-6 leading-tight">
-                  Gamifying Wellness: Track, Assess, and Thrive Every Day
-                </h1>
-                <p className="text-lg text-[#628ECB] mb-8">
-                  Lifora uses AI to provide predictive health insights and preventive wellness solutions, helping you stay ahead of potential health risks and optimize your well-being.
-                </p>
-                <button className="w-full sm:w-auto bg-[#395886] text-white px-8 py-3 rounded-full font-bold hover:bg-[#628ECB] transition-all duration-300 transform hover:scale-105 shadow-lg">
-                  JOIN NOW!
-                </button>
+      <main className="pt-20">
+        {/* Hero Section */}
+        <section id="home" className="relative bg-gradient-to-br from-gray-50 to-white py-20 md:py-28 overflow-hidden">
+          <div className="container mx-auto px-6 lg:px-12">
+            <div className="grid md:grid-cols-2 gap-12 lg:gap-16 items-center">
+              {/* Left Content */}
+              <div className="space-y-8">
+                <div className="space-y-6">
+                  <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight text-gray-900">
+                    Gamifying Wellness:{' '}
+                    <span className="block mt-2">Track, Assess,</span>
+                    <span className="block mt-2">and Thrive!</span>
+                  </h1>
+                  <p className="text-lg md:text-xl text-gray-600 leading-relaxed max-w-lg">
+                    AI-powered insights meet community support for your perfect wellness journey. Stay ahead of potential health risks and optimize your well-being.
+                  </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <Button 
+                    size="lg" 
+                    onClick={() => window.location.href = '/register'}
+                    className="text-base h-14 px-8 bg-black hover:bg-gray-800 text-white rounded-full font-medium shadow-lg hover:shadow-xl transition-all"
+                  >
+                    REGISTER NOW
+                  </Button>
+                </div>
+
+                {/* Contact Info */}
+                <div className="space-y-3 pt-4">
+                  <div className="flex items-center gap-3 text-gray-700">
+                    <Phone className="w-5 h-5 text-gray-900" />
+                    <span className="text-sm font-medium">+123-456-7890</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-gray-700">
+                    <Mail className="w-5 h-5 text-gray-900" />
+                    <span className="text-sm font-medium">hello@reallygreatsite.com</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-gray-700">
+                    <MapPinIcon className="w-5 h-5 text-gray-900" />
+                    <span className="text-sm font-medium">123 Anywhere St., Any City, 12345</span>
+                  </div>
+                </div>
               </div>
-              <div className="lg:w-1/2 w-full mt-10 lg:mt-0">
-                <img 
-                  src="/assets/a.glb.png"
-                  alt="Wellness illustration" 
-                  className="w-full h-auto"
-                />
+
+              {/* Right Content - Hero Image */}
+              <div className="relative">
+                <div className="relative rounded-[3rem] overflow-hidden shadow-2xl bg-gradient-to-br from-blue-50 to-white border-8 border-white aspect-[4/3]">
+                  {/* Placeholder for professional business image */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-100/50 to-orange-100/50 flex items-center justify-center">
+                    <div className="text-center space-y-4 p-8">
+                      <Users className="w-24 h-24 mx-auto text-blue-600/30" />
+                      <p className="text-gray-400 text-sm font-medium">Professional Business Image</p>
+                    </div>
+                  </div>
+                  {/* You can replace this with an actual image */}
+                  {/* <img src="/path-to-your-image.jpg" alt="Business collaboration" className="w-full h-full object-cover" /> */}
+                </div>
+                
+                {/* Floating decoration */}
+                <div className="absolute -top-6 -right-6 w-24 h-24 bg-orange-400 rounded-full opacity-20 blur-2xl"></div>
+                <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-blue-400 rounded-full opacity-20 blur-2xl"></div>
               </div>
             </div>
           </div>
         </section>
 
-       {/* Features Section */}
-        <section id="features" className="w-full flex items-center justify-center py-20 bg-[#F0F3FA]">
-          <div className="max-w-6xl mx-auto px-4 w-full">
+        {/* Features Section */}
+        <section id="features" className="py-20 md:py-28 bg-white">
+          <div className="container mx-auto px-6 lg:px-12">
             {/* Features Title */}
-            <div className="text-center mb-16">
-              <h2 className="text-4xl md:text-5xl font-bold text-[#395886] mb-4">
+            <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
+              <h2 className="text-4xl md:text-5xl font-bold text-gray-900">
                 Transform Your Health Journey
               </h2>
-              <p className="text-xl text-[#628ECB] max-w-3xl mx-auto">
+              <p className="text-lg text-gray-600">
                 Experience a revolutionary approach to wellness with our cutting-edge features designed to make your health journey engaging and effective.
               </p>
             </div>
 
-            {/* Features Cards */}
-            <div className="flex flex-row flex-wrap justify-center gap-8">
+            {/* Features Grid */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
               {featuresData.map((feature, index) => (
                 <div 
                   key={index} 
-                  className="bg-white rounded-[32px] p-8 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group w-[380px]"
+                  className="group p-8 rounded-2xl bg-white border border-gray-200 hover:border-blue-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-2"
                 >
-                  <div className="flex flex-col h-full">
-                    <h3 className="text-3xl font-bold text-[#40A870] mb-4">{feature.title}</h3>
-                    <p className="text-[#628ECB] text-lg mb-8 flex-grow">
-                      {feature.description}
-                    </p>
-                    <div className="flex justify-center w-full">
-                      <div className="w-32 h-32">
-                        <img 
-                          src={feature.img} 
-                          alt={feature.title} 
-                          className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-300" 
-                        />
+                  <div className="mb-6">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                      {React.createElement(feature.icon, {
+                        className: "w-7 h-7 text-white"
+                      })}
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-bold mb-3 text-gray-900">{feature.title}</h3>
+                  <p className="text-gray-600 leading-relaxed">
+                    {feature.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+          </div>
+        </section>
+
+        {/* About Section */}
+        <section id="about" className="py-20 md:py-28 bg-gray-50">
+          <div className="container mx-auto px-6 lg:px-12">
+            <div className="max-w-5xl mx-auto space-y-12">
+              {/* About Header */}
+              <div className="text-center space-y-4">
+                <h2 className="text-4xl md:text-5xl font-bold text-gray-900">About Lifora</h2>
+                <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+                  We are dedicated to transforming personal health by making wellness an engaging and insightful journey. 
+                  Our platform combines gamification, nutritional tracking, and daily assessments to empower you with the knowledge 
+                  and motivation to achieve your health goals.
+                </p>
+              </div>
+
+              {/* Mission, Vision, Values */}
+              <div className="grid md:grid-cols-3 gap-8">
+                {[
+                  { 
+                    title: 'Our Mission', 
+                    content: 'To provide accessible and comprehensive wellness solutions through innovative technology.',
+                    icon: MapPin 
+                  },
+                  { 
+                    title: 'Our Vision', 
+                    content: 'To revolutionize personal health management through engaging, technology-driven solutions.',
+                    icon: TrendingUp 
+                  },
+                  { 
+                    title: 'Our Values', 
+                    content: 'Innovation, accessibility, and user empowerment drive our commitment.',
+                    icon: Award 
+                  }
+                ].map((item, index) => (
+                  <div key={index} className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mb-6">
+                      {React.createElement(item.icon, {
+                        className: "w-7 h-7 text-white"
+                      })}
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-3">{item.title}</h3>
+                    <p className="text-gray-600 leading-relaxed">{item.content}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Contact/Team Section */}
+        <section id="contact" className="py-20 md:py-28 bg-white">
+          <div className="container mx-auto px-6 lg:px-12">
+            {/* Section Header */}
+            <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
+              <h2 className="text-4xl md:text-5xl font-bold text-gray-900">
+                Meet Our Team
+              </h2>
+              <p className="text-lg text-gray-600">
+                The amazing people behind Lifora, dedicated to your wellness journey
+              </p>
+            </div>
+            
+            {/* Team Grid */}
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto mb-20">
+              {teamMembers.map((member, index) => (
+                <div key={index} className="group">
+                  <div className="relative overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300">
+                    <img 
+                      src={member.img} 
+                      alt={member.name}
+                      className="w-full h-72 object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6">
+                      <div className="text-white">
+                        <div className="text-xs font-semibold text-blue-300 mb-1">{member.role}</div>
+                        <h3 className="text-lg font-bold">{member.name}</h3>
                       </div>
                     </div>
                   </div>
@@ -173,178 +354,129 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* About Section */}
-        <section id="about" className="w-full flex items-center justify-center py-20 bg-[#D5DEEF]">
-          <div className="max-w-6xl mx-auto px-4 w-full text-center">
-            <h2 className="text-4xl font-bold text-[#395886] mb-4">About Lifora</h2>
-            <p className="text-lg text-[#628ECB] mb-12 max-w-4xl mx-auto">
-              We are dedicated to transforming personal health by making wellness an engaging and insightful journey. 
-              Our platform combines gamification, nutritional tracking, and daily assessments to empower you with the knowledge 
-              and motivation to achieve your health goals.
-            </p>
-            <div className="flex flex-row flex-wrap justify-center gap-6">
-              {[
-                { title: 'Our Mission', content: 'To provide accessible and comprehensive wellness solutions through innovative technology.' },
-                { title: 'Our Vision', content: 'To revolutionize personal health management through engaging, technology-driven solutions.' },
-                { title: 'Our Values', content: 'Innovation, accessibility, and user empowerment drive our commitment.' }
-              ].map((item, index) => (
-                <div key={index} className="bg-white rounded-xl p-6 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group w-[350px]">
-                  <div className="h-2 bg-[#395886] rounded-full mb-4 transform origin-left transition-all duration-300 group-hover:scale-x-110"></div>
-                  <h3 className="text-xl font-bold text-[#395886] mb-3">{item.title}</h3>
-                  <p className="text-[#628ECB]">{item.content}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-  N==
-
-        {/* Contact Section */}
-        <section id="contact" className="w-full flex items-center justify-center py-20 bg-[#F0F3FA]">
-          <div className="max-w-6xl mx-auto px-4 w-full">
-            <h2 className="text-4xl font-bold text-[#395886] text-center mb-4">For Any Concerns or Inquiries</h2>
-            <p className="text-lg text-[#628ECB] text-center mb-12">
-              Have questions or need assistance? Get in touch with us today!
-            </p>
-            
-            <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto mb-20">
-              {/* Email Card */}
-              <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group">
-                <div className="flex flex-col items-center">
-                  <div className="w-16 h-16 bg-[#40A870] rounded-full flex items-center justify-center mb-4">
-                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-xl font-bold text-[#395886] mb-2">Email Us</h3>
-                  <a href="mailto:FutureProof@gmail.com" className="text-[#628ECB] hover:text-[#40A870] transition-colors">
-                    FutureProof@gmail.com
-                  </a>
-                </div>
-              </div>
-
-              {/* Call Card */}
-              <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group">
-                <div className="flex flex-col items-center">
-                  <div className="w-16 h-16 bg-[#40A870] rounded-full flex items-center justify-center mb-4">
-                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-xl font-bold text-[#395886] mb-2">Call Us</h3>
-                  <a href="tel:+18001234567" className="text-[#628ECB] hover:text-[#40A870] transition-colors">
-                    +1 (800) 123-4567
-                  </a>
-                </div>
-              </div>
-
-              {/* Visit Card */}
-              <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group">
-                <div className="flex flex-col items-center">
-                  <div className="w-16 h-16 bg-[#40A870] rounded-full flex items-center justify-center mb-4">
-                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-xl font-bold text-[#395886] mb-2">Visit Us</h3>
-                  <p className="text-[#628ECB] text-center">
-                    123 Greenway Blvd, Suite 456
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Team Section Title */}
-            <h2 className="text-4xl font-bold text-[#395886] text-center mt-20 mb-16">Meet Our Team</h2>
-            
-            <div className="flex flex-row flex-wrap justify-center gap-8">
-              {teamMembers.map((member, index) => (
-                <div key={index} className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group w-[280px]">
-                  <div className="relative w-32 h-32 mx-auto mb-6 rounded-full overflow-hidden">
-                    <img 
-                      src={member.img} 
-                      alt={member.name} 
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
-                    />
-                    <div className="absolute inset-0 bg-[#395886] bg-opacity-80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                      <p className="text-white font-semibold text-center px-4 transform -translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                        {member.role}
-                      </p>
-                    </div>
-                  </div>
-                  <h3 className="text-xl font-bold text-[#395886] text-center group-hover:text-[#628ECB] transition-colors duration-300">
-                    {member.name}
-                  </h3>
-                </div>
-              ))}
-            </div>
-
-            <h2 className="text-4xl font-bold text-[#395886] text-center mt-20 mb-16">Our Professor</h2>
-            <div className="flex justify-center">
-              <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group w-[280px]">
-                <div className="relative w-32 h-32 mx-auto mb-6 rounded-full overflow-hidden">
-                  <img 
-                    src={professor.img} 
-                    alt={professor.name} 
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
-                  />
-                  <div className="absolute inset-0 bg-[#395886] bg-opacity-80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                    <p className="text-white font-semibold text-center px-4 transform -translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                      {professor.role}
-                    </p>
-                  </div>
-                </div>
-                <h3 className="text-xl font-bold text-[#395886] text-center group-hover:text-[#628ECB] transition-colors duration-300">
-                  {professor.name}
-                </h3>
+        {/* CTA Section */}
+        <section className="py-20 md:py-28 bg-gradient-to-br from-blue-600 to-blue-700">
+          <div className="container mx-auto px-6 lg:px-12">
+            <div className="max-w-4xl mx-auto text-center space-y-8">
+              <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white">
+                Start Your Wellness Journey with Lifora Today
+              </h2>
+              <p className="text-xl text-blue-100 leading-relaxed">
+                No credit card required. Join us in transforming your health.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
+                <Button 
+                  size="lg"
+                  onClick={() => window.location.href = '/register'}
+                  className="text-base h-14 px-10 border-2 border-white blue-600 rounded-full font-semibold hover:bg-white hover:text-blue-600 transition-all"
+                >
+                  Start Your Journey Free
+                </Button>
+                <Button 
+                  size="lg" 
+                  variant="outline"
+                  onClick={() => scrollToSection('features')}
+                  className="text-base h-14 px-10 border-2 border-white blue-600 rounded-full font-semibold hover:bg-white hover:text-blue-600 transition-all"
+                >
+                  Learn More
+                </Button>
               </div>
             </div>
           </div>
         </section>
 
         {/* Footer */}
-        <footer className="bg-[#395886] text-white py-16 mt-20" style={{ borderTopLeftRadius: '110px', borderTopRightRadius: '110px' }}>
-          <div className="max-w-6xl mx-auto px-8">
-            {/* Logo and Brand Section */}
-            <div className="flex items-center justify-center mb-12">
-              <div className="text-center">
-                <img src={images.logo} alt="Lifora Logo" className="w-12 h-12 mx-auto mb-4" />
-                <h3 className="text-2xl font-bold mb-2">Lifora</h3>
-                <p className="opacity-80">Embrace a Healthier You—Strong, Resilient, Future-Ready</p>
+        <footer className="bg-gray-900 text-gray-300">
+          <div className="container mx-auto px-6 lg:px-12 py-16">
+            <div className="grid md:grid-cols-4 gap-12 mb-12">
+              {/* Logo and Brand Section */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <img src={images.logo} alt="Lifora Logo" className="w-8 h-8" />
+                  <h3 className="text-xl font-bold text-white">Lifora</h3>
+                </div>
+                <p className="text-sm leading-relaxed">
+                  Embrace a Healthier You—Strong, Resilient, Future-Ready
+                </p>
               </div>
-            </div>
 
-            {/* Links Section */}
-            <div className="grid grid-cols-2 md:grid-cols-2 gap-8 max-w-2xl mx-auto text-center">
               {/* Quick Links */}
               <div>
-                <h4 className="text-xl font-bold mb-4">Quick Links</h4>
-                <ul className="space-y-2">
-                  <li><a href="#about" onClick={(e) => {e.preventDefault(); scrollToSection('about')}} className="opacity-80 hover:opacity-100 transition-opacity">About</a></li>
-                  <li><a href="#features" onClick={(e) => {e.preventDefault(); scrollToSection('features')}} className="opacity-80 hover:opacity-100 transition-opacity">Features</a></li>
-                  <li><a href="#contact" onClick={(e) => {e.preventDefault(); scrollToSection('contact')}} className="opacity-80 hover:opacity-100 transition-opacity">Contact</a></li>
+                <h4 className="font-bold text-white mb-4">Quick Links</h4>
+                <ul className="space-y-3">
+                  {[
+                    { id: 'home', label: 'Home' },
+                    { id: 'features', label: 'About Us' },
+                    { id: 'contact', label: 'Contact' }
+                  ].map((item) => (
+                    <li key={item.id}>
+                      <button 
+                        onClick={() => scrollToSection(item.id)}
+                        className="text-sm hover:text-blue-400 transition-colors"
+                      >
+                        {item.label}
+                      </button>
+                    </li>
+                  ))}
+                  <li>
+                    <Link to="/terms" className="text-sm hover:text-blue-400 transition-colors">
+                      Terms & Conditions
+                    </Link>
+                  </li>
                 </ul>
               </div>
 
               {/* Connect */}
               <div>
-                <h4 className="text-xl font-bold mb-4">Connect</h4>
-                <ul className="space-y-2">
-                  <li><a href="https://github.com/your-repo" target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 transition-opacity">GitHub</a></li>
-                  <li><a href="mailto:contact@lifora.com" className="opacity-80 hover:opacity-100 transition-opacity">Email</a></li>
+                <h4 className="font-bold text-white mb-4">Connect</h4>
+                <ul className="space-y-3">
+                  <li>
+                    <a 
+                      href="https://github.com/thenielthevis/capstone-project" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-sm hover:text-blue-400 transition-colors"
+                    >
+                      GitHub
+                    </a>
+                  </li>
+                  <li>
+                    <a 
+                      href="mailto:contact@lifora.com"
+                      className="text-sm hover:text-blue-400 transition-colors"
+                    >
+                      Email
+                    </a>
+                  </li>
                 </ul>
+              </div>
+
+              {/* Technologies */}
+              <div>
+                <h4 className="font-bold text-white mb-4">Built With</h4>
+                <div className="flex flex-wrap gap-2">
+                  {['React', 'TypeScript', 'Tailwind', 'Vite'].map((tech) => (
+                    <span key={tech} className="px-3 py-1 bg-gray-800 text-gray-300 text-xs rounded-full">
+                      {tech}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
 
-            {/* Technologies Section */}
-            <div className="mt-16 text-center">
-              <h4 className="text-xl font-bold mb-6">Technologies We Used</h4>
-              <div className="flex justify-center items-center gap-6 flex-wrap">
-                {/* Add your technology icons here */}
-                {/* Example: */}
-                <img src="/path-to-react-icon.png" alt="React" className="h-8 w-8 opacity-80 hover:opacity-100 transition-opacity" />
-                {/* Add more technology icons as needed */}
+            <div className="border-t border-gray-800 pt-8">
+              <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                <p className="text-sm">
+                  © 2025 Lifora. All rights reserved.
+                </p>
+                <div className="flex gap-6">
+                  <a href="#" className="text-sm hover:text-blue-400 transition-colors">
+                    Privacy Policy
+                  </a>
+                  <Link to="/terms" className="text-sm hover:text-blue-400 transition-colors">
+                    Terms of Service
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
