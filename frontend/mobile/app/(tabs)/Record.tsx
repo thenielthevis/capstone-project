@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity } from "react-native";
 import { useTheme } from "../context/ThemeContext";
 import Activity from "../screens/record/Activity";
 import Food from "../screens/record/Food";
-import { Ionicons, Feather } from "@expo/vector-icons";
+import { Ionicons, Feather, FontAwesome5 } from "@expo/vector-icons";
 
 function FloatingToggleBar({ mode, setMode, theme }: { mode: "activity" | "food"; setMode: (mode: "activity" | "food") => void; theme: any }) {
   return (
@@ -21,14 +21,14 @@ function FloatingToggleBar({ mode, setMode, theme }: { mode: "activity" | "food"
         className="px-4 py-2 rounded-full mx-1 border"
         style={{
           backgroundColor:
-            mode === "activity" ? theme.colors.primary : theme.colors.secondary + "90",
+            mode === "activity" ? theme.colors.primary : theme.colors.surface + "95",
           borderColor:
             mode === "activity" ? theme.colors.primary : theme.colors.text + "20",
         }}
       >
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center" }}>
-          <Feather
-            name="activity"
+          <FontAwesome5
+            name="running"
             size={16}
             color={mode === "activity" ? theme.colors.background : theme.colors.text}
             style={{ marginRight: 6 }}
@@ -49,14 +49,14 @@ function FloatingToggleBar({ mode, setMode, theme }: { mode: "activity" | "food"
         className="px-4 py-2 rounded-full mx-1 border"
         style={{
           backgroundColor:
-            mode === "food" ? theme.colors.primary : theme.colors.secondary + "90",
+            mode === "food" ? theme.colors.primary : theme.colors.surface + "95",
           borderColor:
             mode === "food" ? theme.colors.primary : theme.colors.text + "20",
         }}
       >
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center" }}>
           <Ionicons
-            name="fast-food-outline"
+            name="fast-food"
             size={16}
             color={mode === "food" ? theme.colors.background : theme.colors.text}
             style={{ marginRight: 6 }}
@@ -82,12 +82,15 @@ export default function Record() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      {/* Floating Toggle Bar */}
       <FloatingToggleBar mode={mode} setMode={setMode} theme={theme} />
 
-      {/* Render selected recorder */}
-      <View className="flex-1">
-        {mode === "activity" ? <Activity /> : <Food />}
+      <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, display: mode === "activity" ? "flex" : "none" }}>
+          <Activity />
+        </View>
+        <View style={{ flex: 1, display: mode === "food" ? "flex" : "none" }}>
+          <Food />
+        </View>
       </View>
     </View>
   );
