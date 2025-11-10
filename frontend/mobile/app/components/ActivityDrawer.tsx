@@ -16,7 +16,7 @@ export default function ActivityDrawer() {
   const { theme } = useTheme();
   const bottomSheetRef = useRef<BottomSheet>(null);
   const activitySheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ["14%", "25%", "90%"], []);
+  const snapPoints = useMemo(() => ["15%", "25%", "90%"], []);
   const activitySnapPoints = useMemo(() => ["30%"], []);
 
   const [activityType, setActivityType] = useState<ActivityType>("Running");
@@ -95,7 +95,7 @@ export default function ActivityDrawer() {
               <Text
                 style={{
                   fontSize: 20,
-                  marginTop: 15,
+                  marginTop: 20,
                   color: theme.colors.primary,
                   fontFamily: theme.fonts.heading,
                 }}
@@ -152,7 +152,7 @@ export default function ActivityDrawer() {
               <Text
                 style={{
                   fontSize: 20,
-                  marginTop: 15,
+                  marginTop: 20,
                   color: theme.colors.primary,
                   fontFamily: theme.fonts.heading,
                 }}
@@ -203,7 +203,7 @@ export default function ActivityDrawer() {
               <Text
                 style={{
                   fontSize: 20,
-                  marginTop: 15,
+                  marginTop: 20,
                   color: theme.colors.primary,
                   fontFamily: theme.fonts.heading,
                 }}

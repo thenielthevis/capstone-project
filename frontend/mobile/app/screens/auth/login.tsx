@@ -93,8 +93,9 @@ export default function LoginScreen() {
             autoCapitalize="none"
             style={{ marginBottom: 12, backgroundColor: theme.colors.input }}
             error={!!error && error.toLowerCase().includes("email")}
-            theme={{ colors: { primary: theme.colors.primary } }}
+            theme={{ colors: { onSurfaceVariant: theme.colors.text + "EE", primary: theme.colors.primary } }}
             placeholder="Enter your email"
+            placeholderTextColor="white"
           />
           <TextInput
             label="Password"
@@ -105,7 +106,7 @@ export default function LoginScreen() {
             secureTextEntry={!showPassword}
             style={{ marginBottom: 12, backgroundColor: theme.colors.input }}
             error={!!error && error.toLowerCase().includes("password")}
-            theme={{ colors: { primary: theme.colors.primary } }}
+            theme={{ colors: { onSurfaceVariant: theme.colors.text + "EE", primary: theme.colors.primary } }}
             placeholder="Enter your password"
             right={
               <TextInput.Icon

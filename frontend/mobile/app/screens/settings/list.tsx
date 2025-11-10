@@ -46,7 +46,7 @@ export default function SettingsScreen() {
       </View>
 
       {/* PREFERENCES SECTION */}
-      <Text className="mt-8 mb-2" style={{ color: theme.colors.secondary, fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base}}>
+      <Text className="mt-8 mb-2" style={{ color: theme.colors.primary, fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base}}>
         Preferences
       </Text>
       <TouchableOpacity
@@ -59,7 +59,7 @@ export default function SettingsScreen() {
       </TouchableOpacity>
 
       {/* LEGAL SECTION */}
-      <Text className="mt-8 mb-2" style={{ color: theme.colors.secondary, fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base }}>
+      <Text className="mt-8 mb-2" style={{ color: theme.colors.primary, fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base }}>
         Legal
       </Text>
       <TouchableOpacity
@@ -80,7 +80,7 @@ export default function SettingsScreen() {
       </TouchableOpacity>
 
       {/* LOG OUT SECTION */}
-      <Text className="mt-8 mb-2 font-semibold" style={{ color: theme.colors.secondary, fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base }}>
+      <Text className="mt-8 mb-2 font-semibold" style={{ color: theme.colors.primary, fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base }}>
         Account
       </Text>
       <TouchableOpacity
@@ -92,27 +92,53 @@ export default function SettingsScreen() {
         <Ionicons name="exit-outline" size={20} color="#ef4444" />
       </TouchableOpacity>
 
-      {/* Minimalist Logout Modal */}
+      {/* Themed Minimal Alert-Style Logout Modal */}
       <Modal visible={showLogoutModal} transparent animationType="fade">
-        <View className="flex-1 justify-center items-center" style={{ backgroundColor: theme.colors.overlay }}>
-          <View className="w-85 rounded-2xl p-6" style={{ backgroundColor: theme.colors.surface }}>
-            <Text className="text-lg font-bold mb-4 text-center" style={{ color: theme.colors.text, fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.lg }}>
-              Sign Out?
+        <View
+          className="flex-1 justify-center items-center"
+          style={{ backgroundColor: theme.colors.overlay }}
+        >
+          <View
+            className="rounded-xl p-7 mx-4 w-10/12"
+            style={{ backgroundColor: theme.colors.surface }}
+          >
+            <Text
+              className="font-bold mb-2"
+              style={{
+                color: theme.colors.text,
+                fontFamily: theme.fonts.heading,
+                fontSize: theme.fontSizes.lg,
+              }}
+            >
+              Sign Out
             </Text>
-            <Text className="text-base text-center mb-6" style={{ color: theme.colors.secondary, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.m }}>
+
+            <Text
+              className="mb-10"
+              style={{
+                color: theme.colors.text,
+                fontFamily: theme.fonts.body,
+                fontSize: theme.fontSizes.m,
+              }}
+            >
               Are you sure you want to sign out?
             </Text>
-            <View className="flex-row justify-between">
-              <TouchableOpacity
-                className="flex-1 rounded-xl py-2 mr-2 items-center"
-                style={{ backgroundColor: theme.colors.input }}
-                onPress={() => setShowLogoutModal(false)}
-              >
-                <Text className="font-semibold" style={{ color: theme.colors.text }}>Cancel</Text>
+
+            <View className="flex-row justify-end">
+              <TouchableOpacity onPress={() => setShowLogoutModal(false)}>
+                <Text
+                  style={{
+                    color: theme.colors.text + "88",
+                    fontFamily: theme.fonts.body,
+                    fontSize: theme.fontSizes.m,
+                    marginRight: 16,
+                  }}
+                >
+                  Cancel
+                </Text>
               </TouchableOpacity>
+
               <TouchableOpacity
-                className="flex-1 rounded-xl py-2 ml-2 items-center"
-                style={{ backgroundColor: "#ef4444" }}
                 onPress={async () => {
                   setShowLogoutModal(false);
                   await tokenStorage.removeToken();
@@ -120,7 +146,15 @@ export default function SettingsScreen() {
                   router.replace("/");
                 }}
               >
-                <Text className="font-semibold" style={{ color: "#fff" }}>Sign Out</Text>
+                <Text
+                  style={{
+                    color: theme.colors.text + "88",
+                    fontFamily: theme.fonts.body,
+                    fontSize: theme.fontSizes.m,
+                  }}
+                >
+                  Sign Out
+                </Text>
               </TouchableOpacity>
             </View>
           </View>

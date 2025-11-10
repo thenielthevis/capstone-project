@@ -104,6 +104,14 @@ const userSchema = new mongoose.Schema({
         }],
         stressLevel: { type: String, enum: ['low', 'moderate', 'high'] }
     },
+    // Latest prediction from ML model (optional)
+    lastPrediction: {
+        // store one or more predicted disease names
+        disease: { type: [String], default: undefined },
+        probability: { type: Number, min: 0, max: 1, default: null },
+        predictedAt: { type: Date, default: null },
+        source: { type: String, enum: ['model', 'heuristic', 'manual', 'dataset'], default: 'model' }
+    },
 });
 
 // Hash password before saving
