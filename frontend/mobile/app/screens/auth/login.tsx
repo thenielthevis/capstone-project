@@ -32,11 +32,13 @@ export default function LoginScreen() {
           if (response?.data?.token) {
               // Save token and stored user first to avoid race where Analysis mounts before token is written
               await tokenStorage.saveToken(response.data.token);
-              await tokenStorage.saveUser(response.data.user);
+              await tokenStorage.saveRefreshToken(response.data.refreshToken);
+            await tokenStorage.saveUser(response.data.user);
               setUser(response.data.user); // Save user globally
               console.log("User: ", response.data.user);
               console.log("Token: ", response.data.token);
-              router.dismissAll();
+              console.log("Refresh Token: ", response.data.refreshToken);
+            router.dismissAll();
               router.replace("../../(tabs)/Home");
             }
         },
@@ -95,8 +97,9 @@ export default function LoginScreen() {
             autoCapitalize="none"
             style={{ marginBottom: 12, backgroundColor: theme.colors.input }}
             error={!!error && error.toLowerCase().includes("email")}
-            theme={{ colors: { primary: theme.colors.primary } }}
+            theme={{ colors: { onSurfaceVariant: theme.colors.text + "EE", primary: theme.colors.primary } }}
             placeholder="Enter your email"
+            placeholderTextColor="white"
           />
           <TextInput
             label="Password"
@@ -107,7 +110,7 @@ export default function LoginScreen() {
             secureTextEntry={!showPassword}
             style={{ marginBottom: 12, backgroundColor: theme.colors.input }}
             error={!!error && error.toLowerCase().includes("password")}
-            theme={{ colors: { primary: theme.colors.primary } }}
+            theme={{ colors: { onSurfaceVariant: theme.colors.text + "EE", primary: theme.colors.primary } }}
             placeholder="Enter your password"
             right={
               <TextInput.Icon

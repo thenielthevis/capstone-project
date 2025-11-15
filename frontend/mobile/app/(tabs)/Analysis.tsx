@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, Button, ActivityIndicator, Platform, ScrollView } from "react-native";
+import { View, Text, Button, ActivityIndicator, Platform, ScrollView, TouchableOpacity } from "react-native";
 import { useTheme } from "../context/ThemeContext";
 import { useUser } from "../context/UserContext";
 
+// API URL: prefer environment variable EXPO_PUBLIC_API_URL, fall back to emulator/local defaults
 // Use 10.0.2.2 for Android emulator (maps to host localhost), use local LAN IP for physical device
-// If you're running on a physical Android device, set LOCAL_IP to your machine IP (e.g. 192.168.1.104)
-const LOCAL_IP = '192.168.1.102';
-const API_URL = Platform.OS === 'android'
-  ? `http://10.0.2.2:5000/api` // Android emulator -> host machine localhost
-  : `http://192.168.1.102:5000/api`; // iOS simulator or physical device (use LOCAL_IP for device)
+// If you're running on a physical Android device, set LOCAL_IP in your environment or .env file
+const LOCAL_IP = process.env.EXPO_LOCAL_IP || '192.168.1.102';
+const ENV_API = process.env.EXPO_PUBLIC_API_URL;
+const API_URL = ENV_API
+  ? ENV_API
+  : (Platform.OS === 'android' ? `http://10.0.2.2:5000/api` : `http://${LOCAL_IP}:5000/api`);
 
 interface Prediction {
   disease: string[];
@@ -48,6 +50,8 @@ interface User {
   lastPrediction?: Prediction;
   profile?: TestProfile;
 }
+import { useRouter } from "expo-router";
+import PredictionInputScreen from "../screens/analysis_input/prediction_input";
 
 export default function Analysis() {
   const { theme } = useTheme();
@@ -317,6 +321,12 @@ export default function Analysis() {
     );
   };
 
+  const router = useRouter();
+
+  const handleNavigateToInput = () => {
+    router.push("/screens/analysis_input/prediction_input");
+  };
+
   return (
     <ScrollView style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <View style={{ padding: 16 }}>
@@ -424,7 +434,7 @@ export default function Analysis() {
   );
 }
 
-// Helper: generate a short natural-language description from user object
+
 // Helper: generate a short natural-language description from user object
 function generateShortDescription(user: any) {
   try {

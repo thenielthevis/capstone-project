@@ -1,15 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
+const userMiddleware = require('../middleware/user');
 
 const { registerUser, 
         loginUser,
         googleUserController,
         listUsers,
         devCreateFullUser,
-        devUpdateUser
+        devUpdateUser,
+        currentlyLoggedInUser,
+        refreshToken,
+        submitHealthAssessment,
+        
 } = require('../controllers/userControllers');
 
+router.get('/me', userMiddleware, currentlyLoggedInUser);
 router.post('/register', registerUser);
 router.post('/login', loginUser);
 router.post('/google', googleUserController);
@@ -19,5 +25,7 @@ router.post('/dev/create-full', devCreateFullUser);
 router.patch('/dev/update', devUpdateUser);
 // Dev: list users for UI (no auth) - GET /api/users/list
 router.get('/list', listUsers);
+router.post('/refresh-token', refreshToken);
+router.post('/health-assessment', userMiddleware, submitHealthAssessment);
 
 module.exports = router;

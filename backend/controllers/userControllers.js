@@ -1,6 +1,31 @@
 const User = require('../models/userModel');
 const { uploadProfilePicture } = require('../utils/cloudinary');
 
+//Check logged in user-------------------------------------
+exports.currentlyLoggedInUser = async (req, res) => {
+  try {
+    const userId = req.user.id; // Extracted from JWT middleware
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found"
+      });
+    }
+
+    res.status(200).json({
+      message: "Current logged-in user data fetched successfully",
+      user
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error fetching user data",
+      error: error.message
+    });
+  }
+};
+
 //User Registration
 exports.registerUser = async (req, res) => {
     const { username, email, password } = req.body;
@@ -39,11 +64,13 @@ exports.loginUser = async (req, res) => {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
         const token = user.generateAuthToken();
+        const refreshToken = user.generateRefreshToken();
         console.log("[LoginUser] User logged in:", user);
         console.log("[LoginUser] Generated token:", token);
         res.status(200).json(
           { message: 'Login successful',
             token,
+            refreshToken,
             user: {
               id: user._id,
               username: user.username,
@@ -91,11 +118,13 @@ exports.googleUserController = async (req, res) => {
             await user.save();
         }
         const token = user.generateAuthToken();
+        const refreshToken = user.generateRefreshToken();
         console.log("[LoginUser] User logged in:", user);
         console.log("[LoginUser] Generated token:", token);
         res.status(200).json({
             message: "Google authentication successful",
             token,
+            refreshToken,
             user: {
                 id: user._id,
                 email: user.email,
@@ -224,5 +253,84 @@ exports.devUpdateUser = async (req, res) => {
     } catch (err) {
         console.error('devUpdateUser error', err);
         return res.status(500).json({ error: 'could not update user', details: err && err.message });
+    }
+};
+
+// Refreh Tokens
+exports.refreshToken = async (req, res) => {
+    const { refreshToken } = req.body;
+    try {
+        if (!refreshToken) {
+            return res.status(400).json({ message: "No refresh token provided" });
+        }
+        const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+        const user = await User.findById(decoded.id);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        const newToken = user.generateAuthToken();
+        res.status(200).json({ token: newToken });
+    } catch (error) {
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// Update current user's health assessment
+exports.submitHealthAssessment = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const {
+            age,
+            gender,
+            physicalMetrics,
+            lifestyle,
+            dietaryProfile,
+            healthProfile,
+            environmentalFactors,
+            riskFactors
+        } = req.body;
+        console.log("[SubmitHealthAssessment] Received data:", req.body);
+
+        // Auto-calculate BMI if height and weight are provided
+        let updatedPhysicalMetrics = physicalMetrics;
+        if (
+            physicalMetrics &&
+            physicalMetrics.height &&
+            physicalMetrics.height.value &&
+            physicalMetrics.weight &&
+            physicalMetrics.weight.value
+        ) {
+            const heightM = physicalMetrics.height.value / 100; // convert cm to meters
+            const weightKg = physicalMetrics.weight.value;
+            const bmi = +(weightKg / (heightM * heightM)).toFixed(2);
+            updatedPhysicalMetrics = {
+                ...physicalMetrics,
+                bmi
+            };
+        }
+
+        // Update only the relevant fields
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            {
+                age,
+                gender,
+                physicalMetrics: updatedPhysicalMetrics,
+                lifestyle,
+                dietaryProfile,
+                healthProfile,
+                environmentalFactors,
+                riskFactors
+            },
+            { new: true, runValidators: true }
+        );
+
+        if (!updatedUser) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        res.status(200).json({ message: "Health assessment submitted", user: updatedUser });
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error: error.message });
     }
 };

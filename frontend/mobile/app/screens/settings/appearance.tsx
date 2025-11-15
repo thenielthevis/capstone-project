@@ -45,7 +45,7 @@ export default function AppearanceScreen() {
             Appearance
         </Text>
       </View>
-      <Text className="mt-4 mb-2 font-semibold" style={{ color: theme.colors.secondary, fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base }}>
+      <Text className="mt-4 mb-2 font-semibold" style={{ color: theme.colors.primary, fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base }}>
         Themes
       </Text>
       {themeOptions.map((option) => (

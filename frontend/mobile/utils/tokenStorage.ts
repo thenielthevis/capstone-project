@@ -2,6 +2,7 @@ import * as SecureStore from "expo-secure-store";
 
 const TOKEN_KEY = 'user_token';
 const USER_KEY = 'user_data';
+const REFRESH_TOKEN_KEY = 'refresh_token';
 
 export const tokenStorage = {
   async saveToken(token: string) {
@@ -42,5 +43,27 @@ export const tokenStorage = {
       console.error('Error getting user:', error);
       return null;
     }
-  }
+  },
+  async saveRefreshToken(token: string) {
+    try {
+      await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, token);
+    } catch (error) {
+      console.error('Error saving refresh token:', error);
+    }
+  },
+  async getRefreshToken() {
+    try {
+      return await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+    } catch (error) {
+      console.error('Error getting refresh token:', error);
+      return null;
+    }
+  },
+  async removeRefreshToken() {
+    try {
+      await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+    } catch (error) {
+      console.error('Error removing refresh token:', error);
+    }
+  },
 };
