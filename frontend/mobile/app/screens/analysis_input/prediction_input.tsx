@@ -1,6 +1,11 @@
+import StepLifestyle from './StepLifestyle';
+import StepAddictions from './StepAddictions';
+import StepEnvironment from './StepEnvironment';
+import StepBasicInfo from './StepBasicInfo';
+import StepHealthProfile from './StepHealthProfile';
 import { useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
-import { TextInput, Button, SegmentedButtons, RadioButton, Chip, ProgressBar } from "react-native-paper";
+import { Button, ProgressBar } from "react-native-paper";
 import { useTheme } from "../../context/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -9,6 +14,9 @@ import ActivityLevelInfoModal from "@/app/components/Modals/ActivityLevelInfoMod
 import DietaryPreferencesInfoModal from "@/app/components/Modals/DietaryPreferencesInfoModal";
 import AllergiesInfoModal from "@/app/components/Modals/AllergiesInfoModal";
 import SubstanceInfoModal from "@/app/components/Modals/SubstanceInfoModal";
+import MedicationInfoModal from "@/app/components/Modals/MedicationsInfoModal";
+import { submitHealthAssessment } from "../../api/userApi";
+import { tokenStorage } from "@/utils/tokenStorage";
 
 export default function PredictionInputScreen() {
   const { theme } = useTheme();
@@ -19,6 +27,8 @@ export default function PredictionInputScreen() {
   const [showDietaryModal, setShowDietaryModal] = useState(false);
   const [showAllergiesModal, setShowAllergiesModal] = useState(false);
   const [showSubstanceModal, setShowSubstanceModal] = useState(false);
+  const [showMedicationModal, setShowMedicationModal] = useState(false);
+  const [currentConditionsInput, setCurrentConditionsInput] = useState("");
   const [formData, setFormData] = useState({
     // Basic Info
     age: "",
@@ -37,7 +47,7 @@ export default function PredictionInputScreen() {
     mealFrequency: "",
     // Health
     currentConditions: [] as string[],
-    familyHistory: [] as string[],
+    geneticalConditions: [] as string[],
     medications: [] as string[],
     bloodType: "",
     // Environmental
@@ -49,22 +59,12 @@ export default function PredictionInputScreen() {
   });
 
   // Add new step for Addictions
-  const steps = [
-    "Basic Information",
-    "Health Profile",
-    "Lifestyle",
-    "Addictions",
-    "Environment",
-  ];
+  const steps = [ "Basic Information", "Health Profile", "Lifestyle", "Addictions", "Environment", ];
 
   const geneticalConditionsList = [
-  "Diabetes",
-  "Huntington's Disease",
-  "Heart Disease",
-  "Sickle Cell Disease",
-  "Down Syndrome",
-  "Cystic Fibrosis",
-];
+  "Diabetes", "Huntington's Disease", "Heart Disease", "Sickle Cell Disease", "Down Syndrome", "Cystic Fibrosis", ];
+
+  const medicationsList = [ "Aspirin", "Ibuprofen", "Paracetamol", "Amoxicillin", "Metformin", "Atorvastatin", "Amlodipine", "Losartan", "Omeprazole", "Cetirizine", "Salbutamol", "Hydrochlorothiazide", "Loperamide", "Vitamin D", ];
 
   // Most common allergies and addiction substances
   const commonAllergies = [
@@ -88,507 +88,125 @@ export default function PredictionInputScreen() {
     </View>
   );
 
-  const renderBasicInfo = () => (
-    <View>
-      <TextInput
-        label="Age"
-        mode="outlined"
-        textColor={theme.colors.text}
-        value={formData.age}
-        onChangeText={(text) => setFormData({ ...formData, age: text })}
-        keyboardType="numeric"
-        style={{ marginBottom: 12, backgroundColor: theme.colors.input }}
-        theme={{ colors: { onSurfaceVariant: theme.colors.text + "EE", primary: theme.colors.primary } }}
-        maxLength={3}
-        placeholderTextColor={theme.colors.text}
-      />
-      <Text style={{ 
-        color: theme.colors.text, 
-        fontSize: theme.fontSizes.base,
-      }}>
-        Sex
-      </Text>
-      <RadioButton.Group
-        onValueChange={(value) => setFormData({ ...formData, sex: value })}
-        value={formData.sex}
-      >
-        <View className="flex-row items-center">
-          <RadioButton.Item label="Male" value="male" labelStyle={{ color: theme.colors.text }} color={theme.colors.primary}/>
-          <RadioButton.Item label="Female" value="female" labelStyle={{ color: theme.colors.text }} color={theme.colors.primary}/>
-        </View>
-      </RadioButton.Group>
-    </View>
-  );
-
-  const renderPhysicalMetrics = () => (
-    <View>
-      <TextInput
-        label="Height (cm)"
-        mode="outlined"
-        value={formData.height}
-        onChangeText={(text) => setFormData({ ...formData, height: text })}
-        keyboardType="numeric"
-        style={{ marginBottom: 12, backgroundColor: theme.colors.input }}
-        theme={{ colors: { onSurfaceVariant: theme.colors.text + "EE", primary: theme.colors.primary } }}
-        textColor={theme.colors.text}
-        maxLength={3}
-        placeholderTextColor={theme.colors.text}
-      />
-      <TextInput
-        label="Weight (kg)"
-        mode="outlined"
-        value={formData.weight}
-        onChangeText={(text) => setFormData({ ...formData, weight: text })}
-        keyboardType="numeric"
-        style={{ marginBottom: 12, backgroundColor: theme.colors.input }}
-        theme={{ colors: { onSurfaceVariant: theme.colors.text + "EE", primary: theme.colors.primary } }}
-        textColor={theme.colors.text}
-        maxLength={3}
-      />
-      <TextInput
-        label="Waist Circumference (cm)"
-        mode="outlined"
-        value={formData.waistCircumference}
-        onChangeText={(text) => setFormData({ ...formData, waistCircumference: text })}
-        keyboardType="numeric"
-        style={{ marginBottom: 12, backgroundColor: theme.colors.input }}
-        theme={{ colors: { onSurfaceVariant: theme.colors.text + "EE", primary: theme.colors.primary } }}
-        maxLength={3}
-        textColor={theme.colors.text}
-      />
-    </View>
-  );
-
-  // --- Lifestyle Step ---
-  const renderLifestyle = () => (
-    <View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-        <Text style={{ 
-          color: theme.colors.text, 
-          fontSize: theme.fontSizes.base,
-        }}>
-          Activity Level
-        </Text>
-        <TouchableOpacity onPress={() => setShowActivityModal(true)}>
-          <Ionicons 
-            name="information-circle-outline" 
-            size={20} 
-            color={theme.colors.primary} 
-            style={{ marginLeft: 4 }} 
-          />
-        </TouchableOpacity>
-      </View>
-      <SegmentedButtons
-        value={formData.activityLevel}
-        onValueChange={(value) => setFormData({ ...formData, activityLevel: value })}
-        buttons={[
-          { value: 'sedentary', label: '1', style: { backgroundColor: formData.activityLevel === 'sedentary' ? theme.colors.primary : 'transparent', minWidth: 50 } },
-          { value: 'lightly_active', label: '2', style: { backgroundColor: formData.activityLevel === 'lightly_active' ? theme.colors.primary : 'transparent', minWidth: 50} },
-          { value: 'moderately_active', label: '3', style: { backgroundColor: formData.activityLevel === 'moderately_active' ? theme.colors.primary : 'transparent', minWidth: 50} },
-          { value: 'very_active', label: '4', style: { backgroundColor: formData.activityLevel === 'very_active' ? theme.colors.primary : 'transparent', minWidth: 50} },
-          { value: 'extremely_active', label: '5', style: { backgroundColor: formData.activityLevel === 'extremely_active' ? theme.colors.primary : 'transparent', minWidth: 50} },
-        ]}
-        style={{ marginBottom: 16, backgroundColor: theme.colors.background, flexGrow: 0, }}
-        theme={{ colors: { primary: theme.colors.primary, onSurface: theme.colors.text, onPrimary: theme.colors.text }}}
-      />
-
-      <TextInput
-        label="Average Daily Sleep Hours"
-        mode="outlined"
-        value={formData.sleepHours}
-        onChangeText={(text) => setFormData({ ...formData, sleepHours: text })}
-        keyboardType="numeric"
-        style={{ marginBottom: 12, backgroundColor: theme.colors.input }}
-        theme={{ colors: { onSurfaceVariant: theme.colors.text + "EE", primary: theme.colors.primary } }}
-        maxLength={2}
-        textColor={theme.colors.text}
-      />
-
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-        <Text style={{ 
-          color: theme.colors.text, 
-          fontSize: theme.fontSizes.base,
-        }}>
-          Dietary Preferences
-        </Text>
-        <TouchableOpacity onPress={() => setShowDietaryModal(true)}>
-          <Ionicons 
-            name="information-circle-outline" 
-            size={20} 
-            color={theme.colors.primary} 
-            style={{ marginLeft: 4 }} 
-          />
-        </TouchableOpacity>
-      </View>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: 12 }}>
-        {['vegetarian', 'vegan', 'pescatarian', 'kosher', 'halal', 'gluten-free', 'dairy-free'].map((pref) => (
-          <Chip
-            key={pref}
-            selected={formData.dietaryPreferences.includes(pref)}
-            onPress={() => {
-              setFormData(prev => ({
-                ...prev,
-                dietaryPreferences: prev.dietaryPreferences.includes(pref)
-                  ? prev.dietaryPreferences.filter(p => p !== pref)
-                  : [...prev.dietaryPreferences, pref]
-              }))
-            }}
-            style={{
-              marginRight: 8,
-              marginBottom: 8,
-              backgroundColor: formData.dietaryPreferences.includes(pref)
-                ? theme.colors.primary
-                : theme.colors.surface
-            }}
-            textStyle={{
-              color: formData.dietaryPreferences.includes(pref)
-                ? theme.colors.background
-                : theme.colors.text
-            }}
-          >
-            {pref.charAt(0).toUpperCase() + pref.slice(1)}
-          </Chip>
-        ))}
-      </View>
-
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-        <Text style={{ 
-          color: theme.colors.text, 
-          fontSize: theme.fontSizes.base,
-        }}>
-          Allergies
-        </Text>
-        <TouchableOpacity onPress={() => setShowAllergiesModal(true)}>
-          <Ionicons 
-            name="information-circle-outline" 
-            size={20} 
-            color={theme.colors.primary} 
-            style={{ marginLeft: 4 }} 
-          />
-        </TouchableOpacity>
-      </View>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: 12 }}>
-        {commonAllergies.map((allergy) => (
-          <Chip
-            key={allergy}
-            selected={formData.allergies.includes(allergy)}
-            onPress={() => {
-              setFormData(prev => ({
-                ...prev,
-                allergies: prev.allergies.includes(allergy)
-                  ? prev.allergies.filter(a => a !== allergy)
-                  : [...prev.allergies, allergy]
-              }))
-            }}
-            style={{
-              marginRight: 8,
-              marginBottom: 8,
-              backgroundColor: formData.allergies.includes(allergy)
-                ? theme.colors.primary
-                : theme.colors.surface
-            }}
-            textStyle={{
-              color: formData.allergies.includes(allergy)
-                ? theme.colors.background
-                : theme.colors.text
-            }}
-          >
-            {allergy}
-          </Chip>
-        ))}
-      </View>
-      <TextInput
-        label="Daily Water Intake (liters)"
-        mode="outlined"
-        value={formData.dailyWaterIntake}
-        onChangeText={(text) => setFormData({ ...formData, dailyWaterIntake: text })}
-        keyboardType="numeric"
-        style={{ marginBottom: 12, backgroundColor: theme.colors.input }}
-        theme={{ colors: { onSurfaceVariant: theme.colors.text + "EE", primary: theme.colors.primary } }}
-        maxLength={4}
-        textColor={theme.colors.text}
-      />
-
-      <TextInput
-        label="Meal Frequency (per day)"
-        mode="outlined"
-        value={formData.mealFrequency}
-        onChangeText={(text) => setFormData({ ...formData, mealFrequency: text })}
-        keyboardType="numeric"
-        style={{ marginBottom: 12, backgroundColor: theme.colors.input }}
-        theme={{ colors: { onSurfaceVariant: theme.colors.text + "EE", primary: theme.colors.primary } }}
-        maxLength={2}
-        textColor={theme.colors.text}
-      />
-      <Text style={{
-        color: theme.colors.text,
-        fontSize: theme.fontSizes.base,
-        marginBottom: 8
-      }}>
-        Stress Level
-      </Text>
-      <SegmentedButtons
-        value={formData.stressLevel}
-        onValueChange={(value) => setFormData({ ...formData, stressLevel: value })}
-        buttons={[
-          { value: 'low', label: 'Low', style: { backgroundColor: formData.stressLevel === 'low' ? theme.colors.primary : 'transparent'} },
-          { value: 'moderate', label: 'Moderate', style: { backgroundColor: formData.stressLevel === 'moderate' ? theme.colors.primary : 'transparent'} },
-          { value: 'high', label: 'High', style: { backgroundColor: formData.stressLevel === 'high' ? theme.colors.primary : 'transparent'} },
-        ]}
-        style={{ marginBottom: 16, backgroundColor: theme.colors.background, flexGrow: 0, }}
-        theme={{ colors: { primary: theme.colors.primary, onSurface: theme.colors.text, onPrimary: theme.colors.text }}}
-      />
-    </View>
-  );
-
-  // --- Addictions Step ---
-  const renderAddictions = () => (
-    <View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-        <Text style={{ 
-          color: theme.colors.text, 
-          fontSize: theme.fontSizes.base,
-        }}>
-          Substance
-        </Text>
-        <TouchableOpacity onPress={() => setShowSubstanceModal(true)}>
-          <Ionicons 
-            name="information-circle-outline" 
-            size={20} 
-            color={theme.colors.primary} 
-            style={{ marginLeft: 4 }} 
-          />
-        </TouchableOpacity>
-      </View>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: 12 }}>
-        {commonAddictionSubstances.map((substance) => (
-          <Chip
-            key={substance}
-            selected={formData.addictions.some(a => a.substance === substance)}
-            onPress={() => {
-              let newAddictions = [...formData.addictions];
-              const index = newAddictions.findIndex(a => a.substance === substance);
-              if (index > -1) {
-                // Remove if already selected
-                newAddictions.splice(index, 1);
-              } else {
-                // Add new substance with empty severity/duration
-                newAddictions.push({ substance, severity: "", duration: "" });
-              }
-              setFormData({ ...formData, addictions: newAddictions });
-            }}
-            style={{
-              marginRight: 8,
-              marginBottom: 8,
-              backgroundColor: formData.addictions.some(a => a.substance === substance)
-                ? theme.colors.primary
-                : theme.colors.surface
-            }}
-            textStyle={{
-              color: formData.addictions.some(a => a.substance === substance)
-                ? theme.colors.background
-                : theme.colors.text
-            }}
-          >
-            {substance}
-          </Chip>
-        ))}
-      </View>
-      {/* Optionally allow custom substance entry */}
-      <Text style={{
-        color: theme.colors.text,
-        fontSize: theme.fontSizes.base,
-        marginBottom: 8
-      }}>
-        Severity
-      </Text>
-      <SegmentedButtons
-        value={formData.addictions[0]?.severity || ""}
-        onValueChange={(value) => {
-          const newAddictions = [...formData.addictions];
-          if (!newAddictions[0]) newAddictions[0] = { substance: "", severity: "", duration: "" };
-          newAddictions[0].severity = value;
-          setFormData({ ...formData, addictions: newAddictions });
-        }}
-        buttons={[
-          { value: 'mild', label: 'Mild', style: { backgroundColor: formData.addictions[0]?.severity === 'mild' ? theme.colors.primary : 'transparent'}  },
-          { value: 'moderate', label: 'Moderate', style: { backgroundColor: formData.addictions[0]?.severity === 'moderate' ? theme.colors.primary : 'transparent'}  },
-          { value: 'severe', label: 'Severe', style: { backgroundColor: formData.addictions[0]?.severity === 'severe' ? theme.colors.primary : 'transparent'}  },
-        ]}
-        style={{ marginBottom: 16, backgroundColor: theme.colors.background, flexGrow: 0, }}
-        theme={{ colors: { primary: theme.colors.primary, onSurface: theme.colors.text, onPrimary: theme.colors.text }}}
-      />
-      <TextInput
-        label="Addiction Duration (per month)"
-        mode="outlined"
-        value={formData.addictions[0]?.duration || ""}
-        onChangeText={(text) => {
-          const newAddictions = [...formData.addictions];
-          if (!newAddictions[0]) newAddictions[0] = { substance: "", severity: "", duration: "" };
-          newAddictions[0].duration = text;
-          setFormData({ ...formData, addictions: newAddictions });
-        }}
-        keyboardType="numeric"
-        style={{ marginBottom: 12, backgroundColor: theme.colors.input }}
-        theme={{ colors: { onSurfaceVariant: theme.colors.text + "EE", primary: theme.colors.primary } }}
-        maxLength={3}
-        textColor={theme.colors.text}
-      />
-    </View>
-  );
-
-  // --- Environment Step ---
-  const renderEnvironment = () => (
-    <View>
-
-
-      <Text style={{
-        color: theme.colors.text,
-        fontSize: theme.fontSizes.base,
-        marginBottom: 8
-      }}>
-        Pollution Exposure
-      </Text>
-      <SegmentedButtons
-        value={formData.pollutionExposure}
-        onValueChange={(value) => setFormData({ ...formData, pollutionExposure: value })}
-        buttons={[
-          { value: 'low', label: 'Low', style: { backgroundColor: formData.pollutionExposure === 'low' ? theme.colors.primary : 'transparent'} },
-          { value: 'medium', label: 'Medium', style: { backgroundColor: formData.pollutionExposure === 'medium' ? theme.colors.primary : 'transparent'} },
-          { value: 'high', label: 'High', style: { backgroundColor: formData.pollutionExposure === 'high' ? theme.colors.primary : 'transparent'}  },
-        ]}
-        style={{ marginBottom: 16, backgroundColor: theme.colors.background, flexGrow: 0, }}
-        theme={{ colors: { primary: theme.colors.primary, onSurface: theme.colors.text, onPrimary: theme.colors.text }}}
-      />
-
-      <Text style={{
-        color: theme.colors.text,
-        fontSize: theme.fontSizes.base,
-        marginBottom: 8
-      }}>
-        Occupation Type
-      </Text>
-      <SegmentedButtons
-        value={formData.occupationType}
-        onValueChange={(value) => setFormData({ ...formData, occupationType: value })}
-        buttons={[
-          { value: 'sedentary', label: 'Sedentary', style: { backgroundColor: formData.occupationType === 'sedentary' ? theme.colors.primary : 'transparent'} },
-          { value: 'physical', label: 'Physical', style: { backgroundColor: formData.occupationType === 'physical' ? theme.colors.primary : 'transparent'} },
-          { value: 'mixed', label: 'Mixed', style: { backgroundColor: formData.occupationType === 'mixed' ? theme.colors.primary : 'transparent'}  },
-        ]}
-        style={{ marginBottom: 16, backgroundColor: theme.colors.background, flexGrow: 0, }}
-        theme={{ colors: { primary: theme.colors.primary, onSurface: theme.colors.text, onPrimary: theme.colors.text }}}
-      />
-    </View>
-  );
-
-  const renderHealthProfile = () => (
-    <View>
-      <Text style={{ 
-        color: theme.colors.text, 
-        fontSize: theme.fontSizes.base,
-        marginBottom: 8 
-      }}>
-        Blood Type
-      </Text>
-      <RadioButton.Group
-        onValueChange={(value) => setFormData({ ...formData, bloodType: value })}
-        value={formData.bloodType}
-      >
-        <View style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: 16 }}>
-          {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((type) => (
-            <RadioButton.Item
-              key={type}
-              label={type}
-              value={type}
-              labelStyle={{ color: theme.colors.text }}
-              color={theme.colors.primary}
-              style={{ minWidth: '20%' }}
-            />
-          ))}
-        </View>
-      </RadioButton.Group>
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-        <Text style={{ 
-          color: theme.colors.text, 
-          fontSize: theme.fontSizes.base,
-        }}>
-          Current Genetical Conditions
-        </Text>
-        <TouchableOpacity onPress={() => setShowGeneticalModal(true)}>
-          <Ionicons 
-            name="information-circle-outline" 
-            size={20} 
-            color={theme.colors.primary} 
-            style={{ marginLeft: 4 }} 
-          />
-        </TouchableOpacity>
-      </View>
-      <View className="flex-row flex-wrap gap-2 mb-4">
-        {['Diabetes', `Huntington's Disease`, 'Heart Disease', 'Sickle Cell Disease', 'Down Syndrome', 'Cystic Fibrosis', 'None'].map((condition) => (
-          <Chip
-            key={condition}
-            selected={formData.currentConditions.includes(condition)}
-            onPress={() => {
-              setFormData(prev => ({
-                ...prev,
-                currentConditions: prev.currentConditions.includes(condition)
-                  ? prev.currentConditions.filter(c => c !== condition)
-                  : [...prev.currentConditions, condition]
-              }))
-            }}
-            style={{ 
-              backgroundColor: formData.currentConditions.includes(condition) 
-                ? theme.colors.primary 
-                : theme.colors.surface 
-            }}
-            textStyle={{ 
-              color: formData.currentConditions.includes(condition) 
-                ? theme.colors.background 
-                : theme.colors.text 
-            }}
-          >
-            {condition}
-          </Chip>
-        ))}
-      </View>
-
-      <TextInput
-        label="Current Medicational Conditions"
-        mode="outlined"
-        value={formData.medications.join(', ')}
-        onChangeText={(text) => setFormData({ 
-          ...formData, 
-          medications: text.split(',').map(med => med.trim()).filter(med => med) 
-        })}
-        style={{ marginBottom: 12, backgroundColor: theme.colors.input }}
-        theme={{ colors: { onSurfaceVariant: theme.colors.text + "EE", primary: theme.colors.primary } }}
-        textColor={theme.colors.text}
-      />
-    </View>
-  );
-
   const renderStepContent = () => {
     switch (currentStep) {
       case 0:
         return (
-          <View>
-            {renderBasicInfo()}
-            {renderPhysicalMetrics()}
-          </View>
+          <StepBasicInfo
+            formData={formData}
+            setFormData={setFormData}
+            theme={theme}
+          />
         );
       case 1:
-        return renderHealthProfile();
+        return (
+          <StepHealthProfile
+            formData={formData}
+            setFormData={setFormData}
+            currentConditionsInput={currentConditionsInput}
+            setCurrentConditionsInput={setCurrentConditionsInput}
+            theme={theme}
+            geneticalConditionsList={geneticalConditionsList}
+            medicationsList={medicationsList}
+            showGeneticalModal={showGeneticalModal}
+            setShowGeneticalModal={setShowGeneticalModal}
+            showMedicationModal={showMedicationModal}
+            setShowMedicationModal={setShowMedicationModal}
+          />
+        );
       case 2:
-        return renderLifestyle();
+        return (
+          <StepLifestyle
+            formData={formData}
+            setFormData={setFormData}
+            theme={theme}
+            showActivityModal={showActivityModal}
+            setShowActivityModal={setShowActivityModal}
+            showDietaryModal={showDietaryModal}
+            setShowDietaryModal={setShowDietaryModal}
+            showAllergiesModal={showAllergiesModal}
+            setShowAllergiesModal={setShowAllergiesModal}
+            commonAllergies={commonAllergies}
+          />
+        );
       case 3:
-        return renderAddictions();
+        return (
+          <StepAddictions
+            formData={formData}
+            setFormData={setFormData}
+            theme={theme}
+            showSubstanceModal={showSubstanceModal}
+            setShowSubstanceModal={setShowSubstanceModal}
+            commonAddictionSubstances={commonAddictionSubstances}
+          />
+        );
       case 4:
-        return renderEnvironment();
+        return (
+          <StepEnvironment
+            formData={formData}
+            setFormData={setFormData}
+            theme={theme}
+          />
+        );
       default:
         return null;
     }
   };
+
+  function mapFormDataToBackend(formData: any) {
+    return {
+      age: Number(formData.age),
+      gender: formData.sex,
+      physicalMetrics: {
+        height: { value: Number(formData.height) },
+        weight: { value: Number(formData.weight) },
+        waistCircumference: Number(formData.waistCircumference),
+      },
+      lifestyle: {
+        activityLevel: formData.activityLevel,
+        sleepHours: Number(formData.sleepHours),
+      },
+      dietaryProfile: {
+        preferences: formData.dietaryPreferences,
+        allergies: formData.allergies,
+        dailyWaterIntake: Number(formData.dailyWaterIntake),
+        mealFrequency: Number(formData.mealFrequency),
+      },
+      healthProfile: {
+        currentConditions: currentConditionsInput
+          .split(',')
+          .map(cond => cond.trim())
+          .filter(cond => cond),
+        familyHistory: formData.geneticalConditions,
+        medications: formData.medications,
+        bloodType: formData.bloodType,
+      },
+      environmentalFactors: {
+        pollutionExposure: formData.pollutionExposure,
+        occupationType: formData.occupationType,
+      },
+      riskFactors: {
+        stressLevel: formData.stressLevel,
+        addictions: formData.addictions.map((a: any) => ({
+          substance: a.substance,
+          severity: a.severity,
+          duration: a.duration ? Number(a.duration) : undefined,
+        })),
+      },
+    };
+  }
+
+  const handleSubmit = async () => {
+  try {
+    const token = await tokenStorage.getToken();
+    const mappedData = mapFormDataToBackend(formData);
+    const response = await submitHealthAssessment(mappedData, token || "");
+    console.log("Health assessment submitted:", response.data);
+    console.log("Token used:", token);
+  } catch (error) {
+    console.error("Error submitting health assessment:", error);
+  }
+};
 
   return (
     <View className="relative h-full">
@@ -635,7 +253,8 @@ export default function PredictionInputScreen() {
               if (currentStep === steps.length - 1) {
                 // Submit form
                 console.log(formData);
-                // TODO: Add API call here
+                handleSubmit();
+                router.back();
               } else {
                 setCurrentStep(current => current + 1);
               }
@@ -653,6 +272,7 @@ export default function PredictionInputScreen() {
       <DietaryPreferencesInfoModal visible={showDietaryModal} onClose={() => setShowDietaryModal(false)} />
       <AllergiesInfoModal visible={showAllergiesModal} onClose={() => setShowAllergiesModal(false)} />
       <SubstanceInfoModal visible={showSubstanceModal} onClose={() => setShowSubstanceModal(false)} />
+      <MedicationInfoModal visible={showMedicationModal} onClose={() => setShowMedicationModal(false)} medications={medicationsList}/>
     </View>
   );
 }

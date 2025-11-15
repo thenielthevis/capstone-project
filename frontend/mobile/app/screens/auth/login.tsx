@@ -32,9 +32,11 @@ export default function LoginScreen() {
           if (response?.data?.token) {
             setUser(response.data.user); // Save user globally
             await tokenStorage.saveToken(response.data.token);
+            await tokenStorage.saveRefreshToken(response.data.refreshToken);
             await tokenStorage.saveUser(response.data.user);
             console.log("User: ", response.data.user);
             console.log("Token: ", response.data.token);
+            console.log("Refresh Token: ", response.data.refreshToken);
             router.dismissAll();
             router.replace("../../(tabs)/Home");
           }
