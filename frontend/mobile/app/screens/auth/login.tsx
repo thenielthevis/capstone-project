@@ -30,14 +30,15 @@ export default function LoginScreen() {
         router,
         onSuccess: async (response) => {
           if (response?.data?.token) {
-            setUser(response.data.user); // Save user globally
-            await tokenStorage.saveToken(response.data.token);
-            await tokenStorage.saveUser(response.data.user);
-            console.log("User: ", response.data.user);
-            console.log("Token: ", response.data.token);
-            router.dismissAll();
-            router.replace("../../(tabs)/Home");
-          }
+              // Save token and stored user first to avoid race where Analysis mounts before token is written
+              await tokenStorage.saveToken(response.data.token);
+              await tokenStorage.saveUser(response.data.user);
+              setUser(response.data.user); // Save user globally
+              console.log("User: ", response.data.user);
+              console.log("Token: ", response.data.token);
+              router.dismissAll();
+              router.replace("../../(tabs)/Home");
+            }
         },
         onError: (error) => {
           setError("Google Sign-In failed. Try again.");
@@ -62,9 +63,10 @@ export default function LoginScreen() {
       setLoading(true);
       const response = await loginUser(email, password);
       if (response.data.token) {
-        setUser(response.data.user);
+        // Save token and stored user first to avoid race where Analysis mounts before token is written
         await tokenStorage.saveToken(response.data.token);
         await tokenStorage.saveUser(response.data.user);
+        setUser(response.data.user);
         router.dismissAll();
         router.replace("../../(tabs)/Home");
       } else {

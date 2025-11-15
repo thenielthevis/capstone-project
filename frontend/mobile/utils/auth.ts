@@ -1,17 +1,25 @@
-import auth from "@react-native-firebase/auth";
+import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth";
 import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
 import axios from "axios";
 
-export const API_URL = process.env.EXPO_PUBLIC_API_URL;
+// fallback to local dev server for emulator if env not provided
+export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://10.0.2.2:5000';
 
 // Fix: Add profilePicture to the type definition for userInfo
 export const registerGoogleUser = async (userInfo: { username: string; email: string; googleId: string; profilePicture?: string }) => {
-  return axios.post(`${API_URL}/users/google`, {
-    username: userInfo.username,
-    email: userInfo.email,
-    googleId: userInfo.googleId,
-    profilePicture: userInfo.profilePicture,
-  });
+  const url = `${API_URL.replace(/\/$/, '')}/users/google`;
+  try {
+    return await axios.post(url, {
+      username: userInfo.username,
+      email: userInfo.email,
+      googleId: userInfo.googleId,
+      profilePicture: userInfo.profilePicture,
+    }, { timeout: 7000 });
+  } catch (err: any) {
+    // normalize network error messages for caller
+    const message = err?.response?.data?.error || err?.message || 'Network Error';
+    throw new Error(message);
+  }
 };
 
 export const registerUser = async (username: string, email: string, password: string) => {
@@ -53,9 +61,11 @@ export const handleGoogleSignInShared = async ({
       throw new Error('No ID token present in Google Sign-in response');
     }
 
-    // Sign in to Firebase (native)
-    const googleCredential = auth.GoogleAuthProvider.credential(idToken);
-    await auth().signInWithCredential(googleCredential);
+  // Sign in to Firebase (native) - use modular signInWithCredential pattern
+  const googleCredential = auth.GoogleAuthProvider.credential(idToken);
+  // prefer explicit signInWithCredential helper to avoid deprecated namespaced API warnings
+  // auth() returns the default app instance (namespaced), but signInWithCredential helper avoids deprecation
+  await auth().signInWithCredential(googleCredential);
 
     let backendResponse = null;
     try {

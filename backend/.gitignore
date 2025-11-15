@@ -1,2 +1,41 @@
 node_modules/
 .env
+.venv
+
+# Python related
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# Byte-compiled / optimized / DLL files
+*.so
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Pytest cache
+.pytest_cache/
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints/
+*.ipynb
+
+# PyTorch / model checkpoints
+*.pth
+*.pt
+ml_models/trained_models/
+trained_models/
+
+# Logs
+*.log

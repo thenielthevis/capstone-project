@@ -1,0 +1,4 @@
+age,gender,height_cm,weight_kg,bmi,waistCircumference_cm,activityLevel,sleepHours,dietaryPreference,allergies,dailyWaterIntake_L,mealFrequency,currentCondition,familyHistory,bloodType,pollutionExposure,occupationType,addiction,stressLevel
+28,male,175,70,22.9,82,very_active,7,vegan,none,2.5,5,none,none,O+,low,mixed,none,low
+45,female,162,58,22.1,75,moderately_active,8,vegetarian,dairy,2.0,4,none,diabetes,A+,medium,sedentary,none,moderate
+35,male,180,95,29.3,98,sedentary,5,none,none,1.5,3,hypertension,heart_disease,B+,high,sedentary,tobacco,high
