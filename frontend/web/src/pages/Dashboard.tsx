@@ -1,9 +1,9 @@
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { LogOut, User as UserIcon, Activity, TrendingUp } from 'lucide-react';
+import { LogOut, User as UserIcon, Activity, TrendingUp, FileText, Heart, Utensils } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import logoImg from '../assets/logo.png';
+import logoImg from '@/assets/logo.png';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -70,15 +70,48 @@ export default function Dashboard() {
           )}
 
           {/* Quick Actions */}
-          <div className="grid md:grid-cols-3 gap-6">
-            <Card className="shadow-md hover:shadow-lg transition-shadow cursor-pointer">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card 
+              className="shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+              onClick={() => navigate('/health-assessment')}
+            >
               <CardContent className="pt-6">
                 <div className="text-center space-y-3">
                   <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
-                    <Activity className="w-6 h-6 text-blue-600" />
+                    <FileText className="w-6 h-6 text-blue-600" />
                   </div>
-                  <h3 className="font-semibold text-lg">Track Activity</h3>
-                  <p className="text-sm text-gray-600">Monitor your daily activities and progress</p>
+                  <h3 className="font-semibold text-lg">Health Assessment</h3>
+                  <p className="text-sm text-gray-600">Complete your comprehensive health profile</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card 
+              className="shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+              onClick={() => navigate('/predictions')}
+            >
+              <CardContent className="pt-6">
+                <div className="text-center space-y-3">
+                  <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+                    <Heart className="w-6 h-6 text-red-600" />
+                  </div>
+                  <h3 className="font-semibold text-lg">Risk Predictions</h3>
+                  <p className="text-sm text-gray-600">View your health risk analysis</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card 
+              className="shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+              onClick={() => navigate('/food-tracking')}
+            >
+              <CardContent className="pt-6">
+                <div className="text-center space-y-3">
+                  <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto">
+                    <Utensils className="w-6 h-6 text-orange-600" />
+                  </div>
+                  <h3 className="font-semibold text-lg">Food Tracking</h3>
+                  <p className="text-sm text-gray-600">Track calories with AI-powered analysis</p>
                 </div>
               </CardContent>
             </Card>
@@ -87,10 +120,10 @@ export default function Dashboard() {
               <CardContent className="pt-6">
                 <div className="text-center space-y-3">
                   <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                    <UserIcon className="w-6 h-6 text-green-600" />
+                    <Activity className="w-6 h-6 text-green-600" />
                   </div>
-                  <h3 className="font-semibold text-lg">Profile</h3>
-                  <p className="text-sm text-gray-600">View and edit your profile information</p>
+                  <h3 className="font-semibold text-lg">Track Activity</h3>
+                  <p className="text-sm text-gray-600">Monitor daily activities and progress</p>
                 </div>
               </CardContent>
             </Card>
@@ -102,7 +135,7 @@ export default function Dashboard() {
                     <TrendingUp className="w-6 h-6 text-purple-600" />
                   </div>
                   <h3 className="font-semibold text-lg">Analytics</h3>
-                  <p className="text-sm text-gray-600">View your wellness insights and trends</p>
+                  <p className="text-sm text-gray-600">View wellness insights and trends</p>
                 </div>
               </CardContent>
             </Card>
@@ -113,17 +146,28 @@ export default function Dashboard() {
             <CardContent className="pt-6">
               <div className="flex items-start gap-4">
                 <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white flex-shrink-0 mt-1">
-                  <span className="text-lg font-bold">i</span>
+                  <span className="text-lg font-bold">✓</span>
                 </div>
                 <div className="space-y-2">
-                  <h3 className="font-semibold text-lg text-blue-900">Dashboard Coming Soon</h3>
+                  <h3 className="font-semibold text-lg text-blue-900">Get Started with Your Health Journey</h3>
                   <p className="text-blue-800 text-sm">
-                    This is a placeholder dashboard. The full wellness tracking features, AI insights, 
-                    and community features are currently in development. Stay tuned for updates!
+                    Complete your health assessment to receive personalized risk predictions and insights.
+                    Our AI-powered system will analyze your health data and provide tailored recommendations.
                   </p>
-                  <Link to="/" className="inline-block text-blue-600 hover:text-blue-700 font-medium text-sm mt-2">
-                    ← Back to Home
-                  </Link>
+                  <div className="flex gap-3 mt-4">
+                    <Button 
+                      onClick={() => navigate('/health-assessment')}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      Start Assessment
+                    </Button>
+                    <Button 
+                      onClick={() => navigate('/predictions')}
+                      variant="outline"
+                    >
+                      View Predictions
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>

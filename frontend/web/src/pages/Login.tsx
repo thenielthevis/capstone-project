@@ -39,7 +39,12 @@ export default function Login() {
       // Navigate to dashboard
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please try again.');
+      // Provide more helpful error messages
+      if (err.message === 'Invalid credentials') {
+        setError('Invalid email or password. Please check your credentials and try again.');
+      } else {
+        setError(err.message || 'Login failed. Please try again.');
+      }
       console.error('Login error:', err);
     } finally {
       setLoading(false);
