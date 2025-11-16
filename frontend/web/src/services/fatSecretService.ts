@@ -1,5 +1,5 @@
-const CLIENT_ID = 'a2d548a187d244929479fd28199eca9a';
-const CLIENT_SECRET = '8f46fa32d7604262a55c11a6f3bb54eb';
+const CLIENT_ID = import.meta.env.VITE_FATSECRET_CLIENT_ID;
+const CLIENT_SECRET = import.meta.env.VITE_FATSECRET_CLIENT_SECRET;
 const TOKEN_URL = 'https://oauth.fatsecret.com/connect/token';
 const API_BASE_URL = 'https://platform.fatsecret.com/rest/server.api';
 
