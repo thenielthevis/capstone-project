@@ -55,6 +55,7 @@ export default function HomeTabs() {
             },
             tabBarActiveTintColor: theme.colors.primary,
             tabBarInactiveTintColor: theme.colors.text,
+            animation: "shift",
           }}
         >
           <Tabs.Screen

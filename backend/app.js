@@ -6,20 +6,27 @@ const app = express();
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 
+// Simple request logger for debugging network issues
+app.use((req, res, next) => {
+  try {
+    const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+    console.log(`[request] ${new Date().toISOString()} ${req.method} ${req.originalUrl} from ${ip}`);
+  } catch (e) {
+    // no-op
+  }
+  next();
+});
+
 //Routers
 const userRoutes = require('./routes/userRoutes');
+const predictRoutes = require('./routes/predictRoutes');
 
+// During development allow all origins so phones/emulators can reach the server.
+// In production restrict this to a known list.
 app.use(
   cors({
-    origin: [
-      'http://localhost:5000',
-      'http://localhost:5173',
-      'http://localhost:19006', // Expo web
-      'http://localhost:19000', // Expo client
-      'http://localhost:8081',  // React Native dev server
-      'exp://*',               // Expo Go app
-    ],
-    methods: ['GET', 'POST', 'DELETE', 'PUT'],
+    origin: true, // reflect request origin — permissive for dev
+    methods: ['GET', 'POST', 'DELETE', 'PUT', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Expires', 'Pragma'],
     credentials: true,
   })
@@ -29,5 +36,6 @@ app.use(express.json());
 
 // Use Routes
 app.use('/api/users', userRoutes);
+app.use('/api/predict', predictRoutes);
 
 module.exports = app;

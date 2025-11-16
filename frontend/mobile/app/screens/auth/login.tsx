@@ -30,14 +30,17 @@ export default function LoginScreen() {
         router,
         onSuccess: async (response) => {
           if (response?.data?.token) {
-            setUser(response.data.user); // Save user globally
-            await tokenStorage.saveToken(response.data.token);
+              // Save token and stored user first to avoid race where Analysis mounts before token is written
+              await tokenStorage.saveToken(response.data.token);
+              await tokenStorage.saveRefreshToken(response.data.refreshToken);
             await tokenStorage.saveUser(response.data.user);
-            console.log("User: ", response.data.user);
-            console.log("Token: ", response.data.token);
+              setUser(response.data.user); // Save user globally
+              console.log("User: ", response.data.user);
+              console.log("Token: ", response.data.token);
+              console.log("Refresh Token: ", response.data.refreshToken);
             router.dismissAll();
-            router.replace("../../(tabs)/Home");
-          }
+              router.replace("../../(tabs)/Home");
+            }
         },
         onError: (error) => {
           setError("Google Sign-In failed. Try again.");
@@ -62,9 +65,10 @@ export default function LoginScreen() {
       setLoading(true);
       const response = await loginUser(email, password);
       if (response.data.token) {
-        setUser(response.data.user);
+        // Save token and stored user first to avoid race where Analysis mounts before token is written
         await tokenStorage.saveToken(response.data.token);
         await tokenStorage.saveUser(response.data.user);
+        setUser(response.data.user);
         router.dismissAll();
         router.replace("../../(tabs)/Home");
       } else {
@@ -93,8 +97,9 @@ export default function LoginScreen() {
             autoCapitalize="none"
             style={{ marginBottom: 12, backgroundColor: theme.colors.input }}
             error={!!error && error.toLowerCase().includes("email")}
-            theme={{ colors: { primary: theme.colors.primary } }}
+            theme={{ colors: { onSurfaceVariant: theme.colors.text + "EE", primary: theme.colors.primary } }}
             placeholder="Enter your email"
+            placeholderTextColor="white"
           />
           <TextInput
             label="Password"
@@ -105,7 +110,7 @@ export default function LoginScreen() {
             secureTextEntry={!showPassword}
             style={{ marginBottom: 12, backgroundColor: theme.colors.input }}
             error={!!error && error.toLowerCase().includes("password")}
-            theme={{ colors: { primary: theme.colors.primary } }}
+            theme={{ colors: { onSurfaceVariant: theme.colors.text + "EE", primary: theme.colors.primary } }}
             placeholder="Enter your password"
             right={
               <TextInput.Icon

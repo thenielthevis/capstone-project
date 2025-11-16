@@ -109,7 +109,7 @@ export default function RegisterScreen() {
             onChangeText={setUsername}
             style={{ marginBottom: 12, backgroundColor: theme.colors.input }}
             error={!!error && error.toLowerCase().includes("username")}
-            theme={{ colors: { primary: theme.colors.primary } }}
+            theme={{ colors: { onSurfaceVariant: theme.colors.text + "EE", primary: theme.colors.primary } }}
             autoCapitalize="none"
             textColor={theme.colors.text}
             placeholder="Enter your username"
@@ -124,7 +124,7 @@ export default function RegisterScreen() {
             autoCapitalize="none"
             style={{ marginBottom: 12, backgroundColor: theme.colors.input }}
             error={!!error && error.toLowerCase().includes("email")}
-            theme={{ colors: { primary: theme.colors.primary } }}
+            theme={{ colors: { onSurfaceVariant: theme.colors.text + "EE", primary: theme.colors.primary } }}
             textColor={theme.colors.text}
             placeholder="Enter your email"
             right={undefined}
@@ -137,7 +137,7 @@ export default function RegisterScreen() {
             secureTextEntry={!showPassword}
             style={{ marginBottom: 12, backgroundColor: theme.colors.input }}
             error={!!error && error.toLowerCase().includes("password")}
-            theme={{ colors: { primary: theme.colors.primary } }}
+            theme={{ colors: { onSurfaceVariant: theme.colors.text + "EE", primary: theme.colors.primary } }}
             textColor={theme.colors.text}
             placeholder="Enter your password"
             right={
@@ -156,7 +156,7 @@ export default function RegisterScreen() {
             secureTextEntry={!showConfirmPassword}
             style={{ marginBottom: 12, backgroundColor: theme.colors.input }}
             error={!!error && error.toLowerCase().includes("match")}
-            theme={{ colors: { primary: theme.colors.primary } }}
+            theme={{ colors: { onSurfaceVariant: theme.colors.text + "EE", primary: theme.colors.primary } }}
             textColor={theme.colors.text}
             placeholder="Re-enter your password"
             right={
