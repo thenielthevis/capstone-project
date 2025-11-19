@@ -12,25 +12,63 @@ const activityOptions = {
 
 type ActivityType = keyof typeof activityOptions;
 
-export default function ActivityDrawer() {
+type ActivityDrawerProps = {
+  speed?: number;
+  distance?: number;
+  time?: number;
+  recording?: boolean;
+  onRecordingChange?: (recording: boolean) => void;
+};
+
+export default function ActivityDrawer({ 
+  speed = 0, 
+  distance = 0,
+  time = 0,
+  recording: externalRecording,
+  onRecordingChange
+}: ActivityDrawerProps) {
   const { theme } = useTheme();
   const bottomSheetRef = useRef<BottomSheet>(null);
   const activitySheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ["15%", "25%", "90%"], []);
+  const snapPoints = useMemo(() => ["15%", "25%"], []);
   const activitySnapPoints = useMemo(() => ["30%"], []);
 
   const [activityType, setActivityType] = useState<ActivityType>("Running");
-  const [recording, setRecording] = useState(false);
-  const [time] = useState("00:00");
-  const [speed] = useState("0.0");
-  const [distance] = useState("0.00");
+  const [recording, setRecording] = useState(externalRecording || false);
+
+  // Sync with external recording state
+  React.useEffect(() => {
+    if (externalRecording !== undefined) {
+      setRecording(externalRecording);
+    }
+  }, [externalRecording]);
+
+  const formatTime = (totalSeconds: number) => {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes.toString().padStart(2, "0")}:${seconds
+      .toString()
+      .padStart(2, "0")}`;
+  };
+
+  // Format speed to 1 decimal place
+  const formatSpeed = (speedValue: number): string => {
+    return speedValue.toFixed(1);
+  };
+
+  // Format distance to 2 decimal places
+  const formatDistance = (distanceValue: number): string => {
+    return distanceValue.toFixed(2);
+  };
 
   const handleActionsPress = () => {
     bottomSheetRef.current?.expand();
   };
 
   const handleRecordPress = () => {
-    setRecording((r) => !r);
+    const newRecording = !recording;
+    setRecording(newRecording);
+    onRecordingChange?.(newRecording);
     bottomSheetRef.current?.snapToIndex(2);
   };
 
@@ -100,7 +138,7 @@ export default function ActivityDrawer() {
                   fontFamily: theme.fonts.heading,
                 }}
               >
-                {time}
+                {formatTime(time)}
               </Text>
               <Text
                 style={{
@@ -157,7 +195,7 @@ export default function ActivityDrawer() {
                   fontFamily: theme.fonts.heading,
                 }}
               >
-                {speed} km/h
+                {formatSpeed(speed)} km/h
               </Text>
               <Text
                 style={{
@@ -208,7 +246,7 @@ export default function ActivityDrawer() {
                   fontFamily: theme.fonts.heading,
                 }}
               >
-                {distance} km
+                {formatDistance(distance)} km
               </Text>
               <Text
                 style={{

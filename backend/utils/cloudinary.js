@@ -13,3 +13,31 @@ exports.uploadProfilePicture = async (imageUrl, publicId = null) => {
     overwrite: true,
   });
 };
+
+exports.uploadWorkoutAnimation = async (animationUrl, publicId = null) => {
+  return cloudinary.uploader.upload(animationUrl, {
+    folder: "workout_animations",
+    public_id: publicId,
+    overwrite: true,
+  });
+};
+
+exports.geoActivityIcon = async (iconUrl, publicId = null) => {
+  return cloudinary.uploader.upload(iconUrl, {
+    folder: "geo_activity_icons",
+    public_id: publicId,
+    overwrite: true,
+  });
+};
+
+exports.geoActivityAnimation = async (animationUrl, publicId = null) => {
+  return cloudinary.uploader.upload(animationUrl, {
+    folder: "geo_activity_animations",
+    public_id: publicId,
+    overwrite: true,
+  });
+};
+
+exports.deleteImage = async (publicId) => {
+  return cloudinary.uploader.destroy(publicId);
+};
