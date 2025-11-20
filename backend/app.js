@@ -10,7 +10,8 @@ const cors = require('cors');
 app.use((req, res, next) => {
   try {
     const ip = req.ip || req.connection?.remoteAddress || 'unknown';
-    console.log(`[request] ${new Date().toISOString()} ${req.method} ${req.originalUrl} from ${ip}`);
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] ${req.method} ${req.originalUrl} from ${ip}`);
   } catch (e) {
     // no-op
   }
@@ -24,6 +25,7 @@ const geoRoutes = require('./routes/geoRoutes');
 const workoutRoutes = require('./routes/workoutRoutes');
 const workoutSessionRoutes = require('./routes/workoutSessionRoutes');
 const geoSessionRoutes = require('./routes/geoSessionRoutes');
+const foodLogRoutes = require('./routes/foodLogRoutes');
 
 // During development allow all origins so phones/emulators can reach the server.
 // In production restrict this to a known list.
@@ -36,7 +38,8 @@ app.use(
   })
 );
 app.use(cookieParser());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Use Routes
 app.use('/api/users', userRoutes);
@@ -45,5 +48,34 @@ app.use('/api/geo', geoRoutes);
 app.use('/api/workouts', workoutRoutes);
 app.use('/api/workout-sessions', workoutSessionRoutes);
 app.use('/api/geo-sessions', geoSessionRoutes);
+app.use('/api/food-logs', foodLogRoutes);
+
+// Health check endpoint
+app.get('/', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    message: 'Capstone API Server Running',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// 404 handler
+app.use((req, res) => {
+  console.log(`[404] ${req.method} ${req.originalUrl}`);
+  res.status(404).json({ 
+    message: 'Route not found',
+    path: req.originalUrl,
+    method: req.method
+  });
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('[Error]', err.stack);
+  res.status(err.status || 500).json({
+    message: err.message || 'Internal server error',
+    error: process.env.NODE_ENV === 'development' ? err : {}
+  });
+});
 
 module.exports = app;

@@ -117,11 +117,18 @@ export async function analyzeFood(
     
     const prompt = `Analyze this food image and provide the following information in JSON format:${dishContext}${allergyContext}
     
-    IMPORTANT: For nutrition data accuracy, cross-reference multiple sources:
-    1. If visible nutrition label, extract exact values
-    2. For branded products, search USDA FoodData Central or brand's official website
-    3. For common foods, verify against established databases (USDA, MyFitnessPal, Nutritionix)
-    4. Provide links to sources used for verification
+    CRITICAL NUTRITION DATA REQUIREMENTS:
+    1. DO NOT GUESS nutritional values - use publicly available databases as primary sources
+    2. PRIORITIZE these authoritative sources in order:
+       - USDA FoodData Central (https://fdc.nal.usda.gov) - Most reliable for US foods
+       - Nutritionix API data (https://www.nutritionix.com) - Verified restaurant & brand data
+       - MyFitnessPal database (https://www.myfitnesspal.com) - Community-verified data
+       - Official brand websites and nutrition labels (if visible in image)
+    3. If visible nutrition label in image, extract ALL exact values
+    4. For branded products, search brand's official website first
+    5. For common foods, cross-reference at least 2-3 sources and use median values
+    6. ALWAYS provide working URLs to sources used
+    7. If unable to find reliable data, set confidence to "low" and note the limitation
     
     {
       "foodName": "name of the food or dish",
@@ -297,10 +304,18 @@ export async function analyzeIngredients(
 Ingredients:
 ${ingredientsList}
 
-IMPORTANT: For nutrition data accuracy, cross-reference multiple sources:
-1. Calculate from ingredient databases (USDA, nutritional tables)
-2. Verify against similar recipes from established sources
-3. Provide links to sources used for verification
+CRITICAL NUTRITION DATA REQUIREMENTS:
+1. DO NOT GUESS nutritional values - calculate from publicly available databases
+2. PRIORITIZE these authoritative sources in order:
+   - USDA FoodData Central (https://fdc.nal.usda.gov) - Most reliable for ingredient data
+   - USDA SR Legacy database - Standard Reference for raw ingredients
+   - Nutritionix (https://www.nutritionix.com) - Verified ingredient nutrition
+   - MyFitnessPal database (https://www.myfitnesspal.com) - Community-verified data
+3. Calculate total nutrition by summing individual ingredient values
+4. Cross-reference at least 2-3 sources for each major ingredient
+5. Use median values when sources differ
+6. ALWAYS provide working URLs to sources used
+7. If unable to find reliable data for any ingredient, note it and set confidence accordingly
 
 Provide the response in this JSON format:
 {
@@ -435,3 +450,6 @@ Calculate the total nutritional values for all listed ingredients combined.
     }
   }
 }
+
+// Dummy default export to satisfy Expo Router (this is a service file, not a route)
+export default { analyzeFood, analyzeIngredients };
