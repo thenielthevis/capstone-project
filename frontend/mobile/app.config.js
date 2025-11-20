@@ -10,7 +10,9 @@ export default {
     scheme: "mobile",
     userInterfaceStyle: "automatic",
     splash: {
-      image: "./assets/images/splash.png"
+      image: "./assets/images/splash.png",
+      resizeMode: "cover",
+      backgroundColor: "#000000" // your brand color
     },
     newArchEnabled: true,
     ios: {
@@ -44,6 +46,7 @@ export default {
       "@react-native-google-signin/google-signin",
       "expo-secure-store",
       "@maplibre/maplibre-react-native",
+      "expo-video",
       [
         "expo-location",
         {

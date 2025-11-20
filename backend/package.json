@@ -19,7 +19,8 @@
     "firebase": "^12.1.0",
     "firebase-admin": "^13.4.0",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.18.0"
+    "mongoose": "^8.18.0",
+    "multer": "^2.0.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

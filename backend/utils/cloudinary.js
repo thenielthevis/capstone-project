@@ -14,11 +14,16 @@ exports.uploadProfilePicture = async (imageUrl, publicId = null) => {
   });
 };
 
-exports.uploadWorkoutAnimation = async (animationUrl, publicId = null) => {
-  return cloudinary.uploader.upload(animationUrl, {
-    folder: "workout_animations",
-    public_id: publicId,
-    overwrite: true,
+exports.uploadWorkoutAnimation = (fileBuffer, publicId = null) => {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder: "workout_animations", public_id: publicId, overwrite: true, resource_type: 'raw' },
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result);
+      }
+    );
+    stream.end(fileBuffer);
   });
 };
 

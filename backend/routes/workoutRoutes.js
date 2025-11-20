@@ -7,8 +7,9 @@ const { createWorkout,
         updateWorkout,
         deleteWorkout,
  } = require("../controllers/workoutController");
+const upload = require("../middleware/multer");
 
-router.post("/createWorkout", adminMiddleware, createWorkout);
+router.post("/createWorkout", adminMiddleware, upload.single("animation"), createWorkout);
 router.get("/getAllWorkouts", getAllWorkouts);
 router.get("/getWorkoutById/:id", getWorkoutById);
 router.patch("/updateWorkout/:id", adminMiddleware, updateWorkout);

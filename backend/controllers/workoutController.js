@@ -1,24 +1,29 @@
-const Workout = require("../models/workoutSessionModel");
+const Workout = require("../models/workoutModel");
 const { uploadWorkoutAnimation } = require('../utils/cloudinary');
 
 // Create a new workout
 exports.createWorkout = async (req, res) => {
   try {
-    const { category, type, name, description, animationUrl, equipment_needed } = req.body;
-    let animationUploadResult = null;
-    if (animationUrl) {
-      animationUploadResult = await uploadWorkoutAnimation(animationUrl);
+    const { category, type, name, description, equipment_needed } = req.body;
+    let animationUrl = "";
+
+    if (req.file) {
+      const uploadResult = await uploadWorkoutAnimation(req.file.buffer);
+      animationUrl = uploadResult.secure_url;
     }
+
     const newWorkout = new Workout({
-        category,
-        type,
-        name,
-        description,
-        animation_url: animationUploadResult ? animationUploadResult.secure_url : "",
-        equipment_needed,
+      category,
+      type,
+      name,
+      description,
+      equipment_needed,
+      animation_url: animationUrl,
     });
+
     const savedWorkout = await newWorkout.save();
     res.status(201).json(savedWorkout);
+
   } catch (error) {
     res.status(500).json({ message: "Server Error", error: error.message });
   }
