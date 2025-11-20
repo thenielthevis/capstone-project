@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,8 @@ import {
   Pressable,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { analyzeFood, analyzeIngredients, FoodAnalysisResult } from '../../services/geminiService';
 
 const COMMON_ALLERGENS = [
@@ -34,6 +36,12 @@ export default function Food() {
   
   // Manual mode states
   const [ingredients, setIngredients] = useState('');
+  
+  // Camera states
+  const [showCamera, setShowCamera] = useState(false);
+  const [facing, setFacing] = useState<CameraType>('back');
+  const [permission, requestPermission] = useCameraPermissions();
+  const cameraRef = useRef<CameraView>(null);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -55,21 +63,55 @@ export default function Food() {
   };
 
   const takePhoto = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Please grant camera permissions to take photos.');
+    if (!permission) {
+      // Camera permissions are still loading
       return;
     }
 
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      quality: 0.8,
-      base64: true,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      setImageUri(result.assets[0].uri);
+    if (!permission.granted) {
+      const { granted } = await requestPermission();
+      if (!granted) {
+        Alert.alert('Permission needed', 'Please grant camera permissions to take photos.');
+        return;
+      }
     }
+
+    setShowCamera(true);
+  };
+
+  const capturePhoto = async () => {
+    if (!cameraRef.current) {
+      return;
+    }
+
+    try {
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.8,
+      });
+
+      if (photo) {
+        // Manipulate image to reduce size and get base64
+        const manipulatedImage = await ImageManipulator.manipulateAsync(
+          photo.uri,
+          [{ resize: { width: 1024 } }], // Resize to max width of 1024px
+          { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+        );
+
+        setImageUri(manipulatedImage.uri);
+        setShowCamera(false);
+      }
+    } catch (err) {
+      console.error('Error capturing photo:', err);
+      Alert.alert('Error', 'Failed to capture photo. Please try again.');
+    }
+  };
+
+  const toggleCameraFacing = () => {
+    setFacing(current => (current === 'back' ? 'front' : 'back'));
+  };
+
+  const closeCamera = () => {
+    setShowCamera(false);
   };
 
   const toggleAllergy = (allergen: string) => {
@@ -181,6 +223,7 @@ export default function Food() {
 
   if (result) {
     return (
+      <>
       <ScrollView className="flex-1 bg-white">
         <View className="p-4">
           <View className="bg-blue-50 border-l-4 border-blue-500 rounded-lg p-4 mb-4">
@@ -507,10 +550,53 @@ export default function Food() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Camera Modal */}
+      <Modal
+        visible={showCamera}
+        animationType="slide"
+        onRequestClose={closeCamera}
+      >
+        <View className="flex-1 bg-black">
+          <CameraView
+            ref={cameraRef}
+            className="flex-1"
+            facing={facing}
+          >
+            {/* Top controls */}
+            <View className="absolute top-0 left-0 right-0 p-4 flex-row justify-between items-center">
+              <TouchableOpacity
+                onPress={closeCamera}
+                className="bg-black/50 rounded-full p-3"
+              >
+                <Text className="text-white text-lg font-bold">✕</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={toggleCameraFacing}
+                className="bg-black/50 rounded-full p-3"
+              >
+                <Text className="text-white text-lg">🔄</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Bottom capture button */}
+            <View className="absolute bottom-0 left-0 right-0 p-8 items-center">
+              <TouchableOpacity
+                onPress={capturePhoto}
+                className="bg-white rounded-full w-20 h-20 border-4 border-gray-300 items-center justify-center"
+              >
+                <View className="bg-white rounded-full w-16 h-16" />
+              </TouchableOpacity>
+            </View>
+          </CameraView>
+        </View>
+      </Modal>
+      </>
     );
   }
 
   return (
+    <>
     <ScrollView className="flex-1 bg-white">
       <View className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-b-2xl p-6 mb-4 shadow-lg">
         <Text className="text-3xl font-bold text-white mb-2">Food Calorie Tracker</Text>
@@ -700,5 +786,47 @@ export default function Food() {
         </View>
       </View>
     </ScrollView>
+
+    {/* Camera Modal */}
+    <Modal
+      visible={showCamera}
+      animationType="slide"
+      onRequestClose={closeCamera}
+    >
+      <View className="flex-1 bg-black">
+        <CameraView
+          ref={cameraRef}
+          className="flex-1"
+          facing={facing}
+        >
+          {/* Top controls */}
+          <View className="absolute top-0 left-0 right-0 p-4 flex-row justify-between items-center">
+            <TouchableOpacity
+              onPress={closeCamera}
+              className="bg-black/50 rounded-full p-3"
+            >
+              <Text className="text-white text-lg font-bold">✕</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={toggleCameraFacing}
+              className="bg-black/50 rounded-full p-3"
+            >
+              <Text className="text-white text-lg">🔄</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Bottom capture button */}
+          <View className="absolute bottom-0 left-0 right-0 p-8 items-center">
+            <TouchableOpacity
+              onPress={capturePhoto}
+              className="bg-white rounded-full w-20 h-20 border-4 border-gray-300 items-center justify-center"
+            >
+              <View className="bg-white rounded-full w-16 h-16" />
+            </TouchableOpacity>
+          </View>
+        </CameraView>
+      </View>
+    </Modal>
+    </>
   );
 }
