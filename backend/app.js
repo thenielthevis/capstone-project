@@ -20,6 +20,10 @@ app.use((req, res, next) => {
 //Routers
 const userRoutes = require('./routes/userRoutes');
 const predictRoutes = require('./routes/predictRoutes');
+const geoRoutes = require('./routes/geoRoutes');
+const workoutRoutes = require('./routes/workoutRoutes');
+const workoutSessionRoutes = require('./routes/workoutSessionRoutes');
+const geoSessionRoutes = require('./routes/geoSessionRoutes');
 
 // During development allow all origins so phones/emulators can reach the server.
 // In production restrict this to a known list.
@@ -37,5 +41,9 @@ app.use(express.json());
 // Use Routes
 app.use('/api/users', userRoutes);
 app.use('/api/predict', predictRoutes);
+app.use('/api/geo', geoRoutes);
+app.use('/api/workouts', workoutRoutes);
+app.use('/api/workout-sessions', workoutSessionRoutes);
+app.use('/api/geo-sessions', geoSessionRoutes);
 
 module.exports = app;

@@ -332,12 +332,20 @@ export default function Analysis() {
       <View style={{ padding: 16 }}>
         <Text style={{ 
           color: theme.colors.text, 
-          fontSize: 24, 
-          fontWeight: 'bold', 
-          marginBottom: 16 
+          fontSize: theme.fontSizes.xl,
+          fontFamily: theme.fonts.heading,
         }}>
           Health Analysis
         </Text>
+        
+        {/* Button to navigate to Prediction Input Screen */}
+        <TouchableOpacity
+          onPress={handleNavigateToInput}
+        >
+          <Text style={{ color: theme.colors.primary, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.base, marginBottom: 16, fontStyle: 'italic' }}>
+            Tap here to input new health data for prediction
+          </Text>
+        </TouchableOpacity>
 
         <Button
           title="Refresh Data"
