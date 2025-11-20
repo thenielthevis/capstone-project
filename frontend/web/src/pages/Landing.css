@@ -1,17 +1,128 @@
-/* @tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Landing Page Custom Styles */
 
-@layer components {
- .feature-card {
-  @apply bg-white p-8 rounded-2xl shadow-xl flex flex-col h-full;
+/* Hero Section Gradient Background */
+#home {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #f0f9ff 100%);
+  position: relative;
 }
 
-.about-card {
-  @apply bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300;
+#home::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(96, 165, 250, 0.1) 0%, transparent 50%);
+  pointer-events: none;
 }
 
-.team-card {
-  @apply bg-white rounded-2xl p-6 text-center shadow-lg w-full sm:w-64 transform transition-all duration-300 hover:-translate-y-2;
+/* Features Section Background */
+#features {
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
 }
-} */
+
+/* Card Enhancements */
+.feature-card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.feature-card-hover:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Icon Container Glow */
+.icon-glow {
+  position: relative;
+}
+
+.icon-glow::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(96, 165, 250, 0.2));
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: -1;
+}
+
+.icon-glow:hover::after {
+  opacity: 1;
+}
+
+/* Gradient Text */
+.gradient-text {
+  background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 50%, #0891b2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Button Shimmer Effect */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.btn-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  animation: shimmer 3s infinite;
+}
+
+/* Team Member Card Shadow */
+.team-card-shadow {
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+}
+
+.team-card-shadow:hover {
+  box-shadow: 
+    0 20px 25px -5px rgba(0, 0, 0, 0.15),
+    0 10px 10px -5px rgba(0, 0, 0, 0.1);
+  transform: translateY(-10px) scale(1.02);
+}
+
+/* Stats Card Pulse */
+@keyframes statsPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+  }
+}
+
+.stats-pulse {
+  animation: statsPulse 2s ease-in-out infinite;
+}
+
+/* Smooth Scroll Padding */
+section {
+  scroll-margin-top: 80px;
+}

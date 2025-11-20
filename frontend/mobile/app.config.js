@@ -85,7 +85,8 @@ export default {
       eas: {
         projectId: "6b89e6f9-8ac6-494a-80d4-21ed8413e4ed"
       },
-      MAPTILER_KEY: process.env.EXPO_PUBLIC_MAPTILER_KEY
+      MAPTILER_KEY: process.env.EXPO_PUBLIC_MAPTILER_KEY,
+      geminiApiKey: process.env.EXPO_PUBLIC_GEMINI_API_KEY
     },
     owner: "capstone.project"
   }
