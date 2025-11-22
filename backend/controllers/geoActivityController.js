@@ -5,21 +5,32 @@ const { uploadGeoActivityIcon, uploadGeoActivityAnimation } = require('../utils/
 exports.createGeoActivity = async (req, res) => {
   try {
     const { name, description, iconUrl, animationUrl, met } = req.body;
+    const iconFile = req.files?.icon?.[0];
+    const animationFile = req.files?.animation?.[0];
+
     let iconUploadResult = null;
     let animationUploadResult = null;
-    if (iconUrl) {
+
+    if (iconFile) {
+      iconUploadResult = await uploadGeoActivityIcon(iconFile.buffer);
+    } else if (iconUrl) {
       iconUploadResult = await uploadGeoActivityIcon(iconUrl);
     }
-    if (animationUrl) {
-        animationUploadResult = await uploadGeoActivityAnimation(animationUrl);
+
+    if (animationFile) {
+      animationUploadResult = await uploadGeoActivityAnimation(animationFile.buffer);
+    } else if (animationUrl) {
+      animationUploadResult = await uploadGeoActivityAnimation(animationUrl);
     }
+
     const newGeoActivity = new GeoActivity({
-        name,
-        description,
-        icon: iconUploadResult ? iconUploadResult.secure_url : "",
-        animation: animationUploadResult ? animationUploadResult.secure_url : "",
-        met,
+      name,
+      description,
+      icon: iconUploadResult ? iconUploadResult.secure_url : "",
+      animation: animationUploadResult ? animationUploadResult.secure_url : "",
+      met,
     });
+
     const savedGeoActivity = await newGeoActivity.save();
     res.status(201).json(savedGeoActivity);
   } catch (error) {
@@ -52,23 +63,38 @@ exports.getGeoActivityById = async (req, res) => {
 
 // Update a geo activity
 exports.updateGeoActivity = async (req, res) => {
-    try {
+  try {
     const { name, description, iconUrl, animationUrl, met } = req.body;
     const geoActivity = await GeoActivity.findById(req.params.id);
     if (!geoActivity) {
       return res.status(404).json({ message: "Geo Activity not found" });
     }
-    if (iconUrl) {
+
+    const iconFile = req.files?.icon?.[0];
+    const animationFile = req.files?.animation?.[0];
+
+    if (iconFile) {
+      const iconUploadResult = await uploadGeoActivityIcon(iconFile.buffer, geoActivity.icon);
+      geoActivity.icon = iconUploadResult.secure_url;
+    } else if (iconUrl) {
       const iconUploadResult = await uploadGeoActivityIcon(iconUrl, geoActivity.icon);
       geoActivity.icon = iconUploadResult.secure_url;
     }
-    if (animationUrl) {
+
+    if (animationFile) {
+      const animationUploadResult = await uploadGeoActivityAnimation(animationFile.buffer, geoActivity.animation);
+      geoActivity.animation = animationUploadResult.secure_url;
+    } else if (animationUrl) {
       const animationUploadResult = await uploadGeoActivityAnimation(animationUrl, geoActivity.animation);
       geoActivity.animation = animationUploadResult.secure_url;
     }
+
     geoActivity.name = name || geoActivity.name;
     geoActivity.description = description || geoActivity.description;
-    geoActivity.met = met || geoActivity.met;
+    if (typeof met !== "undefined") {
+      geoActivity.met = met;
+    }
+
     const updatedGeoActivity = await geoActivity.save();
     res.status(200).json(updatedGeoActivity);
   } catch (error) {

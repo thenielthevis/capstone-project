@@ -16,3 +16,5 @@ export const getAllWorkouts = async (): Promise<Workout[]> => {
   const response = await axiosInstance.get("/workouts/getAllWorkouts");
   return response.data;
 };
+
+export default getAllWorkouts;

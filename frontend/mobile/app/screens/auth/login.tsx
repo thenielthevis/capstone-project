@@ -128,7 +128,7 @@ export default function LoginScreen() {
           <Button
             mode="contained"
             style={{ marginTop: 8, borderRadius: 12, backgroundColor: theme.colors.primary }}
-            labelStyle={{ color: theme.colors.background, fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.lg }}
+            labelStyle={{ color: '#FFFFFF', fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.lg }}
             onPress={handleLogin}
             loading={loading}
             disabled={loading}

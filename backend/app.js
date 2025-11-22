@@ -26,6 +26,7 @@ const workoutRoutes = require('./routes/workoutRoutes');
 const workoutSessionRoutes = require('./routes/workoutSessionRoutes');
 const geoSessionRoutes = require('./routes/geoSessionRoutes');
 const foodLogRoutes = require('./routes/foodLogRoutes');
+const programRoutes = require('./routes/programRoutes');
 
 // During development allow all origins so phones/emulators can reach the server.
 // In production restrict this to a known list.
@@ -49,6 +50,7 @@ app.use('/api/workouts', workoutRoutes);
 app.use('/api/workout-sessions', workoutSessionRoutes);
 app.use('/api/geo-sessions', geoSessionRoutes);
 app.use('/api/food-logs', foodLogRoutes);
+app.use('/api/programs', programRoutes);
 
 // Health check endpoint
 app.get('/', (req, res) => {

@@ -54,40 +54,14 @@ axiosInstance.interceptors.response.use(
 
     const originalRequest = error.config;
     
-    // Handle token refresh for 401 errors
-    if (
-      error.response?.status === 401 &&
-      error.response?.data?.message === "jwt expired" &&
-      !originalRequest._retry
-    ) {
-      originalRequest._retry = true;
-      const refreshToken = await tokenStorage.getRefreshToken();
-      if (refreshToken) {
-        try {
-          const res = await axiosInstance.post("/users/refresh-token", { refreshToken });
-          const newToken = res.data.token;
-          await tokenStorage.saveToken(newToken);
-          // Set header correctly for retry
-          if (originalRequest.headers && typeof originalRequest.headers.set === "function") {
-            originalRequest.headers.set("Authorization", `Bearer ${newToken}`);
-          } else {
-            originalRequest.headers = {
-              ...originalRequest.headers,
-              Authorization: `Bearer ${newToken}`,
-            };
-          }
-          return axiosInstance(originalRequest);
-        } catch (refreshError) {
-          console.error('[axios] Token refresh failed:', refreshError);
-          await tokenStorage.removeToken();
-          await tokenStorage.removeRefreshToken();
-          // Redirect to login
-          try {
-            router.replace("/screens/auth/login");
-          } catch (routerError) {
-            console.error('[axios] Router navigation failed:', routerError);
-          }
-        }
+    // Handle ALL 401 errors: expired, invalid, missing token
+    if (error.response?.status === 401) {
+      await tokenStorage.removeToken();
+      await tokenStorage.removeRefreshToken();
+      try {
+        router.replace("/screens/auth/login");
+      } catch (routerError) {
+        console.error('[axios] Router navigation failed:', routerError);
       }
     }
     return Promise.reject(error);

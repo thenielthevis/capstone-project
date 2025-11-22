@@ -150,7 +150,7 @@ export default function HomeTabs() {
                     accessibilityLabel={accessibilityLabel}
                     testID={testID}
                     activeOpacity={0.9}
-                    style={{ flex: 1, alignItems: "center", justifyContent: "center", marginTop: 6 }}
+                    style={{ flex: 1, alignItems: "center", justifyContent: "center", marginTop: 7 }}
                     onPress={(e) => {
                       onPress?.(e);
                       setRecordMenuOpen((prev) => !prev);

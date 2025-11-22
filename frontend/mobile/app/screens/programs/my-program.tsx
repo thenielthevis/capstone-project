@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import ProgramModal from "../../components/Modals/ProgramModal";
 import {
   View,
   Text,
@@ -7,13 +8,16 @@ import {
   TextInput,
   ActivityIndicator,
   RefreshControl,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
 import { useRouter } from "expo-router";
-import { Ionicons, Feather } from "@expo/vector-icons";
+import { Ionicons, Feather, Entypo } from "@expo/vector-icons";
 import { getAllWorkouts, Workout } from "../../api/workoutApi";
+import { getAllGeoActivities, GeoActivity } from "../../api/geoActivityApi";
 import LottieView from "lottie-react-native";
+import { EntryExitTransition } from "react-native-reanimated";
 
 type WorkoutSet = {
   reps?: string;
@@ -27,26 +31,66 @@ type SelectedWorkout = {
   notes?: string;
 };
 
+type GeoSessionPreferences = {
+  distance_km?: string;
+  avg_pace?: string;
+  countdown_seconds?: string;
+};
+
+type SelectedGeoActivity = {
+  activity: GeoActivity;
+  preferences: GeoSessionPreferences;
+};
+
+const FILTER_PANEL_TOP = 82;
+
+// Module-level cache to persist data across navigations
+let cachedWorkouts: Workout[] | null = null;
+let cachedGeoActivities: GeoActivity[] | null = null;
+
 export default function MyProgramScreen() {
   const { theme } = useTheme();
   const router = useRouter();
-  const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [workouts, setWorkouts] = useState<Workout[]>(cachedWorkouts || []);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [geoActivities, setGeoActivities] = useState<GeoActivity[]>(cachedGeoActivities || []);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [geoError, setGeoError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selected, setSelected] = useState<SelectedWorkout[]>([]);
+  const [selectedGeo, setSelectedGeo] = useState<SelectedGeoActivity[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedEquipment, setSelectedEquipment] = useState<string[]>([]);
   const errorColor = (theme.colors as any)?.error || "#E45858";
   const [animationSources, setAnimationSources] = useState<Record<string, any>>({});
+  const [filterPanelHeight, setFilterPanelHeight] = useState(0);
+  const [filtersVisible, setFiltersVisible] = useState(false);
+  const handleFilterPanelLayout = useCallback(
+    (event: any) => {
+      const { height } = event.nativeEvent.layout;
+      if (Math.abs(height - filterPanelHeight) > 1) {
+        setFilterPanelHeight(height);
+      }
+    },
+    [filterPanelHeight]
+  );
 
-  const fetchWorkouts = async () => {
+  const fetchWorkouts = async (forceRefresh = false) => {
+    // Use cache if available and not forcing refresh
+    if (!forceRefresh && cachedWorkouts && cachedWorkouts.length > 0) {
+      setWorkouts(cachedWorkouts);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
       const data = await getAllWorkouts();
+      cachedWorkouts = data;
       setWorkouts(data);
     } catch (err: any) {
       setError(err?.response?.data?.message || "Failed to load workouts");
@@ -55,8 +99,34 @@ export default function MyProgramScreen() {
     }
   };
 
+  const fetchGeoActivities = async (forceRefresh = false) => {
+    // Use cache if available and not forcing refresh
+    if (!forceRefresh && cachedGeoActivities && cachedGeoActivities.length > 0) {
+      setGeoActivities(cachedGeoActivities);
+      return;
+    }
+
+    try {
+      setGeoLoading(true);
+      setGeoError(null);
+      const data = await getAllGeoActivities();
+      cachedGeoActivities = data;
+      setGeoActivities(data);
+    } catch (err: any) {
+      setGeoError(err?.response?.data?.message || "Failed to load outdoor activities");
+    } finally {
+      setGeoLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetchWorkouts();
+    // Only fetch if cache is empty
+    if (!cachedWorkouts || cachedWorkouts.length === 0) {
+      fetchWorkouts();
+    }
+    if (!cachedGeoActivities || cachedGeoActivities.length === 0) {
+      fetchGeoActivities();
+    }
   }, []);
 
   useEffect(() => {
@@ -105,16 +175,19 @@ export default function MyProgramScreen() {
   const onRefresh = async () => {
     try {
       setRefreshing(true);
-      await fetchWorkouts();
+      await Promise.all([fetchWorkouts(true), fetchGeoActivities(true)]);
     } finally {
       setRefreshing(false);
     }
   };
 
   const categoryOptions = useMemo(() => {
-    const values = Array.from(new Set(workouts.map((workout) => workout.category).filter(Boolean)));
-    return values.sort();
-  }, [workouts]);
+    const values = new Set(workouts.map((workout) => workout.category).filter(Boolean));
+    if (geoActivities.length > 0) {
+      values.add("map-based");
+    }
+    return Array.from(values).sort();
+  }, [workouts, geoActivities]);
 
   const typeOptions = useMemo(() => {
     const values = Array.from(new Set(workouts.map((workout) => workout.type).filter(Boolean)));
@@ -134,7 +207,15 @@ export default function MyProgramScreen() {
 
   const filteredWorkouts = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
+    const workoutCategoryFilters = selectedCategories.filter((category) => category !== "map-based");
+    const mapBasedOnly =
+      selectedCategories.length > 0 &&
+      workoutCategoryFilters.length === 0 &&
+      selectedCategories.includes("map-based");
     return workouts.filter((workout) => {
+      if (mapBasedOnly) {
+        return false;
+      }
       const matchesText =
         query.length === 0 ||
         workout.name.toLowerCase().includes(query) ||
@@ -142,7 +223,7 @@ export default function MyProgramScreen() {
         workout.category.toLowerCase().includes(query);
       if (!matchesText) return false;
 
-      if (selectedCategories.length && !selectedCategories.includes(workout.category)) {
+      if (workoutCategoryFilters.length && !workoutCategoryFilters.includes(workout.category)) {
         return false;
       }
       if (selectedTypes.length && !selectedTypes.includes(workout.type)) {
@@ -157,6 +238,29 @@ export default function MyProgramScreen() {
       return true;
     });
   }, [searchQuery, workouts, selectedCategories, selectedTypes, selectedEquipment]);
+
+  const filteredGeoActivities = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    const allowGeoByCategory =
+      selectedCategories.length === 0 || selectedCategories.includes("map-based");
+
+    if (!allowGeoByCategory) {
+      return [];
+    }
+
+    if (query.length === 0) {
+      return geoActivities;
+    }
+
+    return geoActivities.filter((activity) =>
+      activity.name.toLowerCase().includes(query) ||
+      (activity.description?.toLowerCase().includes(query) ?? false) ||
+      "map-based".includes(query)
+    );
+  }, [searchQuery, geoActivities, selectedCategories]);
+
+  const totalResults = filteredWorkouts.length + filteredGeoActivities.length;
+  const scrollTopPadding = Math.max(FILTER_PANEL_TOP + filterPanelHeight - 75, 0);
 
   const isWorkoutSelected = (workoutId: string) =>
     selected.some((item) => item.workout._id === workoutId);
@@ -181,6 +285,44 @@ export default function MyProgramScreen() {
         },
       ];
     });
+  };
+
+  const isGeoActivitySelected = (activityId: string) =>
+    selectedGeo.some((item) => item.activity._id === activityId);
+
+  const handleSelectGeoActivity = (activity: GeoActivity) => {
+    setSelectedGeo((prev) => {
+      const exists = prev.find((item) => item.activity._id === activity._id);
+      if (exists) {
+        return prev.filter((item) => item.activity._id !== activity._id);
+      }
+      return [
+        ...prev,
+        {
+          activity,
+          preferences: {},
+        },
+      ];
+    });
+  };
+
+  const handleGeoPreferenceChange = (
+    activityId: string,
+    field: keyof GeoSessionPreferences,
+    value: string
+  ) => {
+    setSelectedGeo((prev) =>
+      prev.map((item) => {
+        if (item.activity._id !== activityId) return item;
+        return {
+          ...item,
+          preferences: {
+            ...item.preferences,
+            [field]: value,
+          },
+        };
+      })
+    );
   };
 
   const handleSetChange = (
@@ -241,30 +383,36 @@ export default function MyProgramScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        contentContainerStyle={{ paddingBottom: 48 }}
-        className="px-6"
+      <View
+        pointerEvents="box-none"
+        style={{
+          position: "absolute",
+          top: FILTER_PANEL_TOP,
+          left: 0,
+          right: 0,
+          paddingHorizontal: 20,
+          zIndex: 20,
+        }}
       >
-        <Text
-          style={{
-            fontFamily: theme.fonts.heading,
-            fontSize: 25,
-            color: theme.colors.primary,
-            marginBottom: 8,
-          }}
-        >
-          Build your own program
-        </Text>
-
         <View
-          className="rounded-2xl p-4 mb-5"
+          onLayout={handleFilterPanelLayout}
+          className="rounded-2xl p-4"
           style={{
             backgroundColor: theme.colors.surface,
             borderWidth: 1,
             borderColor: theme.colors.text + "12",
           }}
         >
+          <Text
+            style={{
+              fontFamily: theme.fonts.heading,
+              fontSize: 20,
+              color: theme.colors.primary,
+              marginBottom: 12,
+            }}
+          >
+            Build your own program
+          </Text>
           <View
             className="flex-row items-center rounded-xl px-2"
             style={{
@@ -274,7 +422,7 @@ export default function MyProgramScreen() {
           >
             <Feather name="search" size={18} color={theme.colors.text + "99"} />
             <TextInput
-              placeholder="Search by name, category, or focus"
+              placeholder="Search workouts or map-based runs"
               placeholderTextColor={theme.colors.text + "66"}
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -287,113 +435,150 @@ export default function MyProgramScreen() {
               }}
             />
           </View>
-          <Text
-            className="mt-3"
-            style={{
-              color: theme.colors.text + "88",
-              fontFamily: theme.fonts.body,
-            }}
-          >
-            {filteredWorkouts.length} workouts available
-          </Text>
-        </View>
-        {(categoryOptions.length > 0 || typeOptions.length > 0 || equipmentOptions.length > 0) && (
-          <View className="mb-5">
+          <View className="flex-row items-center justify-between mt-3">
             <Text
               style={{
-                fontFamily: theme.fonts.heading,
-                color: theme.colors.primary,
-                fontSize: 16,
-                marginBottom: 12,
+                color: theme.colors.text + "88",
+                fontFamily: theme.fonts.body,
               }}
             >
-              Filters
+              {totalResults} activities available
             </Text>
-            {categoryOptions.length > 0 && (
-              <FilterGroup
-                label="Category"
-                options={categoryOptions}
-                selected={selectedCategories}
-                onToggle={(value) => toggleSelection(value, setSelectedCategories)}
-                theme={theme}
+            <TouchableOpacity
+              onPress={() => setFiltersVisible((prev) => !prev)}
+              className="flex-row items-center justify-center px-3 py-1 rounded-full"
+              style={{
+                borderWidth: 1,
+                borderColor: theme.colors.primary,
+                backgroundColor: filtersVisible ? theme.colors.primary + "12" : "transparent",
+              }}
+            >
+              <Ionicons
+                name="filter"
+                size={16}
+                color={theme.colors.primary}
+                style={{ marginRight: 6, marginBottom: 3, }}
               />
-            )}
-            {typeOptions.length > 0 && (
-              <FilterGroup
-                label="Type"
-                options={typeOptions}
-                selected={selectedTypes}
-                onToggle={(value) => toggleSelection(value, setSelectedTypes)}
-                theme={theme}
+
+              <Text
+                style={{
+                  fontFamily: theme.fonts.subheading,
+                  color: theme.colors.primary,
+                  marginRight: 4,
+                }}
+              >
+                Filters
+              </Text>
+
+              <Entypo
+                name={filtersVisible ? "chevron-up" : "chevron-down"}
+                size={16}
+                color={theme.colors.primary}
               />
-            )}
-            {equipmentOptions.length > 0 && (
-              <FilterGroup
-                label="Equipment"
-                options={equipmentOptions}
-                selected={selectedEquipment}
-                onToggle={(value) => toggleSelection(value, setSelectedEquipment)}
-                theme={theme}
-                formatLabel={(value) => value}
-              />
-            )}
+            </TouchableOpacity>
           </View>
+
+          {filtersVisible &&
+            (categoryOptions.length > 0 || typeOptions.length > 0 || equipmentOptions.length > 0) && (
+              <View style={{ marginTop: 12 }}>
+                {categoryOptions.length > 0 && (
+                  <FilterGroup
+                    label="Category"
+                    options={categoryOptions}
+                    selected={selectedCategories}
+                    onToggle={(value) => toggleSelection(value, setSelectedCategories)}
+                    theme={theme}
+                  />
+                )}
+                {typeOptions.length > 0 && (
+                  <FilterGroup
+                    label="Type"
+                    options={typeOptions}
+                    selected={selectedTypes}
+                    onToggle={(value) => toggleSelection(value, setSelectedTypes)}
+                    theme={theme}
+                  />
+                )}
+                {equipmentOptions.length > 0 && (
+                  <FilterGroup
+                    label="Equipment"
+                    options={equipmentOptions}
+                    selected={selectedEquipment}
+                    onToggle={(value) => toggleSelection(value, setSelectedEquipment)}
+                    theme={theme}
+                    formatLabel={(value) => value}
+                  />
+                )}
+              </View>
+            )}
+        </View>
+      </View>
+
+      <ScrollView
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        contentContainerStyle={{ paddingBottom: 48, paddingTop: scrollTopPadding }}
+        className="px-6"
+      >
+
+        <SectionHeading
+          theme={theme}
+          title="Available workouts"
+          loading={loading}
+          error={error}
+          errorColor={errorColor}
+          onRetry={() => fetchWorkouts(true)}
+        />
+
+        {!loading && !error && (
+          <>
+            {filteredWorkouts.map((workout) => {
+              const selectedState = isWorkoutSelected(workout._id);
+              const equipmentLabel = getEquipmentLabel(workout.equipment_needed);
+              return (
+                <WorkoutCard
+                  key={workout._id}
+                  workout={workout}
+                  theme={theme}
+                  selected={selectedState}
+                  onToggle={() => handleSelectWorkout(workout)}
+                  animationSource={animationSources[workout._id]}
+                  showAnimationLoader={!!workout.animation_url && !animationSources[workout._id]}
+                  equipmentLabel={equipmentLabel}
+                />
+              );
+            })}
+          </>
         )}
 
+        <SectionHeading
+          theme={theme}
+          title="Map-based activities"
+          loading={geoLoading}
+          error={geoError}
+          errorColor={errorColor}
+          onRetry={() => fetchGeoActivities(true)}
+        />
+
+        {!geoLoading && !geoError && (
+          <>
+            {filteredGeoActivities.map((activity) => {
+              const selectedState = isGeoActivitySelected(activity._id);
+              return (
+                <GeoActivityCard
+                  key={activity._id}
+                  activity={activity}
+                  theme={theme}
+                  selected={selectedState}
+                  onToggle={() => handleSelectGeoActivity(activity)}
+                />
+              );
+            })}
+          </>
+        )}
         <Text
           style={{
             fontFamily: theme.fonts.heading,
             color: theme.colors.primary,
-            fontSize: 18,
-            marginBottom: 12,
-          }}
-        >
-          Available workouts
-        </Text>
-
-        {loading ? (
-          <View style={{ paddingVertical: 40, alignItems: "center" }}>
-            <ActivityIndicator size="large" color={theme.colors.primary} />
-          </View>
-        ) : error ? (
-          <View
-            style={{
-              backgroundColor: errorColor + "22",
-              borderRadius: 16,
-              padding: 16,
-              marginBottom: 20,
-            }}
-          >
-            <Text style={{ color: errorColor, fontFamily: theme.fonts.subheading, marginBottom: 8 }}>
-              {error}
-            </Text>
-            <TouchableOpacity onPress={fetchWorkouts}>
-              <Text style={{ color: theme.colors.primary, fontFamily: theme.fonts.body }}>Tap to retry</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          filteredWorkouts.map((workout) => {
-            const selectedState = isWorkoutSelected(workout._id);
-            const equipmentLabel = getEquipmentLabel(workout.equipment_needed);
-            return (
-              <WorkoutCard
-                key={workout._id}
-                workout={workout}
-                theme={theme}
-                selected={selectedState}
-                onToggle={() => handleSelectWorkout(workout)}
-                animationSource={animationSources[workout._id]}
-                showAnimationLoader={!!workout.animation_url && !animationSources[workout._id]}
-                equipmentLabel={equipmentLabel}
-              />
-            );
-          })
-        )}
-
-        <Text
-          style={{
-            fontFamily: theme.fonts.subheading,
-            color: theme.colors.text,
             fontSize: 18,
             marginTop: 12,
             marginBottom: 8,
@@ -402,7 +587,7 @@ export default function MyProgramScreen() {
           Program builder
         </Text>
 
-        {selected.length === 0 ? (
+        {selected.length === 0 && selectedGeo.length === 0 ? (
           <View
             className="rounded-2xl border border-dashed p-5"
             style={{
@@ -414,97 +599,196 @@ export default function MyProgramScreen() {
               className="text-center"
               style={{ fontFamily: theme.fonts.body, color: theme.colors.text + "88" }}
             >
-              Pick workouts above to start composing your plan. Each workout can include multiple sets with reps,
-              time, or weight targets.
+              Add workouts or outdoor sessions above to personalize your plan. Strength sessions let you define sets,
+              while geo activities can include target distance, pace, or a run timer—or leave them blank for a free run.
             </Text>
           </View>
-        ) : (
-          selected.map((item) => (
-            <View
-              key={item.workout._id}
-              className="rounded-2xl p-4 mb-4"
-              style={{
-                backgroundColor: theme.colors.surface,
-                borderWidth: 1,
-                borderColor: theme.colors.primary + "33",
-              }}
-            >
-              <View className="flex-row justify-between items-center">
-                <Text
-                  style={{
-                    fontFamily: theme.fonts.heading,
-                    fontSize: 18,
-                    color: theme.colors.text,
-                    flex: 1,
-                    marginRight: 8,
-                  }}
-                >
-                  {item.workout.name}
-                </Text>
-                <TouchableOpacity onPress={() => handleSelectWorkout(item.workout)}>
-                  <Ionicons name="trash-outline" size={20} color={errorColor} />
-                </TouchableOpacity>
-              </View>
+        ) : null}
 
-              {item.sets.map((set, idx) => (
-                <View
-                  key={`${item.workout._id}-set-${idx}`}
-                  className="mt-3 p-3 rounded-2xl"
-                  style={{
-                    backgroundColor: theme.colors.surface + "EE",
-                    borderWidth: 1,
-                    borderColor: theme.colors.text + "12",
-                  }}
-                >
-                  <View className="flex-row justify-between mb-2">
-                    <Text style={{ fontFamily: theme.fonts.subheading, color: theme.colors.text }}>
-                      Set {idx + 1}
-                    </Text>
-                    <TouchableOpacity onPress={() => handleRemoveSet(item.workout._id, idx)}>
-                      <Text style={{ color: errorColor, fontFamily: theme.fonts.body }}>Remove</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <View className="flex-row gap-2">
-                    <LabeledInput
-                      label="Reps"
-                      value={set.reps ?? ""}
-                      keyboardType="numeric"
-                      placeholder="e.g. 12"
-                      onChangeText={(text) => handleSetChange(item.workout._id, idx, "reps", text)}
-                      theme={theme}
-                    />
-                    <LabeledInput
-                      label="Time (sec)"
-                      value={set.time_seconds ?? ""}
-                      keyboardType="numeric"
-                      placeholder="e.g. 45"
-                      onChangeText={(text) => handleSetChange(item.workout._id, idx, "time_seconds", text)}
-                      theme={theme}
-                    />
-                    <LabeledInput
-                      label="Weight (kg)"
-                      value={set.weight_kg ?? ""}
-                      keyboardType="numeric"
-                      placeholder="e.g. 20"
-                      onChangeText={(text) => handleSetChange(item.workout._id, idx, "weight_kg", text)}
-                      theme={theme}
-                    />
-                  </View>
-                </View>
-              ))}
-
-              <TouchableOpacity
-                onPress={() => handleAddSet(item.workout._id)}
-                className="mt-3 py-2 rounded-full items-center"
+        {selected.map((item) => (
+          <View
+            key={item.workout._id}
+            className="rounded-2xl p-4 mb-4"
+            style={{
+              backgroundColor: theme.colors.surface,
+              borderWidth: 1,
+              borderColor: theme.colors.primary + "33",
+            }}
+          >
+            <View className="flex-row justify-between items-center">
+              <Text
                 style={{
-                  borderWidth: 1,
-                  borderColor: theme.colors.primary,
+                  fontFamily: theme.fonts.heading,
+                  fontSize: 18,
+                  color: theme.colors.text,
+                  flex: 1,
+                  marginRight: 8,
                 }}
               >
-                <Text style={{ color: theme.colors.primary, fontFamily: theme.fonts.subheading }}>Add set</Text>
+                {item.workout.name}
+              </Text>
+              <TouchableOpacity onPress={() => handleSelectWorkout(item.workout)}>
+                <Ionicons name="trash-outline" size={20} color={errorColor} />
               </TouchableOpacity>
             </View>
-          ))
+
+            {item.sets.map((set, idx) => (
+              <View
+                key={`${item.workout._id}-set-${idx}`}
+                className="mt-3 p-3 rounded-2xl"
+                style={{
+                  backgroundColor: theme.colors.surface + "EE",
+                  borderWidth: 1,
+                  borderColor: theme.colors.text + "12",
+                }}
+              >
+                <View className="flex-row justify-between mb-2">
+                  <Text style={{ fontFamily: theme.fonts.subheading, color: theme.colors.text }}>
+                    Set {idx + 1}
+                  </Text>
+                  <TouchableOpacity onPress={() => handleRemoveSet(item.workout._id, idx)}>
+                    <Text style={{ color: errorColor, fontFamily: theme.fonts.body }}>Remove</Text>
+                  </TouchableOpacity>
+                </View>
+                <View className="flex-row gap-2">
+                  <LabeledInput
+                    label="Reps"
+                    value={set.reps ?? ""}
+                    keyboardType="numeric"
+                    placeholder="e.g. 12"
+                    onChangeText={(text) => handleSetChange(item.workout._id, idx, "reps", text)}
+                    theme={theme}
+                  />
+                  <LabeledInput
+                    label="Time (sec)"
+                    value={set.time_seconds ?? ""}
+                    keyboardType="numeric"
+                    placeholder="e.g. 45"
+                    onChangeText={(text) => handleSetChange(item.workout._id, idx, "time_seconds", text)}
+                    theme={theme}
+                  />
+                  <LabeledInput
+                    label="Weight (kg)"
+                    value={set.weight_kg ?? ""}
+                    keyboardType="numeric"
+                    placeholder="e.g. 20"
+                    onChangeText={(text) => handleSetChange(item.workout._id, idx, "weight_kg", text)}
+                    theme={theme}
+                  />
+                </View>
+              </View>
+            ))}
+
+            <TouchableOpacity
+              onPress={() => handleAddSet(item.workout._id)}
+              className="mt-3 py-2 rounded-full items-center"
+              style={{
+                borderWidth: 1,
+                borderColor: theme.colors.primary,
+              }}
+            >
+              <Text style={{ color: theme.colors.primary, fontFamily: theme.fonts.subheading }}>Add set</Text>
+            </TouchableOpacity>
+          </View>
+        ))}
+
+        {selectedGeo.map((item) => (
+          <View
+            key={item.activity._id}
+            className="rounded-2xl p-4 mb-4"
+            style={{
+              backgroundColor: theme.colors.surface,
+              borderWidth: 1,
+              borderColor: theme.colors.primary + "33",
+            }}
+          >
+            <View className="flex-row items-center mb-3">
+              <View style={{ flex: 1 }}>
+                <View className="flex-row justify-between items-center">
+                  <Text
+                    style={{
+                      fontFamily: theme.fonts.heading,
+                      fontSize: 18,
+                      color: theme.colors.text,
+                      flex: 1,
+                      marginRight: 8,
+                    }}
+                  >
+                    {item.activity.name}
+                  </Text>
+                  <TouchableOpacity onPress={() => handleSelectGeoActivity(item.activity)}>
+                    <Ionicons name="trash-outline" size={20} color={errorColor} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+            <Text
+              style={{
+                fontFamily: theme.fonts.subheading,
+                color: theme.colors.primary,
+                marginBottom: 8,
+              }}
+            >
+              Optional targets(leave blank for a free run)
+            </Text>
+            <View className="flex-row gap-2 mb-2">
+              <LabeledInput
+                label="Distance (km)"
+                value={item.preferences.distance_km ?? ""}
+                keyboardType="numeric"
+                placeholder="e.g. 5"
+                onChangeText={(text) => handleGeoPreferenceChange(item.activity._id, "distance_km", text)}
+                theme={theme}
+              />
+              <LabeledInput
+                label="Avg pace (min/km)"
+                value={item.preferences.avg_pace ?? ""}
+                keyboardType="numeric"
+                placeholder="e.g. 6:00"
+                onChangeText={(text) => handleGeoPreferenceChange(item.activity._id, "avg_pace", text)}
+                theme={theme}
+              />
+            </View>
+            <View className="flex-row gap-2">
+              <LabeledInput
+                label="Countdown (sec)"
+                value={item.preferences.countdown_seconds ?? ""}
+                keyboardType="numeric"
+                placeholder="e.g. 1800"
+                onChangeText={(text) => handleGeoPreferenceChange(item.activity._id, "countdown_seconds", text)}
+                theme={theme}
+              />
+            </View>
+          </View>
+        ))}
+        {/* Show Create Program button only if there are selected workouts or geo activities */}
+        {(selected.length > 0 || selectedGeo.length > 0) && (
+          <View style={{ padding: 16 }}>
+            <TouchableOpacity
+              style={{
+                backgroundColor: theme.colors.primary,
+                padding: 16,
+                borderRadius: 12,
+                alignItems: 'center',
+                
+              }}
+              onPress={() => setModalVisible(true)}
+            >
+              <Text style={{ color: "#FFFFFF", fontFamily: theme.fonts.heading, fontSize: 16 }}>
+                Create Program
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Program creation modal */}
+        {modalVisible && (
+          <ProgramModal
+            visible={modalVisible}
+            onClose={() => setModalVisible(false)}
+            selectedWorkouts={selected}
+            selectedGeoActivities={selectedGeo}
+          />
         )}
       </ScrollView>
     </SafeAreaView>
@@ -680,7 +964,7 @@ function WorkoutCard({
             overflow: "hidden",
             borderWidth: workout.animation_url ? 1 : 0,
             borderColor: workout.animation_url ? theme.colors.text + "12" : "transparent",
-            backgroundColor: workout.animation_url ? theme.colors.surface + "F2" : theme.colors.primary + "12",
+            backgroundColor: workout.animation_url ? '#F5F5F5' : theme.colors.primary + "12",
             alignItems: "center",
             justifyContent: "center",
             marginRight: 12,
@@ -702,8 +986,170 @@ function WorkoutCard({
             <Tag label={workout.type.replace("_", " ")} theme={theme} />
             <Tag label={equipmentLabel} theme={theme} />
           </View>
+          {workout.description ? (
+            <Text
+              style={{
+                marginTop: 6,
+                fontFamily: theme.fonts.body,
+                color: theme.colors.text + "AA",
+                fontSize: 13,
+              }}
+              
+            >
+              {workout.description}
+            </Text>
+          ) : null}
         </View>
       </View>
+    </View>
+  );
+}
+
+type GeoActivityCardProps = {
+  activity: GeoActivity;
+  theme: any;
+  selected: boolean;
+  onToggle: () => void;
+};
+
+function GeoActivityCard({ activity, theme, selected, onToggle }: GeoActivityCardProps) {
+  const tags = ["map-based", activity.met ? `MET ${activity.met}` : null].filter(Boolean) as string[];
+
+  return (
+    <View
+      className="rounded-2xl p-4 mb-3"
+      style={{
+        backgroundColor: theme.colors.surface,
+        borderWidth: 1,
+        borderColor: selected ? theme.colors.primary : theme.colors.text + "12",
+      }}
+    >
+      <View className="flex-row items-center mb-3">
+        <Text
+          style={{
+            fontFamily: theme.fonts.heading,
+            fontSize: 18,
+            color: theme.colors.text,
+            flex: 1,
+          }}
+          numberOfLines={1}
+        >
+          {activity.name}
+        </Text>
+        <TouchableOpacity
+          onPress={onToggle}
+          className="px-3 py-1 rounded-full"
+          style={{
+            backgroundColor: selected ? theme.colors.primary + "22" : theme.colors.primary,
+            borderWidth: selected ? 1 : 0,
+            borderColor: selected ? theme.colors.primary : "transparent",
+          }}
+        >
+          <Text
+            style={{
+              fontFamily: theme.fonts.subheading,
+              color: selected ? theme.colors.primary : theme.colors.background,
+            }}
+          >
+            {selected ? "Added" : "Add"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <View className="flex-row items-center">
+        <View
+          style={{
+            width: 72,
+            height: 72,
+            borderRadius: 16,
+            overflow: "hidden",
+            borderWidth: activity.icon ? 1 : 0,
+            borderColor: activity.icon ? theme.colors.text + "12" : "transparent",
+            backgroundColor: theme.colors.primary + "12",
+            alignItems: "center",
+            justifyContent: "center",
+            marginRight: 12,
+          }}
+        >
+          {activity.icon ? (
+            <Image
+              source={{ uri: activity.icon }}
+              style={{ width: "100%", height: "100%", backgroundColor: "#F5F5F5" }}
+              resizeMode="cover"
+            />
+          ) : (
+            <Feather name="map" size={28} color={theme.colors.primary} />
+          )}
+        </View>
+        <View style={{ flex: 1 }}>
+          <View className="flex-row flex-wrap gap-2">
+            {tags.map((tag) => (
+              <Tag key={tag} label={tag} theme={theme} />
+            ))}
+          </View>
+          {activity.description ? (
+            <Text
+              style={{
+                marginTop: 6,
+                fontFamily: theme.fonts.body,
+                color: theme.colors.text + "AA",
+                fontSize: 13,
+              }}
+              numberOfLines={2}
+            >
+              {activity.description}
+            </Text>
+          ) : null}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+type SectionHeadingProps = {
+  title: string;
+  theme: any;
+  loading: boolean;
+  error: string | null;
+  errorColor: string;
+  onRetry: () => void;
+};
+
+function SectionHeading({ title, theme, loading, error, errorColor, onRetry }: SectionHeadingProps) {
+  return (
+    <View style={{ marginTop: 12, marginBottom: 8 }}>
+      <Text
+        style={{
+          fontFamily: theme.fonts.heading,
+          color: theme.colors.primary,
+          fontSize: 18,
+          marginBottom: 8,
+        }}
+      >
+        {title}
+      </Text>
+      {loading ? (
+        <View style={{ paddingVertical: 24, alignItems: "center" }}>
+          <ActivityIndicator size="small" color={theme.colors.primary} />
+        </View>
+      ) : null}
+      {!loading && error ? (
+        <View
+          style={{
+            backgroundColor: errorColor + "22",
+            borderRadius: 16,
+            padding: 16,
+            marginBottom: 8,
+          }}
+        >
+          <Text style={{ color: errorColor, fontFamily: theme.fonts.subheading, marginBottom: 8 }}>
+            {error}
+          </Text>
+          <TouchableOpacity onPress={onRetry}>
+            <Text style={{ color: theme.colors.primary, fontFamily: theme.fonts.body }}>Tap to retry</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
     </View>
   );
 }

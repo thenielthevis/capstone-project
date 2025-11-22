@@ -181,7 +181,7 @@ export default function GuestScreen() {
           <Text
             className="text-lg font-semibold text-center"
             style={{
-              color: theme.colors.background,
+              color: '#FFFFFF',
               fontFamily: theme.fonts.heading,
               fontSize: theme.fontSizes.lg,
             }}

@@ -14,10 +14,10 @@ exports.uploadProfilePicture = async (imageUrl, publicId = null) => {
   });
 };
 
-exports.uploadWorkoutAnimation = (fileBuffer, publicId = null) => {
+const uploadBufferStream = (fileBuffer, options) => {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
-      { folder: "workout_animations", public_id: publicId, overwrite: true, resource_type: 'raw' },
+      options,
       (error, result) => {
         if (error) reject(error);
         else resolve(result);
@@ -27,20 +27,41 @@ exports.uploadWorkoutAnimation = (fileBuffer, publicId = null) => {
   });
 };
 
-exports.geoActivityIcon = async (iconUrl, publicId = null) => {
-  return cloudinary.uploader.upload(iconUrl, {
-    folder: "geo_activity_icons",
+exports.uploadWorkoutAnimation = (fileBuffer, publicId = null) => {
+  return uploadBufferStream(fileBuffer, {
+    folder: "workout_animations",
     public_id: publicId,
     overwrite: true,
+    resource_type: "raw",
   });
 };
 
-exports.geoActivityAnimation = async (animationUrl, publicId = null) => {
-  return cloudinary.uploader.upload(animationUrl, {
+exports.uploadGeoActivityIcon = async (fileSource, publicId = null) => {
+  const options = {
+    folder: "geo_activity_icons",
+    public_id: publicId,
+    overwrite: true,
+  };
+
+  if (fileSource && Buffer.isBuffer(fileSource)) {
+    return uploadBufferStream(fileSource, options);
+  }
+
+  return cloudinary.uploader.upload(fileSource, options);
+};
+
+exports.uploadGeoActivityAnimation = async (fileSource, publicId = null) => {
+  const options = {
     folder: "geo_activity_animations",
     public_id: publicId,
     overwrite: true,
-  });
+  };
+
+  if (fileSource && Buffer.isBuffer(fileSource)) {
+    return uploadBufferStream(fileSource, options);
+  }
+
+  return cloudinary.uploader.upload(fileSource, options);
 };
 
 exports.deleteImage = async (publicId) => {

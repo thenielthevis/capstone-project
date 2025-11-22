@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const GeoActivitySchema = new mongoose.Schema(
   {
@@ -24,4 +24,4 @@ const GeoActivitySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export default mongoose.model("GeoActivity", GeoActivitySchema);
+module.exports = mongoose.model("GeoActivity", GeoActivitySchema);
