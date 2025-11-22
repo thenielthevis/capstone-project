@@ -49,6 +49,38 @@ interface User {
   email: string;
   lastPrediction?: Prediction;
   profile?: TestProfile;
+  age?: number;
+  gender?: string;
+  physicalMetrics?: {
+    height?: { value?: number };
+    weight?: { value?: number };
+    bmi?: number;
+    waistCircumference?: number;
+  };
+  lifestyle?: {
+    activityLevel?: string;
+    sleepHours?: number;
+  };
+  healthProfile?: {
+    currentConditions?: string[];
+    familyHistory?: string[];
+    medications?: string[];
+    bloodType?: string;
+  };
+  riskFactors?: {
+    addictions?: Array<{ substance: string; severity: string; duration: number }>;
+    stressLevel?: string;
+  };
+  environmentalFactors?: {
+    pollutionExposure?: string;
+    occupationType?: string;
+  };
+  dietaryProfile?: {
+    preferences?: string[];
+    allergies?: string[];
+    dailyWaterIntake?: number;
+    mealFrequency?: number;
+  };
 }
 import { useRouter } from "expo-router";
 import PredictionInputScreen from "../screens/analysis_input/prediction_input";
@@ -103,9 +135,12 @@ export default function Analysis() {
         return;
       }
 
+      // First, fetch user data WITHOUT generating a new prediction
+      // Only call /predict/me if the user doesn't already have a lastPrediction
       const primary = `${API_URL}/predict/me`;
       const fallback = API_URL.includes('10.0.2.2') ? `http://${LOCAL_IP}:5000/api/predict/me` : null;
-      console.log('[Analysis] POST', primary, ' fallback=', fallback);
+      console.log('[Analysis] POST', primary, ' fallback=', fallback, ' (will only predict if user has no lastPrediction)');
+      
       const response = await tryFetchWithFallback(primary, fallback, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
@@ -327,6 +362,102 @@ export default function Analysis() {
     router.push("/screens/analysis_input/prediction_input");
   };
 
+  // Helper: Get BMI status with styling
+  const getBMIInfo = (bmi: number | null | undefined) => {
+    if (!bmi) return { status: 'Unknown', color: '#9E9E9E', bgColor: '#F5F5F5', emoji: '❓', position: 0 };
+    if (bmi < 18.5) return { status: 'Underweight', color: '#00BCD4', bgColor: '#E0F7FA', emoji: '📉', position: 0 };
+    if (bmi < 25) return { status: 'Healthy', color: '#4CAF50', bgColor: '#E8F5E9', emoji: '✨', position: 33 };
+    if (bmi < 30) return { status: 'Overweight', color: '#FF9800', bgColor: '#FFF3E0', emoji: '⚠️', position: 66 };
+    return { status: 'Obese', color: '#F44336', bgColor: '#FFEBEE', emoji: '🚨', position: 100 };
+  };
+
+  // Helper: Get activity level emoji and color
+  const getActivityInfo = (activity: string | undefined) => {
+    if (!activity) return { emoji: '❓', label: 'Unknown' };
+    const normalizedActivity = String(activity).toLowerCase().replace(/_/g, ' ');
+    if (normalizedActivity.includes('sedentary')) return { emoji: '🪑', label: 'Sedentary' };
+    if (normalizedActivity.includes('very_active') || normalizedActivity.includes('extremely')) return { emoji: '🏃', label: 'Very Active' };
+    if (normalizedActivity.includes('moderately')) return { emoji: '🚶', label: 'Moderate' };
+    if (normalizedActivity.includes('lightly')) return { emoji: '🚶‍♀️', label: 'Light' };
+    return { emoji: '🏃', label: normalizedActivity };
+  };
+
+  // Helper: Get sleep quality info
+  const getSleepInfo = (hours: number | undefined) => {
+    if (!hours) return { emoji: '❓', quality: 'Unknown', color: '#9E9E9E' };
+    if (hours >= 7) return { emoji: '😴✨', quality: 'Great', color: '#4CAF50' };
+    if (hours >= 6) return { emoji: '😴', quality: 'Good', color: '#8BC34A' };
+    if (hours >= 5) return { emoji: '😐', quality: 'Fair', color: '#FF9800' };
+    return { emoji: '😴❌', quality: 'Poor', color: '#F44336' };
+  };
+
+  // Helper: Get stress level emoji
+  const getStressInfo = (level: string | undefined) => {
+    if (!level) return { emoji: '❓', label: 'Unknown', color: theme.colors.text + '66' };
+    if (level.toLowerCase() === 'low') return { emoji: '😊', label: 'Low', color: '#4CAF50' };
+    if (level.toLowerCase() === 'moderate') return { emoji: '😟', label: 'Moderate', color: '#FF9800' };
+    return { emoji: '😰', label: 'High', color: '#F44336' };
+  };
+
+  // Helper: Get color palette based on theme
+  const getThemedColors = () => {
+    const isLight = theme.mode === 'light';
+    const isDark = theme.mode === 'dark';
+    const isOcean = theme.mode === 'ocean';
+
+    return {
+      // Condition badge colors
+      conditionBg: isLight ? '#FFEBEE' : isDark ? '#7F0000' : '#FFC3D0',
+      conditionBorder: '#F44336',
+      conditionText: isLight ? '#C62828' : isDark ? '#FF6B6B' : '#C41C3B',
+
+      // Medication colors
+      medBg: isLight ? '#FFF3E0' : isDark ? '#7A4100' : '#FFDBAC',
+      medBorder: '#E65100',
+      medText: isLight ? '#E65100' : isDark ? '#FFB74D' : '#D84315',
+
+      // Dietary preference colors
+      prefBg: isLight ? '#C8E6C9' : isDark ? '#1B5E20' : '#A7E7AF',
+      prefText: isLight ? '#2E7D32' : isDark ? '#81C784' : '#1B5E20',
+
+      // Allergy colors
+      allergyBg: isLight ? '#FFCDD2' : isDark ? '#7F0000' : '#FF9999',
+      allergyText: isLight ? '#C62828' : isDark ? '#FF6B6B' : '#C41C3B',
+
+      // Environmental colors - High
+      envHighBg: isLight ? '#FFCDD2' : isDark ? '#7F0000' : '#FF9999',
+      envHighText: isLight ? '#C62828' : isDark ? '#FF6B6B' : '#C41C3B',
+
+      // Environmental colors - Medium
+      envMedBg: isLight ? '#FFE0B2' : isDark ? '#7A4100' : '#FFDBAC',
+      envMedText: isLight ? '#E65100' : isDark ? '#FFB74D' : '#D84315',
+
+      // Environmental colors - Low
+      envLowBg: isLight ? '#C8E6C9' : isDark ? '#1B5E20' : '#A7E7AF',
+      envLowText: isLight ? '#2E7D32' : isDark ? '#81C784' : '#1B5E20',
+
+      // Family history colors
+      familyBg: isLight ? '#E3F2FD' : isDark ? '#0D47A1' : '#B3E5FC',
+      familyBorder: '#1976D2',
+      familyText: isLight ? '#0D47A1' : isDark ? '#64B5F6' : '#01579B',
+
+      // Risk/Addiction colors
+      riskBg: isLight ? '#FFEBEE' : isDark ? '#7F0000' : '#FF9999',
+      riskBorder: '#F44336',
+      riskText: isLight ? '#F44336' : isDark ? '#FF6B6B' : '#D32F2F',
+
+      // Water intake color
+      waterColor: '#0277BD',
+
+      // Meal frequency color
+      mealColor: '#F57C00',
+
+      // Secondary text
+      secondaryText: theme.colors.text + '77',
+      mutedText: theme.colors.text + '88',
+    };
+  };
+
   return (
     <ScrollView style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <View style={{ padding: 16 }}>
@@ -356,174 +487,786 @@ export default function Analysis() {
           </Text>
         )}
 
-        {users.map((user, index) => (
+        {users.map((user, index) => {
+          const bmiInfo = getBMIInfo(user.physicalMetrics?.bmi);
+          const activityInfo = getActivityInfo(user.lifestyle?.activityLevel);
+          const sleepInfo = getSleepInfo(user.lifestyle?.sleepHours);
+          const stressInfo = getStressInfo(user.riskFactors?.stressLevel);
+          const themedColors = getThemedColors();
+
+          return (
           <View 
             key={user._id || index}
             style={{
               marginTop: 16,
-              padding: 16,
               backgroundColor: theme.colors.surface,
-              borderRadius: 8,
+              borderRadius: 16,
+              overflow: 'hidden',
+              elevation: 4,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 8,
             }}
           >
-            {/* User Info Card */}
-            <View style={{ marginBottom: 8 }}>
-              <Text style={{ color: theme.colors.text + 'CC', fontSize: 12, fontWeight: '700', marginBottom: 6 }}>User Information</Text>
-              <View style={{ flexDirection: 'row', marginBottom: 12 }}>
-              <View style={{
-                width: 64,
-                height: 64,
-                borderRadius: 12,
-                backgroundColor: theme.colors.primary,
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginRight: 12,
-                elevation: 3,
-              }}>
-                <Text style={{ color: '#fff', fontSize: 20, fontWeight: '700' }}>{(user.username || 'U').substring(0,1).toUpperCase()}</Text>
+            {/* User Card Content */}
+            <View style={{ padding: 16 }}>
+              {/* Avatar and Basic Info */}
+              <View style={{ flexDirection: 'row', marginBottom: 20 }}>
+                <View style={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: 20,
+                  backgroundColor: theme.colors.primary,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderWidth: 4,
+                  borderColor: theme.colors.surface,
+                  elevation: 5,
+                }}>
+                  <Text style={{ color: '#fff', fontSize: 32, fontWeight: 'bold' }}>
+                    {(user.username || 'U').substring(0, 1).toUpperCase()}
+                  </Text>
+                </View>
+
+                <View style={{ flex: 1, marginLeft: 12, justifyContent: 'center' }}>
+                  <Text style={{ 
+                    color: theme.colors.text, 
+                    fontSize: 20, 
+                    fontWeight: 'bold',
+                    marginBottom: 4,
+                  }}>
+                    {user.username || 'User'}
+                  </Text>
+                  <Text style={{ 
+                    color: theme.colors.text + '99', 
+                    fontSize: 12,
+                    marginBottom: 4,
+                  }}>
+                    {user.email || ''}
+                  </Text>
+                  {user.age && (
+                    <Text style={{ 
+                      color: theme.colors.text + '88',
+                      fontSize: 11,
+                      fontWeight: '500',
+                    }}>
+                      {user.age} years old • {user.gender && user.gender.charAt(0).toUpperCase() + user.gender.slice(1)}
+                    </Text>
+                  )}
+                </View>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '700' }}>{user.username || 'Anonymous User'}</Text>
-                <Text style={{ color: theme.colors.text + 'B0', fontSize: 13, marginTop: 4 }}>
-                  {user.email || ''}
-                </Text>
-                {/* Short generated description */}
-                <Text style={{ color: theme.colors.text + 'C0', marginTop: 8, fontSize: 13, lineHeight: 18 }}>
-                  {generateShortDescription(user)}
-                </Text>
+
+              {/* BMI Card with Scale */}
+              {user.physicalMetrics?.bmi && (
+                <View style={{
+                  marginBottom: 16,
+                  padding: 14,
+                  borderRadius: 12,
+                  backgroundColor: theme.mode === 'light' ? '#F5F9FF' : theme.mode === 'dark' ? '#303f58ff' : '#E0F4FF',
+                  borderLeftWidth: 5,
+                  borderLeftColor: bmiInfo.color,
+                }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                    <View>
+                      <Text style={{ 
+                        color: theme.colors.text, 
+                        fontSize: 10, 
+                        fontWeight: '600',
+                        marginBottom: 4,
+                        textTransform: 'uppercase',
+                        letterSpacing: 0.5,
+                      }}>
+                        Body Mass Index
+                      </Text>
+                      <Text style={{ 
+                        color: bmiInfo.color, 
+                        fontSize: 28, 
+                        fontWeight: 'bold',
+                      }}>
+                        {user.physicalMetrics.bmi.toFixed(1)}
+                      </Text>
+                    </View>
+                    <View style={{ alignItems: 'center' }}>
+                      <Text style={{ fontSize: 32, marginBottom: 4 }}>
+                        {bmiInfo.emoji}
+                      </Text>
+                      <Text style={{
+                        color: bmiInfo.color,
+                        fontSize: 11,
+                        fontWeight: '700',
+                        textTransform: 'uppercase',
+                        letterSpacing: 0.3,
+                      }}>
+                        {bmiInfo.status}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* BMI Scale Bar */}
+                  <View style={{
+                    height: 20,
+                    backgroundColor: theme.colors.background,
+                    borderRadius: 10,
+                    overflow: 'hidden',
+                    marginBottom: 8,
+                  }}>
+                    <View style={{
+                      flexDirection: 'row',
+                      height: '100%',
+                    }}>
+                      <View style={{ flex: 1, backgroundColor: '#00BCD4' }} />
+                      <View style={{ flex: 1, backgroundColor: '#4CAF50' }} />
+                      <View style={{ flex: 1, backgroundColor: '#FF9800' }} />
+                      <View style={{ flex: 1, backgroundColor: '#F44336' }} />
+                    </View>
+                    {/* Indicator */}
+                    <View style={{
+                      position: 'absolute',
+                      width: 3,
+                      height: '100%',
+                      backgroundColor: bmiInfo.color,
+                      left: `${Math.min(bmiInfo.position, 100)}%`,
+                      marginLeft: -1.5,
+                    }} />
+                  </View>
+
+                  {/* BMI Range Labels */}
+                  <View style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    paddingHorizontal: 4,
+                  }}>
+                    <Text style={{ fontSize: 8, color: theme.colors.text, fontWeight: '600' }}>Underweight</Text>
+                    <Text style={{ fontSize: 8, color: theme.colors.text, fontWeight: '600' }}>Healthy</Text>
+                    <Text style={{ fontSize: 8, color: theme.colors.text, fontWeight: '600' }}>Overweight</Text>
+                    <Text style={{ fontSize: 8, color: theme.colors.text, fontWeight: '600' }}>Obese</Text>
+                  </View>
+
+                  {/* Body Metrics */}
+                  {user.physicalMetrics?.height?.value && user.physicalMetrics?.weight?.value && (
+                    <View style={{
+                      flexDirection: 'row',
+                      marginTop: 10,
+                      paddingTop: 10,
+                      borderTopWidth: 1,
+                      borderTopColor: bmiInfo.color + '33',
+                    }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 10, color: theme.colors.text, fontWeight: '600', marginBottom: 2 }}>Height</Text>
+                        <Text style={{ fontSize: 14, fontWeight: 'bold', color: theme.colors.text }}>
+                          {user.physicalMetrics.height.value} cm
+                        </Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 10, color: theme.colors.text, fontWeight: '600', marginBottom: 2 }}>Weight</Text>
+                        <Text style={{ fontSize: 14, fontWeight: 'bold', color: theme.colors.text }}>
+                          {user.physicalMetrics.weight.value} kg
+                        </Text>
+                      </View>
+                      {user.physicalMetrics?.waistCircumference && (
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 10, color: theme.colors.text, fontWeight: '600', marginBottom: 2 }}>Waist</Text>
+                          <Text style={{ fontSize: 14, fontWeight: 'bold', color: theme.colors.text }}>
+                            {user.physicalMetrics.waistCircumference} cm
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {/* Health Metrics Grid */}
+              <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
+                {/* Activity Level */}
+                <View style={{
+                  flex: 1,
+                  padding: 12,
+                  borderRadius: 12,
+                  backgroundColor: theme.colors.background,
+                  alignItems: 'center',
+                }}>
+                  <Text style={{ fontSize: 24, marginBottom: 4 }}>
+                    {activityInfo.emoji}
+                  </Text>
+                  <Text style={{ 
+                    fontSize: 11, 
+                    color: theme.colors.text + '88', 
+                    marginBottom: 2,
+                    fontWeight: '600',
+                  }}>
+                    Activity
+                  </Text>
+                  <Text style={{ 
+                    fontSize: 12, 
+                    fontWeight: 'bold', 
+                    color: theme.colors.text,
+                    textAlign: 'center',
+                  }}>
+                    {activityInfo.label}
+                  </Text>
+                </View>
+
+                {/* Sleep Quality */}
+                <View style={{
+                  flex: 1,
+                  padding: 12,
+                  borderRadius: 12,
+                  backgroundColor: theme.colors.background,
+                  alignItems: 'center',
+                }}>
+                  <Text style={{ fontSize: 24, marginBottom: 4 }}>
+                    {sleepInfo.emoji}
+                  </Text>
+                  <Text style={{ 
+                    fontSize: 11, 
+                    color: theme.colors.text + '88', 
+                    marginBottom: 2,
+                    fontWeight: '600',
+                  }}>
+                    Sleep
+                  </Text>
+                  <Text style={{ 
+                    fontSize: 12, 
+                    fontWeight: 'bold', 
+                    color: sleepInfo.color,
+                    textAlign: 'center',
+                  }}>
+                    {user.lifestyle?.sleepHours ? `${user.lifestyle.sleepHours}h` : 'N/A'}
+                  </Text>
+                </View>
+
+                {/* Stress Level */}
+                <View style={{
+                  flex: 1,
+                  padding: 12,
+                  borderRadius: 12,
+                  backgroundColor: theme.colors.background,
+                  alignItems: 'center',
+                }}>
+                  <Text style={{ fontSize: 24, marginBottom: 4 }}>
+                    {stressInfo.emoji}
+                  </Text>
+                  <Text style={{ 
+                    fontSize: 11, 
+                    color: theme.colors.text + '88', 
+                    marginBottom: 2,
+                    fontWeight: '600',
+                  }}>
+                    Stress
+                  </Text>
+                  <Text style={{ 
+                    fontSize: 12, 
+                    fontWeight: 'bold', 
+                    color: stressInfo.color,
+                    textAlign: 'center',
+                  }}>
+                    {stressInfo.label}
+                  </Text>
+                </View>
               </View>
-              </View>
+
+              {/* Health Conditions & Family History */}
+              {(user.healthProfile?.currentConditions?.length ?? 0) > 0 || (user.healthProfile?.familyHistory?.length ?? 0) > 0 ? (
+                <View style={{ marginBottom: 16 }}>
+                  {(user.healthProfile?.currentConditions?.length ?? 0) > 0 && (
+                    <View style={{ marginBottom: 10 }}>
+                      <Text style={{
+                        fontSize: 11,
+                        fontWeight: '600',
+                        color: theme.colors.text + '88',
+                        marginBottom: 6,
+                        textTransform: 'uppercase',
+                        letterSpacing: 0.5,
+                      }}>
+                        🏥 Current Conditions
+                      </Text>
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                        {user.healthProfile?.currentConditions?.map((condition, idx) => (
+                          <View key={idx} style={{
+                            paddingHorizontal: 10,
+                            paddingVertical: 6,
+                            borderRadius: 8,
+                            backgroundColor: '#FFEBEE',
+                            borderLeftWidth: 3,
+                            borderLeftColor: '#F44336',
+                          }}>
+                            <Text style={{ 
+                              fontSize: 11, 
+                              fontWeight: '600',
+                              color: '#C62828',
+                              textTransform: 'capitalize',
+                            }}>
+                              {condition}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+
+                  {(user.healthProfile?.familyHistory?.length ?? 0) > 0 && (
+                    <View>
+                      <Text style={{
+                        fontSize: 11,
+                        fontWeight: '600',
+                        color: theme.colors.text + '88',
+                        marginBottom: 6,
+                        textTransform: 'uppercase',
+                        letterSpacing: 0.5,
+                      }}>
+                        👨‍👩‍👧‍👦 Family History
+                      </Text>
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                        {user.healthProfile?.familyHistory?.map((history, idx) => (
+                          <View key={idx} style={{
+                            paddingHorizontal: 10,
+                            paddingVertical: 6,
+                            borderRadius: 8,
+                            backgroundColor: 'rgba(227, 242, 253, 1)',
+                            borderLeftWidth: 3,
+                            borderLeftColor: '#1976D2',
+                          }}>
+                            <Text style={{ 
+                              fontSize: 11, 
+                              fontWeight: '600',
+                              color: '#0D47A1',
+                              textTransform: 'capitalize',
+                            }}>
+                              {history.replace(/_/g, ' ')}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+                </View>
+              ) : null}
+
+              {/* Blood Type */}
+              {user.healthProfile?.bloodType && (
+                <View style={{
+                  marginBottom: 16,
+                  padding: 10,
+                  borderRadius: 8,
+                  backgroundColor: theme.colors.background,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}>
+                  <Text style={{ fontSize: 20, marginRight: 8 }}>🩸</Text>
+                  <Text style={{ fontSize: 12, color: theme.colors.text + '88', marginRight: 8 }}>Blood Type:</Text>
+                  <Text style={{ fontSize: 13, fontWeight: 'bold', color: theme.colors.text }}>
+                    {user.healthProfile.bloodType}
+                  </Text>
+                </View>
+              )}
+
+              {/* Medications */}
+              {(user.healthProfile?.medications?.length ?? 0) > 0 && (
+                <View style={{
+                  marginBottom: 16,
+                  padding: 12,
+                  borderRadius: 12,
+                  backgroundColor: theme.colors.background,
+                }}>
+                  <Text style={{
+                    fontSize: 11,
+                    fontWeight: '600',
+                    color: theme.colors.text + '88',
+                    marginBottom: 8,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                  }}>
+                    💊 Current Medications
+                  </Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                    {user.healthProfile?.medications?.map((med, idx) => (
+                      <View key={idx} style={{
+                        paddingHorizontal: 10,
+                        paddingVertical: 6,
+                        borderRadius: 8,
+                        backgroundColor: '#FFF3E0',
+                        borderLeftWidth: 3,
+                        borderLeftColor: '#E65100',
+                      }}>
+                        <Text style={{
+                          fontSize: 11,
+                          fontWeight: '600',
+                          color: '#E65100',
+                          textTransform: 'capitalize',
+                        }}>
+                          {med}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {/* Dietary Profile */}
+              {((user.dietaryProfile?.preferences?.length ?? 0) > 0 || 
+                (user.dietaryProfile?.allergies?.length ?? 0) > 0 ||
+                user.dietaryProfile?.dailyWaterIntake ||
+                user.dietaryProfile?.mealFrequency) && (
+                <View style={{
+                  marginBottom: 16,
+                  padding: 12,
+                  borderRadius: 12,
+                  backgroundColor: theme.colors.background,
+                }}>
+                  <Text style={{
+                    fontSize: 11,
+                    fontWeight: '600',
+                    color: theme.colors.text + '88',
+                    marginBottom: 10,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                  }}>
+                    🍽️ Dietary Profile
+                  </Text>
+
+                  {/* Preferences */}
+                  {(user.dietaryProfile?.preferences?.length ?? 0) > 0 && (
+                    <View style={{ marginBottom: 10 }}>
+                      <Text style={{
+                        fontSize: 10,
+                        color: theme.colors.text + '77',
+                        marginBottom: 6,
+                        fontWeight: '500',
+                      }}>
+                        Preferences
+                      </Text>
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                        {user.dietaryProfile?.preferences?.map((pref, idx) => (
+                          <View key={idx} style={{
+                            paddingHorizontal: 10,
+                            paddingVertical: 5,
+                            borderRadius: 6,
+                            backgroundColor: '#C8E6C9',
+                          }}>
+                            <Text style={{
+                              fontSize: 10,
+                              fontWeight: '600',
+                              color: '#2E7D32',
+                              textTransform: 'capitalize',
+                            }}>
+                              {pref.replace(/_/g, ' ')}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Allergies */}
+                  {(user.dietaryProfile?.allergies?.length ?? 0) > 0 && (
+                    <View style={{ marginBottom: 10 }}>
+                      <Text style={{
+                        fontSize: 10,
+                        color: theme.colors.text + '77',
+                        marginBottom: 6,
+                        fontWeight: '500',
+                      }}>
+                        Allergies ⚠️
+                      </Text>
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                        {user.dietaryProfile?.allergies?.map((allergy, idx) => (
+                          <View key={idx} style={{
+                            paddingHorizontal: 10,
+                            paddingVertical: 5,
+                            borderRadius: 6,
+                            backgroundColor: '#FFCDD2',
+                          }}>
+                            <Text style={{
+                              fontSize: 10,
+                              fontWeight: '600',
+                              color: '#C62828',
+                              textTransform: 'capitalize',
+                            }}>
+                              {allergy}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Water Intake & Meal Frequency */}
+                  {(user.dietaryProfile?.dailyWaterIntake || user.dietaryProfile?.mealFrequency) && (
+                    <View style={{ 
+                      flexDirection: 'row', 
+                      gap: 10,
+                      paddingTop: 8,
+                      borderTopWidth: 1,
+                      borderTopColor: theme.colors.text + '22',
+                    }}>
+                      {user.dietaryProfile?.dailyWaterIntake && (
+                        <View style={{ flex: 1 }}>
+                          <Text style={{
+                            fontSize: 10,
+                            color: theme.colors.text + '77',
+                            marginBottom: 4,
+                            fontWeight: '500',
+                          }}>
+                            Daily Water
+                          </Text>
+                          <Text style={{
+                            fontSize: 13,
+                            fontWeight: 'bold',
+                            color: '#0277BD',
+                          }}>
+                            💧 {user.dietaryProfile.dailyWaterIntake}L
+                          </Text>
+                        </View>
+                      )}
+                      {user.dietaryProfile?.mealFrequency && (
+                        <View style={{ flex: 1 }}>
+                          <Text style={{
+                            fontSize: 10,
+                            color: theme.colors.text + '77',
+                            marginBottom: 4,
+                            fontWeight: '500',
+                          }}>
+                            Meals/Day
+                          </Text>
+                          <Text style={{
+                            fontSize: 13,
+                            fontWeight: 'bold',
+                            color: '#F57C00',
+                          }}>
+                            🍴 {user.dietaryProfile.mealFrequency}x
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {/* Environmental Factors */}
+              {(user.environmentalFactors?.pollutionExposure || user.environmentalFactors?.occupationType) && (
+                <View style={{
+                  marginBottom: 16,
+                  padding: 12,
+                  borderRadius: 12,
+                  backgroundColor: theme.colors.background,
+                }}>
+                  <Text style={{
+                    fontSize: 11,
+                    fontWeight: '600',
+                    color: theme.colors.text + '88',
+                    marginBottom: 10,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                  }}>
+                    🌍 Environmental Factors
+                  </Text>
+
+                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                    {user.environmentalFactors?.pollutionExposure && (
+                      <View style={{ flex: 1 }}>
+                        <Text style={{
+                          fontSize: 10,
+                          color: theme.colors.text + '77',
+                          marginBottom: 4,
+                          fontWeight: '500',
+                        }}>
+                          Pollution
+                        </Text>
+                        <View style={{
+                          paddingHorizontal: 10,
+                          paddingVertical: 6,
+                          borderRadius: 8,
+                          backgroundColor: user.environmentalFactors.pollutionExposure === 'high' 
+                            ? '#FFCDD2' 
+                            : user.environmentalFactors.pollutionExposure === 'medium'
+                            ? '#FFE0B2'
+                            : '#C8E6C9',
+                        }}>
+                          <Text style={{
+                            fontSize: 11,
+                            fontWeight: '600',
+                            color: user.environmentalFactors.pollutionExposure === 'high' 
+                              ? '#C62828' 
+                              : user.environmentalFactors.pollutionExposure === 'medium'
+                              ? '#E65100'
+                              : '#2E7D32',
+                            textTransform: 'capitalize',
+                          }}>
+                            {user.environmentalFactors.pollutionExposure}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+
+                    {user.environmentalFactors?.occupationType && (
+                      <View style={{ flex: 1 }}>
+                        <Text style={{
+                          fontSize: 10,
+                          color: theme.colors.text + '77',
+                          marginBottom: 4,
+                          fontWeight: '500',
+                        }}>
+                          Occupation
+                        </Text>
+                        <View style={{
+                          paddingHorizontal: 10,
+                          paddingVertical: 6,
+                          borderRadius: 8,
+                          backgroundColor: user.environmentalFactors.occupationType === 'physical'
+                            ? '#C8E6C9'
+                            : user.environmentalFactors.occupationType === 'mixed'
+                            ? '#FFE0B2'
+                            : '#E1F5FE',
+                        }}>
+                          <Text style={{
+                            fontSize: 11,
+                            fontWeight: '600',
+                            color: user.environmentalFactors.occupationType === 'physical'
+                              ? '#2E7D32'
+                              : user.environmentalFactors.occupationType === 'mixed'
+                              ? '#E65100'
+                              : '#0277BD',
+                            textTransform: 'capitalize',
+                          }}>
+                            {user.environmentalFactors.occupationType}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              )}
+
+              {/* Addictions & Risk Behaviors */}
+              {(user.riskFactors?.addictions?.length ?? 0) > 0 && (
+                <View style={{
+                  marginBottom: 16,
+                  padding: 12,
+                  borderRadius: 12,
+                  backgroundColor: theme.colors.background,
+                  borderLeftWidth: 4,
+                  borderLeftColor: '#F44336',
+                }}>
+                  <Text style={{
+                    fontSize: 11,
+                    fontWeight: '600',
+                    color: theme.colors.text + '88',
+                    marginBottom: 10,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                  }}>
+                    ⚠️ Risk Factors
+                  </Text>
+
+                  {user.riskFactors?.addictions?.map((addiction, idx) => (
+                    <View key={idx} style={{
+                      marginBottom: idx < (user.riskFactors?.addictions?.length ?? 0) - 1 ? 10 : 0,
+                      paddingBottom: idx < (user.riskFactors?.addictions?.length ?? 0) - 1 ? 10 : 0,
+                      borderBottomWidth: idx < (user.riskFactors?.addictions?.length ?? 0) - 1 ? 1 : 0,
+                      borderBottomColor: theme.colors.text + '22',
+                    }}>
+                      <View style={{ marginBottom: 6 }}>
+                        <Text style={{
+                          fontSize: 12,
+                          fontWeight: '700',
+                          color: '#F44336',
+                          textTransform: 'capitalize',
+                        }}>
+                          {addiction.substance}
+                        </Text>
+                      </View>
+                      <View style={{ 
+                        flexDirection: 'row', 
+                        justifyContent: 'space-between',
+                        paddingHorizontal: 8,
+                        paddingVertical: 6,
+                        backgroundColor: '#FFEBEE',
+                        borderRadius: 6,
+                      }}>
+                        <View>
+                          <Text style={{
+                            fontSize: 9,
+                            color: theme.colors.text + '88',
+                            marginBottom: 2,
+                          }}>
+                            Severity
+                          </Text>
+                          <Text style={{
+                            fontSize: 11,
+                            fontWeight: '600',
+                            color: '#F44336',
+                            textTransform: 'capitalize',
+                          }}>
+                            {addiction.severity}
+                          </Text>
+                        </View>
+                        <View>
+                          <Text style={{
+                            fontSize: 9,
+                            color: theme.colors.text + '88',
+                            marginBottom: 2,
+                          }}>
+                            Duration
+                          </Text>
+                          <Text style={{
+                            fontSize: 11,
+                            fontWeight: '600',
+                            color: '#F44336',
+                          }}>
+                            {Math.round(addiction.duration / 12)} yrs
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )}
             </View>
 
             {/* Predictions Section */}
             {user.lastPrediction ? (
-              <>
+              <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
                 <Text style={{ 
                   color: theme.colors.text, 
                   fontWeight: '600',
-                  marginBottom: 4 
+                  marginBottom: 12,
+                  fontSize: 14,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5,
                 }}>
-                  Disease Predictions:
+                  🔍 Disease Predictions
                 </Text>
                 
                 {renderPredictions(user.lastPrediction)}
 
                 {user.lastPrediction.predictedAt && (
                   <Text style={{ 
-                    color: theme.colors.text, 
-                    fontSize: 12,
-                    marginTop: 8,
-                    fontStyle: 'italic'
+                    color: theme.colors.text + '77', 
+                    fontSize: 10,
+                    marginTop: 10,
+                    fontStyle: 'italic',
                   }}>
-                    Predicted on: {new Date(user.lastPrediction.predictedAt).toLocaleString()}
+                    Last updated: {new Date(user.lastPrediction.predictedAt).toLocaleDateString()}
                   </Text>
                 )}
-              </>
+              </View>
             ) : (
-              <Text style={{ 
-                color: theme.colors.text,
-                fontStyle: 'italic'
-              }}>
-                No predictions available
-              </Text>
+              <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+                <Text style={{ 
+                  color: theme.colors.text,
+                  fontStyle: 'italic',
+                  fontSize: 12,
+                }}>
+                  No predictions available
+                </Text>
+              </View>
             )}
           </View>
-        ))}
+        );
+        })}
       </View>
     </ScrollView>
   );
-}
-
-
-// Helper: generate a short natural-language description from user object
-function generateShortDescription(user: any) {
-  try {
-    const name = user.username || 'The user';
-
-    // Primary fields from userModel.js schema
-    const age = user.age ?? user.profile?.age ?? null;
-    const genderRaw = user.gender ?? user.profile?.gender ?? 'other';
-    const gender = String(genderRaw).charAt(0).toUpperCase() + String(genderRaw).slice(1);
-
-    // Physical metrics
-    const height = user.physicalMetrics?.height?.value ?? user.profile?.physicalMetrics?.height ?? null;
-    const weight = user.physicalMetrics?.weight?.value ?? user.profile?.physicalMetrics?.weight ?? null;
-    const bmi = user.physicalMetrics?.bmi ?? user.profile?.physicalMetrics?.bmi ?? user.profile?.bmi ?? null;
-    const waist = user.physicalMetrics?.waistCircumference ?? user.profile?.physicalMetrics?.waistCircumference ?? null;
-
-    // Lifestyle
-    const activity = (user.lifestyle?.activityLevel ?? user.profile?.lifestyle?.activityLevel ?? 'unknown').toString().replace(/_/g, ' ');
-    const sleep = user.lifestyle?.sleepHours ?? user.profile?.lifestyle?.sleepHours ?? null;
-
-    // Dietary
-    const dietaryPrefs = user.dietaryProfile?.preferences ?? user.profile?.dietaryProfile?.preferences ?? [];
-    const allergies = user.dietaryProfile?.allergies ?? user.profile?.dietaryProfile?.allergies ?? [];
-    const water = user.dietaryProfile?.dailyWaterIntake ?? user.profile?.dietaryProfile?.dailyWaterIntake ?? null;
-    const mealFrequency = user.dietaryProfile?.mealFrequency ?? user.profile?.dietaryProfile?.mealFrequency ?? null;
-
-    // Health profile
-    const currentConditions = user.healthProfile?.currentConditions ?? user.profile?.healthProfile?.currentConditions ?? user.profile?.currentConditions ?? [];
-    const familyHistory = user.healthProfile?.familyHistory ?? user.profile?.healthProfile?.familyHistory ?? [];
-    const medications = user.healthProfile?.medications ?? user.profile?.healthProfile?.medications ?? [];
-    const bloodType = user.healthProfile?.bloodType ?? user.profile?.healthProfile?.bloodType ?? null;
-
-    // Environment & risk
-    const pollution = user.environmentalFactors?.pollutionExposure ?? user.profile?.environmentalFactors?.pollutionExposure ?? 'unknown';
-    const occupation = user.environmentalFactors?.occupationType ?? user.profile?.environmentalFactors?.occupationType ?? null;
-    const addictionsArr = user.riskFactors?.addictions ?? user.profile?.riskFactors?.addictions ?? [];
-    const stress = user.riskFactors?.stressLevel ?? user.profile?.riskFactors?.stressLevel ?? null;
-
-    const sentences: string[] = [];
-
-    // Intro: name, age and gender
-    if (age) sentences.push(`${name} is a ${age}-year-old ${gender}.`);
-    else sentences.push(`${name} is ${gender}.`);
-
-    // Lifestyle and occupation
-    const lifestyleParts: string[] = [];
-    if (activity && activity !== 'unknown') lifestyleParts.push(`has a ${activity} lifestyle`);
-    if (occupation) lifestyleParts.push(`works in a ${occupation} occupation`);
-    if (pollution && pollution !== 'unknown') lifestyleParts.push(`has ${pollution} pollution exposure`);
-    if (lifestyleParts.length) sentences.push(`${name} ${lifestyleParts.join(' and ')}.`);
-
-    // Physical metrics
-    const physParts: string[] = [];
-    if (height) physParts.push(`${height} cm tall`);
-    if (weight) physParts.push(`${weight} kg weight`);
-    if (waist) physParts.push(`waist circumference ${waist} cm`);
-    if (bmi) physParts.push(`BMI ${bmi}`);
-    if (physParts.length) sentences.push(`${name} has ${physParts.join(', ')}.`);
-
-    // Sleep and hydration
-    const lifeStats: string[] = [];
-    if (sleep !== null && sleep !== undefined) lifeStats.push(`sleeps about ${sleep} hours per night`);
-    if (water !== null && water !== undefined) lifeStats.push(`drinks about ${water} liters of water daily`);
-    if (mealFrequency) lifeStats.push(`eats around ${mealFrequency} meals per day`);
-    if (lifeStats.length) sentences.push(`${name} ${lifeStats.join(' and ')}.`);
-
-    // Dietary and allergies
-    if (Array.isArray(dietaryPrefs) && dietaryPrefs.length) sentences.push(`${name} prefers ${dietaryPrefs.join(', ')} diets.`);
-    if (Array.isArray(allergies) && allergies.length) sentences.push(`${name} has allergies to ${allergies.join(', ')}.`);
-
-    // Health profile
-    if (Array.isArray(currentConditions) && currentConditions.length) sentences.push(`${name} currently has ${currentConditions.join(', ')}.`);
-    if (Array.isArray(medications) && medications.length) sentences.push(`${name} is taking ${medications.join(', ')}.`);
-    if (Array.isArray(familyHistory) && familyHistory.length) sentences.push(`${name} has a family history of ${familyHistory.join(', ')}.`);
-    if (bloodType) sentences.push(`${name} has blood type ${bloodType}.`);
-
-    // Addictions and stress
-    if (Array.isArray(addictionsArr) && addictionsArr.length) {
-      const subs = addictionsArr.map((a: any) => a.substance ? `${a.substance} (${a.severity ?? 'unknown'})` : JSON.stringify(a));
-      sentences.push(`${name} has addictions: ${subs.join(', ')}.`);
-    }
-    if (stress) sentences.push(`${name} reports ${stress} stress levels.`);
-
-    // If nothing else, fallback
-    if (!sentences.length) return 'User profile summary not available.';
-
-    // Join sentences with a space and ensure no colon characters are present
-    return sentences.join(' ' ).replace(/:/g, '');
-  } catch (e) {
-    return 'User profile summary not available.';
-  }
 }

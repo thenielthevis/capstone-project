@@ -90,72 +90,6 @@ exports.testPrediction = async (req, res) => {
       testCases: results.length,
       results: results
     });
-    for (const testCase of testCases) {
-      // Prepare health data for prediction
-      const healthData = {
-        age: parseInt(testCase.age),
-        gender: testCase.gender,
-        height_cm: parseFloat(testCase.height_cm),
-        weight_kg: parseFloat(testCase.weight_kg),
-        bmi: parseFloat(testCase.bmi),
-        activityLevel: testCase.activityLevel,
-        sleepHours: parseFloat(testCase.sleepHours)
-      };
-
-      // Run Python script for prediction
-      const pythonProcess = spawnSync('python', [
-        path.join(__dirname, '..', 'ml_models', 'utils', 'test_prediction.py')
-      ], {
-        encoding: 'utf-8'
-      });
-
-      if (pythonProcess.error) {
-        console.error('Python process error:', pythonProcess.error);
-        continue;
-      }
-
-      // Parse prediction results from the output
-      const output = pythonProcess.stdout;
-      const predictions = [];
-      const lines = output.split('\n');
-      let foundResults = false;
-      
-      for (const line of lines) {
-        if (line.includes('Prediction Results:')) {
-          foundResults = true;
-          continue;
-        }
-        if (foundResults && line.trim()) {
-          const [disease, probabilityStr] = line.split(':');
-          if (disease && probabilityStr) {
-            const probability = parseFloat(probabilityStr.replace('%', '')) / 100;
-            predictions.push({
-              name: disease.trim(),
-              probability: probability
-            });
-          }
-        }
-      }
-
-      // Sort predictions by probability
-      predictions.sort((a, b) => b.probability - a.probability);
-
-      results.push({
-        profile: {
-          age: healthData.age,
-          gender: healthData.gender,
-          bmi: healthData.bmi,
-          activityLevel: healthData.activityLevel,
-          sleepHours: healthData.sleepHours
-        },
-        predictions: predictions
-      });
-    }
-
-    return res.json({ 
-      testCases: results.length,
-      results 
-    });
   } catch (err) {
     console.error('testPrediction error', err);
     return res.status(500).json({ error: 'prediction test failed', details: err.message });
@@ -248,22 +182,93 @@ exports.predictUser = async (req, res) => {
     }
     if (!user) return res.status(404).json({ error: 'user not found' });
 
-    // Prepare health data for prediction
+    // Check if user already has a lastPrediction and force=true is not requested
+    // If so, skip generating a new prediction and just return the cached one
+    const forceRegenerate = (req.query && String(req.query.force) === 'true') || (req.body && req.body.force === true);
+    const hasExistingPrediction = user.lastPrediction && Array.isArray(user.lastPrediction.predictions) && user.lastPrediction.predictions.length > 0;
+    
+    if (hasExistingPrediction && !forceRegenerate) {
+      console.log('[predictUser] user already has lastPrediction, returning cached result (no new prediction generated). Use ?force=true to regenerate.');
+      // Build profile object to return so frontend can render user info from DB (use schema field names)
+      const profile = {
+        age: (user && user.age) ? user.age : null,
+        gender: (user && user.gender) ? user.gender : null,
+        physicalMetrics: user && user.physicalMetrics ? user.physicalMetrics : { height: { value: null }, weight: { value: null }, bmi: null, waistCircumference: null },
+        lifestyle: user && user.lifestyle ? user.lifestyle : { activityLevel: null, sleepHours: null },
+        riskFactors: user && user.riskFactors ? user.riskFactors : { addictions: [], stressLevel: null },
+        dietaryProfile: user && user.dietaryProfile ? user.dietaryProfile : { preferences: [], allergies: [], dailyWaterIntake: null, mealFrequency: null },
+        healthProfile: user && user.healthProfile ? user.healthProfile : { currentConditions: [], familyHistory: [], medications: [], bloodType: null },
+        environmentalFactors: user && user.environmentalFactors ? user.environmentalFactors : { pollutionExposure: null, occupationType: null },
+        profilePicture: user && user.profilePicture ? user.profilePicture : null,
+        birthdate: user && user.birthdate ? user.birthdate : null,
+      };
+      
+      // Map lastPrediction.predictions array into sortedDiseases format for response
+      const sortedDiseases = (user.lastPrediction.predictions || []).map((p) => ({
+        name: p.name || 'Unknown',
+        probability: Number(p.probability) || 0
+      }));
+      
+      return res.json({
+        id: String(user._id),
+        username: user.username,
+        email: user.email,
+        profile,
+        predictions: sortedDiseases,
+        lastPrediction: user.lastPrediction,
+        cached: true
+      });
+    }
+
+    // If no existing prediction or force=true, generate a new prediction
+    console.log('[predictUser] generating new prediction for user (no existing cached prediction or force=true)');
+
+    // Prepare comprehensive health data for ML model prediction with full feature extraction
+    // This data will be passed to run_batch_predictions.py which handles feature engineering
     const healthData = {
-      age: user.age,
+      age: user.age || 0,
       gender: user.gender === 'male' ? 1 : (user.gender === 'female' ? 0 : 0.5),
       height: user.physicalMetrics?.height?.value || 0,
+      height_cm: user.physicalMetrics?.height?.value || 0,
       weight: user.physicalMetrics?.weight?.value || 0,
+      weight_kg: user.physicalMetrics?.weight?.value || 0,
       bmi: user.physicalMetrics?.bmi || 0,
-      activity_level: user.lifestyle?.activityLevel ? 
-        ['sedentary', 'lightly_active', 'moderately_active', 'very_active', 'extremely_active']
-          .indexOf(user.lifestyle.activityLevel) / 4 : 0,
-      sleep_hours: user.lifestyle?.sleepHours || 0
+      waistCircumference: user.physicalMetrics?.waistCircumference || 0,
+      waistCircumference_cm: user.physicalMetrics?.waistCircumference || 0,
+      activityLevel: user.lifestyle?.activityLevel || 'sedentary',
+      activity_level: user.lifestyle?.activityLevel || 'sedentary',
+      sleepHours: user.lifestyle?.sleepHours || 0,
+      sleep_hours: user.lifestyle?.sleepHours || 0,
+      // Dietary profile
+      dietaryPreference: (user.dietaryProfile?.preferences && user.dietaryProfile.preferences.length > 0) ? user.dietaryProfile.preferences[0] : 'none',
+      dietaryProfile: (user.dietaryProfile?.preferences && user.dietaryProfile.preferences.length > 0) ? user.dietaryProfile.preferences[0] : 'none',
+      allergies: (user.dietaryProfile?.allergies && user.dietaryProfile.allergies.length > 0) ? user.dietaryProfile.allergies.join(',') : 'none',
+      dailyWaterIntake: user.dietaryProfile?.dailyWaterIntake || 0,
+      dailyWaterIntake_L: user.dietaryProfile?.dailyWaterIntake || 0,
+      mealFrequency: user.dietaryProfile?.mealFrequency || 3,
+      // Health status
+      currentConditions: user.healthProfile?.currentConditions || [],
+      currentCondition: (user.healthProfile?.currentConditions && user.healthProfile.currentConditions.length > 0) ? user.healthProfile.currentConditions[0] : 'none',
+      familyHistory: user.healthProfile?.familyHistory || [],
+      bloodType: user.healthProfile?.bloodType || 'O+',
+      medications: user.healthProfile?.medications || [],
+      // Environmental factors
+      pollutionExposure: user.environmentalFactors?.pollutionExposure || 'low',
+      occupationType: user.environmentalFactors?.occupationType || 'mixed',
+      // Risk factors
+      addictions: user.riskFactors?.addictions || [],
+      addiction: (user.riskFactors?.addictions && user.riskFactors.addictions.length > 0) ? user.riskFactors.addictions[0].substance : 'none',
+      stressLevel: user.riskFactors?.stressLevel || 'low',
     };
 
-    // Run Python script for prediction
+    console.log('[predictUser] prepared healthData for feature extraction:', JSON.stringify(healthData, null, 2));
+
+    // Run Python script for HYBRID prediction (ML + Rule-based)
+    // Uses hybrid_prediction.py which combines:
+    // - ML predictions for trained diseases (Diabetes, Hypertension, CKD, etc.)
+    // - Rule-based scoring for unlimited new diseases (Huntington's, Heart Disease, etc.)
     const pythonProcess = spawnSync('python', [
-      path.join(__dirname, '..', 'ml_models', 'utils', 'run_batch_predictions.py'),
+      path.join(__dirname, '..', 'ml_models', 'utils', 'hybrid_prediction.py'),
       JSON.stringify(healthData)
     ], {
       encoding: 'utf-8'
@@ -465,22 +470,37 @@ exports.predictUserByEmail = async (req, res) => {
 
   let responseLastPrediction = null;
 
-    // Prepare health data for prediction (match run_batch_predictions expected fields)
+    // Prepare comprehensive health data for prediction (HYBRID system: ML + Rules)
     const healthData = {
       age: user.age || 0,
-      gender: user.gender === 'male' ? 1 : (user.gender === 'female' ? 0 : 0.5),
-      height: user.physicalMetrics?.height?.value || 0,
-      weight: user.physicalMetrics?.weight?.value || 0,
+      gender: user.gender || 'other',
+      height_cm: user.physicalMetrics?.height?.value || 0,
+      weight_kg: user.physicalMetrics?.weight?.value || 0,
       bmi: user.physicalMetrics?.bmi || 0,
-      activity_level: user.lifestyle?.activityLevel ? 
-        ['sedentary', 'lightly_active', 'moderately_active', 'very_active', 'extremely_active']
-          .indexOf(user.lifestyle.activityLevel) / 4 : 0,
-      sleep_hours: user.lifestyle?.sleepHours || 0
+      waistCircumference_cm: user.physicalMetrics?.waistCircumference || 0,
+      activityLevel: user.lifestyle?.activityLevel || 'sedentary',
+      sleepHours: user.lifestyle?.sleepHours || 0,
+      // Dietary profile
+      dietaryPreference: (user.dietaryProfile?.preferences && user.dietaryProfile.preferences.length > 0) ? user.dietaryProfile.preferences[0] : 'none',
+      allergies: (user.dietaryProfile?.allergies && user.dietaryProfile.allergies.length > 0) ? user.dietaryProfile.allergies.join(',') : 'none',
+      dailyWaterIntake_L: user.dietaryProfile?.dailyWaterIntake || 0,
+      mealFrequency: user.dietaryProfile?.mealFrequency || 3,
+      // Health status
+      currentConditions: user.healthProfile?.currentConditions || [],
+      familyHistory: user.healthProfile?.familyHistory || [],
+      bloodType: user.healthProfile?.bloodType || 'O+',
+      medications: user.healthProfile?.medications || [],
+      // Environmental factors
+      pollutionExposure: user.environmentalFactors?.pollutionExposure || 'low',
+      occupationType: user.environmentalFactors?.occupationType || 'mixed',
+      // Risk factors
+      addictions: user.riskFactors?.addictions || [],
+      stressLevel: user.riskFactors?.stressLevel || 'low'
     };
 
-    // Run Python script for prediction
+    // Run Python script for HYBRID prediction (ML + Rule-based)
     const pythonProcess = spawnSync('python', [
-      path.join(__dirname, '..', 'ml_models', 'utils', 'run_batch_predictions.py'),
+      path.join(__dirname, '..', 'ml_models', 'utils', 'hybrid_prediction.py'),
       JSON.stringify(healthData)
     ], {
       encoding: 'utf-8'
