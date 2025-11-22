@@ -110,13 +110,17 @@ const userSchema = new mongoose.Schema({
         // full ranked predictions saved by the model
         predictions: [{
             name: { type: String },
-            probability: { type: Number, min: 0, max: 1 }
+            probability: { type: Number, min: 0, max: 1 },
+            percentage: { type: Number },
+            source: { type: String },
+            factors: [[ String, Number ]], // Array of [factor_name, score] pairs
+            _id: false
         }],
         // summary fields kept for quick access
         disease: { type: [String], default: undefined },
         probability: { type: Number, min: 0, max: 1, default: null },
         predictedAt: { type: Date, default: null },
-        source: { type: String, enum: ['model', 'heuristic', 'manual', 'dataset'], default: 'model' }
+        source: { type: String, enum: ['model', 'heuristic', 'manual', 'dataset', 'hybrid_model'], default: 'model' }
     },
 });
 
