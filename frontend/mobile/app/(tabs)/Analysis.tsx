@@ -6,11 +6,11 @@ import { useUser } from "../context/UserContext";
 // API URL: prefer environment variable EXPO_PUBLIC_API_URL, fall back to emulator/local defaults
 // Use 10.0.2.2 for Android emulator (maps to host localhost), use local LAN IP for physical device
 // If you're running on a physical Android device, set LOCAL_IP in your environment or .env file
-const LOCAL_IP = process.env.EXPO_LOCAL_IP || '192.168.1.102';
+const LOCAL_IP = process.env.EXPO_LOCAL_IP || '192.168.100.38';
 const ENV_API = process.env.EXPO_PUBLIC_API_URL;
 const API_URL = ENV_API
   ? ENV_API
-  : (Platform.OS === 'android' ? `http://10.0.2.2:5000/api` : `http://${LOCAL_IP}:5000/api`);
+  : (Platform.OS === 'android' ? `http://192.168.100.38:5000/api` : `http://${LOCAL_IP}:5000/api`);
 
 interface Prediction {
   disease: string[];
