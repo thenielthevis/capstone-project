@@ -89,7 +89,7 @@ export default function SettingsScreen() {
         onPress={() => setShowLogoutModal(true)}
       >
         <Text className="text-base" style={{ color: theme.colors.text, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.m }}>Sign Out</Text>
-        <Ionicons name="exit-outline" size={20} color="#ef4444" />
+        <Ionicons name="exit-outline" size={20} style={{color: theme.colors.secondary}} />
       </TouchableOpacity>
 
       {/* Themed Minimal Alert-Style Logout Modal */}

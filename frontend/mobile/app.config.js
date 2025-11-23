@@ -10,7 +10,9 @@ export default {
     scheme: "mobile",
     userInterfaceStyle: "automatic",
     splash: {
-      image: "./assets/images/splash.png"
+      image: "./assets/images/splash.png",
+      resizeMode: "cover",
+      backgroundColor: "#000000" // your brand color
     },
     newArchEnabled: true,
     ios: {
@@ -44,6 +46,7 @@ export default {
       "@react-native-google-signin/google-signin",
       "expo-secure-store",
       "@maplibre/maplibre-react-native",
+      "expo-video",
       [
         "expo-location",
         {
@@ -82,7 +85,8 @@ export default {
       eas: {
         projectId: "6b89e6f9-8ac6-494a-80d4-21ed8413e4ed"
       },
-      MAPTILER_KEY: process.env.EXPO_PUBLIC_MAPTILER_KEY
+      MAPTILER_KEY: process.env.EXPO_PUBLIC_MAPTILER_KEY,
+      geminiApiKey: process.env.EXPO_PUBLIC_GEMINI_API_KEY
     },
     owner: "capstone.project"
   }

@@ -32,6 +32,15 @@ export default function TestMap() {
   const [loading, setLoading] = useState(true);
   const [following, setFollowing] = useState<boolean>(true); // camera follows user by default
   const [mapBearing, setMapBearing] = useState<number>(0); // 0 = north-up, -1 = compass-follow
+  const [speed, setSpeed] = useState<number>(0);
+  const [distance, setDistance] = useState<number>(0);
+  const [recording, setRecording] = useState(false);
+  const [time, setTime] = useState<number>(0);
+  
+  // Track previous location and timestamp for calculations
+  const prevLocationRef = useRef<[number, number] | null>(null);
+  const prevTimestampRef = useRef<number | null>(null);
+  const totalDistanceRef = useRef<number>(0);
 
   const mapRef = useRef<any>(null);
   const cameraRef = useRef<any>(null);
@@ -73,6 +82,48 @@ export default function TestMap() {
             pos.coords.latitude,
           ];
           setLocation(coords);
+
+          // Calculate speed and distance only when recording
+          if (recording) {
+            const currentTimestamp = Date.now();
+            const currentLat = pos.coords.latitude;
+            const currentLon = pos.coords.longitude;
+
+            // Check if we have a previous location to calculate from
+            if (prevLocationRef.current && prevTimestampRef.current) {
+              const [prevLon, prevLat] = prevLocationRef.current;
+              
+              // Calculate distance between previous and current location
+              const segmentDistance = calculateDistance(
+                prevLat,
+                prevLon,
+                currentLat,
+                currentLon
+              );
+
+              // Only accumulate distance if movement is significant (filter out GPS noise)
+              if (segmentDistance > 0.001) { // ~100 meters threshold
+                totalDistanceRef.current += segmentDistance;
+                setDistance(totalDistanceRef.current);
+
+                // Calculate speed: distance (km) / time (hours) = km/h
+                const timeDiff = (currentTimestamp - prevTimestampRef.current) / 1000 / 3600; // Convert to hours
+                if (timeDiff > 0) {
+                  const calculatedSpeed = segmentDistance / timeDiff;
+                  // Filter out unrealistic speeds (e.g., > 200 km/h for running/cycling)
+                  setSpeed(Math.min(calculatedSpeed, 200));
+                }
+              }
+            }
+
+            // Update previous location and timestamp
+            prevLocationRef.current = coords;
+            prevTimestampRef.current = currentTimestamp;
+          } else {
+            // Reset when not recording
+            prevLocationRef.current = null;
+            prevTimestampRef.current = null;
+          }
 
           // only auto-center while "following" is true (user hasn't panned away)
           if (following && cameraRef.current) {
@@ -125,7 +176,7 @@ export default function TestMap() {
       if (locSubRef.current) locSubRef.current.remove();
       if (headSubRef.current) headSubRef.current.remove();
     };
-  }, [following, mapBearing]);
+  }, [following, mapBearing, recording]);
 
   // helper: check whether user's location is within current visible bounds
   const isLocationVisible = async (): Promise<boolean> => {
@@ -226,6 +277,63 @@ export default function TestMap() {
     }
   };
 
+  // Timer effect - continues from where it left off when paused/resumed
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    if (recording) {
+      interval = setInterval(() => {
+        setTime((t) => t + 1);
+      }, 1000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [recording]);
+
+  // Format time helper function
+  const formatTime = (totalSeconds: number) => {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes.toString().padStart(2, "0")}:${seconds
+      .toString()
+      .padStart(2, "0")}`;
+  };
+
+  // Handle recording state changes from ActivityDrawer
+  const handleRecordingChange = (isRecording: boolean) => {
+    setRecording(isRecording);
+    
+    // When starting recording, initialize previous location if we have current location
+    if (isRecording && location) {
+      prevLocationRef.current = location;
+      prevTimestampRef.current = Date.now();
+    }
+    // Note: Timer continues from where it left off (doesn't reset on pause)
+    // Distance and speed also persist when paused
+  };
+
+  // Helper function to calculate distance between two coordinates (Haversine formula)
+  const calculateDistance = (
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number
+  ): number => {
+    const R = 6371; // Earth's radius in kilometers
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Distance in kilometers
+  };
+
   if (loading || !location) {
     return (
       <View className="flex-1 items-center justify-center" style={styles.container}>
@@ -294,7 +402,13 @@ export default function TestMap() {
           </Animated.View>
         </TouchableOpacity>
       </View>
-      <ActivityDrawer />
+      <ActivityDrawer 
+        speed={speed}
+        distance={distance}
+        time={time}
+        recording={recording}
+        onRecordingChange={handleRecordingChange}
+      />
     </View>
   );
 }

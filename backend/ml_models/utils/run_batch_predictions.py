@@ -3,6 +3,7 @@ import sys
 import json
 import numpy as np
 import pandas as pd
+from inference import load_checkpoint, predict_from_array, _debug_print
 
 # ensure local imports
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -36,6 +37,9 @@ def process_input(data):
         'addiction': (data.get('riskFactors', {}).get('addictions') and data.get('riskFactors').get('addictions')[0] and data.get('riskFactors').get('addictions')[0].get('substance')) or data.get('addiction') or 'none',
         'stressLevel': data.get('stressLevel') or data.get('riskFactors', {}).get('stressLevel') or 'low'
     }
+    
+    # Debug: log the extracted raw_row to verify all fields are being captured
+    _debug_print(f"process_input() extracted raw_row: {json.dumps(raw_row, indent=2)}")
 
     # Load training CSV to compute dummy columns (cache across calls)
     csv_path = os.path.abspath(os.path.join(ROOT, 'data', 'health_prediction_dataset_5diseases.csv'))

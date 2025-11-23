@@ -1,6 +1,59 @@
-# Welcome to your Expo app 👋
+# Lifora Mobile App 📱
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+This is the mobile application for the Lifora health and fitness tracking platform built with [Expo](https://expo.dev).
+
+## Quick Start
+
+### 1. Install dependencies
+```bash
+npm install
+```
+
+### 2. Configure Environment
+```bash
+# Copy the sample environment file
+cp .env.sample .env
+
+# Check your configuration
+node checkEnv.js
+```
+
+**Important:** Update the `EXPO_PUBLIC_API_URL` in `.env` with your backend server address:
+- **Physical Device**: Use your computer's IP (run `ipconfig` to find it)
+- **Android Emulator**: Use `http://10.0.2.2:5000/api`
+- **iOS Simulator**: Use `http://localhost:5000/api`
+
+### 3. Start the Backend Server
+In a separate terminal:
+```bash
+cd ../../backend
+npm start
+```
+
+### 4. Start the Mobile App
+```bash
+npx expo start
+```
+
+Choose your platform:
+- Press `a` for Android emulator
+- Press `i` for iOS simulator  
+- Scan QR code for physical device
+
+## 🔧 Troubleshooting
+
+Having connection issues? See [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) for detailed solutions.
+
+**Quick diagnostic:**
+```bash
+node testConnection.js
+```
+
+**Common fixes:**
+- ✅ Restart Expo after changing `.env`: `npx expo start --clear`
+- ✅ Ensure backend is running on port 5000
+- ✅ Verify device and computer are on same WiFi
+- ✅ Check firewall isn't blocking port 5000
 
 ## Get started
 
