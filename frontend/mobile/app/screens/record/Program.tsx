@@ -161,13 +161,13 @@ export default function ProgramRecordScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={{
-                backgroundColor: "#FDC086",
+                backgroundColor: "#9B1E2E",
                 flexDirection: "row",
                 alignItems: "center",
                 borderRadius: 24,
                 paddingVertical: 10,
                 paddingHorizontal: 18,
-                shadowColor: "#FDC086",
+                shadowColor: "#9B1E2E",
                 shadowOpacity: 0.15,
                 shadowRadius: 6,
                 elevation: 4,
@@ -177,7 +177,7 @@ export default function ProgramRecordScreen() {
                 router.push("/screens/record/Activity");
               }}
             >
-              <MaterialCommunityIcons name="run-fast" size={22} color="#fff"/>
+              <MaterialCommunityIcons name="map-marker-radius-outline" size={22} color="#fff"/>
             </TouchableOpacity>
           </Animated.View>
           {/* Main FAB */}

@@ -659,12 +659,31 @@ export default function ProgramInterface() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <View className="px-6 pt-4">
-        <TouchableOpacity onPress={() => router.back()} className="flex-row items-center mb-4">
-          <Entypo name="chevron-left" size={theme.fontSizes.xl + 4} color={theme.colors.text} />
-          <Text className="ml-2" style={{ color: theme.colors.text, fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.xl }}>
-            Back
-          </Text>
-        </TouchableOpacity>
+        <View className="flex-row items-center justify-between mb-4">
+          <TouchableOpacity onPress={() => router.back()} className="flex-row items-center">
+            <Entypo name="chevron-left" size={theme.fontSizes.xl + 4} color={theme.colors.text} />
+            <Text className="ml-2" style={{ color: theme.colors.text, fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.xl, lineHeight: theme.fontSizes.xl * 1.2 }}>
+              Back
+            </Text>
+          </TouchableOpacity>
+          {(workouts.length > 0 || geoActivities.length > 0) && (
+            <TouchableOpacity
+              onPress={() => router.push(`/screens/programs/program-coach?id=${id}`)}
+              className="flex-row items-center"
+              style={{
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderRadius: 8,
+                backgroundColor: theme.colors.primary,
+              }}
+            >
+              <Ionicons name="play" size={18} color="#FFFFFF" />
+              <Text style={{ color: "#FFFFFF", fontFamily: theme.fonts.heading, marginLeft: 6, fontSize: 14, fontWeight: "600" }}>
+                Start
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
         <Text className="mb-2" style={{ fontFamily: theme.fonts.heading, fontSize: 28, color: theme.colors.primary }}>
           {program.name}
         </Text>
@@ -914,7 +933,7 @@ export default function ProgramInterface() {
       </Modal>
       
       {saving && (
-        <View style={{ position: "absolute", bottom: 20, alignSelf: "center", backgroundColor: theme.colors.surface, padding: 12, borderRadius: 8, flexDirection: "row", alignItems: "center" }}>
+        <View style={{ position: "absolute", top: 80, alignSelf: "center", backgroundColor: theme.colors.surface, padding: 12, borderRadius: 8, flexDirection: "row", alignItems: "center" }}>
           <ActivityIndicator size="small" color={theme.colors.primary} style={{ marginRight: 8 }} />
           <Text style={{ color: theme.colors.text, fontFamily: theme.fonts.body }}>Saving...</Text>
         </View>
