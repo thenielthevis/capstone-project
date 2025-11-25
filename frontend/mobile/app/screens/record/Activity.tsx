@@ -5,13 +5,16 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Animated,
-  Text
+  Text,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import MapLibreGL, {Logger} from "@maplibre/maplibre-react-native";
 import * as Location from "expo-location";
 import Constants from "expo-constants";
 import { Ionicons } from "@expo/vector-icons";
 import ActivityDrawer from "../../components/ActivityDrawer";
+import { useTheme } from "../../context/ThemeContext";
+import { useRouter } from "expo-router";
 
 Logger.setLogCallback(log => {
   const { message } = log;
@@ -27,6 +30,8 @@ const MAPTILER_KEY =
   process.env.EXPO_PUBLIC_MAPTILER_KEY;
 
 export default function TestMap() {
+  const { theme } = useTheme();
+  const router = useRouter();
   const [location, setLocation] = useState<[number, number] | null>(null);
   const [heading, setHeading] = useState<number>(0);
   const [loading, setLoading] = useState(true);
@@ -349,6 +354,23 @@ export default function TestMap() {
   });
 
   return (
+    <SafeAreaView className="flex-1" style={{ backgroundColor: theme.colors.background }}>
+      <View className="px-6 pt-3">
+        <TouchableOpacity onPress={() => router.back()} className="flex-row items-center mb-4">
+          <Ionicons name="chevron-back" size={theme.fontSizes.xl + 4} color={theme.colors.text} />
+          <Text
+            className="ml-2"
+            style={{
+              color: theme.colors.text,
+              fontFamily: theme.fonts.heading,
+              fontSize: theme.fontSizes.xl,
+              lineHeight: theme.fontSizes.xl * 1.2,
+            }}
+          >
+            Back
+          </Text>
+        </TouchableOpacity>
+      </View>
     <View className="flex-1 relative" style={styles.container}>
       <MapLibreGL.MapView
         ref={mapRef}
@@ -410,6 +432,7 @@ export default function TestMap() {
         onRecordingChange={handleRecordingChange}
       />
     </View>
+    </SafeAreaView>
   );
 }
 

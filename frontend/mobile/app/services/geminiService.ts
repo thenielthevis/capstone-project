@@ -294,7 +294,7 @@ export async function analyzeIngredients(
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
     const dishContext = dishName ? `\nDish Name: ${dishName}` : '';
     const allergyContext = allergyInfo.length > 0 ? `\nUser has the following allergies/dietary restrictions: ${allergyInfo.join(', ')}. Check if any ingredients contain these allergens.` : '';
@@ -451,5 +451,190 @@ Calculate the total nutritional values for all listed ingredients combined.
   }
 }
 
+export interface ProgramPreferences {
+  selectedCategories: string[];
+  selectedTypes: string[];
+  selectedEquipment: string[];
+  goals?: string;
+  frequency?: string; // e.g., "3 times per week", "daily"
+  duration?: string; // e.g., "30 minutes", "1 hour"
+  experienceLevel?: string; // e.g., "beginner", "intermediate", "advanced"
+  includeMapBased?: boolean;
+}
+
+export interface GeneratedProgramWorkout {
+  workout_id: string;
+  sets: Array<{
+    reps?: string;
+    time_seconds?: string;
+    weight_kg?: string;
+  }>;
+}
+
+export interface GeneratedProgramGeoActivity {
+  activity_id: string;
+  preferences: {
+    distance_km?: string;
+    avg_pace?: string;
+    countdown_seconds?: string;
+  };
+}
+
+export interface GeneratedProgramResult {
+  name: string;
+  description: string;
+  workouts: GeneratedProgramWorkout[];
+  geo_activities: GeneratedProgramGeoActivity[];
+  confidence: 'high' | 'medium' | 'low';
+  notes?: string;
+}
+
+/**
+ * Generate a workout program using Gemini API based on user preferences
+ */
+export async function generateProgram(
+  preferences: ProgramPreferences,
+  availableWorkouts: Array<{ _id: string; name: string; category: string; type: string; equipment_needed?: string; description?: string }>,
+  availableGeoActivities: Array<{ _id: string; name: string; description?: string; met?: number }> = []
+): Promise<GeneratedProgramResult> {
+  if (!API_KEY) {
+    throw new Error('Gemini API key is not configured. Please add your API key to .env file');
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+
+    const categoriesContext = preferences.selectedCategories.length > 0 
+      ? `Categories: ${preferences.selectedCategories.join(', ')}`
+      : 'Any category';
+    
+    const typesContext = preferences.selectedTypes.length > 0
+      ? `Types: ${preferences.selectedTypes.join(', ')}`
+      : 'Any type';
+    
+    const equipmentContext = preferences.selectedEquipment.length > 0
+      ? `Equipment available: ${preferences.selectedEquipment.join(', ')}`
+      : 'No equipment preference';
+    
+    const goalsContext = preferences.goals ? `Goals: ${preferences.goals}` : '';
+    const frequencyContext = preferences.frequency ? `Frequency: ${preferences.frequency}` : '';
+    const durationContext = preferences.duration ? `Duration per session: ${preferences.duration}` : '';
+    const experienceContext = preferences.experienceLevel ? `Experience level: ${preferences.experienceLevel}` : '';
+    const mapBasedContext = preferences.includeMapBased ? 'Include map-based activities (running, cycling, etc.)' : 'Focus on strength/indoor workouts';
+
+    const availableWorkoutsList = availableWorkouts.map(w => 
+      `- ID: ${w._id}, Name: ${w.name}, Category: ${w.category}, Type: ${w.type}, Equipment: ${w.equipment_needed || 'none'}, Description: ${w.description || 'N/A'}`
+    ).join('\n');
+
+    const availableGeoActivitiesList = availableGeoActivities.length > 0
+      ? availableGeoActivities.map(a => 
+          `- ID: ${a._id}, Name: ${a.name}, Description: ${a.description || 'N/A'}, MET: ${a.met || 'N/A'}`
+        ).join('\n')
+      : 'None available';
+
+    const prompt = `You are a fitness program generator. Create a personalized workout program based on the user's preferences.
+
+USER PREFERENCES:
+${categoriesContext}
+${typesContext}
+${equipmentContext}
+${goalsContext}
+${frequencyContext}
+${durationContext}
+${experienceContext}
+${mapBasedContext}
+
+AVAILABLE WORKOUTS:
+${availableWorkoutsList}
+
+AVAILABLE GEO ACTIVITIES (map-based):
+${availableGeoActivitiesList}
+
+IMPORTANT CONSTRAINTS:
+1. ONLY select workouts and activities from the AVAILABLE lists above - use their exact IDs
+2. Match the user's selected categories, types, and equipment preferences
+3. If categories/types/equipment are specified, prioritize those selections
+4. Create a balanced program that aligns with their goals and frequency
+5. For workouts, provide realistic set configurations (reps, time, or weight) based on experience level
+6. For geo activities, suggest appropriate distance/pace/countdown based on experience level
+7. Program should be progressive and achievable
+
+Return the response in this JSON format:
+{
+  "name": "descriptive program name (max 40 characters)",
+  "description": "brief program description explaining the focus and benefits (max 120 characters)",
+  "workouts": [
+    {
+      "workout_id": "exact workout ID from available workouts",
+      "sets": [
+        {
+          "reps": "number as string (e.g., '12') if applicable, otherwise empty string",
+          "time_seconds": "number as string (e.g., '45') if applicable, otherwise empty string",
+          "weight_kg": "number as string (e.g., '20') if applicable, otherwise empty string"
+        }
+      ]
+    }
+  ],
+  "geo_activities": [
+    {
+      "activity_id": "exact activity ID from available activities (only if includeMapBased is true)",
+      "preferences": {
+        "distance_km": "number as string (e.g., '5') if applicable, otherwise empty string",
+        "avg_pace": "pace as string (e.g., '6:00') if applicable, otherwise empty string",
+        "countdown_seconds": "number as string (e.g., '1800') if applicable, otherwise empty string"
+      }
+    }
+  ],
+  "confidence": "high/medium/low",
+  "notes": "any additional recommendations or notes about the program"
+}
+
+GUIDELINES:
+- Include 3-8 workouts in the program for a balanced routine
+- If map-based activities are requested and available, include 1-3 geo activities
+- Sets: typically 3-5 sets per workout, adjust based on experience level
+- Reps: beginners 8-12, intermediate 10-15, advanced 12-20 or higher
+- Weight: suggest starting weights appropriate to experience level (can leave empty for bodyweight)
+- Time: for time-based exercises, suggest 30-60 seconds per set
+- Distance: for runs, suggest 3-10km based on experience
+- Pace: suggest realistic paces (e.g., 5:00-7:00 min/km for running)
+- Create a cohesive program that makes sense together
+- Set confidence to "high" if you can match most preferences, "medium" if partial match, "low" if limited matches
+
+Return ONLY valid JSON, no additional text or markdown.`;
+
+    const result = await model.generateContent([prompt]);
+    const response = await result.response;
+    const text = response.text();
+
+    try {
+      const cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const parsedResult = JSON.parse(cleanedText);
+      
+      return {
+        name: parsedResult.name || 'Generated Program',
+        description: parsedResult.description || 'A personalized workout program',
+        workouts: parsedResult.workouts || [],
+        geo_activities: parsedResult.geo_activities || [],
+        confidence: parsedResult.confidence || 'medium',
+        notes: parsedResult.notes || '',
+      };
+    } catch (parseError) {
+      console.error('Failed to parse Gemini response:', text);
+      throw new Error('Failed to parse program generation response. Please try again.');
+    }
+  } catch (error: any) {
+    console.error('Error calling Gemini API:', error);
+    
+    if (error.message?.includes('API key')) {
+      throw new Error('Invalid API key. Please check your Gemini API key.');
+    } else if (error.message?.includes('quota')) {
+      throw new Error('API quota exceeded. Please try again later.');
+    } else {
+      throw new Error(error.message || 'Failed to generate program. Please try again.');
+    }
+  }
+}
+
 // Dummy default export to satisfy Expo Router (this is a service file, not a route)
-export default { analyzeFood, analyzeIngredients };
+export default { analyzeFood, analyzeIngredients, generateProgram };

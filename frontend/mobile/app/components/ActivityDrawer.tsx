@@ -122,7 +122,7 @@ export default function ActivityDrawer({
                 />
                 <Text
                   style={{
-                    fontFamily: theme.fonts.subheading,
+                    fontFamily: theme.fonts.heading,
                     color: theme.colors.primary,
                     marginLeft: 6,
                   }}
@@ -133,7 +133,7 @@ export default function ActivityDrawer({
               <Text
                 style={{
                   fontSize: 20,
-                  marginTop: 20,
+                  marginTop: 30,
                   color: theme.colors.primary,
                   fontFamily: theme.fonts.heading,
                 }}
@@ -177,7 +177,7 @@ export default function ActivityDrawer({
                 />
                 <Text
                   style={{
-                    fontFamily: theme.fonts.subheading,
+                    fontFamily: theme.fonts.heading,
                     color: recording
                       ? theme.colors.background
                       : theme.colors.primary,
@@ -190,7 +190,7 @@ export default function ActivityDrawer({
               <Text
                 style={{
                   fontSize: 20,
-                  marginTop: 20,
+                  marginTop: 30,
                   color: theme.colors.primary,
                   fontFamily: theme.fonts.heading,
                 }}
@@ -230,7 +230,7 @@ export default function ActivityDrawer({
                 />
                 <Text
                   style={{
-                    fontFamily: theme.fonts.subheading,
+                    fontFamily: theme.fonts.heading,
                     color: theme.colors.primary,
                     marginLeft: 6,
                   }}
@@ -241,7 +241,7 @@ export default function ActivityDrawer({
               <Text
                 style={{
                   fontSize: 20,
-                  marginTop: 20,
+                  marginTop: 30,
                   color: theme.colors.primary,
                   fontFamily: theme.fonts.heading,
                 }}

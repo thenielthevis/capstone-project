@@ -13,7 +13,7 @@ const LOCAL_IP = process.env.EXPO_LOCAL_IP || '192.168.1.101';
 const ENV_API = process.env.EXPO_PUBLIC_API_URL;
 const API_URL = ENV_API
   ? ENV_API
-  : (Platform.OS === 'android' ? `http://10.0.2.2:5000/api` : `http://${LOCAL_IP}:5000/api`);
+  : (Platform.OS === 'android' ? `http://192.168.100.38:5000/api` : `http://${LOCAL_IP}:5000/api`);
 
 interface Prediction {
   disease: string[];
