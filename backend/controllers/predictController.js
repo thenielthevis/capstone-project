@@ -184,11 +184,29 @@ exports.predictUser = async (req, res) => {
 
     // Check if user already has a lastPrediction and force=true is not requested
     // If so, skip generating a new prediction and just return the cached one
+    // BUT: Only return cached prediction if it's from TODAY (not from previous days)
     const forceRegenerate = (req.query && String(req.query.force) === 'true') || (req.body && req.body.force === true);
     const hasExistingPrediction = user.lastPrediction && Array.isArray(user.lastPrediction.predictions) && user.lastPrediction.predictions.length > 0;
     
-    if (hasExistingPrediction && !forceRegenerate) {
-      console.log('[predictUser] user already has lastPrediction, returning cached result (no new prediction generated). Use ?force=true to regenerate.');
+    // Check if the existing prediction is from TODAY
+    const isPredictionFromToday = () => {
+      if (!user.lastPrediction?.predictedAt) return false;
+      const predDate = new Date(user.lastPrediction.predictedAt);
+      const today = new Date();
+      // Compare year, month, and day only (ignore time)
+      return predDate.getFullYear() === today.getFullYear() &&
+             predDate.getMonth() === today.getMonth() &&
+             predDate.getDate() === today.getDate();
+    };
+    
+    const predictionIsFromToday = isPredictionFromToday();
+    
+    console.log('[predictUser] forceRegenerate=', forceRegenerate, 'hasExistingPrediction=', hasExistingPrediction, 'predictionIsFromToday=', predictionIsFromToday);
+    console.log('[predictUser] req.body=', req.body);
+    console.log('[predictUser] req.query=', req.query);
+    
+    if (hasExistingPrediction && !forceRegenerate && predictionIsFromToday) {
+      console.log('[predictUser] user already has prediction from TODAY, returning cached result (no new prediction generated). Use force=true to regenerate.');
       // Build profile object to return so frontend can render user info from DB (use schema field names)
       const profile = {
         age: (user && user.age) ? user.age : null,
@@ -221,7 +239,8 @@ exports.predictUser = async (req, res) => {
     }
 
     // If no existing prediction or force=true, generate a new prediction
-    console.log('[predictUser] generating new prediction for user (no existing cached prediction or force=true)');
+    // OR if the existing prediction is from a previous day (not from TODAY)
+    console.log('[predictUser] generating new prediction for user (no cache from TODAY, or force=true)');
 
     // Prepare comprehensive health data for ML model prediction with full feature extraction
     // This data will be passed to run_batch_predictions.py which handles feature engineering
@@ -322,19 +341,22 @@ exports.predictUser = async (req, res) => {
 
   let sortedDiseases;
     if (Array.isArray(predictions)) {
-      // Map array indices to labels. Do NOT hard-code labels here.
-      // If a config file exists at backend/config/diseases.js it will be used.
-      let labels = null;
-      try {
-        labels = require('../config/diseases');
-      } catch (e) {
-        labels = null;
-      }
+      // Python script returns array of objects with: {name, probability, source, percentage, factors}
+      // Use the name from the object itself, don't try to map to config labels
       const pairs = predictions.map((p, i) => {
-        // support either numeric arrays or already {probability} objects
-        const probability = (p && typeof p === 'object' && p.probability !== undefined) ? Number(p.probability) : Number(p);
-        const name = (Array.isArray(labels) && labels[i]) ? labels[i] : `Class ${i}`;
-        return { name, probability };
+        // Python returns full objects with name, probability, source, etc.
+        if (p && typeof p === 'object' && p.name !== undefined && p.probability !== undefined) {
+          return {
+            name: p.name,
+            probability: Number(p.probability),
+            percentage: p.percentage || (Number(p.probability) * 100),
+            source: p.source || 'model',
+            factors: p.factors || []
+          };
+        }
+        // Fallback for simple numeric arrays
+        const probability = Number(p);
+        return { name: `Disease ${i}`, probability };
       });
       pairs.sort((a, b) => b.probability - a.probability);
       sortedDiseases = pairs;
@@ -345,10 +367,20 @@ exports.predictUser = async (req, res) => {
     }
 
     // Filter out predictions that would display as 0% to users.
-    // That means any probability where Math.round(probability * 100) === 0 will be removed.
+    // BUT: Keep all custom diseases, user-reported conditions, and rule-based predictions
+    // ONLY filter low-probability ML predictions to reduce noise
     try {
       const filteredByDisplay = (Array.isArray(sortedDiseases) ? sortedDiseases : []).filter(d => {
         const p = Number(d.probability) || 0;
+        const source = d.source || '';
+        
+        // Always keep: custom predictions, user-reported, existing conditions, rule-based
+        const shouldKeepAll = ['custom_prediction', 'user_reported', 'existing_condition', 'rule_based'].includes(source);
+        if (shouldKeepAll) {
+          return true;
+        }
+        
+        // For ML predictions only: filter out if rounds to 0%
         return Math.round(p * 100) > 0;
       });
       if (filteredByDisplay && filteredByDisplay.length > 0) {
@@ -372,7 +404,7 @@ exports.predictUser = async (req, res) => {
         if (validAuth) {
         lastPredictionAuth = {
           // `predictions` is extra metadata (not in schema) but useful to return; schema will store defined fields
-          predictions: sortedDiseases.map(d => ({ name: d.name, probability: Number(d.probability) })),
+          predictions: sortedDiseases.map(d => ({ name: d.name, probability: Number(d.probability), source: d.source || 'model', percentage: d.percentage || Number(d.probability) * 100 })),
           disease: sortedDiseases.map(d => d.name),
           probability: Number(sortedDiseases[0].probability) || 0,
           predictedAt: new Date(),

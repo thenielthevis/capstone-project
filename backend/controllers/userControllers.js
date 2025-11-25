@@ -320,7 +320,9 @@ exports.submitHealthAssessment = async (req, res) => {
                 dietaryProfile,
                 healthProfile,
                 environmentalFactors,
-                riskFactors
+                riskFactors,
+                // IMPORTANT: Clear lastPrediction so next /predict/me call regenerates with new data
+                lastPrediction: null
             },
             { new: true, runValidators: true }
         );
