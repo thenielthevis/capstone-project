@@ -3,8 +3,8 @@ import StepAddictions from './StepAddictions';
 import StepEnvironment from './StepEnvironment';
 import StepBasicInfo from './StepBasicInfo';
 import StepHealthProfile from './StepHealthProfile';
-import { useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import { useState, useEffect } from "react";
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Platform } from "react-native";
 import { Button, ProgressBar } from "react-native-paper";
 import { useTheme } from "../../context/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
@@ -18,10 +18,29 @@ import MedicationInfoModal from "@/app/components/Modals/MedicationsInfoModal";
 import { submitHealthAssessment } from "../../api/userApi";
 import { tokenStorage } from "@/utils/tokenStorage";
 
+// Global flag to indicate prediction was updated
+let predictionWasUpdated = false;
+
+export function getPredictionUpdateFlag() {
+  return predictionWasUpdated;
+}
+
+export function setPredictionUpdateFlag(value: boolean) {
+  predictionWasUpdated = value;
+}
+
+const LOCAL_IP = process.env.EXPO_LOCAL_IP || '192.168.1.101';
+const ENV_API = process.env.EXPO_PUBLIC_API_URL;
+const API_URL = ENV_API
+  ? ENV_API
+  : (Platform.OS === 'android' ? `http://10.0.2.2:5000/api` : `http://${LOCAL_IP}:5000/api`);
+
 export default function PredictionInputScreen() {
   const { theme } = useTheme();
   const [currentStep, setCurrentStep] = useState(0);
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [loadingError, setLoadingError] = useState<string | null>(null);
   const [showGeneticalModal, setShowGeneticalModal] = useState(false);
   const [showActivityModal, setShowActivityModal] = useState(false);
   const [showDietaryModal, setShowDietaryModal] = useState(false);
@@ -57,6 +76,79 @@ export default function PredictionInputScreen() {
     stressLevel: "",
     addictions: [] as { substance: string; severity: string; duration: string }[],
   });
+
+  // Fetch existing user data from MongoDB and pre-populate form
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        setLoading(true);
+        const token = await tokenStorage.getToken();
+        if (!token) {
+          setLoadingError('No authentication token found');
+          setLoading(false);
+          return;
+        }
+
+        const response = await fetch(`${API_URL}/predict/me`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) {
+          console.log('Could not fetch user data - will use empty form');
+          setLoading(false);
+          return;
+        }
+
+        const data = await response.json();
+        if (data.profile) {
+          const profile = data.profile;
+          
+          // Pre-populate form with existing data
+          setFormData(prev => ({
+            ...prev,
+            age: profile.age ? String(profile.age) : "",
+            sex: profile.gender || "",
+            height: profile.physicalMetrics?.height?.value ? String(profile.physicalMetrics.height.value) : "",
+            weight: profile.physicalMetrics?.weight?.value ? String(profile.physicalMetrics.weight.value) : "",
+            waistCircumference: profile.physicalMetrics?.waistCircumference ? String(profile.physicalMetrics.waistCircumference) : "",
+            activityLevel: profile.lifestyle?.activityLevel || "",
+            sleepHours: profile.lifestyle?.sleepHours ? String(profile.lifestyle.sleepHours) : "",
+            dietaryPreferences: profile.dietaryProfile?.preferences || [],
+            allergies: profile.dietaryProfile?.allergies || [],
+            dailyWaterIntake: profile.dietaryProfile?.dailyWaterIntake ? String(profile.dietaryProfile.dailyWaterIntake) : "",
+            mealFrequency: profile.dietaryProfile?.mealFrequency ? String(profile.dietaryProfile.mealFrequency) : "",
+            currentConditions: profile.healthProfile?.currentConditions || [],
+            geneticalConditions: profile.healthProfile?.familyHistory || [],
+            medications: profile.healthProfile?.medications || [],
+            bloodType: profile.healthProfile?.bloodType || "",
+            pollutionExposure: profile.environmentalFactors?.pollutionExposure || "",
+            occupationType: profile.environmentalFactors?.occupationType || "",
+            stressLevel: profile.riskFactors?.stressLevel || "",
+            addictions: profile.riskFactors?.addictions?.map((a: any) => ({
+              substance: a.substance || "",
+              severity: a.severity || "",
+              duration: a.duration ? String(a.duration) : ""
+            })) || [],
+          }));
+
+          // Pre-populate currentConditionsInput if there are conditions
+          if (profile.healthProfile?.currentConditions?.length > 0) {
+            setCurrentConditionsInput(profile.healthProfile.currentConditions.join(", "));
+          }
+        }
+        setLoading(false);
+      } catch (error) {
+        console.error('Error loading user data:', error);
+        setLoading(false);
+      }
+    };
+
+    loadUserData();
+  }, []);
 
   // Add new step for Addictions
   const steps = [ "Basic Information", "Health Profile", "Lifestyle", "Addictions", "Environment", ];
@@ -198,18 +290,66 @@ export default function PredictionInputScreen() {
 
   const handleSubmit = async () => {
   try {
+    setLoading(true);
     const token = await tokenStorage.getToken();
+    if (!token) {
+      alert('No authentication token found');
+      setLoading(false);
+      return;
+    }
+
     const mappedData = mapFormDataToBackend(formData);
-    const response = await submitHealthAssessment(mappedData, token || "");
+    
+    // Step 1: Update user health assessment in database
+    console.log("Submitting health assessment with data:", mappedData);
+    const response = await submitHealthAssessment(mappedData, token);
     console.log("Health assessment submitted:", response.data);
-    console.log("Token used:", token);
+    
+    // Step 2: Trigger prediction update by calling /predict/me with force=true
+    console.log("Triggering prediction update with force regeneration...");
+    const predictResponse = await fetch(`${API_URL}/predict/me`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ force: true })
+    });
+
+    if (!predictResponse.ok) {
+      console.error('Prediction update failed');
+      alert('Health data saved, but prediction update failed');
+      setLoading(false);
+      router.back();
+      return;
+    }
+
+    const predictData = await predictResponse.json();
+    console.log("New predictions generated:", predictData);
+    
+    alert('✅ Health data updated and new predictions generated!');
+    setLoading(false);
+    // Set flag to show notification in Analysis screen
+    setPredictionUpdateFlag(true);
+    router.back();
+    
   } catch (error) {
     console.error("Error submitting health assessment:", error);
+    alert('Error: ' + (error instanceof Error ? error.message : String(error)));
+    setLoading(false);
   }
 };
 
   return (
     <View className="relative h-full">
+      {loading ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.background }}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={{ marginTop: 12, color: theme.colors.text, fontFamily: theme.fonts.body }}>
+            Loading your health data...
+          </Text>
+        </View>
+      ) : (
       <ScrollView 
         className="flex-1 px-4 py-6" 
         style={{ backgroundColor: theme.colors.background }}
@@ -265,6 +405,7 @@ export default function PredictionInputScreen() {
           </Button>
         </View>
       </ScrollView>
+      )}
 
       {/* Place your modal here, outside the ScrollView */}
       <GeneticalConditionsInfoModal visible={showGeneticalModal} onClose={() => setShowGeneticalModal(false)} conditions={geneticalConditionsList}/>

@@ -49,6 +49,11 @@ class RuleBasedEngine:
             score += 0.40
             factors.append(('family_history', 0.40))
         
+        # Current neurological conditions
+        if self._has_current_condition(data, ['neurological', 'epilepsy', 'parkinson']):
+            score += 0.15
+            factors.append(('neurological_condition', 0.15))
+        
         # Age: typically manifests 30-50
         age = float(data.get('age', 0))
         if 30 <= age <= 60:
@@ -82,6 +87,11 @@ class RuleBasedEngine:
         if self._has_family_history(data, 'heart_disease'):
             score += 0.25
             factors.append(('family_history', 0.25))
+        
+        # Current conditions: if already has hypertension or diabetes, higher risk
+        if self._has_current_condition(data, ['hypertension', 'high blood pressure', 'diabetes']):
+            score += 0.20
+            factors.append(('existing_condition', 0.20))
         
         # BMI: critical factor
         bmi = float(data.get('bmi', 22))
@@ -128,6 +138,11 @@ class RuleBasedEngine:
         """Lung cancer risk scoring"""
         score = 0.0
         factors = []
+        
+        # Current respiratory conditions
+        if self._has_current_condition(data, ['copd', 'asthma', 'respiratory', 'tuberculosis', 'tb']):
+            score += 0.25
+            factors.append(('respiratory_condition', 0.25))
         
         # Smoking is primary risk
         if self._has_addiction(data, ['smoking', 'cigarettes']):
@@ -186,6 +201,11 @@ class RuleBasedEngine:
             score += 0.30
             factors.append(('family_history', 0.30))
         
+        # Current neurological conditions
+        if self._has_current_condition(data, ['neurological', 'tremor', 'epilepsy']):
+            score += 0.15
+            factors.append(('neurological_condition', 0.15))
+        
         # Pesticide exposure (occupational)
         occupation = data.get('occupationType', '').lower()
         if any(x in occupation for x in ['farming', 'agricultural', 'pesticide']):
@@ -228,6 +248,11 @@ class RuleBasedEngine:
         if self._has_family_history(data, ['dementia', 'alzheimers', 'memory']):
             score += 0.25
             factors.append(('family_history', 0.25))
+        
+        # Current conditions: if already has diabetes, high BP, stroke, higher risk
+        if self._has_current_condition(data, ['diabetes', 'stroke', 'hypertension', 'high blood pressure']):
+            score += 0.15
+            factors.append(('existing_condition', 0.15))
         
         # Low physical activity
         activity = data.get('activityLevel', 'moderate').lower()
@@ -272,6 +297,11 @@ class RuleBasedEngine:
         if data.get('gender') == 'female':
             score += 0.15
             factors.append(('female_gender', 0.15))
+        
+        # Current bone/joint conditions
+        if self._has_current_condition(data, ['arthritis', 'osteoarthritis', 'fracture', 'rheumatoid']):
+            score += 0.15
+            factors.append(('bone_condition', 0.15))
         
         # Low physical activity
         activity = data.get('activityLevel', 'moderate').lower()
@@ -318,7 +348,7 @@ class RuleBasedEngine:
                 return True
         return False
     
-    def _has_addiction(self, data, substances):
+    def _has_addon(self, data, substances):
         """Check if user has addiction to substance(s)"""
         addiction = data.get('addiction', '')
         if isinstance(addiction, str):
@@ -333,6 +363,25 @@ class RuleBasedEngine:
             if substance.lower() in addiction:
                 return True
         return False
+    
+    def _has_current_condition(self, data, conditions):
+        """Check if user has any of the current health conditions"""
+        current_conditions = data.get('currentConditions', [])
+        if isinstance(current_conditions, str):
+            current_conditions = [current_conditions]
+        
+        if isinstance(conditions, str):
+            conditions = [conditions]
+        
+        current_conditions_str = ' '.join(str(c) for c in current_conditions).lower()
+        for condition in conditions:
+            if condition.lower() in current_conditions_str:
+                return True
+        return False
+    
+    def _has_addiction(self, data, substances):
+        """Check if user has addiction to substance(s)"""
+        return self._has_addon(data, substances)
     
     def predict_disease(self, disease_name, data):
         """Predict risk for a specific disease"""
@@ -353,6 +402,61 @@ class RuleBasedEngine:
                 'source': 'rule_based'
             }
         return results
+    
+    def score_custom_disease(self, disease_name, data):
+        """
+        Score a custom/user-entered disease based on generic risk factors.
+        Even though we don't have specific rules for this disease, we can estimate
+        risk based on family history, lifestyle, and general health factors.
+        """
+        score = 0.0
+        factors = []
+        
+        # Primary factor: Family history of this disease
+        if self._has_family_history(data, disease_name):
+            score += 0.50  # Strong indicator
+            factors.append(('family_history', 0.50))
+        
+        # Age factor: Some genetic diseases manifest at certain ages
+        age = float(data.get('age', 0))
+        if age > 50:
+            score += 0.10
+            factors.append(('age_above_50', 0.10))
+        
+        # Lifestyle factors that increase generic disease risk
+        activity = data.get('activityLevel', 'moderate').lower()
+        if 'sedentary' in activity:
+            score += 0.08
+            factors.append(('sedentary_lifestyle', 0.08))
+        
+        sleep = float(data.get('sleepHours', 7))
+        if sleep < 6:
+            score += 0.07
+            factors.append(('poor_sleep', 0.07))
+        
+        # Stress and general health
+        if data.get('stressLevel') in ['high', 'extreme']:
+            score += 0.08
+            factors.append(('high_stress', 0.08))
+        
+        # General addictions increase disease risk
+        if self._has_addiction(data, ['smoking', 'alcohol']):
+            score += 0.10
+            factors.append(('substance_abuse', 0.10))
+        
+        # BMI extremes indicate general health issues
+        bmi = float(data.get('bmi', 22))
+        if bmi < 18.5 or bmi > 35:
+            score += 0.08
+            factors.append(('extreme_bmi', 0.08))
+        
+        # If no risk factors found (score still 0), give minimum baseline
+        # This ensures custom diseases are always shown with at least some risk
+        if score == 0.0:
+            score = 0.05  # 5% baseline for any custom disease user entered
+            factors.append(('baseline_risk', 0.05))
+        
+        return min(score, 0.95), factors  # Cap at 95% for custom diseases
 
 
 # ============================================================================
@@ -427,7 +531,62 @@ def hybrid_predict(user_data):
         _debug_print(f"✓ {disease_name}: {prediction['probability']:.4f}")
     
     # ────────────────────────────────────────────────────────────────────
-    # PART 3: COMBINE & RANK
+    # PART 3: PREDICT CUSTOM/USER-ENTERED DISEASES
+    # ────────────────────────────────────────────────────────────────────
+    _debug_print("=== HYBRID PREDICTION: Scoring custom diseases ===")
+    
+    current_conditions = user_data.get('currentConditions', [])
+    if isinstance(current_conditions, str):
+        current_conditions = [current_conditions]
+    
+    engine = RuleBasedEngine()
+    
+    # For each user-entered condition, try to predict its risk
+    # (custom diseases not in the predefined list get generic scoring)
+    predefined_diseases = [
+        'diabetes', 'hypertension', 'ischemic heart disease', 'stroke',
+        'chronic kidney disease', 'lung cancer', 'asthma', 'arthritis',
+        'copd', 'anemia', 'huntingtons', 'heart disease', 'parkinsons',
+        'dementia', 'osteoporosis'
+    ]
+    
+    for condition in current_conditions:
+        if isinstance(condition, str) and condition.strip():
+            condition_name = condition.strip()
+            condition_lower = condition_name.lower()
+            
+            # Check if this is a custom (non-predefined) disease
+            is_custom = not any(pred in condition_lower for pred in predefined_diseases)
+            
+            if is_custom:
+                # Score custom disease using generic risk factors
+                score, factors = engine.score_custom_disease(condition_name, user_data)
+                if score > 0:
+                    all_predictions[condition_name] = {
+                        'probability': score,
+                        'factors': factors,
+                        'source': 'custom_prediction'
+                    }
+                    _debug_print(f"✓ Custom disease scored: {condition_name} ({score:.2%})")
+                else:
+                    # No risk factors found, mark as having it (100%)
+                    all_predictions[condition_name] = {
+                        'probability': 1.0,
+                        'factors': [('user_reported', 1.0)],
+                        'source': 'user_reported'
+                    }
+                    _debug_print(f"✓ User-reported condition: {condition_name} (100%)")
+            elif condition_name not in all_predictions:
+                # This is a predefined disease the user reported having
+                all_predictions[condition_name] = {
+                    'probability': 1.0,
+                    'factors': [('existing_condition', 1.0)],
+                    'source': 'existing_condition'
+                }
+                _debug_print(f"✓ Added current condition: {condition_name} (100%)")
+    
+    # ────────────────────────────────────────────────────────────────────
+    # PART 4: COMBINE & RANK
     # ────────────────────────────────────────────────────────────────────
     _debug_print("=== HYBRID PREDICTION: Combining results ===")
     
@@ -441,8 +600,19 @@ def hybrid_predict(user_data):
     # Format output
     result = []
     for disease_name, prediction in sorted_predictions:
-        # Only include predictions > 1% to reduce noise
-        if prediction['probability'] * 100 >= 1:
+        # Include:
+        # 1. Existing conditions (100% - user already has them)
+        # 2. Rule-based predictions (ALL - part of hybrid system, show even if low probability)
+        # 3. Custom predictions (scored based on family history & risk factors)
+        # 4. User-reported conditions (custom diseases user entered with no scoring)
+        # 5. ML predictions > 1% (to reduce noise from model)
+        is_existing = prediction['source'] == 'existing_condition'
+        is_rule_based = prediction['source'] == 'rule_based'
+        is_custom_prediction = prediction['source'] == 'custom_prediction'
+        is_user_reported = prediction['source'] == 'user_reported'
+        is_ml_above_threshold = prediction['source'] == 'ml_model' and (prediction['probability'] * 100 >= 1)
+        
+        if is_existing or is_rule_based or is_custom_prediction or is_user_reported or is_ml_above_threshold:
             result.append({
                 'name': disease_name,
                 'probability': prediction['probability'],
@@ -451,7 +621,7 @@ def hybrid_predict(user_data):
                 'factors': prediction.get('factors', [])
             })
     
-    _debug_print(f"✓ Final predictions: {len(result)} diseases")
+    _debug_print(f"✓ Final predictions: {len(result)} diseases (including {len([p for p in result if p['source'] == 'existing_condition'])} current conditions)")
     
     return result
 

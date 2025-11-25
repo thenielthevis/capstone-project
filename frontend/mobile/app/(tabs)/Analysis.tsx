@@ -1,12 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { View, Text, Button, ActivityIndicator, Platform, ScrollView, TouchableOpacity } from "react-native";
 import { useTheme } from "../context/ThemeContext";
 import { useUser } from "../context/UserContext";
+import { useFocusEffect } from "expo-router";
+import Toast from "react-native-toast-message";
+import { getPredictionUpdateFlag, setPredictionUpdateFlag } from "../screens/analysis_input/prediction_input";
 
 // API URL: prefer environment variable EXPO_PUBLIC_API_URL, fall back to emulator/local defaults
 // Use 10.0.2.2 for Android emulator (maps to host localhost), use local LAN IP for physical device
 // If you're running on a physical Android device, set LOCAL_IP in your environment or .env file
-const LOCAL_IP = process.env.EXPO_LOCAL_IP || '192.168.1.102';
+const LOCAL_IP = process.env.EXPO_LOCAL_IP || '192.168.1.101';
 const ENV_API = process.env.EXPO_PUBLIC_API_URL;
 const API_URL = ENV_API
   ? ENV_API
@@ -97,7 +100,24 @@ export default function Analysis() {
     loadUsers();
   }, [user]);
 
-  const loadUsers = async () => {
+  // Show notification when screen regains focus (user returns from prediction_input after update)
+  useFocusEffect(
+    useCallback(() => {
+      if (getPredictionUpdateFlag()) {
+        Toast.show({
+          type: 'success',
+          position: 'top',
+          text1: '✅ Predictions Updated',
+          text2: 'Your health data and predictions have been updated successfully',
+        });
+        setPredictionUpdateFlag(false);
+        // Refresh data with force=true to regenerate predictions with latest data
+        loadUsers(true);
+      }
+    }, [])
+  );
+
+  const loadUsers = async (forceRegenerate: boolean = false) => {
     setLoading(true);
     setError(null);
     try {
@@ -139,11 +159,15 @@ export default function Analysis() {
       // Only call /predict/me if the user doesn't already have a lastPrediction
       const primary = `${API_URL}/predict/me`;
       const fallback = API_URL.includes('10.0.2.2') ? `http://${LOCAL_IP}:5000/api/predict/me` : null;
-      console.log('[Analysis] POST', primary, ' fallback=', fallback, ' (will only predict if user has no lastPrediction)');
+      const debugMsg = forceRegenerate 
+        ? '(forcing prediction regeneration with latest health data)'
+        : '(will only predict if user has no lastPrediction)';
+      console.log('[Analysis] POST', primary, ' fallback=', fallback, debugMsg);
       
       const response = await tryFetchWithFallback(primary, fallback, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: forceRegenerate ? JSON.stringify({ force: true }) : undefined
       });
 
       // If token was invalid (401), clear stored token and prompt user to re-login
@@ -188,7 +212,13 @@ export default function Analysis() {
           probability: preds[0]?.probability || 0,
           predictedAt: data.lastPrediction?.predictedAt || new Date().toISOString(),
           source: 'model',
-          predictions: preds.map((p: any) => ({ name: p.name, probability: Number(p.probability) }))
+          predictions: preds.map((p: any) => ({ 
+            name: p.name, 
+            probability: Number(p.probability),
+            source: p.source || 'model',
+            percentage: p.percentage || (Number(p.probability) * 100),
+            factors: p.factors || []
+          }))
         },
         profile: data.profile || undefined
       };
@@ -211,10 +241,82 @@ export default function Analysis() {
     }
   };
 
+  const handleRegeneratePredictions = async () => {
+    try {
+      setLoading(true);
+      const token = await (async () => {
+        try {
+          const mod = await import('../../utils/tokenStorage');
+          const t = await mod.tokenStorage.getToken();
+          return t;
+        } catch (e) { return null; }
+      })();
+
+      if (!token) {
+        alert('Authentication token not found');
+        setLoading(false);
+        return;
+      }
+
+      // Call /api/predict/me with force=true to regenerate predictions
+      const primary = `${API_URL}/predict/me`;
+      const fallback = API_URL.includes('10.0.2.2') ? `http://${LOCAL_IP}:5000/api/predict/me` : null;
+      
+      console.log('[Analysis] Regenerating predictions with force=true...');
+      
+      let response;
+      try {
+        response = await fetch(primary, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ force: true })
+        });
+      } catch (err) {
+        if (fallback) {
+          response = await fetch(fallback, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ force: true })
+          });
+        } else {
+          throw err;
+        }
+      }
+
+      if (!response.ok) {
+        alert('Failed to regenerate predictions');
+        setLoading(false);
+        return;
+      }
+
+      const data = await response.json();
+      console.log('[Analysis] Predictions regenerated:', data);
+
+      // Show success message
+      Toast.show({
+        type: 'success',
+        position: 'top',
+        text1: '✅ Predictions Regenerated',
+        text2: 'Disease predictions updated with current data',
+      });
+
+      // Refresh the display
+      await loadUsers();
+    } catch (error: any) {
+      console.error('Error regenerating predictions:', error);
+      alert('Error: ' + (error instanceof Error ? error.message : String(error)));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const renderPredictions = (predictions: Prediction) => {
     if (!predictions?.disease || !Array.isArray(predictions.disease)) {
       return null;
     }
+
+    console.log('[Analysis] renderPredictions: disease array =', predictions.disease);
+    console.log('[Analysis] renderPredictions: predictions array =', predictions.predictions);
 
     // Calculate individual probabilities based on the base probability
     const baseProbability = predictions.probability || 0;
@@ -459,8 +561,9 @@ export default function Analysis() {
   };
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <View style={{ padding: 16 }}>
+    <View style={{ flex: 1 }}>
+      <ScrollView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+        <View style={{ padding: 16 }}>
         <Text style={{ 
           color: theme.colors.text, 
           fontSize: theme.fontSizes.xl,
@@ -478,10 +581,20 @@ export default function Analysis() {
           </Text>
         </TouchableOpacity>
 
-        <Button
-          title="Refresh Data"
-          onPress={loadUsers}
-        />
+        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+          <View style={{ flex: 1 }}>
+            <Button
+              title="Refresh Data"
+              onPress={() => loadUsers()}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Button
+              title="Regenerate"
+              onPress={() => handleRegeneratePredictions()}
+            />
+          </View>
+        </View>
 
         {loading && (
           <View style={{ padding: 20 }}>
@@ -1275,6 +1388,8 @@ export default function Analysis() {
         );
         })}
       </View>
-    </ScrollView>
+      </ScrollView>
+      <Toast />
+    </View>
   );
 }
