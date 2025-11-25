@@ -393,11 +393,9 @@ export default function ProgramCoach() {
       setCurrentSet(0);
       setCurrentRep(0);
       setIsRepExercise(false);
-      speak("All sets complete. Rest for 30 seconds before next exercise.");
-      startRest(30, () => {
-        announcementKeyRef.current = null;
-        nextExercise();
-      });
+      playBell();
+      speak("Next exercise.");
+      nextExercise();
       return;
     }
 
