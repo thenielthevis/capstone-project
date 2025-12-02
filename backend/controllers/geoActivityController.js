@@ -39,7 +39,7 @@ exports.createGeoActivity = async (req, res) => {
 };
 
 // Get all geo activities
-export const getAllGeoActivities = async (req, res) => {
+exports.getAllGeoActivities = async (req, res) => {
   try {
     const geoActivities = await GeoActivity.find();
     res.status(200).json(geoActivities);
@@ -49,7 +49,7 @@ export const getAllGeoActivities = async (req, res) => {
 };
 
 // Get a geo activity by ID
-export const getGeoActivityById = async (req, res) => {
+exports.getGeoActivityById = async (req, res) => {
   try {
     const geoActivity = await GeoActivity.findById(req.params.id);
     if (!geoActivity) {

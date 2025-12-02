@@ -8,6 +8,7 @@ import { UserProvider } from './context/UserContext';
 import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
+import { ToastProvider } from './components/Toast/Toast';
 import './globals.css';
 
 // Keep the splash screen visible while fonts and app initialize
@@ -44,6 +45,7 @@ export default function App() {
                   headerShown: false,
                 }}
               />
+              <ToastProvider />
             </UserProvider>
           </ThemeProvider>
         </PaperProvider>

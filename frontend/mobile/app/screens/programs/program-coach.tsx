@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator, Image, Animated } from "react-native";
+import { View, Text, TouchableOpacity, ActivityIndicator, Image, Animated, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -8,6 +8,7 @@ import LottieView from "lottie-react-native";
 import * as Speech from "expo-speech";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import axiosInstance from "../../api/axiosInstance";
+import { createProgramSession, ProgramSessionPayload } from "../../api/programSesssionApi";
 import { Audio } from "expo-av";
 
 type ExerciseItem = {
@@ -34,6 +35,8 @@ export default function ProgramCoach() {
   const [currentRep, setCurrentRep] = useState(0);
   const [exerciseTime, setExerciseTime] = useState(0);
   const [isRepExercise, setIsRepExercise] = useState(false);
+  const [isRecordingSession, setIsRecordingSession] = useState(false);
+  const [isLastExerciseDone, setIsLastExerciseDone] = useState(false);
   const countdownInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const exerciseTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const restTimer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -100,6 +103,13 @@ export default function ProgramCoach() {
       whistleSound.current?.unloadAsync();
     };
   }, []);
+
+  // Reset last exercise done flag when not on the last exercise
+  useEffect(() => {
+    if (currentIndex !== exercises.length - 1 && isLastExerciseDone) {
+      setIsLastExerciseDone(false);
+    }
+  }, [currentIndex, exercises.length, isLastExerciseDone]);
 
   const playBell = async () => {
     try {
@@ -229,6 +239,77 @@ export default function ProgramCoach() {
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
     return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+  };
+
+  const toNumber = (value: any, fallback = 0) => {
+    if (value === null || value === undefined || value === "") return fallback;
+    const numeric = Number(value);
+    return Number.isNaN(numeric) ? fallback : numeric;
+  };
+
+  const toOptionalNumber = (value: any) => {
+    const numeric = toNumber(value, NaN);
+    return Number.isNaN(numeric) ? undefined : numeric;
+  };
+
+  const getEntityId = (entity: any): string | null => {
+    if (!entity) return null;
+    if (typeof entity === "string") return entity;
+    if (typeof entity === "object") {
+      if (entity._id) return entity._id;
+      if (entity.id) return entity.id;
+    }
+    return null;
+  };
+
+  const buildProgramSessionPayload = (): ProgramSessionPayload => {
+    const workoutSessions: ProgramSessionPayload["workouts"] = [];
+    const geoSessions: ProgramSessionPayload["geo_activities"] = [];
+
+    exercises.forEach((exercise) => {
+      if (exercise.type === "workout") {
+        const workoutId = getEntityId(exercise.workout_id);
+        if (!workoutId) return;
+        workoutSessions.push({
+          workout_id: workoutId,
+          sets: (exercise.sets || []).map((set: any) => ({
+            reps: toNumber(set?.reps),
+            time_seconds: toNumber(set?.time_seconds),
+            weight_kg: toNumber(set?.weight_kg),
+          })),
+        });
+        return;
+      }
+
+      if (exercise.type === "geo") {
+        const activityId = getEntityId(exercise.activity_id);
+        if (!activityId) return;
+        const preferences = exercise.preferences || {};
+        const distance = toNumber(preferences.distance_km);
+        const avgPace = toOptionalNumber(preferences.avg_pace);
+        const movingTime = toNumber(preferences.countdown_seconds);
+
+        geoSessions.push({
+          activity_id: activityId,
+          distance_km: distance,
+          avg_pace: avgPace,
+          moving_time_sec: movingTime,
+          route_coordinates: [],
+          calories_burned: 0,
+          started_at: null,
+          ended_at: null,
+        });
+      }
+    });
+
+    return {
+      workouts: workoutSessions,
+      geo_activities: geoSessions,
+      total_duration_minutes: 0,
+      total_calories_burned: 0,
+      performed_at: new Date().toISOString(),
+      end_time: new Date().toISOString(),
+    };
   };
 
   const startCountdown = (seconds: number, onComplete: () => void, shouldSpeak: boolean = false) => {
@@ -380,6 +461,10 @@ export default function ProgramCoach() {
     const sets = exercise.sets || [];
     
     if (sets.length === 0) {
+      // Exercise with no sets - mark as done if it's the last exercise
+      if (currentIndex === exercises.length - 1) {
+        setIsLastExerciseDone(true);
+      }
       await speakAsync(`Next exercise: ${workout?.name || 'Workout'}. ${workout?.description || ''}`);
       setTimeout(() => {
         announcementKeyRef.current = null;
@@ -390,6 +475,10 @@ export default function ProgramCoach() {
 
     if (currentSet >= sets.length) {
       // All sets completed, rest then move to next exercise
+      // Check if this is the last exercise
+      if (currentIndex === exercises.length - 1) {
+        setIsLastExerciseDone(true);
+      }
       setCurrentSet(0);
       setCurrentRep(0);
       setIsRepExercise(false);
@@ -458,10 +547,13 @@ export default function ProgramCoach() {
       const next = prev + 1;
       if (next >= exercises.length) {
         setIsPlaying(false);
+        setIsLastExerciseDone(true);
         playClapping();
         speak("Program complete! Great job!");
         return prev;
       }
+      // Reset last exercise done flag when moving away from last exercise
+      setIsLastExerciseDone(false);
       setCurrentSet(0);
       setCurrentRep(0);
       setExerciseTime(0);
@@ -481,6 +573,10 @@ export default function ProgramCoach() {
     
     setCurrentIndex((prev) => {
       if (prev <= 0) return prev;
+      // Reset last exercise done flag when moving away from last exercise
+      if (prev === exercises.length - 1) {
+        setIsLastExerciseDone(false);
+      }
       setCurrentSet(0);
       setCurrentRep(0);
       setExerciseTime(0);
@@ -524,6 +620,7 @@ export default function ProgramCoach() {
     nextExercise();
   };
 
+
   if (loading) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background, justifyContent: "center", alignItems: "center" }}>
@@ -563,6 +660,64 @@ export default function ProgramCoach() {
   const progress = ((currentIndex + 1) / totalExercises) * 100;
   const description = isWorkout ? workout?.description : activity?.description;
 
+  // Check if the last exercise is completed
+  const isLastExerciseCompleted = () => {
+    // Must be on the last exercise
+    if (currentIndex !== exercises.length - 1) return false;
+    
+    // Check if we've explicitly marked the last exercise as done
+    if (isLastExerciseDone) {
+      // Ensure no active timers or states before showing finish button
+      return countdown === 0 && restTime === 0 && exerciseTime === 0 && !isRepExercise;
+    }
+    
+    // For workout exercises, check if all sets are completed
+    if (isWorkout) {
+      const exerciseSets = sets || [];
+      // No active timers or countdowns
+      if (countdown > 0 || restTime > 0 || exerciseTime > 0 || isRepExercise) return false;
+      
+      if (exerciseSets.length === 0) {
+        // Exercises with no sets are marked as done in handleWorkoutExercise
+        return isLastExerciseDone;
+      }
+      // Check if all sets are completed
+      return currentSet >= exerciseSets.length;
+    }
+    
+    // For geo exercises, they redirect to Activity screen
+    // Since they redirect, we can't easily track completion
+    // Only show finish button if explicitly marked as done or if not in active state
+    // and it's a geo exercise on the last index
+    return countdown === 0 && restTime === 0;
+  };
+
+  const handleFinishProgram = async () => {
+    if (isRecordingSession || !isLastExerciseCompleted()) return;
+
+    const payload = buildProgramSessionPayload();
+    if (payload.workouts.length === 0 && payload.geo_activities.length === 0) {
+      Alert.alert("Nothing to record", "This program does not contain any workouts or activities to save.");
+      return;
+    }
+
+    try {
+      setIsRecordingSession(true);
+      await createProgramSession(payload);
+      Alert.alert("Session recorded", "Great job! Your program session has been saved.", [
+        {
+          text: "OK",
+          onPress: () => router.back(),
+        },
+      ]);
+    } catch (error) {
+      console.error("Failed to record program session:", error);
+      Alert.alert("Recording failed", "We couldn't save your session. Please try again.");
+    } finally {
+      setIsRecordingSession(false);
+    }
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
       {/* Header */}
@@ -574,7 +729,33 @@ export default function ProgramCoach() {
           <Text style={{ fontFamily: theme.fonts.heading, fontSize: 18, color: theme.colors.text }}>
             {program?.name || "Workout Coach"}
           </Text>
-          <View style={{ width: 28 }} />
+          {/* Finish button - only show when last exercise is completed */}
+          {isLastExerciseCompleted() && (
+            <TouchableOpacity
+            onPress={handleFinishProgram}
+            disabled={isRecordingSession}
+            className="flex-row items-center justify-center"
+            style={{
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+              borderRadius: 8,
+              backgroundColor: theme.colors.primary,
+              opacity: isRecordingSession ? 0.7 : 1,
+            }}
+          >
+            {isRecordingSession ? (
+              <ActivityIndicator size="small" color={theme.colors.text} />
+            ) : (
+              <>
+                <Ionicons name="stop" size={18} color={theme.colors.text} />
+                <Text style={{ color: theme.colors.text, fontFamily: theme.fonts.heading, marginLeft: 6, fontSize: 14, fontWeight: "600" }}>
+                  Finish
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+          )}
+          <View style={{ width: "auto" }} />
         </View>
         
         {/* Progress Bar */}
@@ -803,36 +984,36 @@ export default function ProgramCoach() {
               minWidth: 160,
             }}
           >
-<Ionicons
-  name={
-    isRepExercise
-      ? "checkmark-sharp"
-      : isPaused
-      ? "play"
-      : isPlaying
-      ? "pause"
-      : "play"
-  }
-  size={24}
-  color="#FFFFFF"
-  style={{ marginRight: 8 }}
-/>
+            <Ionicons
+              name={
+                isRepExercise
+                  ? "checkmark-sharp"
+                  : isPaused
+                  ? "play"
+                  : isPlaying
+                  ? "pause"
+                  : "play"
+              }
+              size={24}
+              color="#FFFFFF"
+              style={{ marginRight: 8 }}
+            />
 
-<Text
-  style={{
-    color: "#FFFFFF",
-    fontFamily: theme.fonts.heading,
-    fontSize: 16,
-  }}
->
-  {isRepExercise
-    ? "Done"
-    : isPaused
-    ? "Continue"
-    : isPlaying
-    ? "Pause"
-    : "Play"}
-</Text>
+            <Text
+              style={{
+                color: "#FFFFFF",
+                fontFamily: theme.fonts.heading,
+                fontSize: 16,
+              }}
+            >
+              {isRepExercise
+                ? "Done"
+                : isPaused
+                ? "Continue"
+                : isPlaying
+                ? "Pause"
+                : "Play"}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity

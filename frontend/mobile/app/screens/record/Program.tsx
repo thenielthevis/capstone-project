@@ -3,9 +3,10 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from "react-nati
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
-import { useRouter, Href } from "expo-router";
+import { useRouter, Href, useFocusEffect } from "expo-router";
 import { Ionicons, MaterialCommunityIcons, FontAwesome6 } from "@expo/vector-icons";
 import { getUserPrograms } from "../../api/programApi";
+import { useCallback } from "react";
 
 export default function ProgramRecordScreen() {
   const { theme } = useTheme();
@@ -17,16 +18,25 @@ export default function ProgramRecordScreen() {
   const fabOptionsTranslateY = useSharedValue(60); // Start hidden below FAB
   const fabOptionsOpacity = useSharedValue(0);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const data = await getUserPrograms();
-        setUserPrograms(data);
-      } catch (err) {
-        setUserPrograms([]);
-      }
-    })();
+  const fetchPrograms = useCallback(async () => {
+    try {
+      const data = await getUserPrograms();
+      setUserPrograms(data);
+    } catch (err) {
+      setUserPrograms([]);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchPrograms();
+  }, []);
+
+  // Refresh when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchPrograms();
+    }, [fetchPrograms])
+  );
 
   useEffect(() => {
     if (fabOpen) {
@@ -103,7 +113,7 @@ export default function ProgramRecordScreen() {
               <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + "99", marginBottom: 6 }}>{program.description}</Text>
               <TouchableOpacity
                 style={{ alignSelf: "flex-end", marginTop: 4 }}
-                onPress={() => router.push(`/screens/programs/program-interface?id=${program._id}`)}
+                onPress={() => router.push(`/screens/programs/program-overview?id=${program._id}`)}
               >
                 <Text style={{ color: theme.colors.primary, fontFamily: theme.fonts.body }}>View Details</Text>
               </TouchableOpacity>
@@ -133,7 +143,7 @@ export default function ProgramRecordScreen() {
               }}
               onPress={() => {
                 setFabOpen(false);
-                router.push("/screens/programs/my-program");
+                router.push("/screens/programs/create-program");
               }}
             >
               <FontAwesome6 name="pencil" size={20} color="#fff" />

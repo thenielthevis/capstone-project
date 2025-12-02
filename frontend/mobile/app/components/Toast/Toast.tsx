@@ -14,14 +14,41 @@ export const showToast = ({ type = "success", text1 = "", text2 = "" }) => {
 
 const ToastConfig = {
   success: (props: any) => (
-    <Toast {...props} style={{ borderLeftColor: '#4BB543', borderLeftWidth: 6 }} text1Style={{ color: '#4BB543', fontWeight: 'bold' }} />
+    <Toast 
+      {...props} 
+      style={{ 
+        borderLeftColor: '#4BB543', 
+        borderLeftWidth: 6,
+      }} 
+      text1Style={{ color: '#4BB543', fontWeight: 'bold' }} 
+    />
   ),
   error: (props: any) => (
-    <Toast {...props} style={{ borderLeftColor: '#FF3B30', borderLeftWidth: 6 }} text1Style={{ color: '#FF3B30', fontWeight: 'bold' }} />
+    <Toast 
+      {...props} 
+      style={{ 
+        borderLeftColor: '#FF3B30', 
+        borderLeftWidth: 6,
+      }} 
+      text1Style={{ color: '#FF3B30', fontWeight: 'bold' }} 
+    />
   ),
   info: (props: any) => (
-    <Toast {...props} style={{ borderLeftColor: '#007AFF', borderLeftWidth: 6 }} text1Style={{ color: '#007AFF', fontWeight: 'bold' }} />
+    <Toast 
+      {...props} 
+      style={{ 
+        borderLeftColor: '#007AFF', 
+        borderLeftWidth: 6,
+      }} 
+      text1Style={{ color: '#007AFF', fontWeight: 'bold' }} 
+    />
   ),
 };
 
-export const ToastProvider = () => <Toast config={ToastConfig} />;
+export const ToastProvider = () => (
+  <Toast 
+    config={ToastConfig} 
+    topOffset={60}
+    visibilityTime={2500}
+  />
+);
