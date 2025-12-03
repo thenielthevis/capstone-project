@@ -5,6 +5,7 @@ import { TextInput, Button } from "react-native-paper";
 import { createProgram } from "../../api/programApi";
 import { showToast } from "../Toast/Toast";
 import { useTheme } from "../../context/ThemeContext";
+import { useRouter } from "expo-router";
 import { Octicons  } from "@expo/vector-icons";
 
 interface ProgramModalProps {
@@ -17,6 +18,7 @@ interface ProgramModalProps {
 
 const ProgramModal: React.FC<ProgramModalProps> = ({ visible, onClose, selectedWorkouts, selectedGeoActivities }) => {
   const { theme } = useTheme();
+  const router = useRouter();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
@@ -50,8 +52,20 @@ const ProgramModal: React.FC<ProgramModalProps> = ({ visible, onClose, selectedW
         // user_id and group_id should be added here if available
       };
       await createProgram(programData);
-      showToast({ type: "success", text1: "Program created!", text2: name });
+      const programName = name;
+      // Reset form
+      setName("");
+      setDescription("");
+      // Close modal first, then show toast and navigate
       onClose();
+      // Small delay to ensure modal is closed before showing toast
+      setTimeout(() => {
+        showToast({ type: "success", text1: "Program created!", text2: programName });
+        // Navigate to Program screen after toast is shown
+        setTimeout(() => {
+          router.replace("/screens/record/Program");
+        }, 100);
+      }, 300);
     } catch (err: any) {
       setError(err?.response?.data?.message || "Failed to create program");
     } finally {

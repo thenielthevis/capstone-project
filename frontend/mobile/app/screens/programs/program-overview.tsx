@@ -278,7 +278,7 @@ export default function ProgramInterface() {
                 onPress={() => deleteWorkout(index)}
                 style={{ padding: 8 }}
               >
-                <Ionicons name="trash-outline" size={20} color={theme.colors.error || "#E45858"} />
+                <Ionicons name="trash-outline" size={20} color={theme.colors.text + "99"} />
               </TouchableOpacity>
             </View>
           ) : (
@@ -533,7 +533,7 @@ export default function ProgramInterface() {
                 onPress={() => deleteGeoActivity(index)}
                 style={{ padding: 8 }}
               >
-                <Ionicons name="trash-outline" size={20} color={theme.colors.error || "#E45858"} />
+                <Ionicons name="trash-outline" size={20} color={theme.colors.text + "99"} />
               </TouchableOpacity>
             </View>
           ) : (
@@ -788,7 +788,7 @@ export default function ProgramInterface() {
                   style={{ backgroundColor: theme.colors.surface }}
                 >
                   <Text
-                    className="font-bold mb-2"
+                    className="mb-2"
                     style={{
                       color: theme.colors.text,
                       fontFamily: theme.fonts.heading,

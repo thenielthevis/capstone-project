@@ -182,6 +182,7 @@ export default function Analysis() {
         }
         setError('Session expired, please sign in again.');
         setLoading(false);
+        router.replace('/screens/auth/login');
         return;
       }
 

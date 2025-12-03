@@ -23,10 +23,10 @@ const userRoutes = require('./routes/userRoutes');
 const predictRoutes = require('./routes/predictRoutes');
 const geoRoutes = require('./routes/geoRoutes');
 const workoutRoutes = require('./routes/workoutRoutes');
-const workoutSessionRoutes = require('./routes/workoutSessionRoutes');
 const geoSessionRoutes = require('./routes/geoSessionRoutes');
 const foodLogRoutes = require('./routes/foodLogRoutes');
 const programRoutes = require('./routes/programRoutes');
+const programSessionRoutes = require('./routes/programSessionRoutes');
 const adminRoutes = require('./routes/adminRoutes_v2');
 
 // During development allow all origins so phones/emulators can reach the server.
@@ -50,10 +50,10 @@ console.log('[APP] Registered /api/users routes');
 app.use('/api/predict', predictRoutes);
 app.use('/api/geo', geoRoutes);
 app.use('/api/workouts', workoutRoutes);
-app.use('/api/workout-sessions', workoutSessionRoutes);
 app.use('/api/geo-sessions', geoSessionRoutes);
 app.use('/api/food-logs', foodLogRoutes);
 app.use('/api/programs', programRoutes);
+app.use('/api/program-sessions', programSessionRoutes);
 app.use('/api/admin', adminRoutes);
 console.log('[APP] Registered /api/admin routes');
 
