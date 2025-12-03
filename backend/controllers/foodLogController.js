@@ -5,20 +5,20 @@ const mongoose = require('mongoose');
 // Create a new food log entry
 exports.createFoodLog = async (req, res) => {
   try {
-    console.log('[foodLogController] Creating food log for user:', req.user.id);
-    const userId = req.user.id; // From auth middleware
+    const userId = req.user.id || req.user._id; // From auth middleware
+    console.log('[CREATE FOOD LOG] Creating food log for user:', userId);
     const foodData = req.body;
 
     // Validate required fields
     if (!foodData.foodName) {
-      console.log('[foodLogController] Missing required field: foodName');
+      console.log('[CREATE FOOD LOG] Missing required field: foodName');
       return res.status(400).json({
         message: 'Food name is required'
       });
     }
 
     if (!foodData.calories || !foodData.servingSize) {
-      console.log('[foodLogController] Missing required fields: calories or servingSize');
+      console.log('[CREATE FOOD LOG] Missing required fields: calories or servingSize');
       return res.status(400).json({
         message: 'Calories and serving size are required'
       });
@@ -28,17 +28,17 @@ exports.createFoodLog = async (req, res) => {
     let imageUrl = null;
     if (foodData.imageBase64) {
       try {
-        console.log('[foodLogController] Uploading image to Cloudinary...');
+        console.log('[CREATE FOOD LOG] Uploading image to Cloudinary...');
         const uploadResult = await uploadProfilePicture(foodData.imageBase64);
         imageUrl = uploadResult.secure_url;
-        console.log('[foodLogController] Image uploaded successfully:', imageUrl);
+        console.log('[CREATE FOOD LOG] Image uploaded successfully:', imageUrl);
       } catch (uploadError) {
-        console.error('[foodLogController] Image upload failed:', uploadError.message);
+        console.error('[CREATE FOOD LOG] Image upload failed:', uploadError.message);
         // Continue without image if upload fails
       }
     }
 
-    console.log('[foodLogController] Creating food log entry...');
+    console.log('[CREATE FOOD LOG] Creating food log entry...');
     const newFoodLog = new FoodLog({
       userId,
       inputMethod: foodData.inputMethod || 'image',
@@ -70,14 +70,14 @@ exports.createFoodLog = async (req, res) => {
     });
 
     const savedLog = await newFoodLog.save();
-    console.log('[foodLogController] Food log saved successfully:', savedLog._id);
+    console.log('[CREATE FOOD LOG] Food log saved successfully:', savedLog._id);
 
     res.status(201).json({
       message: 'Food log created successfully',
       foodLog: savedLog
     });
   } catch (error) {
-    console.error('[foodLogController] Error creating food log:', error);
+    console.error('[CREATE FOOD LOG] Error creating food log:', error);
     res.status(500).json({
       message: 'Server error',
       error: error.message
@@ -85,10 +85,11 @@ exports.createFoodLog = async (req, res) => {
   }
 };
 
-// Get all food logs for the authenticated user
+// Get all food logs for the authenticated user (admins see all)
 exports.getUserFoodLogs = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.id || req.user._id;
+    const userRole = req.user.role;
     const { 
       page = 1, 
       limit = 20, 
@@ -99,16 +100,31 @@ exports.getUserFoodLogs = async (req, res) => {
       sortOrder = 'desc'
     } = req.query;
 
-    const query = { userId };
+    console.log('[GET USER FOOD LOGS] User ID:', userId);
+    console.log('[GET USER FOOD LOGS] User Role:', userRole);
+    console.log('[GET USER FOOD LOGS] Full user object:', JSON.stringify(req.user));
 
-    // Date range filter
+    let query = {};
+    
+    // Build the base query
+    // If admin, return all food logs; if regular user, filter by userId
+    if (userRole === 'admin') {
+      console.log('[GET USER FOOD LOGS] Admin user - returning ALL food logs (no userId filter)');
+      // Admin sees everything, no filter needed
+      query = {};
+    } else {
+      console.log('[GET USER FOOD LOGS] Regular user - filtering by userId:', userId);
+      query = { userId: userId };
+    }
+
+    // Date range filter (applied to any query type)
     if (startDate || endDate) {
       query.analyzedAt = {};
       if (startDate) query.analyzedAt.$gte = new Date(startDate);
       if (endDate) query.analyzedAt.$lte = new Date(endDate);
     }
 
-    // Search filter
+    // Search filter (applied to any query type)
     if (searchQuery) {
       query.$or = [
         { foodName: { $regex: searchQuery, $options: 'i' } },
@@ -122,12 +138,24 @@ exports.getUserFoodLogs = async (req, res) => {
     const sortOptions = {};
     sortOptions[sortBy] = sortOrder === 'asc' ? 1 : -1;
 
+    console.log('[GET USER FOOD LOGS] Query object:', JSON.stringify(query));
+
     const foodLogs = await FoodLog.find(query)
       .sort(sortOptions)
       .skip(skip)
       .limit(parseInt(limit));
 
     const totalCount = await FoodLog.countDocuments(query);
+
+    console.log('[GET USER FOOD LOGS] Found', foodLogs.length, 'food logs');
+    console.log('[GET USER FOOD LOGS] Total matching count:', totalCount);
+
+    // Log sample data if found
+    if (foodLogs.length > 0) {
+      console.log('[GET USER FOOD LOGS] First food log ID:', foodLogs[0]._id);
+      console.log('[GET USER FOOD LOGS] First food log userId:', foodLogs[0].userId);
+      console.log('[GET USER FOOD LOGS] First food log name:', foodLogs[0].foodName);
+    }
 
     res.status(200).json({
       message: 'Food logs retrieved successfully',
@@ -140,7 +168,8 @@ exports.getUserFoodLogs = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error retrieving food logs:', error);
+    console.error('[GET USER FOOD LOGS] Error:', error.message);
+    console.error('[GET USER FOOD LOGS] Stack:', error.stack);
     res.status(500).json({
       message: 'Server error',
       error: error.message
@@ -151,14 +180,26 @@ exports.getUserFoodLogs = async (req, res) => {
 // Get a single food log by ID
 exports.getFoodLogById = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.id || req.user._id;
+    const userRole = req.user.role;
     const { id } = req.params;
 
-    const foodLog = await FoodLog.findOne({ _id: id, userId });
+    console.log('[GET FOOD LOG BY ID] Getting food log:', id);
+    console.log('[GET FOOD LOG BY ID] User ID:', userId);
+    console.log('[GET FOOD LOG BY ID] User Role:', userRole);
+
+    const foodLog = await FoodLog.findById(id);
 
     if (!foodLog) {
       return res.status(404).json({
         message: 'Food log not found'
+      });
+    }
+
+    // Check ownership if not admin
+    if (userRole !== 'admin' && foodLog.userId.toString() !== userId.toString()) {
+      return res.status(403).json({
+        message: 'Unauthorized'
       });
     }
 
@@ -276,11 +317,16 @@ exports.getUserNutritionStats = async (req, res) => {
 // Update a food log entry
 exports.updateFoodLog = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.id || req.user._id;
+    const userRole = req.user.role;
     const { id } = req.params;
     const updateData = req.body;
 
-    const foodLog = await FoodLog.findOne({ _id: id, userId });
+    console.log('[UPDATE FOOD LOG] Updating food log:', id);
+    console.log('[UPDATE FOOD LOG] User ID:', userId);
+    console.log('[UPDATE FOOD LOG] User Role:', userRole);
+
+    const foodLog = await FoodLog.findById(id);
 
     if (!foodLog) {
       return res.status(404).json({
@@ -288,8 +334,15 @@ exports.updateFoodLog = async (req, res) => {
       });
     }
 
+    // Check ownership if not admin
+    if (userRole !== 'admin' && foodLog.userId.toString() !== userId.toString()) {
+      return res.status(403).json({
+        message: 'Unauthorized'
+      });
+    }
+
     // Update allowed fields
-    const allowedUpdates = ['notes', 'dishName', 'servingSize'];
+    const allowedUpdates = ['foodName', 'notes', 'dishName', 'servingSize'];
     allowedUpdates.forEach(field => {
       if (updateData[field] !== undefined) {
         foodLog[field] = updateData[field];
@@ -297,13 +350,14 @@ exports.updateFoodLog = async (req, res) => {
     });
 
     const updatedLog = await foodLog.save();
+    console.log('[UPDATE FOOD LOG] Food log updated successfully');
 
     res.status(200).json({
       message: 'Food log updated successfully',
       foodLog: updatedLog
     });
   } catch (error) {
-    console.error('Error updating food log:', error);
+    console.error('[UPDATE FOOD LOG] Error:', error.message);
     res.status(500).json({
       message: 'Server error',
       error: error.message
@@ -314,16 +368,31 @@ exports.updateFoodLog = async (req, res) => {
 // Delete a food log entry
 exports.deleteFoodLog = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.id || req.user._id;
+    const userRole = req.user.role;
     const { id } = req.params;
 
-    const foodLog = await FoodLog.findOneAndDelete({ _id: id, userId });
+    console.log('[DELETE FOOD LOG] Deleting food log:', id);
+    console.log('[DELETE FOOD LOG] User ID:', userId);
+    console.log('[DELETE FOOD LOG] User Role:', userRole);
+
+    const foodLog = await FoodLog.findById(id);
 
     if (!foodLog) {
       return res.status(404).json({
         message: 'Food log not found'
       });
     }
+
+    // Check ownership if not admin
+    if (userRole !== 'admin' && foodLog.userId.toString() !== userId.toString()) {
+      return res.status(403).json({
+        message: 'Unauthorized'
+      });
+    }
+
+    await FoodLog.findByIdAndDelete(id);
+    console.log('[DELETE FOOD LOG] Food log deleted successfully');
 
     res.status(200).json({
       message: 'Food log deleted successfully'
@@ -340,8 +409,13 @@ exports.deleteFoodLog = async (req, res) => {
 // Delete multiple food logs
 exports.deleteFoodLogs = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.id || req.user._id;
+    const userRole = req.user.role;
     const { ids } = req.body; // Array of food log IDs
+
+    console.log('[DELETE FOOD LOGS] Deleting multiple food logs');
+    console.log('[DELETE FOOD LOGS] User ID:', userId);
+    console.log('[DELETE FOOD LOGS] User Role:', userRole);
 
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({
@@ -349,10 +423,15 @@ exports.deleteFoodLogs = async (req, res) => {
       });
     }
 
-    const result = await FoodLog.deleteMany({
-      _id: { $in: ids },
-      userId
-    });
+    let query = { _id: { $in: ids } };
+    
+    // If not admin, only delete their own food logs
+    if (userRole !== 'admin') {
+      query.userId = userId;
+    }
+
+    const result = await FoodLog.deleteMany(query);
+    console.log('[DELETE FOOD LOGS] Deleted', result.deletedCount, 'food logs');
 
     res.status(200).json({
       message: 'Food logs deleted successfully',

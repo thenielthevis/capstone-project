@@ -118,7 +118,7 @@ export default function GeoActivities() {
               </Button>
               <Button
                 onClick={() => navigate('/admin/geo-activities/create')}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold px-6 py-3 rounded-lg flex items-center gap-2"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Create Activity
@@ -225,8 +225,8 @@ export default function GeoActivities() {
                             size="sm"
                             variant="outline"
                             onClick={() => navigate(`/admin/geo-activities/edit/${activity._id}`)}
-                            className="flex-1 text-blue-600 hover:bg-blue-50"
-                          >
+                           className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 rounded-lg flex items-center justify-center gap-2"
+                      >
                             <Edit2 className="w-4 h-4 mr-1" />
                             Edit
                           </Button>
@@ -235,8 +235,8 @@ export default function GeoActivities() {
                             variant="outline"
                             onClick={() => handleDeleteActivity(activity._id)}
                             disabled={deleting === activity._id}
-                            className="flex-1 text-red-600 hover:bg-red-50"
-                          >
+                           className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-2 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
                             {deleting === activity._id ? (
                               <span className="flex items-center gap-1">
                                 <div className="w-3 h-3 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>

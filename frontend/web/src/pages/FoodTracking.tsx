@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import ImageUpload from '@/components/food/ImageUpload';
 import ManualInput from '@/components/food/ManualInput';
 import CalorieResult from '@/components/food/CalorieResult';
+import UserHeader from '@/components/UserHeader';
 import { analyzeFood, analyzeIngredients } from '@/services/geminiService';
 import logoImg from '@/assets/logo.png';
 
@@ -59,8 +60,11 @@ export default function FoodTracking() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
+      {/* User Header */}
+      <UserHeader />
+
+      {/* Page Header */}
+      <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">

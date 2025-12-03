@@ -13,6 +13,8 @@ import GeoActivities from './pages/GeoActivities';
 import GeoActivityForm from './pages/GeoActivityForm';
 import Workouts from './pages/Workouts';
 import WorkoutForm from './pages/WorkoutForm';
+import Programs from './pages/Programs';
+import FoodLogs from './pages/FoodLogs';
 import TermsAndConditions from './pages/TermsAndConditions';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -124,6 +126,22 @@ function App() {
         element={
           <ProtectedRoute requiredRole="admin">
             <WorkoutForm />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/programs"
+        element={
+          <ProtectedRoute requiredRole="admin">
+            <Programs />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/foodlogs"
+        element={
+          <ProtectedRoute requiredRole="admin">
+            <FoodLogs />
           </ProtectedRoute>
         }
       />

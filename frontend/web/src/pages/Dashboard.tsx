@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { LogOut, User as UserIcon, Activity, TrendingUp, FileText, Heart, Utensils } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import UserHeader from '@/components/UserHeader';
 import logoImg from '@/assets/logo.png';
 
 export default function Dashboard() {
@@ -16,25 +17,8 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <img src={logoImg} alt="Lifora Logo" className="w-10 h-10" />
-              <h1 className="text-2xl font-bold text-gray-900">Lifora</h1>
-            </div>
-            <Button
-              variant="ghost"
-              onClick={handleLogout}
-              className="flex items-center gap-2"
-            >
-              <LogOut className="w-4 h-4" />
-              Logout
-            </Button>
-          </div>
-        </div>
-      </header>
+      {/* User Header with Settings */}
+      <UserHeader />
 
       {/* Main Content */}
       <main className="container mx-auto px-6 py-12">

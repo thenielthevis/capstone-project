@@ -97,23 +97,23 @@ exports.updateWorkout = async (req, res) => {
     }
 
     // Update text fields
-    if (category) {
+    if (category !== undefined) {
       workout.category = category;
       console.log('[UPDATE WORKOUT] Updated category to:', workout.category);
     }
-    if (type) {
+    if (type !== undefined) {
       workout.type = type;
       console.log('[UPDATE WORKOUT] Updated type to:', workout.type);
     }
-    if (name) {
+    if (name !== undefined) {
       workout.name = name;
       console.log('[UPDATE WORKOUT] Updated name to:', workout.name);
     }
-    if (description) {
+    if (description !== undefined) {
       workout.description = description;
       console.log('[UPDATE WORKOUT] Updated description to:', workout.description);
     }
-    if (equipment_needed) {
+    if (equipment_needed !== undefined) {
       workout.equipment_needed = equipment_needed;
       console.log('[UPDATE WORKOUT] Updated equipment_needed to:', workout.equipment_needed);
     }
