@@ -320,7 +320,8 @@ export default function PredictionInputScreen() {
       console.error('Prediction update failed');
       alert('Health data saved, but prediction update failed');
       setLoading(false);
-      router.back();
+      // Navigate to Analysis tab instead of going back
+      router.replace('/(tabs)/Analysis');
       return;
     }
 
@@ -331,7 +332,8 @@ export default function PredictionInputScreen() {
     setLoading(false);
     // Set flag to show notification in Analysis screen
     setPredictionUpdateFlag(true);
-    router.back();
+    // Navigate to Analysis tab instead of going back
+    router.replace('/(tabs)/Analysis');
     
   } catch (error) {
     console.error("Error submitting health assessment:", error);

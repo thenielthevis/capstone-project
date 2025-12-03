@@ -5,6 +5,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 export interface User {
   username: string;
   email: string;
+  role?: string;
   profilePicture?: string;
   googleId?: string;
 }

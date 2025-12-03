@@ -36,8 +36,12 @@ export default function Login() {
       // Save to context and localStorage
       login(data.user, data.token);
       
-      // Navigate to dashboard
-      navigate('/dashboard');
+      // Redirect based on role
+      if (data.user.role === 'admin') {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err: any) {
       // Provide more helpful error messages
       if (err.message === 'Invalid credentials') {

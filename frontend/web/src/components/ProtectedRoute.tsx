@@ -3,10 +3,11 @@ import { useAuth } from '../context/AuthContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  requiredRole?: string;
 }
 
-export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading } = useAuth();
+export default function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
+  const { user, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -19,8 +20,13 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  // If a specific role is required and user doesn't have it, redirect to dashboard
+  if (requiredRole && user.role !== requiredRole) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;

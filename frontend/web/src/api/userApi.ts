@@ -47,7 +47,7 @@ export const predictUser = async () => {
 };
 
 export const getCurrentUser = async () => {
-  return axiosInstance.get('/users/current');
+  return axiosInstance.get('/users/me');
 };
 
 export default {

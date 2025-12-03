@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,13 +8,14 @@ import StepHealthProfile from '@/components/assessment/StepHealthProfile';
 import StepLifestyle from '@/components/assessment/StepLifestyle';
 import StepAddictions from '@/components/assessment/StepAddictions';
 import StepEnvironment from '@/components/assessment/StepEnvironment';
-import { submitHealthAssessment } from '@/api/userApi';
+import { submitHealthAssessment, getCurrentUser } from '@/api/userApi';
 import logoImg from '@/assets/logo.png';
 
 export default function HealthAssessment() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [currentConditionsInput, setCurrentConditionsInput] = useState('');
   
   const [formData, setFormData] = useState({
@@ -38,6 +39,81 @@ export default function HealthAssessment() {
     stressLevel: '',
     addictions: [] as { substance: string; severity: string; duration: string }[],
   });
+
+  // Helper function to extract and normalize profile data
+  const extractProfileData = (userData: any) => {
+    if (!userData) return null;
+    
+    // Try different response structures
+    let profile = userData.profile || userData;
+    
+    // Fallback: if it has any of these fields, treat it as profile
+    if (profile.age || profile.gender || profile.physicalMetrics) {
+      return profile;
+    }
+    
+    return null;
+  };
+
+  // Load existing health assessment data on component mount
+  useEffect(() => {
+    const loadExistingData = async () => {
+      try {
+        setIsLoading(true);
+        const response = await getCurrentUser();
+        console.log('getCurrentUser full response:', response);
+        
+        // Handle response structure: { message: "...", user: {...} }
+        const userData = response.data.user || response.data;
+        const profile = extractProfileData(userData);
+
+        if (profile) {
+          console.log('Successfully loaded profile:', profile);
+          setFormData({
+            age: profile.age ? String(profile.age) : '',
+            sex: profile.gender || '',
+            height: profile.physicalMetrics?.height?.value ? String(profile.physicalMetrics.height.value) : '',
+            weight: profile.physicalMetrics?.weight?.value ? String(profile.physicalMetrics.weight.value) : '',
+            waistCircumference: profile.physicalMetrics?.waistCircumference ? String(profile.physicalMetrics.waistCircumference) : '',
+            activityLevel: profile.lifestyle?.activityLevel || '',
+            sleepHours: profile.lifestyle?.sleepHours ? String(profile.lifestyle.sleepHours) : '',
+            dietaryPreferences: profile.dietaryProfile?.preferences || [],
+            allergies: profile.dietaryProfile?.allergies || [],
+            dailyWaterIntake: profile.dietaryProfile?.dailyWaterIntake ? String(profile.dietaryProfile.dailyWaterIntake) : '',
+            mealFrequency: profile.dietaryProfile?.mealFrequency ? String(profile.dietaryProfile.mealFrequency) : '',
+            currentConditions: profile.healthProfile?.currentConditions || [],
+            geneticalConditions: profile.healthProfile?.familyHistory || [],
+            medications: profile.healthProfile?.medications || [],
+            bloodType: profile.healthProfile?.bloodType || '',
+            pollutionExposure: profile.environmentalFactors?.pollutionExposure || '',
+            occupationType: profile.environmentalFactors?.occupationType || '',
+            stressLevel: profile.riskFactors?.stressLevel || '',
+            addictions: profile.riskFactors?.addictions?.map((a: any) => ({
+              substance: a.substance || '',
+              severity: a.severity || '',
+              duration: a.duration ? String(a.duration) : '',
+            })) || [],
+          });
+          
+          // Set current conditions input for the health profile step
+          if (profile.healthProfile?.currentConditions) {
+            setCurrentConditionsInput(profile.healthProfile.currentConditions.join(', '));
+          }
+        } else {
+          console.log('No profile data found in response:', userData);
+          console.log('Starting with empty form - user will fill it in');
+        }
+      } catch (error) {
+        console.error('Error loading existing health assessment:', error);
+        console.log('Could not load existing data - starting with empty form');
+        // Continue with empty form if loading fails
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadExistingData();
+  }, []);
 
   const steps = [
     'Basic Information',
@@ -120,6 +196,11 @@ export default function HealthAssessment() {
       const mappedData = mapFormDataToBackend(formData);
       await submitHealthAssessment(mappedData);
       alert('Health assessment submitted successfully!');
+      
+      // Dispatch event to notify Predictions page to refresh
+      window.dispatchEvent(new Event('assessmentUpdated'));
+      
+      // Navigate to predictions which will automatically refresh the data
       navigate('/predictions');
     } catch (error: any) {
       console.error('Error submitting health assessment:', error);
@@ -139,6 +220,17 @@ export default function HealthAssessment() {
         return true;
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your health assessment...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">

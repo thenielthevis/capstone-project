@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { ArrowLeft, AlertCircle, TrendingUp, Activity, User } from 'lucide-react';
+import { ArrowLeft, AlertCircle, TrendingUp, Activity, User, Heart, Zap, Moon, Brain, Ruler, Weight } from 'lucide-react';
 import { predictUser } from '@/api/userApi';
+import { formatDiseaseName } from '@/utils/formatDisease';
 import logoImg from '@/assets/logo.png';
 
 interface Prediction {
@@ -24,6 +25,22 @@ interface UserProfile {
     activityLevel: string | null;
     sleepHours: number | null;
   };
+  dietaryProfile: {
+    preferences: string[];
+    allergies: string[];
+    dailyWaterIntake: number | null;
+    mealFrequency: number | null;
+  };
+  healthProfile: {
+    currentConditions: string[];
+    familyHistory: string[];
+    medications: string[];
+    bloodType: string | null;
+  };
+  environmentalFactors: {
+    pollutionExposure: string | null;
+    occupationType: string | null;
+  };
   riskFactors: {
     addictions: any[];
     stressLevel: string | null;
@@ -36,9 +53,43 @@ export default function Predictions() {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     fetchPredictions();
+  }, [refreshTrigger]);
+
+  // Check for updates every 2 seconds when page is visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // Page became visible, refresh predictions
+        setRefreshTrigger(prev => prev + 1);
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Also refresh on window focus
+    const handleFocus = () => {
+      setRefreshTrigger(prev => prev + 1);
+    };
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
+
+  // Add a method to manually trigger refresh from outside
+  useEffect(() => {
+    const handleAssessmentUpdate = () => {
+      setRefreshTrigger(prev => prev + 1);
+    };
+    
+    window.addEventListener('assessmentUpdated', handleAssessmentUpdate);
+    return () => window.removeEventListener('assessmentUpdated', handleAssessmentUpdate);
   }, []);
 
   const fetchPredictions = async () => {
@@ -46,6 +97,7 @@ export default function Predictions() {
       setLoading(true);
       setError(null);
       const response = await predictUser();
+      console.log('predictUser response:', response.data);
       setPredictions(response.data.predictions || []);
       setProfile(response.data.profile || null);
     } catch (error: any) {
@@ -70,6 +122,10 @@ export default function Predictions() {
     }
   };
 
+  const handleManualRefresh = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+
   const getRiskColor = (probability: number) => {
     if (probability >= 0.7) return 'text-red-600 bg-red-50';
     if (probability >= 0.4) return 'text-orange-600 bg-orange-50';
@@ -80,6 +136,19 @@ export default function Predictions() {
     if (probability >= 0.7) return 'High Risk';
     if (probability >= 0.4) return 'Moderate Risk';
     return 'Low Risk';
+  };
+
+  // Check if profile has actual data (not just empty/null values)
+  const isProfileComplete = (profile: UserProfile | null): boolean => {
+    if (!profile) return false;
+    return (
+      profile.age !== null &&
+      profile.gender !== null &&
+      profile.physicalMetrics?.height?.value !== null &&
+      profile.physicalMetrics?.weight?.value !== null &&
+      profile.lifestyle?.activityLevel !== null &&
+      profile.lifestyle?.sleepHours !== null
+    );
   };
 
   if (loading) {
@@ -150,56 +219,354 @@ export default function Predictions() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid md:grid-cols-3 gap-4 text-sm">
-                      <div>
-                        <span className="text-gray-600">Age:</span>{' '}
-                        <span className="font-medium">{profile.age || 'N/A'}</span>
+                    {/* BMI Scale Section */}
+                    {profile.physicalMetrics?.bmi && (
+                      <div className="mb-8 pb-8 border-b border-gray-200">
+                        <div className="text-center mb-6">
+                          <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">Body Mass Index</h3>
+                          <div className="flex items-end justify-center gap-4">
+                            <Heart className="w-8 h-8 text-blue-600" />
+                            <div className="text-5xl font-bold text-blue-600">
+                              {profile.physicalMetrics.bmi.toFixed(1)}
+                            </div>
+                          </div>
+                          
+                          {/* BMI Status Badge */}
+                          {(() => {
+                            const bmi = profile.physicalMetrics.bmi;
+                            let status = 'Unknown';
+                            let color = 'bg-gray-100 text-gray-700';
+                            let bgColor = '#F3F4F6';
+                            
+                            if (bmi < 18.5) {
+                              status = 'Underweight';
+                              color = 'bg-blue-100 text-blue-700';
+                              bgColor = '#DBEAFE';
+                            } else if (bmi < 25) {
+                              status = 'Healthy';
+                              color = 'bg-green-100 text-green-700';
+                              bgColor = '#DCFCE7';
+                            } else if (bmi < 30) {
+                              status = 'Overweight';
+                              color = 'bg-yellow-100 text-yellow-700';
+                              bgColor = '#FEF3C7';
+                            } else {
+                              status = 'Obese';
+                              color = 'bg-red-100 text-red-700';
+                              bgColor = '#FEE2E2';
+                            }
+                            
+                            return (
+                              <>
+                                <div className={`inline-block px-4 py-2 rounded-full font-semibold text-sm mt-4 ${color}`}>
+                                  {status}
+                                </div>
+                                
+                                {/* BMI Scale Bar */}
+                                <div className="mt-6 space-y-2 relative">
+                                  <div className="h-6 bg-gradient-to-r from-blue-400 via-green-400 to-red-400 rounded-full overflow-visible relative shadow-sm">
+                                    {/* Indicator */}
+                                    <div 
+                                      className=""
+                                      style={{
+                                        left: `${Math.min((bmi / 35) * 100, 100)}%`,
+                                        transform: 'translateX(-50%)',
+                                      }}
+                                    />
+                                  </div>
+                                  <div className="flex justify-between text-xs text-gray-500 font-medium px-1">
+                                    <span>Underweight</span>
+                                    <span>Healthy</span>
+                                    <span>Overweight</span>
+                                    <span>Obese</span>
+                                  </div>
+                                </div>
+                              </>
+                            );
+                          })()}
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-gray-600">Gender:</span>{' '}
-                        <span className="font-medium capitalize">{profile.gender || 'N/A'}</span>
+                    )}
+                    
+                    {/* Profile Stats Grid */}
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {/* Age */}
+                      <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-lg border border-purple-200">
+                        <div className="bg-purple-600 p-3 rounded-lg">
+                          <User className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-purple-600 font-semibold uppercase tracking-wide">Age</p>
+                          <p className="text-2xl font-bold text-purple-900">{profile.age || 'N/A'}</p>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-gray-600">BMI:</span>{' '}
-                        <span className="font-medium">
-                          {profile.physicalMetrics?.bmi?.toFixed(1) || 'N/A'}
-                        </span>
+                      
+                      {/* Gender */}
+                      <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-pink-50 to-pink-100/50 rounded-lg border border-pink-200">
+                        <div className="bg-pink-600 p-3 rounded-lg">
+                          <Heart className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-pink-600 font-semibold uppercase tracking-wide">Gender</p>
+                          <p className="text-2xl font-bold text-pink-900 capitalize">{profile.gender || 'N/A'}</p>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-gray-600">Height:</span>{' '}
-                        <span className="font-medium">
-                          {profile.physicalMetrics?.height?.value || 'N/A'} cm
-                        </span>
+                      
+                      {/* Height */}
+                      <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-lg border border-blue-200">
+                        <div className="bg-blue-600 p-3 rounded-lg">
+                          <Ruler className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-blue-600 font-semibold uppercase tracking-wide">Height</p>
+                          <p className="text-2xl font-bold text-blue-900">{profile.physicalMetrics?.height?.value || 'N/A'} <span className="text-sm">cm</span></p>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-gray-600">Weight:</span>{' '}
-                        <span className="font-medium">
-                          {profile.physicalMetrics?.weight?.value || 'N/A'} kg
-                        </span>
+                      
+                      {/* Weight */}
+                      <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-orange-50 to-orange-100/50 rounded-lg border border-orange-200">
+                        <div className="bg-orange-600 p-3 rounded-lg">
+                          <Weight className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-orange-600 font-semibold uppercase tracking-wide">Weight</p>
+                          <p className="text-2xl font-bold text-orange-900">{profile.physicalMetrics?.weight?.value || 'N/A'} <span className="text-sm">kg</span></p>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-gray-600">Activity:</span>{' '}
-                        <span className="font-medium capitalize">
-                          {profile.lifestyle?.activityLevel?.replace('_', ' ') || 'N/A'}
-                        </span>
+                      
+                      {/* Activity Level */}
+                      <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-green-50 to-green-100/50 rounded-lg border border-green-200">
+                        <div className="bg-green-600 p-3 rounded-lg">
+                          <Zap className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-green-600 font-semibold uppercase tracking-wide">Activity</p>
+                          <p className="text-2xl font-bold text-green-900 capitalize">{profile.lifestyle?.activityLevel?.replace('_', ' ') || 'N/A'}</p>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-gray-600">Sleep:</span>{' '}
-                        <span className="font-medium">{profile.lifestyle?.sleepHours || 'N/A'} hrs</span>
+                      
+                      {/* Sleep Hours */}
+                      <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-indigo-50 to-indigo-100/50 rounded-lg border border-indigo-200">
+                        <div className="bg-indigo-600 p-3 rounded-lg">
+                          <Moon className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-indigo-600 font-semibold uppercase tracking-wide">Sleep</p>
+                          <p className="text-2xl font-bold text-indigo-900">{profile.lifestyle?.sleepHours || 'N/A'} <span className="text-sm">hrs</span></p>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-gray-600">Stress Level:</span>{' '}
-                        <span className="font-medium capitalize">
-                          {profile.riskFactors?.stressLevel || 'N/A'}
-                        </span>
+                      
+                      {/* Stress Level */}
+                      <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-red-50 to-red-100/50 rounded-lg border border-red-200">
+                        <div className="bg-red-600 p-3 rounded-lg">
+                          <Brain className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-red-600 font-semibold uppercase tracking-wide">Stress Level</p>
+                          <p className="text-2xl font-bold text-red-900 capitalize">{profile.riskFactors?.stressLevel || 'N/A'}</p>
+                        </div>
                       </div>
+                      
+                      {/* Waist Circumference */}
+                      {profile.physicalMetrics?.waistCircumference && (
+                        <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-cyan-50 to-cyan-100/50 rounded-lg border border-cyan-200">
+                          <div className="bg-cyan-600 p-3 rounded-lg">
+                            <Ruler className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-cyan-600 font-semibold uppercase tracking-wide">Waist Circumference</p>
+                            <p className="text-2xl font-bold text-cyan-900">{profile.physicalMetrics.waistCircumference} <span className="text-sm">cm</span></p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Blood Type */}
+                      {profile.healthProfile?.bloodType && (
+                        <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-rose-50 to-rose-100/50 rounded-lg border border-rose-200">
+                          <div className="bg-rose-600 p-3 rounded-lg">
+                            <Heart className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-rose-600 font-semibold uppercase tracking-wide">Blood Type</p>
+                            <p className="text-2xl font-bold text-rose-900">{profile.healthProfile.bloodType}</p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Meal Frequency */}
+                      {profile.dietaryProfile?.mealFrequency && (
+                        <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-amber-50 to-amber-100/50 rounded-lg border border-amber-200">
+                          <div className="bg-amber-600 p-3 rounded-lg">
+                            <Zap className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-amber-600 font-semibold uppercase tracking-wide">Meal Frequency</p>
+                            <p className="text-2xl font-bold text-amber-900">{profile.dietaryProfile.mealFrequency}x daily</p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Daily Water Intake */}
+                      {profile.dietaryProfile?.dailyWaterIntake && (
+                        <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-sky-50 to-sky-100/50 rounded-lg border border-sky-200">
+                          <div className="bg-sky-600 p-3 rounded-lg">
+                            <Zap className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-sky-600 font-semibold uppercase tracking-wide">Daily Water</p>
+                            <p className="text-2xl font-bold text-sky-900">{profile.dietaryProfile.dailyWaterIntake}L</p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Occupation Type */}
+                      {profile.environmentalFactors?.occupationType && (
+                        <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-violet-50 to-violet-100/50 rounded-lg border border-violet-200">
+                          <div className="bg-violet-600 p-3 rounded-lg">
+                            <Zap className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-violet-600 font-semibold uppercase tracking-wide">Occupation</p>
+                            <p className="text-2xl font-bold text-violet-900 capitalize">{profile.environmentalFactors.occupationType.replace(/_/g, ' ')}</p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Pollution Exposure */}
+                      {profile.environmentalFactors?.pollutionExposure && (
+                        <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-slate-50 to-slate-100/50 rounded-lg border border-slate-200">
+                          <div className="bg-slate-600 p-3 rounded-lg">
+                            <Zap className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-600 font-semibold uppercase tracking-wide">Pollution</p>
+                            <p className="text-2xl font-bold text-slate-900 capitalize">{profile.environmentalFactors.pollutionExposure}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Additional Profile Sections */}
+                    <div className="space-y-6 border-t border-gray-200 pt-6">
+                      {/* Dietary Profile */}
+                      {(profile.dietaryProfile?.preferences?.length > 0 || profile.dietaryProfile?.allergies?.length > 0) && (
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                            <Zap className="w-5 h-5 text-amber-600" />
+                            Dietary Profile
+                          </h3>
+                          <div className="space-y-3">
+                            {profile.dietaryProfile?.preferences?.length > 0 && (
+                              <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+                                <p className="text-xs text-amber-600 font-semibold uppercase tracking-wide mb-2">Preferences</p>
+                                <div className="flex flex-wrap gap-2">
+                                  {profile.dietaryProfile.preferences.map((pref, idx) => (
+                                    <span key={idx} className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm capitalize">
+                                      {pref.replace(/_/g, ' ')}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {profile.dietaryProfile?.allergies?.length > 0 && (
+                              <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+                                <p className="text-xs text-red-600 font-semibold uppercase tracking-wide mb-2">Allergies</p>
+                                <div className="flex flex-wrap gap-2">
+                                  {profile.dietaryProfile.allergies.map((allergy, idx) => (
+                                    <span key={idx} className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm capitalize">
+                                      {allergy.replace(/_/g, ' ')}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Health Profile */}
+                      {(profile.healthProfile?.currentConditions?.length > 0 || profile.healthProfile?.familyHistory?.length > 0 || profile.healthProfile?.medications?.length > 0) && (
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                            <Heart className="w-5 h-5 text-rose-600" />
+                            Health Profile
+                          </h3>
+                          <div className="space-y-3">
+                            {profile.healthProfile?.currentConditions?.length > 0 && (
+                              <div className="p-4 bg-rose-50 rounded-lg border border-rose-200">
+                                <p className="text-xs text-rose-600 font-semibold uppercase tracking-wide mb-2">Current Conditions</p>
+                                <div className="flex flex-wrap gap-2">
+                                  {profile.healthProfile.currentConditions.map((condition, idx) => (
+                                    <span key={idx} className="px-3 py-1 bg-rose-100 text-rose-700 rounded-full text-sm capitalize">
+                                      {condition.replace(/_/g, ' ')}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {profile.healthProfile?.familyHistory?.length > 0 && (
+                              <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                                <p className="text-xs text-purple-600 font-semibold uppercase tracking-wide mb-2">Family History</p>
+                                <div className="flex flex-wrap gap-2">
+                                  {profile.healthProfile.familyHistory.map((history, idx) => (
+                                    <span key={idx} className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm capitalize">
+                                      {history.replace(/_/g, ' ')}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {profile.healthProfile?.medications?.length > 0 && (
+                              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                <p className="text-xs text-blue-600 font-semibold uppercase tracking-wide mb-2">Medications</p>
+                                <div className="flex flex-wrap gap-2">
+                                  {profile.healthProfile.medications.map((med, idx) => (
+                                    <span key={idx} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm capitalize">
+                                      {med.replace(/_/g, ' ')}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Addictions/Substance Use */}
+                      {profile.riskFactors?.addictions?.length > 0 && (
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                            <AlertCircle className="w-5 h-5 text-red-600" />
+                            Substance Use
+                          </h3>
+                          <div className="space-y-2">
+                            {profile.riskFactors.addictions.map((addiction, idx) => (
+                              <div key={idx} className="p-4 bg-red-50 rounded-lg border border-red-200">
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <p className="font-semibold text-gray-900 capitalize">{addiction.substance?.replace(/_/g, ' ') || 'N/A'}</p>
+                                    <p className="text-sm text-gray-600">
+                                      Severity: <span className="font-medium capitalize">{addiction.severity || 'N/A'}</span>
+                                    </p>
+                                    {addiction.duration && (
+                                      <p className="text-sm text-gray-600">
+                                        Duration (month): <span className="font-medium">{addiction.duration}</span>
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
               )}
 
               {/* Predictions */}
-              {predictions.length > 0 ? (
+              {predictions.filter((p) => p.probability > 0).length > 0 && isProfileComplete(profile) ? (
                 <>
                   <Card>
                     <CardHeader>
@@ -213,13 +580,15 @@ export default function Predictions() {
                         Based on your health profile, here are your predicted disease risks:
                       </p>
                       <div className="space-y-3">
-                        {predictions.map((prediction, index) => (
+                        {predictions
+                          .filter((prediction) => prediction.probability > 0)
+                          .map((prediction, index) => (
                           <div
                             key={index}
                             className={`p-4 rounded-lg border ${getRiskColor(prediction.probability)}`}
                           >
                             <div className="flex justify-between items-center mb-2">
-                              <h3 className="font-semibold text-lg">{prediction.name}</h3>
+                              <h3 className="font-semibold text-lg">{formatDiseaseName(prediction.name)}</h3>
                               <span className="text-sm font-medium">
                                 {getRiskLevel(prediction.probability)}
                               </span>
@@ -256,7 +625,7 @@ export default function Predictions() {
                     <Button onClick={() => navigate('/health-assessment')} variant="outline" className="flex-1">
                       Update Assessment
                     </Button>
-                    <Button onClick={fetchPredictions} className="flex-1">
+                    <Button onClick={handleManualRefresh} className="flex-1">
                       Refresh Predictions
                     </Button>
                   </div>

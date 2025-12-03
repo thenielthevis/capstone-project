@@ -27,13 +27,14 @@ const workoutSessionRoutes = require('./routes/workoutSessionRoutes');
 const geoSessionRoutes = require('./routes/geoSessionRoutes');
 const foodLogRoutes = require('./routes/foodLogRoutes');
 const programRoutes = require('./routes/programRoutes');
+const adminRoutes = require('./routes/adminRoutes_v2');
 
 // During development allow all origins so phones/emulators can reach the server.
 // In production restrict this to a known list.
 app.use(
   cors({
     origin: true, // reflect request origin — permissive for dev
-    methods: ['GET', 'POST', 'DELETE', 'PUT', 'OPTIONS'],
+    methods: ['GET', 'POST', 'DELETE', 'PUT', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Expires', 'Pragma'],
     credentials: true,
   })
@@ -43,7 +44,9 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Use Routes
+console.log('[APP] Registering routes...');
 app.use('/api/users', userRoutes);
+console.log('[APP] Registered /api/users routes');
 app.use('/api/predict', predictRoutes);
 app.use('/api/geo', geoRoutes);
 app.use('/api/workouts', workoutRoutes);
@@ -51,6 +54,8 @@ app.use('/api/workout-sessions', workoutSessionRoutes);
 app.use('/api/geo-sessions', geoSessionRoutes);
 app.use('/api/food-logs', foodLogRoutes);
 app.use('/api/programs', programRoutes);
+app.use('/api/admin', adminRoutes);
+console.log('[APP] Registered /api/admin routes');
 
 // Health check endpoint
 app.get('/', (req, res) => {
@@ -63,7 +68,8 @@ app.get('/', (req, res) => {
 
 // 404 handler
 app.use((req, res) => {
-  console.log(`[404] ${req.method} ${req.originalUrl}`);
+  console.log(`[404] ${req.method} ${req.originalUrl} - Route not found`);
+  console.log(`[404] Available routes: /api/users, /api/predict, /api/geo, /api/workouts, /api/workout-sessions, /api/geo-sessions, /api/food-logs, /api/programs, /api/admin`);
   res.status(404).json({ 
     message: 'Route not found',
     path: req.originalUrl,
