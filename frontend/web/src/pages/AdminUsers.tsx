@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Trash2, Search, Users, Mail, Calendar, Shield, Edit, Eye } from 'lucide-react';
+import { Search, Users, Mail, Calendar, Shield, Eye } from 'lucide-react';
 import AdminSidebar from '@/components/AdminSidebar';
 import { useTheme } from '@/context/ThemeContext';
 import { adminApi, User } from '@/api/adminApi';
@@ -23,9 +23,7 @@ export default function AdminUsers() {
     limit: 10,
     pages: 1,
   });
-  const [deleting, setDeleting] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [showEditModal, setShowEditModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
 
   useEffect(() => {
@@ -60,25 +58,6 @@ export default function AdminUsers() {
     fetchUsers(1, role);
   };
 
-  const handleDeleteUser = async (userId: string) => {
-    if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-      return;
-    }
-
-    try {
-      setDeleting(userId);
-      await adminApi.deleteUser(userId);
-      
-      // Remove user from list
-      setUsers(users.filter(u => u._id !== userId));
-      setPagination(prev => ({ ...prev, total: prev.total - 1 }));
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to delete user');
-    } finally {
-      setDeleting(null);
-    }
-  };
-
   const handlePageChange = (newPage: number) => {
     fetchUsers(newPage, filterRole);
   };
@@ -86,26 +65,6 @@ export default function AdminUsers() {
   const handleViewUser = (user: User) => {
     setSelectedUser(user);
     setShowViewModal(true);
-  };
-
-  const handleEditUser = (user: User) => {
-    setSelectedUser(user);
-    setShowEditModal(true);
-  };
-
-  const handleUpdateUser = async (updates: { username?: string; email?: string; role?: 'user' | 'admin'; verified?: boolean }) => {
-    if (!selectedUser) return;
-
-    try {
-      const result = await adminApi.updateUser(selectedUser._id, updates);
-      
-      // Update user in list
-      setUsers(users.map(u => u._id === selectedUser._id ? result.user : u));
-      setShowEditModal(false);
-      setSelectedUser(null);
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to update user');
-    }
   };
 
   const filteredUsers = users.filter(user =>
@@ -287,27 +246,6 @@ export default function AdminUsers() {
                                 >
                                   <Eye className="w-4 h-4" />
                                 </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleEditUser(user)}
-                                  className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                                >
-                                  <Edit className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleDeleteUser(user._id)}
-                                  disabled={deleting === user._id}
-                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                >
-                                  {deleting === user._id ? (
-                                    <div className="animate-spin h-4 w-4 border-2 border-red-600 border-t-transparent rounded-full" />
-                                  ) : (
-                                    <Trash2 className="w-4 h-4" />
-                                  )}
-                                </Button>
                               </div>
                             </td>
                           </tr>
@@ -459,161 +397,6 @@ export default function AdminUsers() {
           </Card>
         </div>
       )}
-
-      {/* Edit User Modal */}
-      {showEditModal && selectedUser && (
-        <EditUserModal
-          user={selectedUser}
-          onClose={() => setShowEditModal(false)}
-          onSave={handleUpdateUser}
-        />
-      )}
-    </div>
-  );
-}
-
-// Edit User Modal Component
-function EditUserModal({ 
-  user, 
-  onClose, 
-  onSave 
-}: { 
-  user: User; 
-  onClose: () => void; 
-  onSave: (updates: any) => Promise<void>;
-}) {
-  const { theme } = useTheme();
-  const [formData, setFormData] = useState({
-    username: user.username,
-    email: user.email,
-    role: user.role as 'user' | 'admin',
-    verified: user.verified,
-  });
-  const [saving, setSaving] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      await onSave(formData);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: theme.colors.overlay }}>
-      <Card className="w-full max-w-md" style={{ backgroundColor: theme.colors.card, borderColor: theme.colors.border }}>
-        <CardHeader className="border-b" style={{ borderColor: theme.colors.border }}>
-          <CardTitle className="flex items-center justify-between" style={{ color: theme.colors.text }}>
-            <span>Edit User</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              style={{ color: theme.colors.textSecondary }}
-            >
-              ✕
-            </Button>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold mb-1" style={{ color: theme.colors.textSecondary }}>
-                Username
-              </label>
-              <input
-                type="text"
-                value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2"
-                style={{
-                  backgroundColor: theme.colors.input,
-                  borderColor: theme.colors.border,
-                  color: theme.colors.text
-                }}
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold mb-1" style={{ color: theme.colors.textSecondary }}>
-                Email
-              </label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2"
-                style={{
-                  backgroundColor: theme.colors.input,
-                  borderColor: theme.colors.border,
-                  color: theme.colors.text
-                }}
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold mb-1" style={{ color: theme.colors.textSecondary }}>
-                Role
-              </label>
-              <select
-                value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value as 'user' | 'admin' })}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2"
-                style={{
-                  backgroundColor: theme.colors.input,
-                  borderColor: theme.colors.border,
-                  color: theme.colors.text
-                }}
-              >
-                <option value="user">User</option>
-                <option value="admin">Admin</option>
-              </select>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="verified"
-                checked={formData.verified}
-                onChange={(e) => setFormData({ ...formData, verified: e.target.checked })}
-                className="w-4 h-4 rounded"
-                style={{ accentColor: theme.colors.primary }}
-              />
-              <label htmlFor="verified" className="text-sm font-semibold" style={{ color: theme.colors.textSecondary }}>
-                Verified Account
-              </label>
-            </div>
-
-            <div className="flex gap-2 pt-4">
-              <Button
-                type="submit"
-                disabled={saving}
-                className="flex-1 text-white"
-                style={{ backgroundColor: theme.colors.primary }}
-              >
-                {saving ? 'Saving...' : 'Save Changes'}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                disabled={saving}
-                className="flex-1"
-                style={{
-                  borderColor: theme.colors.border,
-                  color: theme.colors.text
-                }}
-              >
-                Cancel
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
     </div>
   );
 }

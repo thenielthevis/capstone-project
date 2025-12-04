@@ -3,14 +3,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { 
-  Calendar, Search, Trash2, ChevronLeft, ChevronRight,
-  Filter, TrendingUp, RefreshCw, User, Activity, Plus, Edit
+  Calendar, Search, ChevronLeft, ChevronRight,
+  Filter, TrendingUp, RefreshCw, User, Activity
 } from 'lucide-react';
 import AdminSidebar from '@/components/AdminSidebar';
 import { useTheme } from '@/context/ThemeContext';
 import { adminApi, Program, ProgramStats } from '@/api/adminApi';
 import { showToast } from '@/components/Toast/Toast';
-import ProgramModal from '@/components/ProgramModal';
 
 export default function AdminPrograms() {
   const { theme } = useTheme();
@@ -27,12 +26,6 @@ export default function AdminPrograms() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showFilters, setShowFilters] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
-  const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
-  const [availableWorkouts, setAvailableWorkouts] = useState<any[]>([]);
-  const [availableGeoActivities, setAvailableGeoActivities] = useState<any[]>([]);
-  const [availableUsers, setAvailableUsers] = useState<any[]>([]);
 
   // Load programs whenever dependencies change
   useEffect(() => {
@@ -42,7 +35,6 @@ export default function AdminPrograms() {
   // Load stats on initial mount
   useEffect(() => {
     fetchStats();
-    fetchAvailableResources();
   }, []);
 
   const fetchPrograms = async () => {
@@ -88,23 +80,6 @@ export default function AdminPrograms() {
     fetchPrograms();
   };
 
-  const handleDelete = async (programId: string) => {
-    if (!confirm('Are you sure you want to delete this program?')) return;
-
-    try {
-      console.log('[AdminPrograms] Deleting program:', programId);
-      await adminApi.deleteProgram(programId);
-      showToast({ type: 'success', text1: 'Program deleted successfully' });
-      
-      // Refresh both programs and stats after deletion
-      fetchPrograms();
-      fetchStats();
-    } catch (error: any) {
-      console.error('[AdminPrograms] Failed to delete program:', error);
-      showToast({ type: 'error', text1: error.response?.data?.message || 'Failed to delete program' });
-    }
-  };
-
   const handleClearFilters = () => {
     console.log('[AdminPrograms] Clearing all filters');
     setSearchQuery('');
@@ -118,58 +93,6 @@ export default function AdminPrograms() {
     setRefreshing(true);
     await Promise.all([fetchPrograms(), fetchStats()]);
     setRefreshing(false);
-  };
-
-  const fetchAvailableResources = async () => {
-    try {
-      // Fetch workouts
-      const workoutsData = await adminApi.getAllWorkouts(1, 1000);
-      setAvailableWorkouts(workoutsData.workouts);
-
-      // Fetch geo activities
-      const geoData = await adminApi.getAllGeoActivities(1, 1000);
-      setAvailableGeoActivities(geoData.activities);
-
-      // Fetch users
-      const usersData = await adminApi.getUsers(1, 1000);
-      setAvailableUsers(usersData.users);
-    } catch (error) {
-      console.error('[AdminPrograms] Failed to fetch resources:', error);
-    }
-  };
-
-  const handleCreateClick = () => {
-    setSelectedProgram(null);
-    setModalMode('create');
-    setModalOpen(true);
-  };
-
-  const handleEditClick = (program: Program) => {
-    setSelectedProgram(program);
-    setModalMode('edit');
-    setModalOpen(true);
-  };
-
-  const handleSaveProgram = async (data: any) => {
-    try {
-      if (modalMode === 'create') {
-        console.log('[AdminPrograms] Creating program:', data);
-        await adminApi.createProgram(data);
-        showToast({ type: 'success', text1: 'Program created successfully' });
-      } else if (selectedProgram) {
-        console.log('[AdminPrograms] Updating program:', selectedProgram._id);
-        await adminApi.updateProgram(selectedProgram._id, data);
-        showToast({ type: 'success', text1: 'Program updated successfully' });
-      }
-      
-      // Refresh programs and stats after save
-      fetchPrograms();
-      fetchStats();
-    } catch (error: any) {
-      console.error('[AdminPrograms] Failed to save program:', error);
-      showToast({ type: 'error', text1: error.response?.data?.message || 'Failed to save program' });
-      throw error; // Re-throw to let modal handle it
-    }
   };
 
   const formatDate = (dateString: string) => {
@@ -200,16 +123,6 @@ export default function AdminPrograms() {
               </p>
             </div>
             <div className="flex gap-2">
-              <Button
-                onClick={handleCreateClick}
-                style={{
-                  backgroundColor: theme.colors.primary,
-                  color: '#fff',
-                }}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Create Program
-              </Button>
               <Button
                 variant="outline"
                 onClick={handleRefresh}
@@ -406,7 +319,6 @@ export default function AdminPrograms() {
                           <th className="text-left p-4 font-semibold w-32" style={{ color: theme.colors.text }}>Workouts</th>
                           <th className="text-left p-4 font-semibold w-32" style={{ color: theme.colors.text }}>Geo Activities</th>
                           <th className="text-left p-4 font-semibold w-32" style={{ color: theme.colors.text }}>Created</th>
-                          <th className="text-left p-4 font-semibold w-24" style={{ color: theme.colors.text }}>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -477,34 +389,6 @@ export default function AdminPrograms() {
                                 {formatDate(program.created_at)}
                               </p>
                             </td>
-                            <td className="p-4">
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleEditClick(program)}
-                                  style={{
-                                    borderColor: theme.colors.border,
-                                    color: theme.colors.text,
-                                  }}
-                                  className="hover:bg-opacity-80"
-                                >
-                                  <Edit className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleDelete(program._id)}
-                                  style={{
-                                    borderColor: theme.colors.error,
-                                    color: theme.colors.error,
-                                  }}
-                                  className="hover:bg-red-50"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -554,18 +438,6 @@ export default function AdminPrograms() {
           </div>
         </div>
       </main>
-
-      {/* Program Modal */}
-      <ProgramModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSave={handleSaveProgram}
-        program={selectedProgram}
-        mode={modalMode}
-        availableWorkouts={availableWorkouts}
-        availableGeoActivities={availableGeoActivities}
-        availableUsers={availableUsers}
-      />
     </div>
   );
 }
