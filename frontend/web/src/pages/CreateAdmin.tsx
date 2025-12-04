@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { ArrowLeft, Mail, Lock, User, AlertCircle } from 'lucide-react';
+import { useTheme } from '@/context/ThemeContext';
+import { adminApi } from '@/api/adminApi';
 import logoImg from '../assets/logo.png';
 
 interface AdminFormData {
@@ -14,6 +16,7 @@ interface AdminFormData {
 
 export default function CreateAdmin() {
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -52,25 +55,12 @@ export default function CreateAdmin() {
 
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-
-      const response = await fetch('/api/admin/create-admin', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          username: formData.username,
-          email: formData.email,
-          password: formData.password,
-        }),
+      
+      await adminApi.createAdmin({
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
       });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Failed to create admin');
-      }
 
       setSuccess(true);
       setFormData({ username: '', email: '', password: '', confirmPassword: '' });
@@ -78,16 +68,16 @@ export default function CreateAdmin() {
         navigate('/admin/dashboard');
       }, 2000);
     } catch (err: any) {
-      setError(err.message || 'An error occurred');
+      setError(err.response?.data?.message || 'An error occurred');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen" style={{ background: `linear-gradient(135deg, ${theme.colors.surface} 0%, ${theme.colors.background} 100%)` }}>
       {/* Header */}
-      <header className="bg-white shadow-sm">
+      <header className="shadow-sm" style={{ backgroundColor: theme.colors.surface }}>
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">

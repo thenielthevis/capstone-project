@@ -27,7 +27,7 @@ interface AdminSidebarProps {
 export default function AdminSidebar({ activeNav = 'home', onSidebarToggle }: AdminSidebarProps) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const { themeMode, setThemeMode } = useTheme();
+  const { theme, themeMode, setThemeMode } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [currentActive, setCurrentActive] = useState(activeNav);
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
@@ -42,11 +42,11 @@ export default function AdminSidebar({ activeNav = 'home', onSidebarToggle }: Ad
   const navigationItems: NavItem[] = [
     { id: 'home', label: 'Home', icon: <Home className="w-5 h-5" />, path: '/admin/dashboard', color: 'text-blue-600' },
     { id: 'users', label: 'Users', icon: <Users className="w-5 h-5" />, path: '/admin/users', color: 'text-green-600' },
-    { id: 'activities', label: 'Geo Activities', icon: <MapPin className="w-5 h-5" />, path: '/admin/geo-activities', color: 'text-orange-600' },
+    { id: 'geo-activities', label: 'Geo Activities', icon: <MapPin className="w-5 h-5" />, path: '/admin/geo-activities', color: 'text-orange-600' },
     { id: 'workouts', label: 'Workouts', icon: <Dumbbell className="w-5 h-5" />, path: '/admin/workouts', color: 'text-red-600' },
     { id: 'programs', label: 'Programs', icon: <BookOpen className="w-5 h-5" />, path: '/admin/programs', color: 'text-purple-600' },
     { id: 'foodlogs', label: 'Food Logs', icon: <Utensils className="w-5 h-5" />, path: '/admin/foodlogs', color: 'text-yellow-600' },
-    { id: 'achievements', label: 'Achievements', icon: <Award className="w-5 h-5" />, color: 'text-indigo-600' },
+    { id: 'achievements', label: 'Achievements', icon: <Award className="w-5 h-5" />, path: '/admin/achievements', color: 'text-indigo-600' },
   ];
 
   const handleLogout = () => {
@@ -65,21 +65,41 @@ export default function AdminSidebar({ activeNav = 'home', onSidebarToggle }: Ad
     <aside
       className={`${
         sidebarOpen ? 'w-64' : 'w-20'
-      } bg-gradient-to-b from-blue-700 to-blue-900 shadow-xl transition-all duration-300 flex flex-col fixed h-screen left-0 top-0 z-50`}
+      } shadow-xl transition-all duration-300 flex flex-col fixed h-screen left-0 top-0 z-50`}
+      style={{
+        background: themeMode === 'dark' 
+          ? `linear-gradient(180deg, ${theme.colors.surface} 0%, ${theme.colors.background} 100%)`
+          : `linear-gradient(180deg, ${theme.colors.primary} 0%, ${theme.colors.secondary} 100%)`
+      }}
     >
       {/* Logo Section */}
-      <div className="p-6 border-b border-blue-600 flex items-center justify-between">
+      <div 
+        className="p-6 flex items-center justify-between"
+        style={{
+          borderBottom: `1px solid ${themeMode === 'dark' ? theme.colors.border : `${theme.colors.primary}80`}`
+        }}
+      >
         <button
           onClick={handleToggleSidebar}
-          className="w-10 h-10 bg-white rounded-lg flex items-center justify-center hover:bg-gray-100 transition flex-shrink-0"
+          className="w-10 h-10 rounded-lg flex items-center justify-center transition flex-shrink-0"
+          style={{
+            backgroundColor: theme.colors.surface,
+            color: theme.colors.text
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = theme.colors.cardHover;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = theme.colors.surface;
+          }}
           title={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
         >
           <img src={logoImg} alt="Lifora" className="w-8 h-8" />
         </button>
         {sidebarOpen && (
-          <div className="text-white ml-3">
+          <div className="ml-3" style={{ color: themeMode === 'dark' ? theme.colors.text : '#ffffff' }}>
             <p className="font-bold text-sm">Lifora</p>
-            <p className="text-xs text-blue-200">Admin</p>
+            <p className="text-xs opacity-80">Admin</p>
           </div>
         )}
       </div>
@@ -90,14 +110,34 @@ export default function AdminSidebar({ activeNav = 'home', onSidebarToggle }: Ad
           <button
             key={item.id}
             onClick={() => handleNavClick(item)}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-              currentActive === item.id
-                ? 'bg-white text-blue-700 shadow-md'
-                : 'text-white hover:bg-blue-600'
-            }`}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all"
+            style={{
+              backgroundColor: currentActive === item.id 
+                ? theme.colors.surface 
+                : 'transparent',
+              color: currentActive === item.id 
+                ? theme.colors.text 
+                : themeMode === 'dark' ? theme.colors.textSecondary : '#ffffff',
+            }}
+            onMouseEnter={(e) => {
+              if (currentActive !== item.id) {
+                e.currentTarget.style.backgroundColor = themeMode === 'dark' 
+                  ? theme.colors.cardHover 
+                  : `${theme.colors.primary}80`;
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (currentActive !== item.id) {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }
+            }}
             title={!sidebarOpen ? item.label : ''}
           >
-            <span className={`${item.color} ${currentActive === item.id ? 'text-blue-700' : 'text-white'}`}>
+            <span style={{ 
+              color: currentActive === item.id 
+                ? theme.colors.primary 
+                : themeMode === 'dark' ? theme.colors.textSecondary : '#ffffff' 
+            }}>
               {item.icon}
             </span>
             {sidebarOpen && (
@@ -111,18 +151,44 @@ export default function AdminSidebar({ activeNav = 'home', onSidebarToggle }: Ad
       </nav>
 
       {/* User Section */}
-      <div className="p-4 border-t border-blue-600 space-y-3">
+      <div 
+        className="p-4 space-y-3"
+        style={{
+          borderTop: `1px solid ${themeMode === 'dark' ? theme.colors.border : `${theme.colors.primary}80`}`
+        }}
+      >
         {sidebarOpen ? (
           <>
             <ThemeSwitcher />
             <div className="flex flex-col gap-3">
-              <div className="bg-blue-600 rounded-lg p-3">
-                <p className="text-white text-xs font-semibold truncate">{user?.username}</p>
-                <p className="text-blue-200 text-xs truncate">{user?.email}</p>
+              <div 
+                className="rounded-lg p-3"
+                style={{
+                  backgroundColor: themeMode === 'dark' 
+                    ? theme.colors.cardHover 
+                    : `${theme.colors.primary}80`
+                }}
+              >
+                <p className="text-xs font-semibold truncate" style={{ 
+                  color: themeMode === 'dark' ? theme.colors.text : '#ffffff' 
+                }}>{user?.username}</p>
+                <p className="text-xs truncate" style={{ 
+                  color: themeMode === 'dark' ? theme.colors.textSecondary : '#ffffff', 
+                  opacity: themeMode === 'dark' ? 1 : 0.8 
+                }}>{user?.email}</p>
               </div>
               <Button
                 onClick={handleLogout}
-                className="w-full bg-red-600 hover:bg-red-700 text-white text-xs py-2 h-auto"
+                className="w-full text-white text-xs py-2 h-auto"
+                style={{
+                  backgroundColor: theme.colors.error,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#dc2626';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.colors.error;
+                }}
               >
                 <LogOut className="w-4 h-4 mr-2" />
                 Logout
@@ -135,7 +201,16 @@ export default function AdminSidebar({ activeNav = 'home', onSidebarToggle }: Ad
             <div className="relative">
               <button
                 onClick={() => setThemeMenuOpen(!themeMenuOpen)}
-                className="w-10 h-10 rounded-lg text-white hover:bg-blue-600 transition-colors flex items-center justify-center"
+                className="w-10 h-10 rounded-lg transition-colors flex items-center justify-center"
+                style={{ color: themeMode === 'dark' ? theme.colors.text : '#ffffff' }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = themeMode === 'dark' 
+                    ? theme.colors.cardHover 
+                    : `${theme.colors.primary}80`;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
                 title="Change theme"
               >
                 {themeMode === 'light' && <Sun className="w-5 h-5" />}
@@ -144,7 +219,13 @@ export default function AdminSidebar({ activeNav = 'home', onSidebarToggle }: Ad
               </button>
               
               {themeMenuOpen && (
-                <div className="absolute right-12 bottom-0 bg-white text-gray-900 rounded-lg shadow-xl z-50 border border-gray-200 overflow-hidden">
+                <div 
+                  className="absolute right-12 bottom-0 rounded-lg shadow-xl z-50 border overflow-hidden"
+                  style={{
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.border
+                  }}
+                >
                   {[
                     { id: 'light', icon: <Sun className="w-4 h-4" /> },
                     { id: 'dark', icon: <Moon className="w-4 h-4" /> },
@@ -156,9 +237,21 @@ export default function AdminSidebar({ activeNav = 'home', onSidebarToggle }: Ad
                         setThemeMode(option.id as 'light' | 'dark' | 'ocean');
                         setThemeMenuOpen(false);
                       }}
-                      className={`flex items-center justify-center w-10 h-10 hover:bg-blue-100 transition-colors ${
-                        themeMode === option.id ? 'bg-blue-50' : ''
-                      }`}
+                      className="flex items-center justify-center w-10 h-10 transition-colors"
+                      style={{
+                        backgroundColor: themeMode === option.id ? theme.colors.cardHover : 'transparent',
+                        color: theme.colors.text
+                      }}
+                      onMouseEnter={(e) => {
+                        if (themeMode !== option.id) {
+                          e.currentTarget.style.backgroundColor = theme.colors.cardHover;
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (themeMode !== option.id) {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }
+                      }}
                       title={option.id}
                     >
                       {option.icon}
@@ -170,7 +263,16 @@ export default function AdminSidebar({ activeNav = 'home', onSidebarToggle }: Ad
             
             <Button
               onClick={handleLogout}
-              className="w-10 h-10 bg-red-600 hover:bg-red-700 text-white p-0"
+              className="w-10 h-10 text-white p-0"
+              style={{
+                backgroundColor: theme.colors.error,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#dc2626';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = theme.colors.error;
+              }}
               title="Logout"
             >
               <LogOut className="w-5 h-5" />

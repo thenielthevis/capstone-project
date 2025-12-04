@@ -2,15 +2,17 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { ArrowLeft, AlertCircle, TrendingUp, Activity, User, Heart, Zap, Moon, Brain, Ruler, Weight } from 'lucide-react';
-import UserHeader from '@/components/UserHeader';
-import { predictUser } from '@/api/userApi';
-import { formatDiseaseName } from '@/utils/formatDisease';
-import logoImg from '@/assets/logo.png';
+import { AlertCircle, TrendingUp, Activity, User, RefreshCw, Heart, Ruler, Weight, Zap, Moon, Brain } from 'lucide-react';
+import { useTheme } from '@/context/ThemeContext';
+import { predictUser, getCachedPredictions } from '@/api/predictApi';
+import Header from '@/components/Header';
 
-interface Prediction {
+interface PredictionItem {
   name: string;
   probability: number;
+  source?: string;
+  percentage?: number;
+  factors?: string[];
 }
 
 interface UserProfile {
@@ -49,11 +51,15 @@ interface UserProfile {
 }
 
 export default function Predictions() {
+  const { theme } = useTheme();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [predictions, setPredictions] = useState<Prediction[]>([]);
+  const [regenerating, setRegenerating] = useState(false);
+  const [predictions, setPredictions] = useState<PredictionItem[]>([]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [cached, setCached] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
@@ -93,16 +99,38 @@ export default function Predictions() {
     return () => window.removeEventListener('assessmentUpdated', handleAssessmentUpdate);
   }, []);
 
-  const fetchPredictions = async () => {
+  const fetchPredictions = async (force: boolean = false) => {
     try {
-      setLoading(true);
+      if (force) {
+        setRegenerating(true);
+      } else {
+        setLoading(true);
+      }
       setError(null);
-      const response = await predictUser();
-      console.log('predictUser response:', response.data);
-      setPredictions(response.data.predictions || []);
-      setProfile(response.data.profile || null);
+      
+      console.log('[Predictions] Fetching predictions with force=', force);
+      // Use getCachedPredictions for non-force requests (faster, no regeneration)
+      const response = force ? await predictUser(true) : await getCachedPredictions();
+      console.log('[Predictions] Response received:', response.data);
+      const data = response.data;
+      
+      setPredictions(data.predictions || []);
+      setProfile(data.profile || null);
+      setCached(data.cached || false);
+      
+      // Set last updated time
+      if (data.lastPrediction?.predictedAt) {
+        setLastUpdated(data.lastPrediction.predictedAt);
+      }
+      
+      console.log('[Predictions] State updated - predictions:', data.predictions?.length || 0, 'cached:', data.cached);
+      
+      if (force && data.predictions?.length > 0) {
+        alert('✅ Predictions regenerated successfully!');
+      }
     } catch (error: any) {
-      console.error('Error fetching predictions:', error);
+      console.error('[Predictions] Error fetching predictions:', error);
+      console.error('[Predictions] Error response:', error.response);
       
       // Handle specific error cases
       if (error.response?.status === 401) {
@@ -120,17 +148,18 @@ export default function Predictions() {
       }
     } finally {
       setLoading(false);
+      setRegenerating(false);
     }
   };
 
-  const handleManualRefresh = () => {
-    setRefreshTrigger(prev => prev + 1);
+  const handleRegeneratePredictions = () => {
+    fetchPredictions(true);
   };
 
   const getRiskColor = (probability: number) => {
-    if (probability >= 0.7) return 'text-red-600 bg-red-50';
-    if (probability >= 0.4) return 'text-orange-600 bg-orange-50';
-    return 'text-yellow-600 bg-yellow-50';
+    if (probability >= 0.7) return 'text-red-600 bg-red-50 border-red-200';
+    if (probability >= 0.4) return 'text-orange-600 bg-orange-50 border-orange-200';
+    return 'text-yellow-600 bg-yellow-50 border-yellow-200';
   };
 
   const getRiskLevel = (probability: number) => {
@@ -139,50 +168,59 @@ export default function Predictions() {
     return 'Low Risk';
   };
 
-  // Check if profile has actual data (not just empty/null values)
-  const isProfileComplete = (profile: UserProfile | null): boolean => {
+  const isProfileComplete = (profile: UserProfile | null) => {
     if (!profile) return false;
-    return (
-      profile.age !== null &&
-      profile.gender !== null &&
-      profile.physicalMetrics?.height?.value !== null &&
-      profile.physicalMetrics?.weight?.value !== null &&
-      profile.lifestyle?.activityLevel !== null &&
-      profile.lifestyle?.sleepHours !== null
-    );
+    return !!(profile.age && profile.gender && profile.physicalMetrics?.height?.value && 
+              profile.physicalMetrics?.weight?.value && profile.lifestyle?.activityLevel && 
+              profile.lifestyle?.sleepHours);
+  };
+
+  const getSourceLabel = (source?: string) => {
+    switch (source) {
+      case 'model':
+        return '🤖 ML Model';
+      case 'rule_based':
+        return '📋 Rule-based';
+      case 'custom_prediction':
+        return '⚙️ Custom';
+      case 'user_reported':
+        return '👤 User Reported';
+      case 'existing_condition':
+        return '🏥 Existing Condition';
+      default:
+        return '🔍 Analysis';
+    }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div 
+        className="min-h-screen flex items-center justify-center"
+        style={{ 
+          background: `linear-gradient(135deg, ${theme.colors.surface} 0%, ${theme.colors.background} 100%)`
+        }}
+      >
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Analyzing your health data...</p>
+          <div 
+            className="animate-spin rounded-full h-16 w-16 border-b-2 mx-auto mb-4"
+            style={{ borderColor: theme.colors.primary }}
+          ></div>
+          <p style={{ color: theme.colors.textSecondary }}>Analyzing your health data...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* User Header */}
-      <UserHeader />
-
-      {/* Page Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <img src={logoImg} alt="Lifora Logo" className="w-10 h-10" />
-              <h1 className="text-2xl font-bold text-gray-900">Lifora</h1>
-            </div>
-            <Button variant="ghost" onClick={() => navigate('/dashboard')}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Dashboard
-            </Button>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen" style={{ 
+      background: `linear-gradient(135deg, ${theme.colors.surface} 0%, ${theme.colors.background} 100%)`
+    }}>
+      {/* Header */}
+      <Header 
+        title="Lifora"
+        showBackButton
+        showHomeButton
+      />
 
       {/* Main Content */}
       <main className="container mx-auto px-6 py-12">
@@ -240,24 +278,19 @@ export default function Predictions() {
                             const bmi = profile.physicalMetrics.bmi;
                             let status = 'Unknown';
                             let color = 'bg-gray-100 text-gray-700';
-                            let bgColor = '#F3F4F6';
                             
                             if (bmi < 18.5) {
                               status = 'Underweight';
                               color = 'bg-blue-100 text-blue-700';
-                              bgColor = '#DBEAFE';
                             } else if (bmi < 25) {
                               status = 'Healthy';
                               color = 'bg-green-100 text-green-700';
-                              bgColor = '#DCFCE7';
                             } else if (bmi < 30) {
                               status = 'Overweight';
                               color = 'bg-yellow-100 text-yellow-700';
-                              bgColor = '#FEF3C7';
                             } else {
                               status = 'Obese';
                               color = 'bg-red-100 text-red-700';
-                              bgColor = '#FEE2E2';
                             }
                             
                             return (
@@ -572,41 +605,77 @@ export default function Predictions() {
               {/* Predictions */}
               {predictions.filter((p) => p.probability > 0).length > 0 && isProfileComplete(profile) ? (
                 <>
+                  {cached && (
+                    <Card className="bg-blue-50 border-blue-200 mb-6">
+                      <CardContent className="pt-6">
+                        <p className="text-sm text-blue-800">
+                          ℹ️ Showing cached predictions from today. Click "Regenerate" to update with latest health data.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <Activity className="w-5 h-5" />
-                        Disease Risk Analysis
-                      </CardTitle>
+                      <div className="flex justify-between items-center">
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <Activity className="w-5 h-5" />
+                          Disease Risk Analysis
+                        </CardTitle>
+                        {lastUpdated && (
+                          <span className="text-xs text-gray-500">
+                            Updated: {new Date(lastUpdated).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
                     </CardHeader>
                     <CardContent>
                       <p className="text-sm text-gray-600 mb-4">
                         Based on your health profile, here are your predicted disease risks:
                       </p>
-                      <div className="space-y-3">
-                        {predictions
-                          .filter((prediction) => prediction.probability > 0)
-                          .map((prediction, index) => (
+                      <div className="space-y-4">
+                        {predictions.map((prediction, index) => (
                           <div
                             key={index}
-                            className={`p-4 rounded-lg border ${getRiskColor(prediction.probability)}`}
+                            className={`p-4 rounded-lg border-2 ${getRiskColor(prediction.probability)}`}
                           >
-                            <div className="flex justify-between items-center mb-2">
-                              <h3 className="font-semibold text-lg">{formatDiseaseName(prediction.name)}</h3>
-                              <span className="text-sm font-medium">
-                                {getRiskLevel(prediction.probability)}
-                              </span>
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h3 className="font-semibold text-lg">{prediction.name}</h3>
+                                  {prediction.source && (
+                                    <span className="text-xs px-2 py-1 rounded bg-white/50">
+                                      {getSourceLabel(prediction.source)}
+                                    </span>
+                                  )}
+                                </div>
+                                {prediction.factors && prediction.factors.length > 0 && (
+                                  <div className="mt-2">
+                                    <p className="text-xs font-medium mb-1">Contributing Factors:</p>
+                                    <ul className="text-xs list-disc list-inside space-y-0.5">
+                                      {prediction.factors.map((factor, idx) => (
+                                        <li key={idx}>{factor}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="text-right ml-4">
+                                <span className="text-sm font-medium block mb-1">
+                                  {getRiskLevel(prediction.probability)}
+                                </span>
+                                <span className="font-bold text-2xl">
+                                  {Math.round(prediction.probability * 100)}%
+                                </span>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3 mt-3">
                               <div className="flex-1 bg-white rounded-full h-3 overflow-hidden">
                                 <div
                                   className="h-full bg-current transition-all duration-300"
                                   style={{ width: `${prediction.probability * 100}%` }}
                                 />
                               </div>
-                              <span className="font-bold text-lg min-w-[60px] text-right">
-                                {Math.round(prediction.probability * 100)}%
-                              </span>
                             </div>
                           </div>
                         ))}
@@ -629,8 +698,22 @@ export default function Predictions() {
                     <Button onClick={() => navigate('/health-assessment')} variant="outline" className="flex-1">
                       Update Assessment
                     </Button>
-                    <Button onClick={handleManualRefresh} className="flex-1">
-                      Refresh Predictions
+                    <Button 
+                      onClick={handleRegeneratePredictions} 
+                      disabled={regenerating}
+                      className="flex-1"
+                    >
+                      {regenerating ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                          Regenerating...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          Regenerate Predictions
+                        </>
+                      )}
                     </Button>
                   </div>
                 </>

@@ -3,6 +3,7 @@ import { Plus, Search, RotateCcw, Trash2, Edit2, X, AlertCircle } from 'lucide-r
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import AdminSidebar from '@/components/AdminSidebar';
+import { useTheme } from '@/context/ThemeContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -19,6 +20,7 @@ interface FoodLog {
 }
 
 export default function FoodLogs() {
+  const { theme } = useTheme();
   const [foodLogs, setFoodLogs] = useState<FoodLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -304,7 +306,7 @@ export default function FoodLogs() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex">
+    <div className="min-h-screen flex" style={{ background: `linear-gradient(135deg, ${theme.colors.surface} 0%, ${theme.colors.background} 100%)` }}>
       <AdminSidebar activeNav="foodlogs" onSidebarToggle={setSidebarOpen} />
 
       <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-20'}`}>
@@ -313,8 +315,8 @@ export default function FoodLogs() {
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h1 className="text-4xl font-bold text-gray-800 mb-2">Food Logs</h1>
-                <p className="text-gray-600">Track and manage your food intake</p>
+                <h1 className="text-4xl font-bold mb-2" style={{ color: theme.colors.text }}>Food Logs</h1>
+                <p style={{ color: theme.colors.textSecondary }}>Track and manage your food intake</p>
               </div>
               <Button
                 onClick={() => setShowModal(true)}

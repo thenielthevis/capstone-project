@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { ArrowLeft, Plus, Edit2, Trash2, RotateCcw, Search } from 'lucide-react';
 import AdminSidebar from '@/components/AdminSidebar';
+import { useTheme } from '@/context/ThemeContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -21,6 +22,7 @@ interface Workout {
 
 export default function Workouts() {
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -105,7 +107,7 @@ export default function Workouts() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex">
+    <div className="min-h-screen flex" style={{ background: `linear-gradient(135deg, ${theme.colors.surface} 0%, ${theme.colors.background} 100%)` }}>
       <AdminSidebar activeNav="workouts" onSidebarToggle={setSidebarOpen} />
       
       <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-20'}`}>
@@ -114,8 +116,8 @@ export default function Workouts() {
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h1 className="text-4xl font-bold text-gray-800 mb-2">Workouts</h1>
-                <p className="text-gray-600">Manage workout exercises and routines</p>
+                <h1 className="text-4xl font-bold mb-2" style={{ color: theme.colors.text }}>Workouts</h1>
+                <p style={{ color: theme.colors.textSecondary }}>Manage workout exercises and routines</p>
               </div>
               <Button
                 onClick={() => navigate('/admin/workouts/create')}

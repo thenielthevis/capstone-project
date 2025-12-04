@@ -1,5 +1,6 @@
 const express = require('express');
 const User = require('../models/userModel');
+const FoodLog = require('../models/foodLogModel');
 const jwt = require('jsonwebtoken');
 
 const router = express.Router();
@@ -84,7 +85,6 @@ router.get('/stats', checkAuth, async (req, res) => {
         res.json({
             totalUsers,
             totalAdmins,
-            premiumUsers: 0,
         });
     } catch (error) {
         console.error('[ADMIN STATS] ✗ Error:', error.message);
@@ -173,6 +173,86 @@ router.post('/create-admin', checkAuth, async (req, res) => {
     }
 });
 
+// Search users - MUST come before /users/:userId to avoid treating 'search' as an ID
+router.get('/users/search', checkAuth, async (req, res) => {
+    console.log('[ADMIN] GET /users/search - Query:', req.query.q);
+    try {
+        const { q } = req.query;
+        
+        if (!q || typeof q !== 'string') {
+            return res.status(400).json({ message: 'Search query required' });
+        }
+
+        const users = await User.find({
+            $or: [
+                { username: { $regex: q, $options: 'i' } },
+                { email: { $regex: q, $options: 'i' } }
+            ]
+        })
+        .select('-password')
+        .limit(20);
+
+        console.log('[ADMIN SEARCH] ✓ Found', users.length, 'users');
+
+        res.json({ users });
+    } catch (error) {
+        console.error('[ADMIN SEARCH] ✗ Error:', error.message);
+        res.status(500).json({ message: 'Error searching users', error: error.message });
+    }
+});
+
+// Get user by ID
+router.get('/users/:userId', checkAuth, async (req, res) => {
+    console.log('[ADMIN] GET /users/:userId -', req.params.userId);
+    try {
+        const { userId } = req.params;
+
+        const user = await User.findById(userId).select('-password');
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        console.log('[ADMIN GET USER] ✓ User found:', userId);
+
+        res.json(user);
+    } catch (error) {
+        console.error('[ADMIN GET USER] ✗ Error:', error.message);
+        res.status(500).json({ message: 'Error fetching user', error: error.message });
+    }
+});
+
+// Update user
+router.put('/users/:userId', checkAuth, async (req, res) => {
+    console.log('[ADMIN] PUT /users/:userId -', req.params.userId);
+    try {
+        const { userId } = req.params;
+        const { username, email, role, verified } = req.body;
+
+        const updateData = {};
+        if (username) updateData.username = username;
+        if (email) updateData.email = email;
+        if (role) updateData.role = role;
+        if (verified !== undefined) updateData.verified = verified;
+
+        const user = await User.findByIdAndUpdate(
+            userId,
+            updateData,
+            { new: true, runValidators: true }
+        ).select('-password');
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        console.log('[ADMIN UPDATE] ✓ User updated:', userId);
+
+        res.json({ message: 'User updated successfully', user });
+    } catch (error) {
+        console.error('[ADMIN UPDATE] ✗ Error:', error.message);
+        res.status(500).json({ message: 'Error updating user', error: error.message });
+    }
+});
+
 // Delete user
 router.delete('/users/:userId', checkAuth, async (req, res) => {
     console.log('[ADMIN] DELETE /users/:userId -', req.params.userId);
@@ -194,6 +274,189 @@ router.delete('/users/:userId', checkAuth, async (req, res) => {
     } catch (error) {
         console.error('[ADMIN DELETE] ✗ Error:', error.message);
         res.status(500).json({ message: 'Error deleting user', error: error.message });
+    }
+});
+
+// ============= FOOD LOG ENDPOINTS =============
+// IMPORTANT: Specific routes like /stats must come BEFORE generic routes like /:id
+
+// Get food log statistics - MUST be before /foodlogs to avoid route conflicts
+router.get('/foodlogs/stats', checkAuth, async (req, res) => {
+    console.log('[ADMIN] GET /foodlogs/stats');
+    try {
+        const totalFoodLogs = await FoodLog.countDocuments();
+        const totalUsers = await User.countDocuments({ role: 'user' });
+        
+        // Get logs from last 7 days
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const recentLogs = await FoodLog.countDocuments({
+            analyzedAt: { $gte: sevenDaysAgo }
+        });
+
+        // Get most active users
+        const topUsers = await FoodLog.aggregate([
+            {
+                $group: {
+                    _id: '$userId',
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $sort: { count: -1 }
+            },
+            {
+                $limit: 5
+            },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'user'
+                }
+            },
+            {
+                $unwind: '$user'
+            },
+            {
+                $project: {
+                    userId: '$_id',
+                    username: '$user.username',
+                    email: '$user.email',
+                    logCount: '$count'
+                }
+            }
+        ]);
+
+        // Get most logged foods
+        const topFoods = await FoodLog.aggregate([
+            {
+                $group: {
+                    _id: '$foodName',
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $sort: { count: -1 }
+            },
+            {
+                $limit: 10
+            },
+            {
+                $project: {
+                    foodName: '$_id',
+                    count: 1,
+                    _id: 0
+                }
+            }
+        ]);
+
+        console.log('[ADMIN FOODLOG STATS] ✓ Stats retrieved');
+
+        res.json({
+            totalFoodLogs,
+            totalUsers,
+            recentLogs,
+            averageLogsPerUser: totalUsers > 0 ? (totalFoodLogs / totalUsers).toFixed(2) : '0',
+            topUsers,
+            topFoods
+        });
+    } catch (error) {
+        console.error('[ADMIN FOODLOG STATS] ✗ Error:', error.message);
+        res.status(500).json({ message: 'Failed to fetch food log statistics', error: error.message });
+    }
+});
+
+// Get all food logs - MUST be after /stats to avoid route conflicts
+router.get('/foodlogs', checkAuth, async (req, res) => {
+    console.log('[ADMIN] GET /foodlogs - Query:', req.query);
+    try {
+        const { 
+            page = 1, 
+            limit = 20, 
+            startDate, 
+            endDate,
+            searchQuery,
+            userId,
+            sortBy = 'analyzedAt',
+            sortOrder = 'desc'
+        } = req.query;
+
+        let query = {};
+
+        // Filter by specific user if provided
+        if (userId) {
+            query.userId = userId;
+        }
+
+        // Date range filter
+        if (startDate || endDate) {
+            query.analyzedAt = {};
+            if (startDate) query.analyzedAt.$gte = new Date(startDate);
+            if (endDate) query.analyzedAt.$lte = new Date(endDate);
+        }
+
+        // Search filter
+        if (searchQuery) {
+            query.$or = [
+                { foodName: { $regex: searchQuery, $options: 'i' } },
+                { dishName: { $regex: searchQuery, $options: 'i' } },
+                { 'brandedProduct.brandName': { $regex: searchQuery, $options: 'i' } },
+                { 'brandedProduct.productName': { $regex: searchQuery, $options: 'i' } }
+            ];
+        }
+
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+        const sortOptions = {};
+        sortOptions[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+        console.log('[ADMIN FOODLOGS] Query:', JSON.stringify(query));
+
+        const foodLogs = await FoodLog.find(query)
+            .populate('userId', 'username email profilePicture')
+            .sort(sortOptions)
+            .skip(skip)
+            .limit(parseInt(limit));
+
+        const totalCount = await FoodLog.countDocuments(query);
+
+        console.log('[ADMIN FOODLOGS] ✓ Found', foodLogs.length, 'food logs (total:', totalCount + ')');
+
+        res.json({
+            message: 'Food logs retrieved successfully',
+            foodLogs,
+            pagination: {
+                currentPage: parseInt(page),
+                totalPages: Math.ceil(totalCount / parseInt(limit)),
+                totalItems: totalCount,
+                itemsPerPage: parseInt(limit)
+            }
+        });
+    } catch (error) {
+        console.error('[ADMIN FOODLOGS] ✗ Error:', error.message);
+        res.status(500).json({ message: 'Failed to fetch food logs', error: error.message });
+    }
+});
+
+// Delete a food log
+router.delete('/foodlogs/:foodLogId', checkAuth, async (req, res) => {
+    console.log('[ADMIN] DELETE /foodlogs/:foodLogId -', req.params.foodLogId);
+    try {
+        const { foodLogId } = req.params;
+
+        const foodLog = await FoodLog.findByIdAndDelete(foodLogId);
+
+        if (!foodLog) {
+            return res.status(404).json({ message: 'Food log not found' });
+        }
+
+        console.log('[ADMIN DELETE FOODLOG] ✓ Food log deleted:', foodLogId);
+
+        res.json({ message: 'Food log deleted successfully' });
+    } catch (error) {
+        console.error('[ADMIN DELETE FOODLOG] ✗ Error:', error.message);
+        res.status(500).json({ message: 'Failed to delete food log', error: error.message });
     }
 });
 

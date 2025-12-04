@@ -1,73 +1,88 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { lightTheme, darkTheme, oceanTheme, Theme, ThemeMode } from '../design/tokens';
 
-type ThemeMode = 'light' | 'dark' | 'ocean';
+const THEMES = {
+  light: lightTheme,
+  dark: darkTheme,
+  ocean: oceanTheme,
+};
 
-interface ThemeContextType {
+type ThemeContextType = {
   themeMode: ThemeMode;
+  theme: Theme;
   setThemeMode: (mode: ThemeMode) => void;
-}
+};
 
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+const ThemeContext = createContext<ThemeContextType>({
+  themeMode: 'light',
+  theme: lightTheme,
+  setThemeMode: () => {},
+});
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [themeMode, setThemeModeState] = useState<ThemeMode>('light');
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  // Load theme from localStorage on mount
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as ThemeMode | null;
-    if (savedTheme && ['light', 'dark', 'ocean'].includes(savedTheme)) {
-      setThemeModeState(savedTheme);
-      applyTheme(savedTheme);
-    } else {
-      // Check system preference
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const defaultTheme: ThemeMode = prefersDark ? 'dark' : 'light';
-      setThemeModeState(defaultTheme);
-      applyTheme(defaultTheme);
+  const [themeMode, setThemeModeState] = useState<ThemeMode>(() => {
+    // Initialize from localStorage or system preference
+    const savedTheme = localStorage.getItem('theme') as ThemeMode;
+    if (savedTheme && THEMES[savedTheme]) {
+      return savedTheme;
     }
-    setIsLoaded(true);
-  }, []);
+    
+    // Check system preference
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return prefersDark ? 'dark' : 'light';
+  });
+
+  useEffect(() => {
+    // Apply theme to document
+    const theme = THEMES[themeMode];
+    const root = document.documentElement;
+    
+    // Apply CSS variables
+    root.style.setProperty('--color-background', theme.colors.background);
+    root.style.setProperty('--color-surface', theme.colors.surface);
+    root.style.setProperty('--color-text-primary', theme.colors.text);
+    root.style.setProperty('--color-text-secondary', theme.colors.textSecondary);
+    root.style.setProperty('--color-text-tertiary', theme.colors.textTertiary);
+    root.style.setProperty('--color-primary-base', theme.colors.primary);
+    root.style.setProperty('--color-secondary-base', theme.colors.secondary);
+    root.style.setProperty('--color-accent-base', theme.colors.accent);
+    root.style.setProperty('--color-input-bg', theme.colors.input);
+    root.style.setProperty('--color-border-base', theme.colors.border);
+    root.style.setProperty('--color-border-secondary-base', theme.colors.borderSecondary);
+    root.style.setProperty('--color-error-base', theme.colors.error);
+    root.style.setProperty('--color-success-base', theme.colors.success);
+    root.style.setProperty('--color-card', theme.colors.card);
+    root.style.setProperty('--color-card-hover', theme.colors.cardHover);
+    root.style.setProperty('--color-overlay', theme.colors.overlay);
+    
+    // Set data attribute for theme-specific styling
+    root.setAttribute('data-theme', themeMode);
+    
+    // Set background color on body
+    document.body.style.backgroundColor = theme.colors.background;
+    document.body.style.color = theme.colors.text;
+  }, [themeMode]);
 
   const setThemeMode = (mode: ThemeMode) => {
     setThemeModeState(mode);
     localStorage.setItem('theme', mode);
-    applyTheme(mode);
   };
 
-  const applyTheme = (mode: ThemeMode) => {
-    const htmlElement = document.documentElement;
-    
-    htmlElement.classList.remove('light', 'dark', 'ocean');
-    htmlElement.classList.add(mode);
-
-    // Apply CSS variables and styles based on theme
-    if (mode === 'dark') {
-      htmlElement.style.colorScheme = 'dark';
-      document.documentElement.style.setProperty('--background', '#0f172a');
-      document.documentElement.style.setProperty('--foreground', '#f1f5f9');
-    } else if (mode === 'ocean') {
-      htmlElement.style.colorScheme = 'dark';
-      document.documentElement.style.setProperty('--background', '#0c1929');
-      document.documentElement.style.setProperty('--foreground', '#e0f2fe');
-    } else {
-      htmlElement.style.colorScheme = 'light';
-      document.documentElement.style.setProperty('--background', '#ffffff');
-      document.documentElement.style.setProperty('--foreground', '#0f172a');
-    }
-  };
+  const theme = THEMES[themeMode];
 
   return (
-    <ThemeContext.Provider value={{ themeMode, setThemeMode }}>
-      {isLoaded && children}
+    <ThemeContext.Provider value={{ themeMode, theme, setThemeMode }}>
+      {children}
     </ThemeContext.Provider>
   );
 }
 
-export const useTheme = () => {
+export function useTheme() {
   const context = useContext(ThemeContext);
   if (context === undefined) {
     throw new Error('useTheme must be used within a ThemeProvider');
   }
   return context;
-};
+}
+
+export default ThemeProvider;

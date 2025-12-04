@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { ArrowLeft, Upload, Zap } from 'lucide-react';
 import AdminSidebar from '@/components/AdminSidebar';
+import { useTheme } from '@/context/ThemeContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -36,6 +37,7 @@ const CATEGORIES = [
 export default function WorkoutForm() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { theme } = useTheme();
   const isEdit = !!id;
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -193,7 +195,7 @@ export default function WorkoutForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex">
+    <div className="min-h-screen flex" style={{ background: `linear-gradient(135deg, ${theme.colors.surface} 0%, ${theme.colors.background} 100%)` }}>
       <AdminSidebar activeNav="workouts" onSidebarToggle={setSidebarOpen} />
       
       <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-20'}`}>
@@ -202,12 +204,13 @@ export default function WorkoutForm() {
           <div className="mb-8">
             <button
               onClick={() => navigate('/admin/workouts')}
-              className="flex items-center gap-2 text-blue-600 hover:text-blue-800 mb-4"
+              className="flex items-center gap-2 hover:opacity-80 mb-4"
+              style={{ color: theme.colors.primary }}
             >
               <ArrowLeft size={20} />
               Back to Workouts
             </button>
-            <h1 className="text-4xl font-bold text-gray-800">
+            <h1 className="text-4xl font-bold" style={{ color: theme.colors.text }}>
               {isEdit ? 'Edit Workout' : 'Create New Workout'}
             </h1>
           </div>

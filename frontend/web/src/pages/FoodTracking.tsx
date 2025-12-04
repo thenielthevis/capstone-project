@@ -1,25 +1,87 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Home, Camera, Edit3 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useState, useEffect } from 'react';
+import { Camera, Edit3, History, BarChart3, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTheme } from '@/context/ThemeContext';
+import { useAuth } from '@/context/AuthContext';
 import ImageUpload from '@/components/food/ImageUpload';
 import ManualInput from '@/components/food/ManualInput';
 import CalorieResult from '@/components/food/CalorieResult';
-import UserHeader from '@/components/UserHeader';
 import { analyzeFood, analyzeIngredients } from '@/services/geminiService';
-import logoImg from '@/assets/logo.png';
+import foodLogApi from '@/api/foodLogApi';
+import Header from '@/components/Header';
 
 export default function FoodTracking() {
-  const navigate = useNavigate();
+  const { theme } = useTheme();
+  const { user } = useAuth();
+  const [viewMode, setViewMode] = useState<'analyze' | 'history'>('analyze');
   const [activeTab, setActiveTab] = useState<'image' | 'manual'>('image');
   const [result, setResult] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  
+  // History states
+  const [foodHistory, setFoodHistory] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentDishName, setCurrentDishName] = useState('');
+  const [currentAllergies, setCurrentAllergies] = useState<string[]>([]);
+
+  // Save food log to backend
+  const saveFoodLog = async (analysisResult: any, imageBase64?: string, ingredientsList?: string) => {
+    if (!user) {
+      console.log('No user logged in, skipping food log save');
+      return;
+    }
+
+    try {
+      console.log('Attempting to save food log...');
+      
+      // Don't send base64 image if it's too large (over 10MB)
+      let imageToSend = imageBase64;
+      if (imageBase64) {
+        const sizeInBytes = imageBase64.length * 0.75; // Approximate size
+        const sizeInMB = sizeInBytes / (1024 * 1024);
+        console.log(`Image size: ${sizeInMB.toFixed(2)} MB`);
+        
+        if (sizeInMB > 10) {
+          console.log('Image too large, skipping image upload');
+          imageToSend = undefined;
+          alert('Note: Image is too large and was not saved. Food data saved successfully.');
+        }
+      }
+
+      await foodLogApi.createFoodLog({
+        ...analysisResult,
+        inputMethod: activeTab,
+        imageBase64: imageToSend,
+        dishName: currentDishName || undefined,
+        userAllergies: currentAllergies,
+        ingredientsList: activeTab === 'manual' ? ingredientsList : undefined
+      });
+      
+      console.log('Food log saved successfully');
+    } catch (err: any) {
+      console.error('Error saving food log:', err);
+      console.error('Error details:', err.response?.data || err.message);
+      
+      // Show error to user if it's a network or server issue
+      if (err.message?.includes('Network Error') || err.message?.includes('timeout')) {
+        alert('Save Failed: Could not save to history. Please check your connection.');
+      } else if (err.response?.status === 401) {
+        alert('Authentication Error: Please log in again to save your food logs.');
+      } else if (err.response?.status >= 500) {
+        alert('Server Error: Could not save to history. The analysis is still available above.');
+      }
+    }
+  };
 
   const handleImageUpload = async (file: File, dishName: string, allergies: string[]) => {
     setIsLoading(true);
     setError(null);
+    setCurrentDishName(dishName);
+    setCurrentAllergies(allergies);
 
     // Create preview URL
     const imageUrl = URL.createObjectURL(file);
@@ -28,6 +90,16 @@ export default function FoodTracking() {
     try {
       const analysisResult = await analyzeFood(file, dishName, allergies);
       setResult(analysisResult);
+      
+      // Convert file to base64 and save to backend
+      if (user) {
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const base64data = reader.result as string;
+          await saveFoodLog(analysisResult, base64data);
+        };
+        reader.readAsDataURL(file);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to analyze image');
       console.error('Analysis error:', err);
@@ -40,10 +112,17 @@ export default function FoodTracking() {
   const handleManualAnalyze = async (ingredients: string, dishName: string, allergies: string[]) => {
     setIsLoading(true);
     setError(null);
+    setCurrentDishName(dishName);
+    setCurrentAllergies(allergies);
 
     try {
       const analysisResult = await analyzeIngredients(ingredients, dishName, allergies);
       setResult(analysisResult);
+      
+      // Save to backend
+      if (user) {
+        await saveFoodLog(analysisResult, undefined, ingredients);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to analyze ingredients');
       console.error('Analysis error:', err);
@@ -52,6 +131,38 @@ export default function FoodTracking() {
     }
   };
 
+  // Load food history
+  const loadFoodHistory = async (page: number = 1, search: string = '') => {
+    if (!user) return;
+    
+    setHistoryLoading(true);
+    try {
+      const response = await foodLogApi.getUserFoodLogs({
+        page,
+        limit: 20,
+        searchQuery: search || undefined,
+        sortBy: 'analyzedAt',
+        sortOrder: 'desc'
+      });
+      
+      setFoodHistory(response.foodLogs);
+      setCurrentPage(response.pagination.currentPage);
+      setTotalPages(response.pagination.totalPages);
+    } catch (err: any) {
+      console.error('Error loading food history:', err);
+      setError('Failed to load food history.');
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  // Load history when switching to history view
+  useEffect(() => {
+    if (viewMode === 'history' && user) {
+      loadFoodHistory(1, searchQuery);
+    }
+  }, [viewMode, user]);
+
   const handleReset = () => {
     setResult(null);
     setError(null);
@@ -59,63 +170,94 @@ export default function FoodTracking() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* User Header */}
-      <UserHeader />
-
-      {/* Page Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate('/dashboard')}
-                className="flex items-center gap-2"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back
-              </Button>
-              <div className="flex items-center gap-2">
-                <img src={logoImg} alt="Lifora Logo" className="w-10 h-10" />
-                <h1 className="text-2xl font-bold text-gray-900">Food Tracker</h1>
-              </div>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/dashboard')}
-              className="flex items-center gap-2"
-            >
-              <Home className="w-4 h-4" />
-              Dashboard
-            </Button>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen" style={{ 
+      background: `linear-gradient(135deg, ${theme.colors.surface} 0%, ${theme.colors.background} 100%)`
+    }}>
+      {/* Header */}
+      <Header 
+        title="Food Tracker"
+        showBackButton
+        showHomeButton
+      />
 
       <div className="container mx-auto px-6 py-8">
         <div className="max-w-6xl mx-auto">
-          {/* Page Title */}
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">
-              AI Food & Nutrition Analysis
-            </h2>
-            <p className="text-gray-600">
-              Upload food images or enter ingredients for comprehensive nutritional analysis with allergy detection
-            </p>
+          {/* Page Title and View Toggle */}
+          <div className="mb-8 flex justify-between items-center">
+            <div>
+              <h2 
+                className="text-3xl font-bold mb-2"
+                style={{ 
+                  color: theme.colors.text,
+                  fontFamily: theme.fonts.heading
+                }}
+              >
+                AI Food & Nutrition Analysis
+              </h2>
+              <p style={{ color: theme.colors.textSecondary }}>
+                {viewMode === 'analyze' 
+                  ? 'Upload food images or enter ingredients for comprehensive nutritional analysis with allergy detection'
+                  : 'View your food tracking history'
+                }
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setViewMode('analyze')}
+                className="px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2"
+                style={{
+                  backgroundColor: viewMode === 'analyze' ? theme.colors.primary : theme.colors.surface,
+                  color: viewMode === 'analyze' ? '#FFFFFF' : theme.colors.text,
+                }}
+              >
+                <BarChart3 className="w-5 h-5" />
+                Analyze Food
+              </button>
+              <button
+                onClick={() => setViewMode('history')}
+                className="px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2"
+                style={{
+                  backgroundColor: viewMode === 'history' ? theme.colors.primary : theme.colors.surface,
+                  color: viewMode === 'history' ? '#FFFFFF' : theme.colors.text,
+                }}
+              >
+                <History className="w-5 h-5" />
+                History
+              </button>
+            </div>
           </div>
 
         {/* Error Message */}
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+          <div 
+            className="mb-6 border rounded-lg p-4"
+            style={{
+              backgroundColor: theme.colors.error + '10',
+              borderColor: theme.colors.error + '40'
+            }}
+          >
             <div>
-              <h3 className="font-semibold text-red-800">Error</h3>
-              <p className="text-red-700 text-sm">{error}</p>
+              <h3 
+                className="font-semibold"
+                style={{ color: theme.colors.error }}
+              >
+                Error
+              </h3>
+              <p 
+                className="text-sm mt-1"
+                style={{ color: theme.colors.error }}
+              >
+                {error}
+              </p>
               {error.includes('API key') && (
-                <p className="text-red-600 text-xs mt-2">
-                  Add <code className="bg-red-100 px-1 rounded">VITE_GEMINI_API_KEY</code> to your .env file
+                <p 
+                  className="text-xs mt-2"
+                  style={{ color: theme.colors.error }}
+                >
+                  Add <code 
+                    className="px-1 rounded"
+                    style={{ backgroundColor: theme.colors.error + '20' }}
+                  >VITE_GEMINI_API_KEY</code> to your .env file
                 </p>
               )}
             </div>
@@ -123,30 +265,223 @@ export default function FoodTracking() {
         )}
 
         {!result ? (
-          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+          <>
+          {viewMode === 'history' ? (
+            // History View
+            <div 
+              className="rounded-xl shadow-lg overflow-hidden border"
+              style={{ 
+                backgroundColor: theme.colors.card,
+                borderColor: theme.colors.border
+              }}
+            >
+              {/* Search Bar */}
+              <div className="p-6 border-b" style={{ borderColor: theme.colors.border }}>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5" style={{ color: theme.colors.textSecondary }} />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      loadFoodHistory(1, e.target.value);
+                    }}
+                    placeholder="Search by food name..."
+                    className="w-full pl-10 pr-4 py-3 rounded-lg border"
+                    style={{
+                      backgroundColor: theme.colors.surface,
+                      borderColor: theme.colors.border,
+                      color: theme.colors.text,
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* History Content */}
+              <div className="p-6">
+                {historyLoading ? (
+                  <div className="flex justify-center items-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: theme.colors.primary }}></div>
+                  </div>
+                ) : foodHistory.length === 0 ? (
+                  <div className="text-center py-12">
+                    <History className="w-16 h-16 mx-auto mb-4" style={{ color: theme.colors.textSecondary }} />
+                    <p style={{ color: theme.colors.textSecondary }}>
+                      {searchQuery ? 'No food logs found matching your search.' : 'No food logs yet. Start analyzing food to build your history!'}
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Food History Items */}
+                    <div className="space-y-4">
+                      {foodHistory.map((log) => (
+                        <div
+                          key={log._id}
+                          className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                          style={{
+                            backgroundColor: theme.colors.surface,
+                            borderColor: theme.colors.border,
+                          }}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <h3 
+                                className="text-lg font-bold mb-1"
+                                style={{ color: theme.colors.text }}
+                              >
+                                {log.foodName}
+                              </h3>
+                              {log.dishName && (
+                                <p 
+                                  className="text-sm mb-2"
+                                  style={{ color: theme.colors.textSecondary }}
+                                >
+                                  {log.dishName}
+                                </p>
+                              )}
+                              <div className="flex gap-4 text-sm">
+                                <span style={{ color: theme.colors.primary }}>
+                                  <strong>{log.calories}</strong> kcal
+                                </span>
+                                {log.nutrients?.protein > 0 && (
+                                  <span style={{ color: theme.colors.text }}>
+                                    Protein: {log.nutrients.protein}g
+                                  </span>
+                                )}
+                                {log.nutrients?.carbs > 0 && (
+                                  <span style={{ color: theme.colors.text }}>
+                                    Carbs: {log.nutrients.carbs}g
+                                  </span>
+                                )}
+                                {log.nutrients?.fat > 0 && (
+                                  <span style={{ color: theme.colors.text }}>
+                                    Fat: {log.nutrients.fat}g
+                                  </span>
+                                )}
+                              </div>
+                              <p 
+                                className="text-xs mt-2"
+                                style={{ color: theme.colors.textSecondary }}
+                              >
+                                {new Date(log.analyzedAt).toLocaleDateString('en-US', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </p>
+                            </div>
+                            {log.imageUrl && (
+                              <img
+                                src={log.imageUrl}
+                                alt={log.foodName}
+                                className="w-20 h-20 object-cover rounded-lg ml-4"
+                              />
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                      <div className="flex justify-center items-center gap-4 mt-6">
+                        <button
+                          onClick={() => loadFoodHistory(currentPage - 1, searchQuery)}
+                          disabled={currentPage === 1}
+                          className="px-4 py-2 rounded-lg flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                          style={{
+                            backgroundColor: currentPage === 1 ? theme.colors.surface : theme.colors.primary,
+                            color: currentPage === 1 ? theme.colors.textSecondary : '#FFFFFF',
+                          }}
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                          Previous
+                        </button>
+                        <span style={{ color: theme.colors.text }}>
+                          Page {currentPage} of {totalPages}
+                        </span>
+                        <button
+                          onClick={() => loadFoodHistory(currentPage + 1, searchQuery)}
+                          disabled={currentPage === totalPages}
+                          className="px-4 py-2 rounded-lg flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                          style={{
+                            backgroundColor: currentPage === totalPages ? theme.colors.surface : theme.colors.primary,
+                            color: currentPage === totalPages ? theme.colors.textSecondary : '#FFFFFF',
+                          }}
+                        >
+                          Next
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          ) : (
+            // Analysis View
+          <div 
+            className="rounded-xl shadow-lg overflow-hidden border"
+            style={{ 
+              backgroundColor: theme.colors.card,
+              borderColor: theme.colors.border
+            }}
+          >
             {/* Tab Navigation */}
-            <div className="flex border-b bg-gray-50">
+            <div 
+              className="flex border-b"
+              style={{ 
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border
+              }}
+            >
               <button
                 onClick={() => setActiveTab('image')}
-                className={`flex-1 px-6 py-4 font-semibold transition-all flex items-center justify-center gap-2 ${
-                  activeTab === 'image'
-                    ? 'bg-white text-blue-600 border-b-2 border-blue-600'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
+                className="flex-1 px-6 py-4 font-semibold transition-all flex items-center justify-center gap-2"
+                style={{
+                  backgroundColor: activeTab === 'image' ? theme.colors.card : 'transparent',
+                  color: activeTab === 'image' ? theme.colors.primary : theme.colors.textSecondary,
+                  borderBottom: activeTab === 'image' ? `2px solid ${theme.colors.primary}` : 'none',
+                  fontFamily: theme.fonts.heading
+                }}
+                onMouseEnter={(e) => {
+                  if (activeTab !== 'image') {
+                    e.currentTarget.style.backgroundColor = theme.colors.cardHover;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (activeTab !== 'image') {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }
+                }}
               >
                 <Camera className="w-5 h-5" />
-                Image Upload
+                <span className="hidden sm:inline">Image Upload</span>
               </button>
               <button
                 onClick={() => setActiveTab('manual')}
-                className={`flex-1 px-6 py-4 font-semibold transition-all flex items-center justify-center gap-2 ${
-                  activeTab === 'manual'
-                    ? 'bg-white text-green-600 border-b-2 border-green-600'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
+                className="flex-1 px-6 py-4 font-semibold transition-all flex items-center justify-center gap-2"
+                style={{
+                  backgroundColor: activeTab === 'manual' ? theme.colors.card : 'transparent',
+                  color: activeTab === 'manual' ? theme.colors.success : theme.colors.textSecondary,
+                  borderBottom: activeTab === 'manual' ? `2px solid ${theme.colors.success}` : 'none',
+                  fontFamily: theme.fonts.heading
+                }}
+                onMouseEnter={(e) => {
+                  if (activeTab !== 'manual') {
+                    e.currentTarget.style.backgroundColor = theme.colors.cardHover;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (activeTab !== 'manual') {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }
+                }}
               >
                 <Edit3 className="w-5 h-5" />
-                Manual Entry
+                <span className="hidden sm:inline">Manual Entry</span>
               </button>
             </div>
 
@@ -159,6 +494,8 @@ export default function FoodTracking() {
               )}
             </div>
           </div>
+          )}
+          </>
         ) : (
           <CalorieResult 
             result={result} 
@@ -168,9 +505,21 @@ export default function FoodTracking() {
         )}
 
         {/* Info Card */}
-        {!result && (
-          <div className="mt-8 bg-white rounded-xl shadow-lg p-6 border-t-4 border-blue-600">
-            <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+        {!result && viewMode === 'analyze' && (
+          <div 
+            className="mt-8 rounded-xl shadow-lg p-6 border-t-4"
+            style={{ 
+              backgroundColor: theme.colors.card,
+              borderTopColor: theme.colors.primary
+            }}
+          >
+            <h3 
+              className="font-bold mb-4 flex items-center gap-2"
+              style={{ 
+                color: theme.colors.text,
+                fontFamily: theme.fonts.heading
+              }}
+            >
               <span className="text-2xl">✨</span>
               <span>Enhanced Features</span>
             </h3>
@@ -178,43 +527,103 @@ export default function FoodTracking() {
               <div className="flex gap-3">
                 <span className="text-2xl">🛡️</span>
                 <div>
-                  <h4 className="font-semibold text-gray-900">Allergy Detection</h4>
-                  <p className="text-sm text-gray-600">Select your allergies and get instant warnings</p>
+                  <h4 
+                    className="font-semibold"
+                    style={{ color: theme.colors.text }}
+                  >
+                    Allergy Detection
+                  </h4>
+                  <p 
+                    className="text-sm"
+                    style={{ color: theme.colors.textSecondary }}
+                  >
+                    Select your allergies and get instant warnings
+                  </p>
                 </div>
               </div>
               <div className="flex gap-3">
                 <span className="text-2xl">🛒</span>
                 <div>
-                  <h4 className="font-semibold text-gray-900">Where to Buy</h4>
-                  <p className="text-sm text-gray-600">Philippine stores (Lazada, Shopee, Puregold)</p>
+                  <h4 
+                    className="font-semibold"
+                    style={{ color: theme.colors.text }}
+                  >
+                    Where to Buy
+                  </h4>
+                  <p 
+                    className="text-sm"
+                    style={{ color: theme.colors.textSecondary }}
+                  >
+                    Philippine stores (Lazada, Shopee, Puregold)
+                  </p>
                 </div>
               </div>
               <div className="flex gap-3">
                 <span className="text-2xl">📊</span>
                 <div>
-                  <h4 className="font-semibold text-gray-900">Full Nutrition Facts</h4>
-                  <p className="text-sm text-gray-600">15+ data points including vitamins and minerals</p>
+                  <h4 
+                    className="font-semibold"
+                    style={{ color: theme.colors.text }}
+                  >
+                    Full Nutrition Facts
+                  </h4>
+                  <p 
+                    className="text-sm"
+                    style={{ color: theme.colors.textSecondary }}
+                  >
+                    15+ data points including vitamins and minerals
+                  </p>
                 </div>
               </div>
               <div className="flex gap-3">
                 <span className="text-2xl">👨‍🍳</span>
                 <div>
-                  <h4 className="font-semibold text-gray-900">Recipe Ideas</h4>
-                  <p className="text-sm text-gray-600">Get recipe links and cooking suggestions</p>
+                  <h4 
+                    className="font-semibold"
+                    style={{ color: theme.colors.text }}
+                  >
+                    Recipe Ideas
+                  </h4>
+                  <p 
+                    className="text-sm"
+                    style={{ color: theme.colors.textSecondary }}
+                  >
+                    Get recipe links and cooking suggestions
+                  </p>
                 </div>
               </div>
               <div className="flex gap-3">
                 <span className="text-2xl">💡</span>
                 <div>
-                  <h4 className="font-semibold text-gray-900">Healthier Alternatives</h4>
-                  <p className="text-sm text-gray-600">Discover better options with calorie savings</p>
+                  <h4 
+                    className="font-semibold"
+                    style={{ color: theme.colors.text }}
+                  >
+                    Healthier Alternatives
+                  </h4>
+                  <p 
+                    className="text-sm"
+                    style={{ color: theme.colors.textSecondary }}
+                  >
+                    Discover better options with calorie savings
+                  </p>
                 </div>
               </div>
               <div className="flex gap-3">
                 <span className="text-2xl">✅</span>
                 <div>
-                  <h4 className="font-semibold text-gray-900">Verified Data</h4>
-                  <p className="text-sm text-gray-600">Cross-referenced with FatSecret API and USDA</p>
+                  <h4 
+                    className="font-semibold"
+                    style={{ color: theme.colors.text }}
+                  >
+                    Verified Data
+                  </h4>
+                  <p 
+                    className="text-sm"
+                    style={{ color: theme.colors.textSecondary }}
+                  >
+                    Cross-referenced with FatSecret API and USDA
+                  </p>
                 </div>
               </div>
             </div>

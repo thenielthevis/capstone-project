@@ -1,5 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Info } from 'lucide-react';
+import { useTheme } from '@/context/ThemeContext';
 
 interface StepLifestyleProps {
   formData: any;
@@ -7,6 +8,7 @@ interface StepLifestyleProps {
 }
 
 const StepLifestyle: React.FC<StepLifestyleProps> = ({ formData, setFormData }) => {
+  const { theme } = useTheme();
   const commonAllergies = [
     'Peanuts', 'Tree Nuts', 'Milk', 'Eggs', 'Wheat', 'Soy',
     'Fish', 'Shellfish', 'Gluten', 'Pollen', 'Dust', 'Latex'
@@ -28,10 +30,10 @@ const StepLifestyle: React.FC<StepLifestyleProps> = ({ formData, setFormData }) 
       <CardContent className="pt-6 space-y-6">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <label className="text-sm font-medium">Activity Level *</label>
+            <label className="text-sm font-medium" style={{ color: theme.colors.text }}>Activity Level *</label>
             <div className="relative group">
-              <Info className="w-4 h-4 text-blue-600 cursor-help" />
-              <span className="invisible group-hover:visible absolute left-full ml-2 top-1/2 -translate-y-1/2 bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-10">
+              <Info className="w-4 h-4 cursor-help" style={{ color: theme.colors.primary }} />
+              <span className="invisible group-hover:visible absolute left-full ml-2 top-1/2 -translate-y-1/2 text-xs rounded px-2 py-1 whitespace-nowrap z-10" style={{ backgroundColor: theme.colors.card, color: theme.colors.text, border: `1px solid ${theme.colors.border}` }}>
                 1: Sedentary, 2: Lightly Active, 3: Moderately Active, 4: Very Active, 5: Extremely Active
               </span>
             </div>
@@ -48,11 +50,12 @@ const StepLifestyle: React.FC<StepLifestyleProps> = ({ formData, setFormData }) 
                 key={value}
                 type="button"
                 onClick={() => setFormData({ ...formData, activityLevel: value })}
-                className={`flex-1 px-3 py-2 rounded-md text-sm ${
-                  formData.activityLevel === value
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
+                className="flex-1 px-3 py-2 rounded-md text-sm"
+                style={{
+                  backgroundColor: formData.activityLevel === value ? theme.colors.primary : theme.colors.surface,
+                  color: formData.activityLevel === value ? '#FFFFFF' : theme.colors.text,
+                  border: `1px solid ${formData.activityLevel === value ? theme.colors.primary : theme.colors.border}`
+                }}
               >
                 {label}
               </button>
@@ -61,12 +64,17 @@ const StepLifestyle: React.FC<StepLifestyleProps> = ({ formData, setFormData }) 
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Average Daily Sleep Hours *</label>
+          <label className="block text-sm font-medium mb-2" style={{ color: theme.colors.text }}>Average Daily Sleep Hours *</label>
           <input
             type="number"
             value={formData.sleepHours}
             onChange={(e) => setFormData({ ...formData, sleepHours: e.target.value })}
-            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
+            style={{
+              backgroundColor: theme.colors.input,
+              borderColor: theme.colors.border,
+              color: theme.colors.text
+            }}
             placeholder="e.g., 7"
             min="0"
             max="24"

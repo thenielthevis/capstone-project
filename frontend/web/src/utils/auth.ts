@@ -1,4 +1,6 @@
 // Authentication utility functions for web
+import { signInWithPopup, signOut } from 'firebase/auth';
+import { auth, googleProvider } from '@/config/firebaseConfig';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -145,4 +147,32 @@ export const getAuthHeader = (): Record<string, string> => {
   return {
     'Authorization': `Bearer ${token}`,
   };
+};
+
+// Google Sign-In handler for web
+export const handleGoogleSignIn = async (): Promise<AuthResponse> => {
+  try {
+    // Sign out any existing Firebase session first
+    await signOut(auth);
+
+    // Sign in with Google popup
+    const result = await signInWithPopup(auth, googleProvider);
+    const user = result.user;
+
+    // Extract user information
+    const userInfo: GoogleUserInfo = {
+      username: user.displayName || user.email?.split('@')[0] || 'Google User',
+      email: user.email!,
+      googleId: user.uid,
+      profilePicture: user.photoURL || undefined,
+    };
+
+    // Register/login with backend
+    const response = await registerGoogleUser(userInfo);
+
+    return response;
+  } catch (error: any) {
+    console.error('Google Sign-In Error:', error);
+    throw new Error(error.message || 'Google Sign-In failed');
+  }
 };

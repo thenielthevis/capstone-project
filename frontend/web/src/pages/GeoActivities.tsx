@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Plus, Trash2, Search, MapPin, Mail, Edit2, RotateCcw } from 'lucide-react';
 import AdminSidebar from '@/components/AdminSidebar';
+import { useTheme } from '@/context/ThemeContext';
 import logoImg from '../assets/logo.png';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -20,6 +21,7 @@ interface GeoActivity {
 
 export default function GeoActivities() {
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const [activities, setActivities] = useState<GeoActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -94,14 +96,14 @@ export default function GeoActivities() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex">
+    <div className="min-h-screen flex" style={{ background: `linear-gradient(135deg, ${theme.colors.surface} 0%, ${theme.colors.background} 100%)` }}>
       {/* Sidebar */}
       <AdminSidebar activeNav="activities" onSidebarToggle={setSidebarOpen} />
 
       {/* Main Content */}
       <main className={`${sidebarOpen ? 'ml-64' : 'ml-20'} flex-1 transition-all duration-300`}>
-        {/* Header */}
-        <header className="bg-white shadow-sm sticky top-0 z-40">
+        {/* Top Header */}
+        <header className="shadow-sm sticky top-0 z-40" style={{ backgroundColor: theme.colors.surface }}>
           <div className="px-8 py-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <img src={logoImg} alt="Lifora Logo" className="w-10 h-10" />

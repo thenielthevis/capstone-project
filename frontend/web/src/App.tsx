@@ -6,16 +6,22 @@ import Dashboard from './pages/Dashboard';
 import HealthAssessment from './pages/HealthAssessment';
 import Predictions from './pages/Predictions';
 import FoodTracking from './pages/FoodTracking';
+import Programs from './pages/Programs';
+import CreateProgram from './pages/CreateProgram';
+import AutomatedProgram from './pages/AutomatedProgram';
+import ProgramOverview from './pages/ProgramOverview';
+import GroupProgram from './pages/GroupProgram';
+import ProgramCoach from './pages/ProgramCoach';
+import Settings from './pages/Settings';
+import TermsAndConditions from './pages/TermsAndConditions';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminUsers from './pages/AdminUsers';
 import CreateAdmin from './pages/CreateAdmin';
-import GeoActivities from './pages/GeoActivities';
-import GeoActivityForm from './pages/GeoActivityForm';
-import Workouts from './pages/Workouts';
-import WorkoutForm from './pages/WorkoutForm';
-import Programs from './pages/Programs';
-import FoodLogs from './pages/FoodLogs';
-import TermsAndConditions from './pages/TermsAndConditions';
+import AdminFoodLogs from './pages/AdminFoodLogs';
+import AdminGeoActivities from './pages/AdminGeoActivities';
+import AdminWorkouts from './pages/AdminWorkouts';
+import AdminPrograms from './pages/AdminPrograms';
+import AdminAchievements from './pages/AdminAchievements';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -58,9 +64,65 @@ function App() {
         }
       />
       <Route
+        path="/programs"
+        element={
+          <ProtectedRoute>
+            <Programs />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/programs/create"
+        element={
+          <ProtectedRoute>
+            <CreateProgram />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/programs/automated"
+        element={
+          <ProtectedRoute>
+            <AutomatedProgram />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/programs/overview/:id"
+        element={
+          <ProtectedRoute>
+            <ProgramOverview />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/programs/group"
+        element={
+          <ProtectedRoute>
+            <GroupProgram />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/programs/coach/:id"
+        element={
+          <ProtectedRoute>
+            <ProgramCoach />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/admin/dashboard"
         element={
-          <ProtectedRoute requiredRole="admin">
+          <ProtectedRoute>
             <AdminDashboard />
           </ProtectedRoute>
         }
@@ -68,7 +130,7 @@ function App() {
       <Route
         path="/admin/users"
         element={
-          <ProtectedRoute requiredRole="admin">
+          <ProtectedRoute>
             <AdminUsers />
           </ProtectedRoute>
         }
@@ -76,72 +138,48 @@ function App() {
       <Route
         path="/admin/create-admin"
         element={
-          <ProtectedRoute requiredRole="admin">
+          <ProtectedRoute>
             <CreateAdmin />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/geo-activities"
-        element={
-          <ProtectedRoute requiredRole="admin">
-            <GeoActivities />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/geo-activities/create"
-        element={
-          <ProtectedRoute requiredRole="admin">
-            <GeoActivityForm />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/geo-activities/edit/:id"
-        element={
-          <ProtectedRoute requiredRole="admin">
-            <GeoActivityForm />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/workouts"
-        element={
-          <ProtectedRoute requiredRole="admin">
-            <Workouts />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/workouts/create"
-        element={
-          <ProtectedRoute requiredRole="admin">
-            <WorkoutForm />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/workouts/edit/:id"
-        element={
-          <ProtectedRoute requiredRole="admin">
-            <WorkoutForm />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/programs"
-        element={
-          <ProtectedRoute requiredRole="admin">
-            <Programs />
           </ProtectedRoute>
         }
       />
       <Route
         path="/admin/foodlogs"
         element={
-          <ProtectedRoute requiredRole="admin">
-            <FoodLogs />
+          <ProtectedRoute>
+            <AdminFoodLogs />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/geo-activities"
+        element={
+          <ProtectedRoute>
+            <AdminGeoActivities />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/workouts"
+        element={
+          <ProtectedRoute>
+            <AdminWorkouts />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/programs"
+        element={
+          <ProtectedRoute>
+            <AdminPrograms />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/achievements"
+        element={
+          <ProtectedRoute>
+            <AdminAchievements />
           </ProtectedRoute>
         }
       />

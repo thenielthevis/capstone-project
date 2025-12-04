@@ -1,4 +1,5 @@
 import { Card, CardContent } from '@/components/ui/card';
+import { useTheme } from '@/context/ThemeContext';
 
 interface StepEnvironmentProps {
   formData: any;
@@ -6,14 +7,15 @@ interface StepEnvironmentProps {
 }
 
 const StepEnvironment: React.FC<StepEnvironmentProps> = ({ formData, setFormData }) => {
+  const { theme } = useTheme();
   return (
     <Card>
       <CardContent className="pt-6 space-y-6">
         <div>
-          <label className="block text-sm font-medium mb-2">Pollution Exposure</label>
+          <label className="block text-sm font-medium mb-2" style={{ color: theme.colors.text }}>Pollution Exposure</label>
           <div className="flex gap-4">
             {['low', 'medium', 'high'].map((level) => (
-              <label key={level} className="flex items-center">
+              <label key={level} className="flex items-center" style={{ color: theme.colors.text }}>
                 <input
                   type="radio"
                   value={level}
@@ -25,20 +27,20 @@ const StepEnvironment: React.FC<StepEnvironmentProps> = ({ formData, setFormData
               </label>
             ))}
           </div>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs mt-1" style={{ color: theme.colors.textSecondary }}>
             Consider air quality, industrial exposure, and urban environment
           </p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Occupation Type</label>
+          <label className="block text-sm font-medium mb-2" style={{ color: theme.colors.text }}>Occupation Type</label>
           <div className="flex gap-4">
             {[
               { value: 'sedentary', label: 'Sedentary (Office/Desk work)' },
               { value: 'physical', label: 'Physical (Labor/Active)' },
               { value: 'mixed', label: 'Mixed' }
             ].map(({ value, label }) => (
-              <label key={value} className="flex items-center">
+              <label key={value} className="flex items-center" style={{ color: theme.colors.text }}>
                 <input
                   type="radio"
                   value={value}

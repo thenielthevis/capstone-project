@@ -27,7 +27,7 @@ const geoSessionRoutes = require('./routes/geoSessionRoutes');
 const foodLogRoutes = require('./routes/foodLogRoutes');
 const programRoutes = require('./routes/programRoutes');
 const programSessionRoutes = require('./routes/programSessionRoutes');
-const adminRoutes = require('./routes/adminRoutes_v2');
+const adminRoutes = require('./routes/adminRoutes');
 
 // During development allow all origins so phones/emulators can reach the server.
 // In production restrict this to a known list.
