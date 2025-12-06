@@ -634,7 +634,7 @@ export default function Predictions() {
                         Based on your health profile, here are your predicted disease risks:
                       </p>
                       <div className="space-y-4">
-                        {predictions.map((prediction, index) => (
+                        {predictions.filter(p => Math.round(p.probability * 100) > 0).map((prediction, index) => (
                           <div
                             key={index}
                             className={`p-4 rounded-lg border-2 ${getRiskColor(prediction.probability)}`}
@@ -695,13 +695,16 @@ export default function Predictions() {
                   </Card>
 
                   <div className="flex gap-4">
-                    <Button onClick={() => navigate('/health-assessment')} variant="outline" className="flex-1">
+                    <Button 
+                      onClick={() => navigate('/health-assessment')} 
+                      className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
+                    >
                       Update Assessment
                     </Button>
                     <Button 
                       onClick={handleRegeneratePredictions} 
                       disabled={regenerating}
-                      className="flex-1"
+                      className="flex-1 bg-amber-600 hover:bg-amber-700 text-white disabled:bg-amber-400"
                     >
                       {regenerating ? (
                         <>

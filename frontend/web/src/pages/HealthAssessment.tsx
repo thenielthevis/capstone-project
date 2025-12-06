@@ -296,11 +296,11 @@ export default function HealthAssessment() {
             <div className="mb-6">{renderStepContent()}</div>
 
             {/* Navigation Buttons */}
-            <div className="flex justify-between">
+            <div className="flex justify-between gap-4">
               <Button
-                variant="outline"
                 onClick={() => setCurrentStep((current) => current - 1)}
                 disabled={currentStep === 0}
+                className="bg-gray-500 hover:bg-gray-600 text-white disabled:bg-gray-300"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Previous
@@ -310,7 +310,7 @@ export default function HealthAssessment() {
                 <Button
                   onClick={handleSubmit}
                   disabled={isSubmitting || !validateCurrentStep()}
-                  style={{ backgroundColor: theme.colors.success, color: '#FFFFFF' }}
+                  className="bg-green-600 hover:bg-green-700 text-white disabled:bg-green-400"
                 >
                   {isSubmitting ? (
                     'Submitting...'
@@ -325,6 +325,7 @@ export default function HealthAssessment() {
                 <Button
                   onClick={() => setCurrentStep((current) => current + 1)}
                   disabled={!validateCurrentStep()}
+                  className="bg-blue-600 hover:bg-blue-700 text-white disabled:bg-blue-400"
                 >
                   Next
                   <ArrowRight className="w-4 h-4 ml-2" />

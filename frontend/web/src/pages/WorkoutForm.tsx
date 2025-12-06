@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { ArrowLeft, Upload, Zap } from 'lucide-react';
+import Lottie from 'lottie-react';
 import AdminSidebar from '@/components/AdminSidebar';
 import { useTheme } from '@/context/ThemeContext';
 
@@ -56,6 +57,8 @@ export default function WorkoutForm() {
 
   const [animationFile, setAnimationFile] = useState<File | null>(null);
   const [animationPreview, setAnimationPreview] = useState<string>('');
+  const [animationData, setAnimationData] = useState<any>(null);
+  const [isJsonAnimation, setIsJsonAnimation] = useState(false);
 
   useEffect(() => {
     if (isEdit) {
@@ -97,11 +100,37 @@ export default function WorkoutForm() {
     const file = e.target.files?.[0];
     if (file) {
       setAnimationFile(file);
+      setIsJsonAnimation(file.type === 'application/json' || file.name.endsWith('.json'));
+      
       const reader = new FileReader();
       reader.onload = (event) => {
-        setAnimationPreview(event.target?.result as string);
+        const result = event.target?.result as string;
+        if (file.type === 'application/json' || file.name.endsWith('.json')) {
+          // Parse JSON for Lottie animation
+          try {
+            const jsonData = JSON.parse(result);
+            setAnimationData(jsonData);
+            setAnimationPreview('');
+            console.log('[WorkoutForm] JSON animation loaded successfully');
+          } catch (err) {
+            console.error('[WorkoutForm] Failed to parse JSON:', err);
+            alert('Invalid JSON file. Please upload a valid Lottie JSON file.');
+            setAnimationFile(null);
+            setAnimationData(null);
+            setIsJsonAnimation(false);
+          }
+        } else {
+          // Handle video/image files
+          setAnimationPreview(result);
+          setAnimationData(null);
+        }
       };
-      reader.readAsDataURL(file);
+      
+      if (file.type === 'application/json' || file.name.endsWith('.json')) {
+        reader.readAsText(file);
+      } else {
+        reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -336,20 +365,36 @@ export default function WorkoutForm() {
                       <input
                         type="file"
                         onChange={handleFileChange}
-                        accept="video/*,.gif"
+                        accept="video/*,.gif,.json"
                         className="hidden"
                         id="animation-input"
                       />
                       <label htmlFor="animation-input" className="cursor-pointer flex flex-col items-center gap-2">
                         <Upload size={24} className="text-gray-400" />
                         <span className="text-sm text-gray-600">
-                          Click to upload video or animation
+                          Click to upload video, animation or JSON
                         </span>
-                        <span className="text-xs text-gray-500">MP4, WebM, GIF</span>
+                        <span className="text-xs text-gray-500">MP4, WebM, GIF, JSON</span>
                       </label>
                     </div>
 
-                    {animationPreview && (
+                    {animationData && isJsonAnimation && (
+                      <div className="mt-4">
+                        <p className="text-sm font-semibold text-gray-700 mb-2">Lottie Animation Preview:</p>
+                        <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-8 flex items-center justify-center" style={{ height: '250px' }}>
+                          <div style={{ width: '200px', height: '200px' }}>
+                            <Lottie
+                              animationData={animationData}
+                              loop={true}
+                              autoplay={true}
+                              style={{ width: '100%', height: '100%' }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {animationPreview && !isJsonAnimation && (
                       <div className="mt-4">
                         <p className="text-sm font-semibold text-gray-700 mb-2">Preview:</p>
                         <video

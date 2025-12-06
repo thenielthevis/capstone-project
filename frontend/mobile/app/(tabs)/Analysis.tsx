@@ -10,7 +10,7 @@ import { formatDiseaseName } from "../utils/formatDisease";
 // API URL: prefer environment variable EXPO_PUBLIC_API_URL, fall back to emulator/local defaults
 // Use 10.0.2.2 for Android emulator (maps to host localhost), use local LAN IP for physical device
 // If you're running on a physical Android device, set LOCAL_IP in your environment or .env file
-const LOCAL_IP = process.env.EXPO_LOCAL_IP || '192.168.1.105';
+const LOCAL_IP = process.env.EXPO_LOCAL_IP || '192.168.1.100';
 const ENV_API = process.env.EXPO_PUBLIC_API_URL;
 const API_URL = ENV_API
   ? ENV_API
