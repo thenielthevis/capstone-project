@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   View,
-  StyleSheet,
   ActivityIndicator,
   TouchableOpacity,
   Animated,
@@ -11,10 +10,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import MapLibreGL, {Logger} from "@maplibre/maplibre-react-native";
 import * as Location from "expo-location";
 import Constants from "expo-constants";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, AntDesign, Entypo } from "@expo/vector-icons";
 import ActivityDrawer from "../../components/ActivityDrawer";
 import { useTheme } from "../../context/ThemeContext";
 import { useRouter } from "expo-router";
+import { useActivityMetrics } from "../../context/ActivityMetricsContext";
 
 Logger.setLogCallback(log => {
   const { message } = log;
@@ -32,20 +32,35 @@ const MAPTILER_KEY =
 export default function TestMap() {
   const { theme } = useTheme();
   const router = useRouter();
+  const {
+    speed: contextSpeed,
+    distance: contextDistance,
+    time: contextTime,
+    recording: contextRecording,
+    setSpeed: setContextSpeed,
+    setDistance: setContextDistance,
+    setTime: setContextTime,
+    setRecording: setContextRecording,
+    addSplit,
+    resetMetrics,
+  } = useActivityMetrics();
+  
   const [location, setLocation] = useState<[number, number] | null>(null);
+  // Store the route as an array of [lon, lat]
+  const [routeCoords, setRouteCoords] = useState<Array<[number, number]>>([]);
   const [heading, setHeading] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [following, setFollowing] = useState<boolean>(true); // camera follows user by default
   const [mapBearing, setMapBearing] = useState<number>(0); // 0 = north-up, -1 = compass-follow
-  const [speed, setSpeed] = useState<number>(0);
-  const [distance, setDistance] = useState<number>(0);
-  const [recording, setRecording] = useState(false);
-  const [time, setTime] = useState<number>(0);
+  const [mapPitch, setMapPitch] = useState<number>(80); // default pitch
   
   // Track previous location and timestamp for calculations
   const prevLocationRef = useRef<[number, number] | null>(null);
   const prevTimestampRef = useRef<number | null>(null);
   const totalDistanceRef = useRef<number>(0);
+  const lastKmMarkerRef = useRef<number>(0); // Track last km milestone
+  const kmStartTimeRef = useRef<number>(0); // Track when current km started
+  const timeRef = useRef<number>(0); // Track current time for timer
 
   const mapRef = useRef<any>(null);
   const cameraRef = useRef<any>(null);
@@ -86,10 +101,15 @@ export default function TestMap() {
             pos.coords.longitude,
             pos.coords.latitude,
           ];
+
           setLocation(coords);
+          // Track route while recording
+          if (contextRecording) {
+            setRouteCoords((prev) => [...prev, coords]);
+          }
 
           // Calculate speed and distance only when recording
-          if (recording) {
+          if (contextRecording) {
             const currentTimestamp = Date.now();
             const currentLat = pos.coords.latitude;
             const currentLon = pos.coords.longitude;
@@ -109,14 +129,32 @@ export default function TestMap() {
               // Only accumulate distance if movement is significant (filter out GPS noise)
               if (segmentDistance > 0.001) { // ~100 meters threshold
                 totalDistanceRef.current += segmentDistance;
-                setDistance(totalDistanceRef.current);
+                const newDistance = totalDistanceRef.current;
+                setContextDistance(newDistance);
+
+                // Check if we've completed a new kilometer
+                const currentKm = Math.floor(newDistance);
+                if (currentKm > lastKmMarkerRef.current) {
+                  // Calculate split time for the completed km
+                  const kmTime = contextTime - kmStartTimeRef.current;
+                  const kmPace = kmTime; // seconds per km
+                  
+                  addSplit({
+                    km: currentKm,
+                    time: kmTime,
+                    pace: kmPace,
+                  });
+                  
+                  lastKmMarkerRef.current = currentKm;
+                  kmStartTimeRef.current = contextTime;
+                }
 
                 // Calculate speed: distance (km) / time (hours) = km/h
                 const timeDiff = (currentTimestamp - prevTimestampRef.current) / 1000 / 3600; // Convert to hours
                 if (timeDiff > 0) {
                   const calculatedSpeed = segmentDistance / timeDiff;
                   // Filter out unrealistic speeds (e.g., > 200 km/h for running/cycling)
-                  setSpeed(Math.min(calculatedSpeed, 200));
+                  setContextSpeed(Math.min(calculatedSpeed, 200));
                 }
               }
             }
@@ -124,10 +162,12 @@ export default function TestMap() {
             // Update previous location and timestamp
             prevLocationRef.current = coords;
             prevTimestampRef.current = currentTimestamp;
+
           } else {
             // Reset when not recording
             prevLocationRef.current = null;
             prevTimestampRef.current = null;
+            // Optionally, stop adding to route but do not clear it here
           }
 
           // only auto-center while "following" is true (user hasn't panned away)
@@ -181,7 +221,7 @@ export default function TestMap() {
       if (locSubRef.current) locSubRef.current.remove();
       if (headSubRef.current) headSubRef.current.remove();
     };
-  }, [following, mapBearing, recording]);
+  }, [following, mapBearing, contextRecording]);
 
   // helper: check whether user's location is within current visible bounds
   const isLocationVisible = async (): Promise<boolean> => {
@@ -274,6 +314,20 @@ export default function TestMap() {
     }
   };
 
+  // floating button to toggle pitch between 0 and 80
+  const handlePitchToggle = () => {
+    const newPitch = mapPitch === 0 ? 80 : 0;
+    setMapPitch(newPitch);
+    if (cameraRef.current) {
+      isProgrammaticRef.current = true;
+      cameraRef.current.setCamera({
+        pitch: newPitch,
+        animationDuration: 400,
+      });
+      setTimeout(() => (isProgrammaticRef.current = false), 450);
+    }
+  };
+
   // map region changes initiated by user should disable following
   const onRegionWillChange = () => {
     // if the change is not programmatic, user likely panned/zoomed -> stop following
@@ -282,20 +336,26 @@ export default function TestMap() {
     }
   };
 
+  // Sync timeRef with contextTime
+  useEffect(() => {
+    timeRef.current = contextTime;
+  }, [contextTime]);
+
   // Timer effect - continues from where it left off when paused/resumed
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | null = null;
 
-    if (recording) {
+    if (contextRecording) {
       interval = setInterval(() => {
-        setTime((t) => t + 1);
+        timeRef.current += 1;
+        setContextTime(timeRef.current);
       }, 1000);
     }
 
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [recording]);
+  }, [contextRecording, setContextTime]);
 
   // Format time helper function
   const formatTime = (totalSeconds: number) => {
@@ -306,17 +366,38 @@ export default function TestMap() {
       .padStart(2, "0")}`;
   };
 
+
   // Handle recording state changes from ActivityDrawer
   const handleRecordingChange = (isRecording: boolean) => {
-    setRecording(isRecording);
-    
+    setContextRecording(isRecording);
     // When starting recording, initialize previous location if we have current location
     if (isRecording && location) {
       prevLocationRef.current = location;
       prevTimestampRef.current = Date.now();
+      kmStartTimeRef.current = contextTime || 0;
+      lastKmMarkerRef.current = Math.floor(contextDistance || 0);
+      // Start new route if not already started
+      if (routeCoords.length === 0) {
+        setRouteCoords([location]);
+      }
     }
     // Note: Timer continues from where it left off (doesn't reset on pause)
     // Distance and speed also persist when paused
+  };
+
+  // Handle finish action
+  const handleFinish = () => {
+    // Reset all metrics
+    resetMetrics();
+    // Reset local refs
+    totalDistanceRef.current = 0;
+    lastKmMarkerRef.current = 0;
+    kmStartTimeRef.current = 0;
+    prevLocationRef.current = null;
+    prevTimestampRef.current = null;
+    setRouteCoords([]); // Clear route
+    // Navigate back
+    router.back();
   };
 
   // Helper function to calculate distance between two coordinates (Haversine formula)
@@ -341,7 +422,7 @@ export default function TestMap() {
 
   if (loading || !location) {
     return (
-      <View className="flex-1 items-center justify-center" style={styles.container}>
+      <View className="flex-1 items-center justify-center">
         <ActivityIndicator size="large" color="#007AFF" />
       </View>
     );
@@ -371,140 +452,197 @@ export default function TestMap() {
           </Text>
         </TouchableOpacity>
       </View>
-    <View className="flex-1 relative" style={styles.container}>
-      <MapLibreGL.MapView
-        ref={mapRef}
-        style={styles.map}
-        mapStyle={`https://api.maptiler.com/maps/streets-v4/style.json?key=${MAPTILER_KEY}`}
-        compassEnabled={false}
-        logoEnabled={true}
-        rotateEnabled={true}
-        pitchEnabled={true}
-        onRegionWillChange={onRegionWillChange}
-        onPress={() => {
-          if (!isProgrammaticRef.current) setFollowing(false);
-        }}
-      >
-        <MapLibreGL.Camera
-          ref={cameraRef}
-          zoomLevel={19}
-          centerCoordinate={location}
-          animationMode="flyTo"
-          pitch={80}
-        />
-        <MapLibreGL.UserLocation visible={false} showsUserHeadingIndicator={false} />
-        <MapLibreGL.PointAnnotation id="user-location" coordinate={location}>
-          <Animated.View
-            style={[
-              styles.markerWrapper,
-              { transform: [{ rotate: `${heading}deg` }] },
-            ]}
-          >
-            <View style={styles.accuracyCircle} />
-            <View style={[styles.markerOuter, following ? styles.markerActive : null]}>
-              <View style={styles.markerCenter} />
-            </View>
-            <View style={styles.markerPointer} />
-          </Animated.View>
-        </MapLibreGL.PointAnnotation>
-      </MapLibreGL.MapView>
-
-      <View style={styles.topRightContainer} pointerEvents="box-none">
-        <TouchableOpacity
-          onPress={handlePrimaryButton}
-          className="bg-white rounded-full p-3 shadow-lg"
-          style={styles.primaryButton}
+      <View className="flex-1 relative">
+        <MapLibreGL.MapView
+          ref={mapRef}
+          style={{ flex: 1 }}
+          mapStyle={
+            theme.mode === "dark"
+              ? "https://api.maptiler.com/maps/019b1d6d-f87f-771b-88b8-776fa8f37312/style.json?key=" + MAPTILER_KEY
+              : `https://api.maptiler.com/maps/streets-v4/style.json?key=${MAPTILER_KEY}`
+          }
+          compassEnabled={false}
+          logoEnabled={true}
+          rotateEnabled={true}
+          pitchEnabled={true}
+          onRegionWillChange={onRegionWillChange}
+          onPress={() => {
+            if (!isProgrammaticRef.current) setFollowing(false);
+          }}
         >
-          <Animated.View style={{ transform: [{ rotate: rotateInterpolate }] }}>
+          <MapLibreGL.Camera
+            ref={cameraRef}
+            zoomLevel={19}
+            centerCoordinate={location}
+            animationMode="flyTo"
+            pitch={mapPitch}
+          />
+          {/* Hide default UserLocation marker, use PointAnnotation for custom marker at polyline end */}
+          {location && (
+            <MapLibreGL.PointAnnotation id="user-location" coordinate={location}>
+              <Animated.View
+                className="w-16 h-16 items-center justify-center"
+                style={{
+                  transform: [
+                    { rotate: `${(heading - mapBearing + 360) % 360}deg` },
+                    { perspective: 800 },
+                    { rotateX: `${-mapPitch * 0.6}deg` },
+                  ],
+                }}
+              >
+                {/* Accuracy halo */}
+                <View
+                  className="absolute w-14 h-14 rounded-full"
+                  style={{
+                    backgroundColor: theme.colors.primary + "1A",
+                    borderWidth: 1,
+                    borderColor: theme.colors.primary + "33",
+                  }}
+                />
+
+                {/* Soft ambient glow */}
+                <View
+                  className="absolute w-12 h-12 rounded-full"
+                  style={{
+                    backgroundColor: theme.colors.primary + "0F",
+                  }}
+                />
+
+                {/* Strava-style heading beam (outer soft layer) */}
+                <View
+                  style={{
+                    position: "absolute",
+                    top: -18,
+                    width: 48,
+                    height: 60,
+                    backgroundColor: theme.colors.primary + "44",
+                    opacity: 0.35,
+                    transform: [
+                      { translateY: -10 },
+                      { scaleX: 1.2 },
+                    ],
+                    borderTopLeftRadius: 0,
+                    borderTopRightRadius: 0,
+                  }}
+                />
+
+                {/* Middle beam */}
+                <View
+                  style={{
+                    position: "absolute",
+                    top: -18,
+                    width: 34,
+                    height: 52,
+                    backgroundColor: theme.colors.primary + "66",
+                    opacity: 0.45,
+                    transform: [
+                      { translateY: -10 },
+                      { scaleX: 0.9 },
+                    ],
+                  }}
+                />
+
+                {/* Inner bright beam */}
+                <View
+                  style={{
+                    position: "absolute",
+                    top: -18,
+                    width: 20,
+                    height: 44,
+                    backgroundColor: theme.colors.primary + "77",
+                    opacity: 0.6,
+                    transform: [
+                      { translateY: -10 },
+                      { scaleX: 0.6 },
+                    ],
+                  }}
+                />
+                {/* Main puck */}
+                <View
+                  className="w-9 h-9 rounded-full items-center justify-center"
+                  style={{
+                    backgroundColor: "#fff",
+                    shadowColor: "#000",
+                    shadowOpacity: 0.25,
+                    shadowRadius: 6,
+                    shadowOffset: { width: 0, height: 2 },
+                    elevation: 8,
+                  }}
+                >
+                  {/* Inner core */}
+                  <View
+                    className="w-6 h-6 rounded-full"
+                    style={{
+                      backgroundColor: theme.colors.primary,
+                    }}
+                  />
+                </View>
+              </Animated.View>
+            </MapLibreGL.PointAnnotation>
+          )}
+          {/* Route Polyline */}
+          {routeCoords.length > 1 && (
+            <MapLibreGL.ShapeSource
+              id="routeLine"
+              shape={{
+                type: "Feature",
+                properties: {},
+                geometry: {
+                  type: "LineString",
+                  coordinates: routeCoords,
+                },
+              }}
+            >
+              <MapLibreGL.LineLayer
+                id="routeLineLayer"
+                style={{
+                  lineColor: theme.colors.primary,
+                  lineWidth: 6,
+                  lineCap: "round",
+                  lineJoin: "round",
+                  lineOpacity: 0.8,
+                }}
+              />
+            </MapLibreGL.ShapeSource>
+          )}
+        </MapLibreGL.MapView>
+
+        {/* Floating buttons: compass and pitch reset */}
+        <View className="absolute right-4 top-4 items-center" pointerEvents="box-none">
+          <TouchableOpacity
+            onPress={handlePrimaryButton}
+            className="w-12 h-12 bg-white rounded-full items-center justify-center shadow-lg mb-3"
+          >
+            <Animated.View style={{ transform: [{ rotate: rotateInterpolate }] }}>
+              <Entypo
+                name="compass"
+                size={24}
+                color={mapBearing === -1 ? "#000000" : theme.colors.primary}
+              />
+            </Animated.View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={handlePitchToggle}
+            className="w-12 h-12 bg-white rounded-full items-center justify-center shadow-lg"
+          >
             <Ionicons
-              name="compass"
-              size={22}
-              color={mapBearing === -1 ? "#007AFF" : "#333"}
+              name="layers-outline"
+              size={24}
+              color={mapPitch === 0 ? "#000000" : theme.colors.primary}
             />
-          </Animated.View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </View>
+        <ActivityDrawer 
+          speed={contextSpeed}
+          distance={contextDistance}
+          time={contextTime}
+          recording={contextRecording}
+          onRecordingChange={handleRecordingChange}
+          onFinish={handleFinish}
+        />
       </View>
-      <ActivityDrawer 
-        speed={speed}
-        distance={distance}
-        time={time}
-        recording={recording}
-        onRecordingChange={handleRecordingChange}
-      />
-    </View>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  map: { flex: 1 },
-
-  /* marker layout */
-  markerWrapper: {
-    width: 64,
-    height: 64,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  accuracyCircle: {
-    position: "absolute",
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "rgba(0, 122, 255, 0.08)",
-    borderWidth: 1,
-    borderColor: "rgba(0, 122, 255, 0.16)",
-    zIndex: 0,
-  },
-  markerOuter: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#007AFF",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: "#ffffff",
-    elevation: 6,
-    zIndex: 2,
-  },
-  markerActive: {
-    backgroundColor: "#007AFF",
-  },
-  markerCenter: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#fff",
-  },
-  /* front pointer triangle (pointing up). It will rotate with the wrapper. */
-  markerPointer: {
-    position: "absolute",
-    top: 6, // sits above the circular body
-    width: 0,
-    height: 0,
-    borderLeftWidth: 8,
-    borderRightWidth: 8,
-    borderBottomWidth: 12,
-    borderLeftColor: "transparent",
-    borderRightColor: "transparent",
-    borderBottomColor: "#fff",
-    zIndex: 3,
-    transform: [{ translateY: -18 }],
-  },
-
-  /* single floating button container (top-right) */
-  topRightContainer: {
-    position: "absolute",
-    right: 14,
-    top: 14,
-    alignItems: "center",
-  },
-  primaryButton: {
-    width: 52,
-    height: 52,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});
