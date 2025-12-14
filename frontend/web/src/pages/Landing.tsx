@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { useTheme } from '@/context/ThemeContext';
 import './Landing.css';
 import { 
   MapPin, 
@@ -61,6 +62,7 @@ const images = {
 };
 
 export default function Landing() {
+  const { theme } = useTheme();
   const [activeSection, setActiveSection] = useState('home');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -79,15 +81,15 @@ export default function Landing() {
   ];
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen" style={{ backgroundColor: theme.colors.background }}>
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm">
+      <header className="fixed top-0 left-0 right-0 z-50 shadow-sm" style={{ backgroundColor: theme.colors.surface }}>
         <div className="container mx-auto px-6 lg:px-12">
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
             <div className="flex items-center gap-3">
               <img src={images.logo} alt="Lifora Logo" className="w-10 h-10" />
-              <h1 className="text-2xl font-bold text-gray-900">Lifora</h1>
+              <h1 className="text-2xl font-bold" style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}>Lifora</h1>
             </div>
 
             {/* Desktop Navigation */}
@@ -100,9 +102,8 @@ export default function Landing() {
                 <button
                   key={item.id}
                   onClick={() => scrollToSection(item.id)}
-                  className={`text-sm font-medium transition-colors hover:text-blue-600 ${
-                    activeSection === item.id ? 'text-blue-600' : 'text-gray-700'
-                  }`}
+                  className="text-sm font-medium transition-colors"
+                  style={{ color: activeSection === item.id ? theme.colors.primary : theme.colors.textSecondary }}
                 >
                   {item.label}
                 </button>
@@ -120,7 +121,8 @@ export default function Landing() {
               </Button>
               <Button 
                 onClick={() => window.location.href = '/register'}
-                className="text-sm font-medium bg-black hover:bg-gray-800 text-white rounded-full px-6"
+                className="text-sm font-medium rounded-full px-6"
+                style={{ backgroundColor: theme.colors.primary, color: '#FFFFFF' }}
               >
                 Start for free
               </Button>
@@ -139,7 +141,7 @@ export default function Landing() {
 
           {/* Mobile Menu */}
           {mobileMenuOpen && (
-            <div className="md:hidden py-4 border-t">
+            <div className="md:hidden py-4" style={{ borderTop: `1px solid ${theme.colors.border}` }}>
               <nav className="flex flex-col gap-2">
                 {['Home', 'About Us', 'Contact'].map((item, index) => (
                   <Button
@@ -151,11 +153,11 @@ export default function Landing() {
                     {item}
                   </Button>
                 ))}
-                <div className="flex flex-col gap-2 pt-2 border-t mt-2">
+                <div className="flex flex-col gap-2 pt-2 mt-2" style={{ borderTop: `1px solid ${theme.colors.border}` }}>
                   <Button variant="ghost" onClick={() => window.location.href = '/login'}>
                     Login
                   </Button>
-                  <Button onClick={() => window.location.href = '/register'} className="bg-black text-white">
+                  <Button onClick={() => window.location.href = '/register'} style={{ backgroundColor: theme.colors.primary, color: '#FFFFFF' }}>
                     Start for free
                   </Button>
                 </div>
@@ -167,18 +169,18 @@ export default function Landing() {
 
       <main className="pt-20">
         {/* Hero Section */}
-        <section id="home" className="relative bg-gradient-to-br from-gray-50 to-white py-20 md:py-28 overflow-hidden">
+        <section id="home" className="relative py-20 md:py-28 overflow-hidden" style={{ background: `linear-gradient(135deg, ${theme.colors.surface} 0%, ${theme.colors.background} 100%)` }}>
           <div className="container mx-auto px-6 lg:px-12">
             <div className="grid md:grid-cols-2 gap-12 lg:gap-16 items-center">
               {/* Left Content */}
               <div className="space-y-8">
                 <div className="space-y-6">
-                  <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight text-gray-900">
+                  <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight" style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}>
                     Gamifying Wellness:{' '}
                     <span className="block mt-2">Track, Assess,</span>
                     <span className="block mt-2">and Thrive!</span>
                   </h1>
-                  <p className="text-lg md:text-xl text-gray-600 leading-relaxed max-w-lg">
+                  <p className="text-lg md:text-xl leading-relaxed max-w-lg" style={{ color: theme.colors.textSecondary }}>
                     AI-powered insights meet community support for your perfect wellness journey. Stay ahead of potential health risks and optimize your well-being.
                   </p>
                 </div>
@@ -187,7 +189,8 @@ export default function Landing() {
                   <Button 
                     size="lg" 
                     onClick={() => window.location.href = '/register'}
-                    className="text-base h-14 px-8 bg-black hover:bg-gray-800 text-white rounded-full font-medium shadow-lg hover:shadow-xl transition-all"
+                    className="text-base h-14 px-8 rounded-full font-medium shadow-lg hover:shadow-xl transition-all"
+                    style={{ backgroundColor: theme.colors.primary, color: '#FFFFFF' }}
                   >
                     REGISTER NOW
                   </Button>
@@ -195,17 +198,17 @@ export default function Landing() {
 
                 {/* Contact Info */}
                 <div className="space-y-3 pt-4">
-                  <div className="flex items-center gap-3 text-gray-700">
-                    <Phone className="w-5 h-5 text-gray-900" />
-                    <span className="text-sm font-medium">+123-456-7890</span>
+                  <div className="flex items-center gap-3">
+                    <Phone className="w-5 h-5" style={{ color: theme.colors.text }} />
+                    <span className="text-sm font-medium" style={{ color: theme.colors.textSecondary }}>+123-456-7890</span>
                   </div>
-                  <div className="flex items-center gap-3 text-gray-700">
-                    <Mail className="w-5 h-5 text-gray-900" />
-                    <span className="text-sm font-medium">hello@reallygreatsite.com</span>
+                  <div className="flex items-center gap-3">
+                    <Mail className="w-5 h-5" style={{ color: theme.colors.text }} />
+                    <span className="text-sm font-medium" style={{ color: theme.colors.textSecondary }}>hello@reallygreatsite.com</span>
                   </div>
-                  <div className="flex items-center gap-3 text-gray-700">
-                    <MapPinIcon className="w-5 h-5 text-gray-900" />
-                    <span className="text-sm font-medium">123 Anywhere St., Any City, 12345</span>
+                  <div className="flex items-center gap-3">
+                    <MapPinIcon className="w-5 h-5" style={{ color: theme.colors.text }} />
+                    <span className="text-sm font-medium" style={{ color: theme.colors.textSecondary }}>123 Anywhere St., Any City, 12345</span>
                   </div>
                 </div>
               </div>
@@ -233,14 +236,14 @@ export default function Landing() {
         </section>
 
         {/* Features Section */}
-        <section id="features" className="py-20 md:py-28 bg-white">
+        <section id="features" className="py-20 md:py-28" style={{ backgroundColor: theme.colors.background }}>
           <div className="container mx-auto px-6 lg:px-12">
             {/* Features Title */}
             <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-              <h2 className="text-4xl md:text-5xl font-bold text-gray-900">
+              <h2 className="text-4xl md:text-5xl font-bold" style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}>
                 Transform Your Health Journey
               </h2>
-              <p className="text-lg text-gray-600">
+              <p className="text-lg" style={{ color: theme.colors.textSecondary }}>
                 Experience a revolutionary approach to wellness with our cutting-edge features designed to make your health journey engaging and effective.
               </p>
             </div>
@@ -250,17 +253,18 @@ export default function Landing() {
               {featuresData.map((feature, index) => (
                 <div 
                   key={index} 
-                  className="group p-8 rounded-2xl bg-white border border-gray-200 hover:border-blue-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-2"
+                  className="group p-8 rounded-2xl hover:shadow-xl transition-all duration-300 hover:-translate-y-2"
+                  style={{ backgroundColor: theme.colors.surface, border: `1px solid ${theme.colors.border}` }}
                 >
                   <div className="mb-6">
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg" style={{ background: `linear-gradient(135deg, ${theme.colors.primary} 0%, ${theme.colors.secondary} 100%)` }}>
                       {React.createElement(feature.icon, {
                         className: "w-7 h-7 text-white"
                       })}
                     </div>
                   </div>
-                  <h3 className="text-xl font-bold mb-3 text-gray-900">{feature.title}</h3>
-                  <p className="text-gray-600 leading-relaxed">
+                  <h3 className="text-xl font-bold mb-3" style={{ color: theme.colors.text }}>{feature.title}</h3>
+                  <p className="leading-relaxed" style={{ color: theme.colors.textSecondary }}>
                     {feature.description}
                   </p>
                 </div>
@@ -271,13 +275,13 @@ export default function Landing() {
         </section>
 
         {/* About Section */}
-        <section id="about" className="py-20 md:py-28 bg-gray-50">
+        <section id="about" className="py-20 md:py-28" style={{ backgroundColor: theme.colors.surface }}>
           <div className="container mx-auto px-6 lg:px-12">
             <div className="max-w-5xl mx-auto space-y-12">
               {/* About Header */}
               <div className="text-center space-y-4">
-                <h2 className="text-4xl md:text-5xl font-bold text-gray-900">About Lifora</h2>
-                <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+                <h2 className="text-4xl md:text-5xl font-bold" style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}>About Lifora</h2>
+                <p className="text-lg md:text-xl max-w-3xl mx-auto leading-relaxed" style={{ color: theme.colors.textSecondary }}>
                   We are dedicated to transforming personal health by making wellness an engaging and insightful journey. 
                   Our platform combines gamification, nutritional tracking, and daily assessments to empower you with the knowledge 
                   and motivation to achieve your health goals.
@@ -303,14 +307,14 @@ export default function Landing() {
                     icon: Award 
                   }
                 ].map((item, index) => (
-                  <div key={index} className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mb-6">
+                  <div key={index} className="p-8 rounded-2xl shadow-lg hover:shadow-xl transition-shadow" style={{ backgroundColor: theme.colors.background }}>
+                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6" style={{ background: `linear-gradient(135deg, ${theme.colors.primary} 0%, ${theme.colors.secondary} 100%)` }}>
                       {React.createElement(item.icon, {
                         className: "w-7 h-7 text-white"
                       })}
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-3">{item.title}</h3>
-                    <p className="text-gray-600 leading-relaxed">{item.content}</p>
+                    <h3 className="text-xl font-bold mb-3" style={{ color: theme.colors.text }}>{item.title}</h3>
+                    <p className="leading-relaxed" style={{ color: theme.colors.textSecondary }}>{item.content}</p>
                   </div>
                 ))}
               </div>
@@ -319,14 +323,14 @@ export default function Landing() {
         </section>
 
         {/* Contact/Team Section */}
-        <section id="contact" className="py-20 md:py-28 bg-white">
+        <section id="contact" className="py-20 md:py-28" style={{ backgroundColor: theme.colors.background }}>
           <div className="container mx-auto px-6 lg:px-12">
             {/* Section Header */}
             <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-              <h2 className="text-4xl md:text-5xl font-bold text-gray-900">
+              <h2 className="text-4xl md:text-5xl font-bold" style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}>
                 Meet Our Team
               </h2>
-              <p className="text-lg text-gray-600">
+              <p className="text-lg" style={{ color: theme.colors.textSecondary }}>
                 The amazing people behind Lifora, dedicated to your wellness journey
               </p>
             </div>
@@ -355,7 +359,7 @@ export default function Landing() {
         </section>
 
         {/* CTA Section */}
-        <section className="py-20 md:py-28 bg-gradient-to-br from-blue-600 to-blue-700">
+        <section className="py-20 md:py-28" style={{ background: `linear-gradient(135deg, ${theme.colors.primary} 0%, ${theme.colors.secondary} 100%)` }}>
           <div className="container mx-auto px-6 lg:px-12">
             <div className="max-w-4xl mx-auto text-center space-y-8">
               <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white">
@@ -368,7 +372,8 @@ export default function Landing() {
                 <Button 
                   size="lg"
                   onClick={() => window.location.href = '/register'}
-                  className="text-base h-14 px-10 border-2 border-white blue-600 rounded-full font-semibold hover:bg-white hover:text-blue-600 transition-all"
+                  className="text-base h-14 px-10 border-2 rounded-full font-semibold transition-all"
+                  style={{ borderColor: '#FFFFFF', backgroundColor: theme.colors.surface, color: theme.colors.text }}
                 >
                   Start Your Journey Free
                 </Button>
@@ -376,7 +381,8 @@ export default function Landing() {
                   size="lg" 
                   variant="outline"
                   onClick={() => scrollToSection('features')}
-                  className="text-base h-14 px-10 border-2 border-white blue-600 rounded-full font-semibold hover:bg-white hover:text-blue-600 transition-all"
+                  className="text-base h-14 px-10 border-2 rounded-full font-semibold transition-all"
+                  style={{ borderColor: '#FFFFFF', color: '#FFFFFF' }}
                 >
                   Learn More
                 </Button>
@@ -386,14 +392,14 @@ export default function Landing() {
         </section>
 
         {/* Footer */}
-        <footer className="bg-gray-900 text-gray-300">
+        <footer style={{ backgroundColor: theme.colors.card, color: theme.colors.textSecondary }}>
           <div className="container mx-auto px-6 lg:px-12 py-16">
             <div className="grid md:grid-cols-4 gap-12 mb-12">
               {/* Logo and Brand Section */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <img src={images.logo} alt="Lifora Logo" className="w-8 h-8" />
-                  <h3 className="text-xl font-bold text-white">Lifora</h3>
+                  <h3 className="text-xl font-bold" style={{ color: theme.colors.text }}>Lifora</h3>
                 </div>
                 <p className="text-sm leading-relaxed">
                   Embrace a Healthier You—Strong, Resilient, Future-Ready
@@ -402,7 +408,7 @@ export default function Landing() {
 
               {/* Quick Links */}
               <div>
-                <h4 className="font-bold text-white mb-4">Quick Links</h4>
+                <h4 className="font-bold mb-4" style={{ color: theme.colors.text }}>Quick Links</h4>
                 <ul className="space-y-3">
                   {[
                     { id: 'home', label: 'Home' },
@@ -428,14 +434,15 @@ export default function Landing() {
 
               {/* Connect */}
               <div>
-                <h4 className="font-bold text-white mb-4">Connect</h4>
+                <h4 className="font-bold mb-4" style={{ color: theme.colors.text }}>Connect</h4>
                 <ul className="space-y-3">
                   <li>
                     <a 
                       href="https://github.com/thenielthevis/capstone-project" 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="text-sm hover:text-blue-400 transition-colors"
+                      className="text-sm transition-colors"
+                      style={{ color: theme.colors.textSecondary }}
                     >
                       GitHub
                     </a>
@@ -443,7 +450,8 @@ export default function Landing() {
                   <li>
                     <a 
                       href="mailto:contact@lifora.com"
-                      className="text-sm hover:text-blue-400 transition-colors"
+                      className="text-sm transition-colors"
+                      style={{ color: theme.colors.textSecondary }}
                     >
                       Email
                     </a>
@@ -453,10 +461,10 @@ export default function Landing() {
 
               {/* Technologies */}
               <div>
-                <h4 className="font-bold text-white mb-4">Built With</h4>
+                <h4 className="font-bold mb-4" style={{ color: theme.colors.text }}>Built With</h4>
                 <div className="flex flex-wrap gap-2">
                   {['React', 'TypeScript', 'Tailwind', 'Vite'].map((tech) => (
-                    <span key={tech} className="px-3 py-1 bg-gray-800 text-gray-300 text-xs rounded-full">
+                    <span key={tech} className="px-3 py-1 text-xs rounded-full" style={{ backgroundColor: theme.colors.background, color: theme.colors.textSecondary }}>
                       {tech}
                     </span>
                   ))}
@@ -464,7 +472,7 @@ export default function Landing() {
               </div>
             </div>
 
-            <div className="border-t border-gray-800 pt-8">
+            <div className="pt-8" style={{ borderTop: `1px solid ${theme.colors.border}` }}>
               <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                 <p className="text-sm">
                   © 2025 Lifora. All rights reserved.

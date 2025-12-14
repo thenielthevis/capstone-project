@@ -5,26 +5,36 @@ const { uploadWorkoutAnimation } = require('../utils/cloudinary');
 exports.createWorkout = async (req, res) => {
   try {
     const { category, type, name, description, equipment_needed } = req.body;
+    const animationFile = req.files?.animation?.[0];
     let animationUrl = "";
 
-    if (req.file) {
-      const uploadResult = await uploadWorkoutAnimation(req.file.buffer);
+    console.log('[CREATE WORKOUT] Request body:', { category, type, name, description, equipment_needed });
+    console.log('[CREATE WORKOUT] Files:', { 
+      hasAnimation: !!animationFile
+    });
+
+    if (animationFile) {
+      console.log('[CREATE WORKOUT] Uploading animation...');
+      const uploadResult = await uploadWorkoutAnimation(animationFile.buffer);
       animationUrl = uploadResult.secure_url;
+      console.log('[CREATE WORKOUT] Animation uploaded:', animationUrl);
     }
 
     const newWorkout = new Workout({
       category,
       type,
       name,
-      description,
-      equipment_needed,
+      description: description || '',
+      equipment_needed: equipment_needed || '',
       animation_url: animationUrl,
     });
 
     const savedWorkout = await newWorkout.save();
+    console.log('[CREATE WORKOUT] Saved:', savedWorkout);
     res.status(201).json(savedWorkout);
 
   } catch (error) {
+    console.error('[CREATE WORKOUT] Error:', error);
     res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
@@ -54,24 +64,68 @@ exports.getWorkoutById = async (req, res) => {
 
 // Update a workout
 exports.updateWorkout = async (req, res) => {
-    try {
-    const { category, type, name, description, animationUrl } = req.body;
+  try {
+    console.log('[UPDATE WORKOUT] Starting update for ID:', req.params.id);
+    console.log('[UPDATE WORKOUT] Request user:', req.user);
+    console.log('[UPDATE WORKOUT] Request body fields:', Object.keys(req.body));
+    console.log('[UPDATE WORKOUT] Request files:', Object.keys(req.files || {}));
+    
+    const { category, type, name, description, equipment_needed } = req.body;
+    
+    console.log('[UPDATE WORKOUT] Parsed fields:', { category, type, name, description, equipment_needed });
+
     const workout = await Workout.findById(req.params.id);
     if (!workout) {
+      console.log('[UPDATE WORKOUT] Workout not found with ID:', req.params.id);
       return res.status(404).json({ message: "Workout not found" });
     }
-    if (animationUrl) {
-      const animationUploadResult = await uploadWorkoutAnimation(animationUrl, workout.animation_url);
+
+    console.log('[UPDATE WORKOUT] Found existing workout:', workout._id);
+
+    const animationFile = req.files?.animation?.[0];
+
+    console.log('[UPDATE WORKOUT] Files received:', { 
+      hasAnimation: !!animationFile
+    });
+
+    // Only update animation if new file is provided
+    if (animationFile) {
+      console.log('[UPDATE WORKOUT] Uploading new animation...');
+      const animationUploadResult = await uploadWorkoutAnimation(animationFile.buffer);
       workout.animation_url = animationUploadResult.secure_url;
+      console.log('[UPDATE WORKOUT] Animation uploaded:', workout.animation_url);
     }
-    workout.category = category || workout.category;
-    workout.type = type || workout.type;
-    workout.name = name || workout.name;
-    workout.description = description || workout.description;
-    workout.equipment_needed = equipment_needed || workout.equipment_needed;
+
+    // Update text fields
+    if (category !== undefined) {
+      workout.category = category;
+      console.log('[UPDATE WORKOUT] Updated category to:', workout.category);
+    }
+    if (type !== undefined) {
+      workout.type = type;
+      console.log('[UPDATE WORKOUT] Updated type to:', workout.type);
+    }
+    if (name !== undefined) {
+      workout.name = name;
+      console.log('[UPDATE WORKOUT] Updated name to:', workout.name);
+    }
+    if (description !== undefined) {
+      workout.description = description;
+      console.log('[UPDATE WORKOUT] Updated description to:', workout.description);
+    }
+    if (equipment_needed !== undefined) {
+      workout.equipment_needed = equipment_needed;
+      console.log('[UPDATE WORKOUT] Updated equipment_needed to:', workout.equipment_needed);
+    }
+
+    console.log('[UPDATE WORKOUT] Saving to database...');
     const updatedWorkout = await workout.save();
+    console.log('[UPDATE WORKOUT] Successfully saved:', updatedWorkout);
+    
     res.status(200).json(updatedWorkout);
   } catch (error) {
+    console.error('[UPDATE WORKOUT] Error occurred:', error.message);
+    console.error('[UPDATE WORKOUT] Full error:', error);
     res.status(500).json({ message: "Server Error", error: error.message });
   }
 };

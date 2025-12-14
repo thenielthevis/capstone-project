@@ -29,7 +29,7 @@ export function setPredictionUpdateFlag(value: boolean) {
   predictionWasUpdated = value;
 }
 
-const LOCAL_IP = process.env.EXPO_LOCAL_IP || '192.168.1.101';
+const LOCAL_IP = process.env.EXPO_LOCAL_IP || '192.168.1.100';
 const ENV_API = process.env.EXPO_PUBLIC_API_URL;
 const API_URL = ENV_API
   ? ENV_API
@@ -320,7 +320,8 @@ export default function PredictionInputScreen() {
       console.error('Prediction update failed');
       alert('Health data saved, but prediction update failed');
       setLoading(false);
-      router.back();
+      // Navigate to Analysis tab instead of going back
+      router.replace('/(tabs)/Analysis');
       return;
     }
 
@@ -331,7 +332,8 @@ export default function PredictionInputScreen() {
     setLoading(false);
     // Set flag to show notification in Analysis screen
     setPredictionUpdateFlag(true);
-    router.back();
+    // Navigate to Analysis tab instead of going back
+    router.replace('/(tabs)/Analysis');
     
   } catch (error) {
     console.error("Error submitting health assessment:", error);

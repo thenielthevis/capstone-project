@@ -1,5 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Info } from 'lucide-react';
+import { useTheme } from '@/context/ThemeContext';
 
 interface StepHealthProfileProps {
   formData: any;
@@ -14,6 +15,7 @@ const StepHealthProfile: React.FC<StepHealthProfileProps> = ({
   currentConditionsInput,
   setCurrentConditionsInput,
 }) => {
+  const { theme } = useTheme();
   const geneticalConditionsList = [
     'Diabetes', 'Huntington\'s Disease', 'Heart Disease', 
     'Sickle Cell Disease', 'Down Syndrome', 'Cystic Fibrosis'
@@ -36,10 +38,10 @@ const StepHealthProfile: React.FC<StepHealthProfileProps> = ({
     <Card>
       <CardContent className="pt-6 space-y-6">
         <div>
-          <label className="block text-sm font-medium mb-2">Blood Type</label>
+          <label className="block text-sm font-medium mb-2" style={{ color: theme.colors.text }}>Blood Type</label>
           <div className="grid grid-cols-4 gap-2">
             {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((type) => (
-              <label key={type} className="flex items-center">
+              <label key={type} className="flex items-center" style={{ color: theme.colors.text }}>
                 <input
                   type="radio"
                   value={type}
@@ -55,10 +57,10 @@ const StepHealthProfile: React.FC<StepHealthProfileProps> = ({
 
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <label className="text-sm font-medium">Family History (Genetic Conditions)</label>
+            <label className="text-sm font-medium" style={{ color: theme.colors.text }}>Family History (Genetic Conditions)</label>
             <div className="relative group">
-              <Info className="w-4 h-4 text-blue-600 cursor-help" />
-              <span className="invisible group-hover:visible absolute left-full ml-2 top-1/2 -translate-y-1/2 bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-10">
+              <Info className="w-4 h-4 cursor-help" style={{ color: theme.colors.primary }} />
+              <span className="invisible group-hover:visible absolute left-full ml-2 top-1/2 -translate-y-1/2 text-xs rounded px-2 py-1 whitespace-nowrap z-10" style={{ backgroundColor: theme.colors.card, color: theme.colors.text, border: `1px solid ${theme.colors.border}` }}>
                 Select conditions that run in your family
               </span>
             </div>
@@ -74,11 +76,12 @@ const StepHealthProfile: React.FC<StepHealthProfileProps> = ({
                     geneticalConditions: toggleArrayItem(formData.geneticalConditions, condition),
                   })
                 }
-                className={`px-3 py-1 rounded-full text-sm ${
-                  formData.geneticalConditions.includes(condition)
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
+                className="px-3 py-1 rounded-full text-sm"
+                style={{
+                  backgroundColor: formData.geneticalConditions.includes(condition) ? theme.colors.primary : theme.colors.surface,
+                  color: formData.geneticalConditions.includes(condition) ? '#FFFFFF' : theme.colors.text,
+                  border: `1px solid ${formData.geneticalConditions.includes(condition) ? theme.colors.primary : theme.colors.border}`
+                }}
               >
                 {condition}
               </button>
@@ -87,28 +90,33 @@ const StepHealthProfile: React.FC<StepHealthProfileProps> = ({
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Current Medical Conditions</label>
+          <label className="block text-sm font-medium mb-2" style={{ color: theme.colors.text }}>Current Medical Conditions</label>
           <input
             type="text"
             value={currentConditionsInput}
             onChange={(e) => setCurrentConditionsInput(e.target.value)}
-            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
+            style={{
+              backgroundColor: theme.colors.input,
+              borderColor: theme.colors.border,
+              color: theme.colors.text
+            }}
             placeholder="Separate by comma (e.g., Diabetes, Arthritis)"
           />
-          <p className="text-xs text-gray-500 mt-1">Separate multiple conditions with commas</p>
+          <p className="text-xs mt-1" style={{ color: theme.colors.textSecondary }}>Separate multiple conditions with commas</p>
         </div>
 
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <label className="text-sm font-medium">Current Medications</label>
+            <label className="text-sm font-medium" style={{ color: theme.colors.text }}>Current Medications</label>
             <div className="relative group">
-              <Info className="w-4 h-4 text-blue-600 cursor-help" />
-              <span className="invisible group-hover:visible absolute left-full ml-2 top-1/2 -translate-y-1/2 bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-10">
+              <Info className="w-4 h-4 cursor-help" style={{ color: theme.colors.primary }} />
+              <span className="invisible group-hover:visible absolute left-full ml-2 top-1/2 -translate-y-1/2 text-xs rounded px-2 py-1 whitespace-nowrap z-10" style={{ backgroundColor: theme.colors.card, color: theme.colors.text, border: `1px solid ${theme.colors.border}` }}>
                 Select medications you're currently taking
               </span>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-2 border rounded-md">
+          <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-2 border rounded-md" style={{ borderColor: theme.colors.border }}>
             {medicationsList.map((medication) => (
               <button
                 key={medication}
@@ -119,11 +127,12 @@ const StepHealthProfile: React.FC<StepHealthProfileProps> = ({
                     medications: toggleArrayItem(formData.medications, medication),
                   })
                 }
-                className={`px-3 py-1 rounded-full text-sm ${
-                  formData.medications.includes(medication)
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
+                className="px-3 py-1 rounded-full text-sm"
+                style={{
+                  backgroundColor: formData.medications.includes(medication) ? theme.colors.primary : theme.colors.surface,
+                  color: formData.medications.includes(medication) ? '#FFFFFF' : theme.colors.text,
+                  border: `1px solid ${formData.medications.includes(medication) ? theme.colors.primary : theme.colors.border}`
+                }}
               >
                 {medication}
               </button>

@@ -6,7 +6,22 @@ import Dashboard from './pages/Dashboard';
 import HealthAssessment from './pages/HealthAssessment';
 import Predictions from './pages/Predictions';
 import FoodTracking from './pages/FoodTracking';
+import Programs from './pages/Programs';
+import CreateProgram from './pages/CreateProgram';
+import AutomatedProgram from './pages/AutomatedProgram';
+import ProgramOverview from './pages/ProgramOverview';
+import GroupProgram from './pages/GroupProgram';
+import ProgramCoach from './pages/ProgramCoach';
+import Settings from './pages/Settings';
 import TermsAndConditions from './pages/TermsAndConditions';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminUsers from './pages/AdminUsers';
+import CreateAdmin from './pages/CreateAdmin';
+import AdminFoodLogs from './pages/AdminFoodLogs';
+import AdminGeoActivities from './pages/AdminGeoActivities';
+import AdminWorkouts from './pages/AdminWorkouts';
+import AdminPrograms from './pages/AdminPrograms';
+import AdminAchievements from './pages/AdminAchievements';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -45,6 +60,126 @@ function App() {
         element={
           <ProtectedRoute>
             <FoodTracking />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/programs"
+        element={
+          <ProtectedRoute>
+            <Programs />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/programs/create"
+        element={
+          <ProtectedRoute>
+            <CreateProgram />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/programs/automated"
+        element={
+          <ProtectedRoute>
+            <AutomatedProgram />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/programs/overview/:id"
+        element={
+          <ProtectedRoute>
+            <ProgramOverview />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/programs/group"
+        element={
+          <ProtectedRoute>
+            <GroupProgram />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/programs/coach/:id"
+        element={
+          <ProtectedRoute>
+            <ProgramCoach />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/dashboard"
+        element={
+          <ProtectedRoute>
+            <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/users"
+        element={
+          <ProtectedRoute>
+            <AdminUsers />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/create-admin"
+        element={
+          <ProtectedRoute>
+            <CreateAdmin />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/foodlogs"
+        element={
+          <ProtectedRoute>
+            <AdminFoodLogs />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/geo-activities"
+        element={
+          <ProtectedRoute>
+            <AdminGeoActivities />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/workouts"
+        element={
+          <ProtectedRoute>
+            <AdminWorkouts />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/programs"
+        element={
+          <ProtectedRoute>
+            <AdminPrograms />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/achievements"
+        element={
+          <ProtectedRoute>
+            <AdminAchievements />
           </ProtectedRoute>
         }
       />

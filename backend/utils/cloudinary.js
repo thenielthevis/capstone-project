@@ -32,7 +32,8 @@ exports.uploadWorkoutAnimation = (fileBuffer, publicId = null) => {
     folder: "workout_animations",
     public_id: publicId,
     overwrite: true,
-    resource_type: "raw",
+    resource_type: "auto",
+    type: "upload",
   });
 };
 

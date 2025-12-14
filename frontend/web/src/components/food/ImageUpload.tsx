@@ -1,7 +1,9 @@
 import { useRef, useState } from 'react'
+import { useTheme } from '@/context/ThemeContext'
 import './ImageUpload.css'
 
 function ImageUpload({ onImageUpload, loading }: { onImageUpload: (file: File, dishName: string, allergies: string[]) => void; loading: boolean }) {
+  const { theme } = useTheme()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [dragActive, setDragActive] = useState(false)
   const [dishName, setDishName] = useState('')
@@ -86,11 +88,17 @@ function ImageUpload({ onImageUpload, loading }: { onImageUpload: (file: File, d
 
   return (
     <div className="upload-container">
-      <div className="upload-form-card">
-        <h2>Upload Food Image</h2>
+      <div 
+        className="upload-form-card"
+        style={{
+          backgroundColor: theme.colors.card,
+          borderColor: theme.colors.border
+        }}
+      >
+        <h2 style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}>Upload Food Image</h2>
         
         <div className="form-group">
-          <label htmlFor="dishName">Dish Name (Optional)</label>
+          <label htmlFor="dishName" style={{ color: theme.colors.text, fontWeight: theme.fontWeights.medium }}>Dish Name (Optional)</label>
           <input
             id="dishName"
             type="text"
@@ -98,19 +106,29 @@ function ImageUpload({ onImageUpload, loading }: { onImageUpload: (file: File, d
             value={dishName}
             onChange={(e) => setDishName(e.target.value)}
             className="dish-input"
+            style={{ 
+              backgroundColor: theme.colors.input,
+              borderColor: theme.colors.border,
+              color: theme.colors.text
+            }}
             disabled={loading}
           />
-          <span className="input-hint">Help AI identify your food more accurately</span>
+          <span className="input-hint" style={{ color: theme.colors.textSecondary }}>Help AI identify your food more accurately</span>
         </div>
 
         <div className="form-group">
-          <label>Allergies & Dietary Restrictions (Optional)</label>
+          <label style={{ color: theme.colors.text, fontWeight: theme.fontWeights.medium }}>Allergies & Dietary Restrictions (Optional)</label>
           <div className="allergies-selector">
             {commonAllergensList.map(allergen => (
               <button
                 key={allergen}
                 type="button"
                 className={`allergy-tag ${commonAllergies.includes(allergen) ? 'selected' : ''}`}
+                style={{
+                  backgroundColor: commonAllergies.includes(allergen) ? theme.colors.primary : theme.colors.surface,
+                  borderColor: commonAllergies.includes(allergen) ? theme.colors.primary : theme.colors.border,
+                  color: commonAllergies.includes(allergen) ? '#FFFFFF' : theme.colors.text
+                }}
                 onClick={() => toggleCommonAllergy(allergen)}
                 disabled={loading}
               >
@@ -124,14 +142,23 @@ function ImageUpload({ onImageUpload, loading }: { onImageUpload: (file: File, d
             value={allergies}
             onChange={(e) => setAllergies(e.target.value)}
             className="dish-input"
+            style={{ 
+              marginTop: '10px',
+              backgroundColor: theme.colors.input,
+              borderColor: theme.colors.border,
+              color: theme.colors.text
+            }}
             disabled={loading}
-            style={{ marginTop: '10px' }}
           />
-          <span className="input-hint">We'll check for allergens and warn you</span>
+          <span className="input-hint" style={{ color: theme.colors.textSecondary }}>We'll check for allergens and warn you</span>
         </div>
 
         <div
           className={`upload-box ${dragActive ? 'drag-active' : ''} ${selectedFile ? 'has-file' : ''}`}
+          style={{
+            backgroundColor: theme.colors.surface,
+            borderColor: dragActive ? theme.colors.primary : theme.colors.border
+          }}
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
           onDragOver={handleDrag}
@@ -150,9 +177,13 @@ function ImageUpload({ onImageUpload, loading }: { onImageUpload: (file: File, d
             {previewUrl ? (
               <div className="preview-container">
                 <img src={previewUrl} alt="Preview" className="preview-image" />
-                <p className="upload-instruction">Selected: {selectedFile?.name}</p>
+                <p className="upload-instruction" style={{ color: theme.colors.text }}>Selected: {selectedFile?.name}</p>
                 <button
                   className="change-button"
+                  style={{
+                    backgroundColor: theme.colors.secondary,
+                    color: '#FFFFFF'
+                  }}
                   onClick={handleButtonClick}
                   disabled={loading}
                 >
@@ -161,20 +192,24 @@ function ImageUpload({ onImageUpload, loading }: { onImageUpload: (file: File, d
               </div>
             ) : (
               <>
-                <svg className="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <svg className="upload-icon" viewBox="0 0 24 24" fill="none" stroke={theme.colors.primary}>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                <p className="upload-instruction">
+                <p className="upload-instruction" style={{ color: theme.colors.text }}>
                   Drag and drop an image here, or click to select
                 </p>
                 <button
                   className="upload-button"
+                  style={{
+                    backgroundColor: theme.colors.primary,
+                    color: '#FFFFFF'
+                  }}
                   onClick={handleButtonClick}
                   disabled={loading}
                 >
                   Choose Image
                 </button>
-                <p className="upload-hint">
+                <p className="upload-hint" style={{ color: theme.colors.textSecondary }}>
                   Supports: JPG, PNG, GIF (Max 10MB)
                 </p>
               </>
@@ -185,6 +220,10 @@ function ImageUpload({ onImageUpload, loading }: { onImageUpload: (file: File, d
         {selectedFile && (
           <button
             className="analyze-button"
+            style={{
+              backgroundColor: theme.colors.primary,
+              color: '#FFFFFF'
+            }}
             onClick={handleAnalyze}
             disabled={loading}
           >

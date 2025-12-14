@@ -1,127 +1,126 @@
 .upload-container {
   width: 100%;
-  max-width: 600px;
+  max-width: var(--max-width-container);
   margin: 0 auto;
 }
 
 .upload-form-card {
-  background: white;
-  border-radius: 16px;
-  padding: 2.5rem;
-  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.1);
-  border: 1px solid #e5e7eb;
+  border-radius: var(--radius-lg);
+  padding: var(--card-padding-lg);
+  box-shadow: var(--shadow-card);
+  border: var(--card-border-width) solid var(--color-border-primary);
 }
 
 .upload-form-card h2 {
-  color: #1a1a1a;
-  font-size: 1.75rem;
-  font-weight: 600;
-  margin-bottom: 2rem;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-8);
   text-align: center;
 }
 
 .form-group {
-  margin-bottom: 2rem;
+  margin-bottom: var(--space-8);
 }
 
 .form-group label {
   display: block;
-  color: #4a5568;
-  font-size: 0.95rem;
-  font-weight: 500;
-  margin-bottom: 0.5rem;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  margin-bottom: var(--space-2);
 }
 
 .dish-input {
   width: 100%;
-  padding: 0.875rem 1rem;
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: all 0.2s ease;
-  background: #fafbfc;
+  padding: var(--input-padding);
+  border: var(--input-border-width) solid var(--color-border-secondary);
+  border-radius: var(--radius-base);
+  font-size: var(--input-font-size);
+  transition: var(--transition-all);
+  background: var(--color-background-input);
 }
 
 .dish-input:focus {
   outline: none;
-  border-color: #3b82f6;
-  background: white;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--color-border-focus);
+  background: var(--color-background-primary);
+  box-shadow: var(--shadow-focus);
 }
 
 .dish-input:disabled {
-  background: #f5f5f5;
+  background: var(--color-background-disabled);
   cursor: not-allowed;
-  opacity: 0.6;
+  opacity: var(--opacity-60);
 }
 
 .input-hint {
   display: block;
-  color: #718096;
-  font-size: 0.85rem;
-  margin-top: 0.5rem;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
+  margin-top: var(--space-2);
 }
 
 .allergies-selector {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
 }
 
 .allergy-tag {
-  padding: 0.5rem 1rem;
-  border: 2px solid #e2e8f0;
-  border-radius: 20px;
-  background: white;
-  color: #4a5568;
-  font-size: 0.9rem;
-  font-weight: 500;
+  padding: var(--space-2) var(--space-4);
+  border: var(--input-border-width) solid var(--color-border-secondary);
+  border-radius: var(--radius-full);
+  background: var(--color-background-primary);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: var(--transition-all);
 }
 
 .allergy-tag:hover:not(:disabled) {
-  border-color: #cbd5e0;
+  border-color: var(--color-border-hover);
   transform: translateY(-1px);
 }
 
 .allergy-tag.selected {
-  background: #3b82f6;
-  color: white;
-  border-color: #3b82f6;
+  background: var(--color-primary-500);
+  color: var(--color-background-primary);
+  border-color: var(--color-primary-500);
 }
 
 .allergy-tag:disabled {
-  opacity: 0.5;
+  opacity: var(--opacity-50);
   cursor: not-allowed;
 }
 
 .upload-box {
-  background: #fafbfc;
-  border: 2px dashed #cbd5e0;
-  border-radius: 12px;
-  padding: 3rem 2rem;
+  background: var(--color-background-input);
+  border: var(--input-border-width) dashed var(--color-border-hover);
+  border-radius: var(--radius-md);
+  padding: var(--space-12) var(--space-8);
   text-align: center;
-  transition: all 0.3s ease;
+  transition: var(--transition-slow);
   cursor: pointer;
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--space-6);
 }
 
 .upload-box:hover {
-  border-color: #3b82f6;
-  background: #f7fafc;
+  border-color: var(--color-primary-500);
+  background: var(--color-background-tertiary);
 }
 
 .upload-box.drag-active {
-  border-color: #3b82f6;
-  background: #eff6ff;
+  border-color: var(--color-primary-500);
+  background: var(--color-primary-50);
   transform: scale(1.01);
 }
 
 .upload-box.has-file {
-  background: #eff6ff;
-  border-color: #3b82f6;
+  background: var(--color-primary-50);
+  border-color: var(--color-primary-500);
   border-style: solid;
 }
 
@@ -134,13 +133,13 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 
 .preview-image {
   max-width: 100%;
   max-height: 300px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   object-fit: cover;
   box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2);
 }
@@ -148,95 +147,95 @@
 .upload-icon {
   width: 64px;
   height: 64px;
-  margin: 0 auto 1.5rem;
-  color: #3b82f6;
-  opacity: 0.8;
+  margin: 0 auto var(--space-6);
+  color: var(--color-primary-500);
+  opacity: var(--opacity-80);
 }
 
 .upload-instruction {
-  color: #4a5568;
-  margin-bottom: 1.5rem;
-  font-size: 1rem;
-  font-weight: 500;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-6);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
 }
 
 .upload-button,
 .change-button {
   pointer-events: all;
-  background: #3b82f6;
-  color: white;
+  background: var(--color-primary-500);
+  color: var(--color-background-primary);
   border: none;
-  padding: 0.75rem 2rem;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 500;
+  padding: var(--space-3) var(--space-8);
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: var(--transition-all);
 }
 
 .upload-button:hover:not(:disabled),
 .change-button:hover:not(:disabled) {
-  background: #2563eb;
+  background: var(--color-primary-600);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  box-shadow: var(--shadow-button);
 }
 
 .upload-button:disabled,
 .change-button:disabled {
-  opacity: 0.6;
+  opacity: var(--opacity-60);
   cursor: not-allowed;
 }
 
 .change-button {
-  background: #718096;
-  margin-top: 1rem;
+  background: var(--color-text-tertiary);
+  margin-top: var(--space-4);
 }
 
 .change-button:hover:not(:disabled) {
-  background: #4a5568;
+  background: var(--color-text-secondary);
 }
 
 .upload-hint {
-  margin-top: 1rem;
-  color: #718096;
-  font-size: 0.875rem;
+  margin-top: var(--space-4);
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
 }
 
 .analyze-button {
   width: 100%;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  color: white;
+  background: var(--gradient-primary);
+  color: var(--color-background-primary);
   border: none;
-  padding: 1rem 2rem;
-  border-radius: 8px;
-  font-size: 1.05rem;
-  font-weight: 600;
+  padding: var(--button-padding-base);
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  transition: var(--transition-slow);
+  box-shadow: var(--shadow-button);
 }
 
 .analyze-button:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+  box-shadow: var(--shadow-button-hover);
 }
 
 .analyze-button:disabled {
-  opacity: 0.6;
+  opacity: var(--opacity-60);
   cursor: not-allowed;
 }
 
 @media (max-width: 768px) {
   .upload-form-card {
-    padding: 2rem 1.5rem;
+    padding: var(--space-8) var(--space-6);
   }
 
   .upload-form-card h2 {
-    font-size: 1.5rem;
+    font-size: var(--font-size-3xl);
   }
 
   .upload-box {
-    padding: 2rem 1rem;
+    padding: var(--space-8) var(--space-4);
   }
 
   .upload-icon {
@@ -247,7 +246,7 @@
   .upload-button,
   .change-button,
   .analyze-button {
-    padding: 0.75rem 1.5rem;
-    font-size: 0.95rem;
+    padding: var(--button-padding-sm);
+    font-size: var(--font-size-md);
   }
 }

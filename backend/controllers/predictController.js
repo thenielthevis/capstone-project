@@ -101,6 +101,72 @@ exports.health = (req, res) => {
   res.json({ ok: true, time: new Date().toISOString() });
 };
 
+// getCachedPrediction: fetch existing predictions without regenerating
+exports.getCachedPrediction = async (req, res) => {
+  try {
+    const authUserId = req.user && req.user.id;
+    if (!authUserId) return res.status(400).json({ error: 'authentication required' });
+
+    console.log('[getCachedPrediction] fetching cached prediction for userId=', authUserId);
+    
+    // Find user and get their last prediction
+    const user = await User.findById(authUserId)
+      .select('_id username email age gender profilePicture birthdate physicalMetrics lifestyle dietaryProfile healthProfile environmentalFactors riskFactors lastPrediction')
+      .exec();
+    
+    if (!user) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+
+    // Check if user has existing predictions
+    const hasExistingPrediction = user.lastPrediction && 
+                                  Array.isArray(user.lastPrediction.predictions) && 
+                                  user.lastPrediction.predictions.length > 0;
+    
+    if (!hasExistingPrediction) {
+      return res.status(404).json({ 
+        error: 'No predictions available', 
+        message: 'Please complete a health assessment first to generate predictions' 
+      });
+    }
+
+    // Build profile object
+    const profile = {
+      age: user.age || null,
+      gender: user.gender || null,
+      physicalMetrics: user.physicalMetrics || { height: { value: null }, weight: { value: null }, bmi: null, waistCircumference: null },
+      lifestyle: user.lifestyle || { activityLevel: null, sleepHours: null },
+      riskFactors: user.riskFactors || { addictions: [], stressLevel: null },
+      dietaryProfile: user.dietaryProfile || { preferences: [], allergies: [], dailyWaterIntake: null, mealFrequency: null },
+      healthProfile: user.healthProfile || { currentConditions: [], familyHistory: [], medications: [], bloodType: null },
+      environmentalFactors: user.environmentalFactors || { pollutionExposure: null, occupationType: null },
+      profilePicture: user.profilePicture || null,
+      birthdate: user.birthdate || null,
+    };
+    
+    // Map predictions
+    const sortedDiseases = (user.lastPrediction.predictions || []).map((p) => ({
+      name: p.name || 'Unknown',
+      probability: Number(p.probability) || 0,
+      source: p.source || 'model',
+      percentage: p.percentage || (Number(p.probability) * 100)
+    }));
+    
+    return res.json({
+      id: String(user._id),
+      username: user.username,
+      email: user.email,
+      profile,
+      predictions: sortedDiseases,
+      lastPrediction: user.lastPrediction,
+      cached: true
+    });
+  } catch (err) {
+    console.error('[getCachedPrediction] error:', err);
+    return res.status(500).json({ error: 'failed to fetch predictions', details: err.message });
+  }
+};
+
 // Return users with lastPrediction (flexible shape)
 exports.getDatasetFromDB = async (req, res) => {
   try {
@@ -164,8 +230,11 @@ exports.predictUser = async (req, res) => {
     const userId = authUserId || bodyUserId;
     if (!userId) return res.status(400).json({ error: 'userId required (or authenticate)' });
 
+    // For GET requests, only return cached predictions (never regenerate)
+    const isGetRequest = req.method === 'GET';
+
     // Find user and get their health data
-    console.log('[predictUser] authUserId=', authUserId, 'bodyUserId=', bodyUserId, 'resolved userId=', userId);
+    console.log('[predictUser] method=', req.method, 'authUserId=', authUserId, 'bodyUserId=', bodyUserId, 'resolved userId=', userId);
     // Select full profile fields so frontend can render complete user information
     const user = await User.findById(userId).select('_id username email age gender profilePicture birthdate physicalMetrics lifestyle dietaryProfile healthProfile environmentalFactors riskFactors lastPrediction').exec();
     console.log('[predictUser] fetched user summary=', user ? { id: String(user._id), username: user.username, email: user.email, age: user.age, hasPhysicalMetrics: !!user.physicalMetrics, hasDietaryProfile: !!user.dietaryProfile, hasHealthProfile: !!user.healthProfile } : null);
@@ -182,10 +251,11 @@ exports.predictUser = async (req, res) => {
     }
     if (!user) return res.status(404).json({ error: 'user not found' });
 
-    // Check if user already has a lastPrediction and force=true is not requested
+    // For GET requests, always return cached prediction (never generate new ones)
+    // For POST requests, check if user already has a lastPrediction and force=true is not requested
     // If so, skip generating a new prediction and just return the cached one
     // BUT: Only return cached prediction if it's from TODAY (not from previous days)
-    const forceRegenerate = (req.query && String(req.query.force) === 'true') || (req.body && req.body.force === true);
+    const forceRegenerate = !isGetRequest && ((req.query && String(req.query.force) === 'true') || (req.body && req.body.force === true));
     const hasExistingPrediction = user.lastPrediction && Array.isArray(user.lastPrediction.predictions) && user.lastPrediction.predictions.length > 0;
     
     // Check if the existing prediction is from TODAY
@@ -201,12 +271,22 @@ exports.predictUser = async (req, res) => {
     
     const predictionIsFromToday = isPredictionFromToday();
     
-    console.log('[predictUser] forceRegenerate=', forceRegenerate, 'hasExistingPrediction=', hasExistingPrediction, 'predictionIsFromToday=', predictionIsFromToday);
+    console.log('[predictUser] method=', req.method, 'isGetRequest=', isGetRequest, 'forceRegenerate=', forceRegenerate, 'hasExistingPrediction=', hasExistingPrediction, 'predictionIsFromToday=', predictionIsFromToday);
     console.log('[predictUser] req.body=', req.body);
     console.log('[predictUser] req.query=', req.query);
     
-    if (hasExistingPrediction && !forceRegenerate && predictionIsFromToday) {
-      console.log('[predictUser] user already has prediction from TODAY, returning cached result (no new prediction generated). Use force=true to regenerate.');
+    // For GET requests OR if user has predictions and no force regenerate
+    if (isGetRequest || (hasExistingPrediction && !forceRegenerate && predictionIsFromToday)) {
+      console.log('[predictUser] returning cached prediction', isGetRequest ? '(GET request)' : '(has today prediction, no force)');
+      
+      // If GET request and no existing prediction, return error
+      if (isGetRequest && !hasExistingPrediction) {
+        return res.status(404).json({ 
+          error: 'No predictions available', 
+          message: 'Please complete a health assessment first to generate predictions' 
+        });
+      }
+      
       // Build profile object to return so frontend can render user info from DB (use schema field names)
       const profile = {
         age: (user && user.age) ? user.age : null,

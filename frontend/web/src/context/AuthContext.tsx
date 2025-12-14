@@ -4,6 +4,7 @@ import { getUser, getToken, saveUser as saveUserStorage, saveToken, logout as lo
 interface User {
   username: string;
   email: string;
+  role?: string;
   profilePicture?: string;
   googleId?: string;
 }

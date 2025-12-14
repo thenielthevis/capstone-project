@@ -42,16 +42,21 @@ export const submitHealthAssessment = async (data: HealthAssessmentData) => {
   return axiosInstance.post('/users/health-assessment', data);
 };
 
-export const predictUser = async () => {
-  return axiosInstance.post('/predict/me');
+export const getCurrentUser = async () => {
+  return axiosInstance.get('/users/me');
 };
 
-export const getCurrentUser = async () => {
-  return axiosInstance.get('/users/current');
+export const updateUser = async (userData: any) => {
+  return axiosInstance.put('/users/update', userData);
+};
+
+export const updateUserHealthData = async (healthData: Partial<HealthAssessmentData>) => {
+  return axiosInstance.patch('/users/health-data', healthData);
 };
 
 export default {
   submitHealthAssessment,
-  predictUser,
   getCurrentUser,
+  updateUser,
+  updateUserHealthData,
 };

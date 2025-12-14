@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./design-tokens.css";
 
 @theme {
   --color-border: 214.3 31.8% 91.4%;
@@ -29,4 +30,118 @@
   --color-card-foreground: 222.2 84% 4.9%;
   
   --radius: 0.5rem;
+}
+
+/* Light Theme */
+:root.light {
+  --background: #ffffff;
+  --foreground: #0f172a;
+  color-scheme: light;
+}
+
+/* Dark Theme */
+:root.dark {
+  --background: #0f172a;
+  --foreground: #f1f5f9;
+  color-scheme: dark;
+}
+
+/* Ocean Theme */
+:root.ocean {
+  --background: #0c1929;
+  --foreground: #e0f2fe;
+  color-scheme: dark;
+}
+
+html {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+/* Dark mode styles */
+.dark {
+  background-color: #0f172a;
+  color: #f1f5f9;
+}
+
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: #1e293b;
+  color: #f1f5f9;
+  border-color: #334155;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #94a3b8;
+}
+
+/* Ocean mode styles */
+.ocean {
+  background-color: #0c1929;
+  color: #e0f2fe;
+}
+
+.ocean input,
+.ocean textarea,
+.ocean select {
+  background-color: #0f3460;
+  color: #e0f2fe;
+  border-color: #16567e;
+}
+
+.ocean input::placeholder,
+.ocean textarea::placeholder {
+  color: #7ec8e3;
+}
+
+/* Dark mode card and container styles */
+.dark .bg-white {
+  @apply bg-slate-900 text-slate-100;
+}
+
+.dark .bg-gray-50,
+.dark .bg-gray-100 {
+  @apply bg-slate-800 text-slate-100;
+}
+
+.dark .border-gray-200 {
+  @apply border-slate-700;
+}
+
+.dark .text-gray-900 {
+  @apply text-slate-100;
+}
+
+.dark .text-gray-700,
+.dark .text-gray-600 {
+  @apply text-slate-300;
+}
+
+/* Ocean mode card and container styles */
+.ocean .bg-white {
+  @apply bg-slate-900/50 text-cyan-50;
+}
+
+.ocean .bg-gray-50,
+.ocean .bg-gray-100 {
+  @apply bg-blue-900/30 text-cyan-50;
+}
+
+.ocean .border-gray-200 {
+  @apply border-cyan-700/50;
+}
+
+.ocean .text-gray-900 {
+  @apply text-cyan-50;
+}
+
+.ocean .text-gray-700,
+.ocean .text-gray-600 {
+  @apply text-cyan-200;
 }

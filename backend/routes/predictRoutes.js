@@ -8,6 +8,10 @@ const auth = require('../middleware/auth');
 router.post('/user', auth, predictController.predictUser);
 // Authenticated: predict for currently logged-in user
 router.post('/me', auth, predictController.predictUser);
+// GET route to fetch existing predictions without regenerating
+router.get('/me', auth, predictController.getCachedPrediction);
+// GET cached predictions (alias)
+router.get('/cached', auth, predictController.getCachedPrediction);
 // Dev: predict for a user by email (no auth, dev-only)
 router.post('/by-email', predictController.predictUserByEmail);
 router.get('/sample', predictController.samplePrediction);

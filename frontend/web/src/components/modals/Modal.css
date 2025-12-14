@@ -1,0 +1,141 @@
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modal-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #1a1a1a;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.modal-body {
+  margin-bottom: 24px;
+}
+
+.info-intro {
+  margin-bottom: 20px;
+  color: #666;
+  line-height: 1.5;
+}
+
+.info-section {
+  margin-bottom: 24px;
+}
+
+.info-category {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #2563eb;
+  margin-bottom: 12px;
+}
+
+.info-item {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.info-item:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2563eb;
+  margin-bottom: 4px;
+}
+
+.info-description {
+  color: #4b5563;
+  line-height: 1.5;
+  margin-bottom: 4px;
+}
+
+.info-example {
+  color: #6b7280;
+  font-size: 0.875rem;
+  font-style: italic;
+}
+
+.info-risks {
+  color: #ef4444;
+  font-size: 0.875rem;
+  margin-top: 4px;
+}
+
+.info-list {
+  list-style: disc;
+  padding-left: 24px;
+  color: #4b5563;
+}
+
+.info-list li {
+  margin-bottom: 4px;
+}
+
+.info-note {
+  margin-top: 20px;
+  padding: 12px;
+  background-color: #fef3c7;
+  border-left: 4px solid #f59e0b;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  color: #92400e;
+  line-height: 1.5;
+}
+
+.modal-button {
+  width: 100%;
+  padding: 12px;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.modal-button:hover {
+  background-color: #1d4ed8;
+}
+
+.modal-button:active {
+  background-color: #1e40af;
+}
+
+@media (max-width: 640px) {
+  .modal-content {
+    padding: 20px;
+    max-height: 90vh;
+  }
+
+  .modal-title {
+    font-size: 1.25rem;
+  }
+}
