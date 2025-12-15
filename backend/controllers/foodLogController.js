@@ -1,6 +1,85 @@
 const FoodLog = require('../models/foodLogModel');
+const User = require('../models/userModel');
 const { uploadProfilePicture } = require('../utils/cloudinary');
 const mongoose = require('mongoose');
+
+// Helper function to update user's daily calorie balance
+async function updateUserDailyCalories(userId, calories) {
+  try {
+    const user = await User.findById(userId);
+    if (!user) return;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Find today's entry
+    let entry = user.dailyCalorieBalance.find(e => {
+      const entryDate = new Date(e.date);
+      entryDate.setHours(0, 0, 0, 0);
+      return entryDate.getTime() === today.getTime();
+    });
+
+    if (!entry) {
+      // Calculate goal_kcal if no entry exists
+      const { age, gender, physicalMetrics, lifestyle } = user;
+      const weight = physicalMetrics?.weight?.value;
+      const height = physicalMetrics?.height?.value;
+      const targetWeight = physicalMetrics?.targetWeight?.value;
+      const activityLevel = lifestyle?.activityLevel;
+      
+      let goal_kcal = 2000; // Default
+      if (weight && height && age && gender) {
+        // Mifflin-St Jeor Equation for BMR
+        let bmr;
+        if (gender === 'male') {
+          bmr = 10 * weight + 6.25 * height - 5 * age + 5;
+        } else {
+          bmr = 10 * weight + 6.25 * height - 5 * age - 161;
+        }
+        const activityFactors = {
+          sedentary: 1.2,
+          lightly_active: 1.375,
+          moderately_active: 1.55,
+          very_active: 1.725,
+          extremely_active: 1.9
+        };
+        const activityMult = activityFactors[activityLevel] || 1.2;
+        goal_kcal = Math.round(bmr * activityMult);
+        if (targetWeight && Math.abs(targetWeight - weight) > 1) {
+          const diff = targetWeight - weight;
+          goal_kcal += diff > 0 ? 250 : -250;
+        }
+      }
+
+      user.dailyCalorieBalance.push({
+        date: today,
+        goal_kcal,
+        consumed_kcal: calories,
+        burned_kcal: 0,
+        net_kcal: calories,
+        status: calories < goal_kcal - 100 ? 'under' : (calories > goal_kcal + 100 ? 'over' : 'on_target')
+      });
+    } else {
+      // Update existing entry
+      entry.consumed_kcal = (entry.consumed_kcal || 0) + calories;
+      entry.net_kcal = entry.consumed_kcal - (entry.burned_kcal || 0);
+      
+      // Update status
+      if (entry.net_kcal < entry.goal_kcal - 100) {
+        entry.status = 'under';
+      } else if (entry.net_kcal > entry.goal_kcal + 100) {
+        entry.status = 'over';
+      } else {
+        entry.status = 'on_target';
+      }
+    }
+
+    await user.save();
+    console.log('[UPDATE DAILY CALORIES] Updated daily calorie balance for user:', userId);
+  } catch (error) {
+    console.error('[UPDATE DAILY CALORIES] Error:', error.message);
+  }
+}
 
 // Create a new food log entry
 exports.createFoodLog = async (req, res) => {
@@ -71,6 +150,9 @@ exports.createFoodLog = async (req, res) => {
 
     const savedLog = await newFoodLog.save();
     console.log('[CREATE FOOD LOG] Food log saved successfully:', savedLog._id);
+
+    // Automatically update user's daily calorie balance
+    await updateUserDailyCalories(userId, foodData.calories);
 
     res.status(201).json({
       message: 'Food log created successfully',

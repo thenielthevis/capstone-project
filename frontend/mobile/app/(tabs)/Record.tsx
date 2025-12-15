@@ -1,15 +1,17 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { View, Text, ActivityIndicator, Alert } from "react-native";
 import { useTheme } from "../context/ThemeContext";
-import { createOrUpdateDailyCalorieBalance } from "../api/userApi";
+import { createOrUpdateDailyCalorieBalance, getTodayCalorieBalance } from "../api/userApi";
 import { tokenStorage } from "../../utils/tokenStorage";
+import { useFocusEffect } from "expo-router";
 
 export default function Record() {
   const { theme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [entry, setEntry] = useState<any>(null);
 
+  // Initial fetch or create entry
   useEffect(() => {
     const fetchOrCreateEntry = async () => {
       try {
@@ -25,6 +27,27 @@ export default function Record() {
     };
     fetchOrCreateEntry();
   }, []);
+
+  // Refresh calorie balance when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      const refreshCalorieBalance = async () => {
+        try {
+          const response = await getTodayCalorieBalance();
+          if (response.entry) {
+            setEntry(response.entry);
+          }
+        } catch (error) {
+          console.error('[Record] Error refreshing calorie balance:', error);
+        }
+      };
+
+      // Only refresh if not in initial loading state
+      if (!loading) {
+        refreshCalorieBalance();
+      }
+    }, [loading])
+  );
 
   if (loading) {
     return (

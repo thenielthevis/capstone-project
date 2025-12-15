@@ -1,24 +1,84 @@
 import React from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { TouchableOpacity } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { useActivityMetrics } from '../../context/ActivityMetricsContext';
+import { useUser } from '../../context/UserContext';
 import ActivityDrawer from '../../components/ActivityDrawer';
+import { createProgramSession } from '../../api/programSesssionApi';
+import { getTodayCalorieBalance } from '../../api/userApi';
 
 export default function ActivityMetrics() {
   const { theme } = useTheme();
   const router = useRouter();
-  const { speed, distance, time, splits, recording, setRecording } = useActivityMetrics();
+  const { user } = useUser();
+  const { speed, distance, time, splits, recording, activityType, setRecording, calculateCaloriesBurned, resetMetrics } = useActivityMetrics();
 
   const handleRecordingChange = (isRecording: boolean) => {
     setRecording(isRecording);
   };
 
-  const handleFinish = () => {
-    // Handle finish action - could navigate back or show summary
+  // Map activity type to a placeholder activity ID
+  const getActivityId = (type: string): string => {
+    const activityIds: Record<string, string> = {
+      Running: '000000000000000000000001',
+      Walking: '000000000000000000000002',
+      Cycling: '000000000000000000000003',
+    };
+    return activityIds[type] || activityIds.Running;
+  };
+
+  const handleFinish = async () => {
+    try {
+      // Get user weight for calorie calculation (default 70kg if not available)
+      const userWeight = user?.physicalMetrics?.weight?.value || 70;
+      const caloriesBurned = calculateCaloriesBurned(userWeight);
+      
+      // Only save if there was actual activity
+      if (time > 0 && distance > 0) {
+        // Calculate average pace (min/km)
+        const avgPace = distance > 0 ? (time / 60) / distance : 0;
+
+        // Create program session with activity data
+        const sessionPayload = {
+          workouts: [],
+          geo_activities: [{
+            activity_id: getActivityId(activityType),
+            distance_km: distance,
+            avg_pace: avgPace,
+            moving_time_sec: time,
+            route_coordinates: [],
+            calories_burned: caloriesBurned,
+            started_at: new Date(Date.now() - time * 1000).toISOString(),
+            ended_at: new Date().toISOString(),
+          }],
+          total_duration_minutes: Math.round(time / 60),
+          total_calories_burned: caloriesBurned,
+          performed_at: new Date(Date.now() - time * 1000).toISOString(),
+          end_time: new Date().toISOString(),
+        };
+
+        await createProgramSession(sessionPayload);
+        console.log('[ActivityMetrics] Session saved successfully, calories burned:', caloriesBurned);
+        
+        // Refresh calorie balance after saving
+        try {
+          await getTodayCalorieBalance();
+          console.log('[ActivityMetrics] Calorie balance refreshed');
+        } catch (error) {
+          console.error('[ActivityMetrics] Error refreshing calorie balance:', error);
+        }
+      }
+    } catch (error) {
+      console.error('[ActivityMetrics] Error saving activity session:', error);
+      Alert.alert('Note', 'Activity data could not be saved, but your session has ended.');
+    }
+    
+    // Reset metrics and navigate back
+    resetMetrics();
     router.back();
   };
 

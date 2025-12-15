@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   Animated,
   Text,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import MapLibreGL, {Logger} from "@maplibre/maplibre-react-native";
@@ -15,6 +16,9 @@ import ActivityDrawer from "../../components/ActivityDrawer";
 import { useTheme } from "../../context/ThemeContext";
 import { useRouter } from "expo-router";
 import { useActivityMetrics } from "../../context/ActivityMetricsContext";
+import { useUser } from "../../context/UserContext";
+import { createProgramSession } from "../../api/programSesssionApi";
+import { getTodayCalorieBalance } from "../../api/userApi";
 
 Logger.setLogCallback(log => {
   const { message } = log;
@@ -32,17 +36,20 @@ const MAPTILER_KEY =
 export default function TestMap() {
   const { theme } = useTheme();
   const router = useRouter();
+  const { user } = useUser();
   const {
     speed: contextSpeed,
     distance: contextDistance,
     time: contextTime,
     recording: contextRecording,
+    activityType,
     setSpeed: setContextSpeed,
     setDistance: setContextDistance,
     setTime: setContextTime,
     setRecording: setContextRecording,
     addSplit,
     resetMetrics,
+    calculateCaloriesBurned,
   } = useActivityMetrics();
   
   const [location, setLocation] = useState<[number, number] | null>(null);
@@ -385,8 +392,59 @@ export default function TestMap() {
     // Distance and speed also persist when paused
   };
 
-  // Handle finish action
-  const handleFinish = () => {
+  // Handle finish action - save activity session and update calorie balance
+  const handleFinish = async () => {
+    try {
+      // Get user weight for calorie calculation (default 70kg if not available)
+      const userWeight = user?.physicalMetrics?.weight?.value || 70;
+      const caloriesBurned = calculateCaloriesBurned(userWeight);
+      
+      // Only save if there was actual activity
+      if (contextTime > 0 && contextDistance > 0) {
+        // Calculate average pace (min/km)
+        const avgPace = contextDistance > 0 ? (contextTime / 60) / contextDistance : 0;
+        
+        // Prepare route coordinates for saving
+        const routeForSave = routeCoords.map(([lon, lat]) => ({
+          latitude: lat,
+          longitude: lon,
+        }));
+
+        // Create program session with activity data
+        const sessionPayload = {
+          workouts: [],
+          geo_activities: [{
+            activity_id: getActivityId(activityType), // Map activity type to ID
+            distance_km: contextDistance,
+            avg_pace: avgPace,
+            moving_time_sec: contextTime,
+            route_coordinates: routeForSave,
+            calories_burned: caloriesBurned,
+            started_at: new Date(Date.now() - contextTime * 1000).toISOString(),
+            ended_at: new Date().toISOString(),
+          }],
+          total_duration_minutes: Math.round(contextTime / 60),
+          total_calories_burned: caloriesBurned,
+          performed_at: new Date(Date.now() - contextTime * 1000).toISOString(),
+          end_time: new Date().toISOString(),
+        };
+
+        await createProgramSession(sessionPayload);
+        console.log('[Activity] Session saved successfully, calories burned:', caloriesBurned);
+        
+        // Refresh calorie balance after saving
+        try {
+          await getTodayCalorieBalance();
+          console.log('[Activity] Calorie balance refreshed');
+        } catch (error) {
+          console.error('[Activity] Error refreshing calorie balance:', error);
+        }
+      }
+    } catch (error) {
+      console.error('[Activity] Error saving activity session:', error);
+      Alert.alert('Note', 'Activity data could not be saved, but your session has ended.');
+    }
+    
     // Reset all metrics
     resetMetrics();
     // Reset local refs
@@ -398,6 +456,18 @@ export default function TestMap() {
     setRouteCoords([]); // Clear route
     // Navigate back
     router.back();
+  };
+
+  // Map activity type to a placeholder activity ID (you may need to adjust based on your DB)
+  const getActivityId = (type: string): string => {
+    // These IDs should match your GeoActivity collection
+    // For now, using placeholder - replace with actual IDs from your database
+    const activityIds: Record<string, string> = {
+      Running: '000000000000000000000001',
+      Walking: '000000000000000000000002',
+      Cycling: '000000000000000000000003',
+    };
+    return activityIds[type] || activityIds.Running;
   };
 
   // Helper function to calculate distance between two coordinates (Haversine formula)

@@ -6,21 +6,33 @@ type Split = {
   pace: number; // pace in seconds per km
 };
 
+type ActivityType = 'Running' | 'Walking' | 'Cycling';
+
 type ActivityMetricsContextType = {
   speed: number;
   distance: number;
   time: number;
   recording: boolean;
   splits: Split[];
+  activityType: ActivityType;
   setSpeed: (speed: number) => void;
   setDistance: (distance: number) => void;
   setTime: (time: number) => void;
   setRecording: (recording: boolean) => void;
   addSplit: (split: Split) => void;
+  setActivityType: (type: ActivityType) => void;
   resetMetrics: () => void;
+  calculateCaloriesBurned: (weightKg?: number) => number;
 };
 
 const ActivityMetricsContext = createContext<ActivityMetricsContextType | undefined>(undefined);
+
+// MET values for different activities
+const MET_VALUES: Record<ActivityType, number> = {
+  Running: 9.8,    // Running at moderate pace (~8 km/h)
+  Walking: 3.5,    // Walking at moderate pace (~5 km/h)
+  Cycling: 7.5,    // Cycling at moderate pace (~16-19 km/h)
+};
 
 export const ActivityMetricsProvider = ({ children }: { children: ReactNode }) => {
   const [speed, setSpeed] = useState<number>(0);
@@ -28,9 +40,19 @@ export const ActivityMetricsProvider = ({ children }: { children: ReactNode }) =
   const [time, setTime] = useState<number>(0);
   const [recording, setRecording] = useState<boolean>(false);
   const [splits, setSplits] = useState<Split[]>([]);
+  const [activityType, setActivityType] = useState<ActivityType>('Running');
 
   const addSplit = (split: Split) => {
     setSplits((prev) => [...prev, split]);
+  };
+
+  // Calculate calories burned using MET formula
+  // Calories = MET × weight(kg) × time(hours)
+  const calculateCaloriesBurned = (weightKg: number = 70): number => {
+    const met = MET_VALUES[activityType];
+    const timeInHours = time / 3600;
+    const calories = Math.round(met * weightKg * timeInHours);
+    return calories;
   };
 
   const resetMetrics = () => {
@@ -49,12 +71,15 @@ export const ActivityMetricsProvider = ({ children }: { children: ReactNode }) =
         time,
         recording,
         splits,
+        activityType,
         setSpeed,
         setDistance,
         setTime,
         setRecording,
         addSplit,
+        setActivityType,
         resetMetrics,
+        calculateCaloriesBurned,
       }}
     >
       {children}

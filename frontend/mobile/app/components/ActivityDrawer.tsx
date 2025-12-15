@@ -4,6 +4,7 @@ import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import { Ionicons, FontAwesome5, Feather } from "@expo/vector-icons";
 import { useTheme } from "../context/ThemeContext";
 import { useRouter } from "expo-router";
+import { useActivityMetrics } from "../context/ActivityMetricsContext";
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -40,12 +41,13 @@ export default function ActivityDrawer({
   lockedIndex = 0
 }: ActivityDrawerProps) {
   const { theme } = useTheme();
+  const { activityType: contextActivityType, setActivityType: setContextActivityType } = useActivityMetrics();
   const bottomSheetRef = useRef<BottomSheet>(null);
   const activitySheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ["15%", "25%",], []);
   const activitySnapPoints = useMemo(() => ["30%"], []);
   const router = useRouter();
-  const [activityType, setActivityType] = useState<ActivityType>("Running");
+  const [activityType, setActivityType] = useState<ActivityType>(contextActivityType);
   const [recording, setRecording] = useState(externalRecording || false);
   const [hasStartedRecording, setHasStartedRecording] = useState(false);
 
@@ -122,6 +124,7 @@ export default function ActivityDrawer({
   // Select activity and close sheet
   const selectActivity = (type: ActivityType) => {
     setActivityType(type);
+    setContextActivityType(type);
     activitySheetRef.current?.close();
   };
 
