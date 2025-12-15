@@ -1,3 +1,31 @@
+// Utility: Calculate daily calorie goal based on BMI, weight, target weight, age, gender, and activity level
+function calculateGoalKcal({ weight, height, age, gender, activityLevel, targetWeight }) {
+    // Mifflin-St Jeor Equation for BMR
+    let bmr;
+    if (gender === 'male') {
+        bmr = 10 * weight + 6.25 * height - 5 * age + 5;
+    } else {
+        bmr = 10 * weight + 6.25 * height - 5 * age - 161;
+    }
+    // Activity factor
+    const activityFactors = {
+        sedentary: 1.2,
+        lightly_active: 1.375,
+        moderately_active: 1.55,
+        very_active: 1.725,
+        extremely_active: 1.9
+    };
+    const activityMult = activityFactors[activityLevel] || 1.2;
+    let maintenance = bmr * activityMult;
+    // Adjust for weight goal (lose/gain 0.5kg/week = 500 kcal/day deficit/surplus)
+    if (targetWeight && Math.abs(targetWeight - weight) > 1) {
+        const diff = targetWeight - weight;
+        // If target is lower, deficit; if higher, surplus
+        maintenance += diff > 0 ? 250 : -250; // mild adjustment
+    }
+    return Math.round(maintenance);
+}
+
 const User = require('../models/userModel');
 const { uploadProfilePicture } = require('../utils/cloudinary');
 
@@ -334,5 +362,64 @@ exports.submitHealthAssessment = async (req, res) => {
         res.status(200).json({ message: "Health assessment submitted", user: updatedUser });
     } catch (error) {
         res.status(500).json({ message: "Server error", error: error.message });
+    }
+};
+
+// Create or update today's dailyCalorieBalance entry for the user
+exports.createOrUpdateDailyCalorieBalance = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Extract needed fields
+        const { age, gender, physicalMetrics, lifestyle } = user;
+        const weight = physicalMetrics?.weight?.value;
+        const height = physicalMetrics?.height?.value;
+        const targetWeight = physicalMetrics?.targetWeight?.value;
+        const activityLevel = lifestyle?.activityLevel;
+        if (!weight || !height || !age || !gender) {
+            return res.status(400).json({ message: 'Missing user metrics for calorie goal calculation.' });
+        }
+        const goal_kcal = calculateGoalKcal({
+            weight,
+            height,
+            age,
+            gender,
+            activityLevel,
+            targetWeight
+        });
+
+        // Find today's entry
+        let entry = user.dailyCalorieBalance.find(e => {
+            const entryDate = new Date(e.date);
+            entryDate.setHours(0, 0, 0, 0);
+            return entryDate.getTime() === today.getTime();
+        });
+        if (entry) {
+            entry.goal_kcal = goal_kcal;
+        } else {
+            user.dailyCalorieBalance.push({
+                date: today,
+                goal_kcal,
+                consumed_kcal: 0,
+                burned_kcal: 0,
+                net_kcal: 0,
+                status: 'on_target'
+            });
+        }
+        await user.save();
+        // Return today's entry
+        entry = user.dailyCalorieBalance.find(e => {
+            const entryDate = new Date(e.date);
+            entryDate.setHours(0, 0, 0, 0);
+            return entryDate.getTime() === today.getTime();
+        });
+        res.status(200).json({ message: 'Daily calorie balance entry created/updated', entry });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 };

@@ -8,6 +8,12 @@ export const submitHealthAssessment = async (data: any, token: string) => {
   });
 };
 
+export const createOrUpdateDailyCalorieBalance = async (token: string) => {
+  return axiosInstance.post("/users/daily-calorie-balance", {}, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+};
+
 export default submitHealthAssessment;
 
 // Add more user-related API functions here...

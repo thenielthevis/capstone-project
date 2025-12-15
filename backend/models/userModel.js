@@ -53,14 +53,11 @@ const userSchema = new mongoose.Schema({
     },
     // Physical Metrics
     physicalMetrics: {
-        height: {
-            value: { type: Number}, // in cm
-        },
-        weight: {
-            value: { type: Number}, // in kg
-        },
-        bmi: { type: Number }, // Can be calculated automatically
-        waistCircumference: { type: Number }, // Important for metabolic risk assessment
+        height: { value: { type: Number } }, // in cm
+        weight: { value: { type: Number } }, // in kg
+        targetWeight: { value: { type: Number } }, // in kg (new field)
+        bmi: { type: Number },
+        waistCircumference: { type: Number },
     },
     // Lifestyle Factors
     lifestyle: {
@@ -122,6 +119,16 @@ const userSchema = new mongoose.Schema({
         predictedAt: { type: Date, default: null },
         source: { type: String, enum: ['model', 'heuristic', 'manual', 'dataset', 'hybrid_model'], default: 'model' }
     },
+    dailyCalorieBalance: [
+        {
+            date: { type: Date, required: true }, // The day this record is for
+            goal_kcal: { type: Number, default: 0 },
+            consumed_kcal: { type: Number, default: 0 },
+            burned_kcal: { type: Number, default: 0 },
+            net_kcal: { type: Number, default: 0 },
+            status: { type: String, enum: ['under', 'on_target', 'over'], default: 'on_target' }
+        }
+    ],
 });
 
 // Hash password before saving
