@@ -12,7 +12,8 @@ const { registerUser,
         currentlyLoggedInUser,
         refreshToken,
         submitHealthAssessment,
-        createOrUpdateDailyCalorieBalance
+        createOrUpdateDailyCalorieBalance,
+        updateDailyCalories
 } = require('../controllers/userControllers');
 
 router.get('/me', userMiddleware, currentlyLoggedInUser);
@@ -28,5 +29,6 @@ router.get('/list', listUsers);
 router.post('/refresh-token', refreshToken);
 router.post('/health-assessment', auth, submitHealthAssessment);
 router.post('/daily-calorie-balance', auth, createOrUpdateDailyCalorieBalance);
+router.patch('/daily-calorie-balance', auth, updateDailyCalories);
 
 module.exports = router;

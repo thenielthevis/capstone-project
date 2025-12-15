@@ -26,6 +26,10 @@ function calculateGoalKcal({ weight, height, age, gender, activityLevel, targetW
     return Math.round(maintenance);
 }
 
+function calculateNetCalories(consumed, burned) {
+    return consumed - burned;
+}
+
 const User = require('../models/userModel');
 const { uploadProfilePicture } = require('../utils/cloudinary');
 
@@ -419,6 +423,43 @@ exports.createOrUpdateDailyCalorieBalance = async (req, res) => {
             return entryDate.getTime() === today.getTime();
         });
         res.status(200).json({ message: 'Daily calorie balance entry created/updated', entry });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+// PATCH: Update today's calories and automate net_kcal
+exports.updateDailyCalories = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { consumed_kcal, burned_kcal } = req.body;
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        let entry = user.dailyCalorieBalance.find(e => {
+            const entryDate = new Date(e.date);
+            entryDate.setHours(0, 0, 0, 0);
+            return entryDate.getTime() === today.getTime();
+        });
+        if (!entry) {
+            return res.status(404).json({ message: 'No dailyCalorieBalance entry for today. Please create one first.' });
+        }
+        if (typeof consumed_kcal === 'number') entry.consumed_kcal = consumed_kcal;
+        if (typeof burned_kcal === 'number') entry.burned_kcal = burned_kcal;
+        // Always recalculate net_kcal
+        entry.net_kcal = calculateNetCalories(entry.consumed_kcal, entry.burned_kcal);
+        // Update status
+        if (entry.net_kcal < entry.goal_kcal - 100) {
+            entry.status = 'under';
+        } else if (entry.net_kcal > entry.goal_kcal + 100) {
+            entry.status = 'over';
+        } else {
+            entry.status = 'on_target';
+        }
+        await user.save();
+        res.status(200).json({ message: 'Calories updated', entry });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
