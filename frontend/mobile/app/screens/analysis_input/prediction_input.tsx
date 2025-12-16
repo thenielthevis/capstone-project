@@ -55,6 +55,7 @@ export default function PredictionInputScreen() {
     // Physical Metrics
     height: "",
     weight: "",
+    target_weight: "",
     waistCircumference: "",
     // Lifestyle
     activityLevel: "",
@@ -114,6 +115,7 @@ export default function PredictionInputScreen() {
             sex: profile.gender || "",
             height: profile.physicalMetrics?.height?.value ? String(profile.physicalMetrics.height.value) : "",
             weight: profile.physicalMetrics?.weight?.value ? String(profile.physicalMetrics.weight.value) : "",
+            target_weight: profile.physicalMetrics?.targetWeight?.value ? String(profile.physicalMetrics.targetWeight.value) : "",
             waistCircumference: profile.physicalMetrics?.waistCircumference ? String(profile.physicalMetrics.waistCircumference) : "",
             activityLevel: profile.lifestyle?.activityLevel || "",
             sleepHours: profile.lifestyle?.sleepHours ? String(profile.lifestyle.sleepHours) : "",
@@ -252,6 +254,14 @@ export default function PredictionInputScreen() {
       physicalMetrics: {
         height: { value: Number(formData.height) },
         weight: { value: Number(formData.weight) },
+        targetWeight: {
+          value:
+            formData.physicalMetrics?.targetWeight?.value !== undefined
+              ? Number(formData.physicalMetrics.targetWeight.value)
+              : formData.target_weight !== undefined
+                ? Number(formData.target_weight)
+                : undefined,
+        },
         waistCircumference: Number(formData.waistCircumference),
       },
       lifestyle: {

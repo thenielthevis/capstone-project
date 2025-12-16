@@ -62,6 +62,30 @@ const StepBasicInfo: React.FC<StepBasicInfoProps> = ({ formData, setFormData, th
         maxLength={3}
       />
       <TextInput
+        label="Target Weight (kg)"
+        mode="outlined"
+        value={
+          formData.physicalMetrics?.targetWeight?.value?.toString() ??
+          formData.target_weight?.toString() ??
+          ""
+        }
+        onChangeText={(text) =>
+          setFormData({
+            ...formData,
+            physicalMetrics: {
+              ...formData.physicalMetrics,
+              targetWeight: { value: text },
+            },
+            target_weight: text, // keep in sync for backward compatibility
+          })
+        }
+        keyboardType="numeric"
+        style={{ marginBottom: 12, backgroundColor: theme.colors.input }}
+        theme={{ colors: { onSurfaceVariant: theme.colors.text + "EE", primary: theme.colors.primary } }}
+        textColor={theme.colors.text}
+        maxLength={3}
+      />
+      <TextInput
         label="Waist Circumference (cm)"
         mode="outlined"
         value={formData.waistCircumference}
