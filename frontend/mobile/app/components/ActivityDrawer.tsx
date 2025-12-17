@@ -37,6 +37,7 @@ export default function ActivityDrawer({
   lockedIndex = 0
 }: ActivityDrawerProps) {
   const { theme } = useTheme();
+  const { activityType: contextActivityType, setActivityType: setContextActivityType } = useActivityMetrics();
   const bottomSheetRef = useRef<BottomSheet>(null);
   const activitySheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ["15%", "25%",], []);
