@@ -28,6 +28,7 @@ const foodLogRoutes = require('./routes/foodLogRoutes');
 const programRoutes = require('./routes/programRoutes');
 const programSessionRoutes = require('./routes/programSessionRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const geminiRoutes = require('./routes/geminiRoutes');
 
 // During development allow all origins so phones/emulators can reach the server.
 // In production restrict this to a known list.
@@ -55,7 +56,9 @@ app.use('/api/food-logs', foodLogRoutes);
 app.use('/api/programs', programRoutes);
 app.use('/api/program-sessions', programSessionRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/gemini', geminiRoutes);
 console.log('[APP] Registered /api/admin routes');
+console.log('[APP] Registered /api/gemini routes');
 
 // Health check endpoint
 app.get('/', (req, res) => {

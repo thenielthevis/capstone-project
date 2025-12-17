@@ -15,16 +15,27 @@ import { useUser } from "../context/UserContext";
 import { useFocusEffect } from "expo-router";
 import Toast from "react-native-toast-message";
 import { LinearGradient } from "expo-linear-gradient";
+import { fetchChecklistForMetric } from "../../utils/geminiService";
 import { getPredictionUpdateFlag, setPredictionUpdateFlag } from "../screens/analysis_input/prediction_input";
 import { formatDiseaseName } from "../utils/formatDisease";
 
-const LOCAL_IP = process.env.EXPO_LOCAL_IP || "172.20.10.5";
-const ENV_API = process.env.EXPO_PUBLIC_API_URL;
-const API_URL = ENV_API
-  ? ENV_API
-  : Platform.OS === "android"
-  ? `http://192.168.100.38:5000/api`
-  : `http://${LOCAL_IP}:5000/api`;
+// API Configuration - use environment variable or fallback to localhost
+const getApiUrl = (): string => {
+  // 1. If EXPO_PUBLIC_API_URL is set, use it
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+  
+  // 2. For Android, use emulator IP
+  if (Platform.OS === "android") {
+    return "http://10.0.2.2:5000/api";
+  }
+  
+  // 3. For iOS/web, use localhost
+  return "http://localhost:5000/api";
+};
+
+const API_URL = getApiUrl();
 
 interface Prediction {
   disease: string[];
@@ -611,20 +622,27 @@ const ENVIRONMENTAL_SCIENTIFIC_REFERENCES = [
   },
 ];
 
-export default function Analysis() {
+export default function Analysis({ initialMetric, onClose }: { initialMetric?: string; onClose?: () => void }) {
   const { theme } = useTheme();
   const { user } = useUser();
   const [loading, setLoading] = useState(false);
   const [userData, setUserData] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
+  const [checklist, setChecklist] = useState<{ item: string; completed: boolean }[]>([]);
+  const [checklistLoading, setChecklistLoading] = useState(false);
   const screenWidth = Dimensions.get("window").width;
   const scrollViewRef = useRef<ScrollView>(null);
   const scrollX = new Animated.Value(0);
+  const singleView = !!initialMetric;
+  const contentMaxWidth = Math.min(screenWidth * 0.95, 900);
 
   useEffect(() => {
     loadUserData();
-  }, [user]);
+    if (initialMetric) {
+      fetchChecklistFromGemini();
+    }
+  }, [user, initialMetric]);
 
   useFocusEffect(
     useCallback(() => {
@@ -640,6 +658,177 @@ export default function Analysis() {
       }
     }, [])
   );
+
+  const fetchChecklistFromGemini = async () => {
+    setChecklistLoading(true);
+    try {
+      const metricName = initialMetric || "general";
+      const items = await fetchChecklistForMetric(metricName);
+      const formattedChecklist = items.map((item: string) => ({
+        item,
+        completed: false,
+      }));
+      setChecklist(formattedChecklist);
+    } catch (error: any) {
+      console.error("Error fetching checklist from Gemini:", error);
+      // Fallback checklist if API fails
+      setChecklist([
+        { item: "Review your current health status", completed: false },
+        { item: "Identify key areas for improvement", completed: false },
+        { item: "Create an action plan", completed: false },
+        { item: "Track your progress", completed: false },
+      ]);
+    } finally {
+      setChecklistLoading(false);
+    }
+  };
+
+  const toggleChecklistItem = (index: number) => {
+    setChecklist((prevChecklist) => {
+      const updatedChecklist = [...prevChecklist];
+      updatedChecklist[index].completed = !updatedChecklist[index].completed;
+      return updatedChecklist;
+    });
+  };
+
+  const renderChecklist = () => {
+    if (!initialMetric) return null;
+
+    return (
+      <View
+        style={{
+          backgroundColor: theme.colors.surface,
+          borderRadius: 12,
+          padding: 16,
+          marginBottom: 24,
+          borderLeftWidth: 4,
+          borderLeftColor: "#4CAF50",
+        }}
+      >
+        <Text
+          style={{
+            fontSize: 16,
+            fontWeight: "700",
+            color: theme.colors.text,
+            marginBottom: 12,
+          }}
+        >
+          ✅ Action Checklist
+        </Text>
+
+        {checklistLoading ? (
+          <ActivityIndicator size="small" color={theme.colors.primary} />
+        ) : checklist.length > 0 ? (
+          <View>
+            {checklist.map((task, index) => (
+              <TouchableOpacity
+                key={index}
+                onPress={() => toggleChecklistItem(index)}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingVertical: 10,
+                  borderBottomWidth: index < checklist.length - 1 ? 1 : 0,
+                  borderBottomColor: theme.colors.text + "22",
+                }}
+              >
+                {/* Custom Checkbox */}
+                <View
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: 4,
+                    borderWidth: 2,
+                    borderColor: task.completed ? "#4CAF50" : theme.colors.text + "44",
+                    backgroundColor: task.completed ? "#4CAF50" : "transparent",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    marginRight: 12,
+                  }}
+                >
+                  {task.completed && (
+                    <Text style={{ color: "white", fontWeight: "bold", fontSize: 14 }}>
+                      ✓
+                    </Text>
+                  )}
+                </View>
+                <Text
+                  style={{
+                    flex: 1,
+                    fontSize: 14,
+                    color: task.completed ? theme.colors.text + "66" : theme.colors.text,
+                    textDecorationLine: task.completed ? "line-through" : "none",
+                  }}
+                >
+                  {task.item}
+                </Text>
+              </TouchableOpacity>
+            ))}
+            {/* Progress Bar */}
+            <View style={{ marginTop: 12 }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 8,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontWeight: "600",
+                    color: theme.colors.text,
+                  }}
+                >
+                  Progress
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontWeight: "600",
+                    color: "#4CAF50",
+                  }}
+                >
+                  {Math.round(
+                    (checklist.filter((t) => t.completed).length / checklist.length) * 100
+                  )}%
+                </Text>
+              </View>
+              <View
+                style={{
+                  height: 6,
+                  backgroundColor: theme.colors.text + "22",
+                  borderRadius: 3,
+                  overflow: "hidden",
+                }}
+              >
+                <View
+                  style={{
+                    height: "100%",
+                    backgroundColor: "#4CAF50",
+                    width:
+                      checklist.length > 0
+                        ? `${(checklist.filter((t) => t.completed).length / checklist.length) * 100}%`
+                        : "0%",
+                  }}
+                />
+              </View>
+            </View>
+          </View>
+        ) : (
+          <Text
+            style={{
+              fontSize: 12,
+              color: theme.colors.text + "88",
+            }}
+          >
+            No checklist items available.
+          </Text>
+        )}
+      </View>
+    );
+  };
 
   const loadUserData = async (forceRegenerate: boolean = false) => {
     setLoading(true);
@@ -662,9 +851,6 @@ export default function Analysis() {
       }
 
       const primary = `${API_URL}/predict/me`;
-      const fallback = API_URL.includes("10.0.2.2")
-        ? `http://${LOCAL_IP}:5000/api/predict/me`
-        : null;
 
       const response = await fetch(primary, {
         method: "POST",
@@ -673,18 +859,6 @@ export default function Analysis() {
           Authorization: `Bearer ${token}`,
         },
         body: forceRegenerate ? JSON.stringify({ force: true }) : undefined,
-      }).catch(async (err) => {
-        if (fallback) {
-          return fetch(fallback, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: forceRegenerate ? JSON.stringify({ force: true }) : undefined,
-          });
-        }
-        throw err;
       });
 
       if (response.status === 401) {
@@ -727,6 +901,36 @@ export default function Analysis() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchChecklist = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/gemini/checklist?metric=${initialMetric}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch checklist");
+      }
+      const data = await response.json();
+      setChecklist(data.map((item: string) => ({ item, completed: false })));
+    } catch (error) {
+      console.error("Error fetching checklist:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (initialMetric) {
+      fetchChecklist();
+    }
+  }, [initialMetric]);
+
+  const toggleCheckbox = (index: number) => {
+    setChecklist((prevChecklist) => {
+      const updatedChecklist = [...prevChecklist];
+      updatedChecklist[index].completed = !updatedChecklist[index].completed;
+      return updatedChecklist;
+    });
   };
 
   const getBMIInfo = (bmi: number | null | undefined) => {
@@ -785,7 +989,7 @@ export default function Analysis() {
     return (
       <View
         style={{
-          width: screenWidth,
+          width: singleView ? "100%" : screenWidth,
           paddingHorizontal: 16,
           paddingVertical: 24,
           flex: 1,
@@ -829,6 +1033,8 @@ export default function Analysis() {
               Your BMI indicates your weight in relation to your height
             </Text>
           </View>
+
+    
 
           {/* Main BMI Card */}
           <View
@@ -1122,6 +1328,7 @@ export default function Analysis() {
                 borderRadius: 12,
                 padding: 12,
                 gap: 8,
+                marginBottom: 24,
               }}
             >
               <Text
@@ -1162,6 +1369,9 @@ export default function Analysis() {
               </Text>
             </View>
           </View>
+
+          {/* Checklist Section - BEFORE References */}
+          {renderChecklist()}
 
           {/* Scientific References */}
           <View style={{ marginTop: 20, zIndex: 1 }}>
@@ -1496,13 +1706,13 @@ export default function Analysis() {
     );
 
     return (
-      <View
-        style={{
-          width: screenWidth,
-          paddingHorizontal: 16,
-          paddingVertical: 24,
-          flex: 1,
-        }}
+          <View
+            style={{
+              width: singleView ? "100%" : screenWidth,
+              paddingHorizontal: 16,
+              paddingVertical: 24,
+              flex: 1,
+            }}
       >
         <LinearGradient
           colors={["#F3E5F5", "#E1BEE7", "#CE93D8"]}
@@ -1731,6 +1941,9 @@ export default function Analysis() {
             </Text>
           </View>
 
+          {/* Checklist Section - BEFORE References */}
+          {renderChecklist()}
+
           {/* Scientific Sources */}
           {renderScientificReferences()}
         </ScrollView>
@@ -1901,7 +2114,7 @@ export default function Analysis() {
     return (
       <View
         style={{
-          width: screenWidth,
+          width: singleView ? "100%" : screenWidth,
           paddingHorizontal: 16,
           paddingVertical: 24,
           flex: 1,
@@ -2199,6 +2412,7 @@ export default function Analysis() {
                 borderRadius: 12,
                 padding: 12,
                 gap: 8,
+                marginBottom: 24,
               }}
             >
               <Text
@@ -2249,6 +2463,9 @@ export default function Analysis() {
             </View>
           </View>
 
+          {/* Checklist Section - BEFORE References */}
+          {renderChecklist()}
+
           {/* Scientific References */}
           <View style={{ zIndex: 1 }}>
             <Text
@@ -2261,44 +2478,42 @@ export default function Analysis() {
             >
               📚 Scientific References
             </Text>
-            <View style={{ gap: 8 }}>
-              {SLEEP_SCIENTIFIC_REFERENCES.map((ref, idx) => (
-                <TouchableOpacity
-                  key={idx}
-                  onPress={() => Linking.openURL(ref.url)}
+            {SLEEP_SCIENTIFIC_REFERENCES.map((ref, idx) => (
+              <TouchableOpacity
+                key={idx}
+                onPress={() => Linking.openURL(ref.url)}
+                style={{
+                  backgroundColor: "#fff" + "88",
+                  borderRadius: 10,
+                  padding: 12,
+                  borderLeftWidth: 4,
+                  borderLeftColor: "#E91E63",
+                  borderBottomWidth: 2,
+                  borderBottomColor: "#C2185B",
+                }}
+              >
+                <Text
                   style={{
-                    backgroundColor: "#fff" + "88",
-                    borderRadius: 10,
-                    padding: 12,
-                    borderLeftWidth: 4,
-                    borderLeftColor: "#E91E63",
-                    borderBottomWidth: 2,
-                    borderBottomColor: "#C2185B",
+                    fontSize: 10,
+                    fontWeight: "700",
+                    color: "#C2185B",
+                    marginBottom: 4,
+                    textDecorationLine: "underline",
                   }}
                 >
-                  <Text
-                    style={{
-                      fontSize: 10,
-                      fontWeight: "700",
-                      color: "#C2185B",
-                      marginBottom: 4,
-                      textDecorationLine: "underline",
-                    }}
-                  >
-                    🔗 {ref.title}
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 9,
-                      color: theme.colors.text + "88",
-                      lineHeight: 14,
-                    }}
-                  >
-                    {ref.description}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+                  🔗 {ref.title}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 9,
+                    color: theme.colors.text + "88",
+                    lineHeight: 14,
+                  }}
+                >
+                  {ref.description}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </ScrollView>
       </View>
@@ -2310,7 +2525,7 @@ export default function Analysis() {
       return (
         <View
           style={{
-            width: screenWidth,
+            width: singleView ? "100%" : screenWidth,
             paddingHorizontal: 16,
             paddingVertical: 24,
             justifyContent: "center",
@@ -2346,7 +2561,7 @@ export default function Analysis() {
     return (
       <View
         style={{
-          width: screenWidth,
+          width: singleView ? "100%" : screenWidth,
           paddingHorizontal: 16,
           paddingVertical: 24,
           flex: 1,
@@ -2422,7 +2637,7 @@ export default function Analysis() {
                     flexDirection: "row",
                     justifyContent: "space-between",
                     alignItems: "center",
-                    marginBottom: 10,
+                                        marginBottom: 10,
                   }}
                 >
                   <Text
@@ -2513,6 +2728,9 @@ export default function Analysis() {
               healthcare professional for medical advice.
             </Text>
           </View>
+
+          {/* Checklist Section - BEFORE References */}
+          {renderChecklist()}
         </ScrollView>
       </View>
     );
@@ -2522,7 +2740,7 @@ export default function Analysis() {
     const waterIntake = userData?.dietaryProfile?.dailyWaterIntake;
 
     return (
-      <View style={{ width: screenWidth, paddingHorizontal: 16, paddingVertical: 24, flex: 1 }}>
+      <View style={{ width: singleView ? "100%" : screenWidth, paddingHorizontal: 16, paddingVertical: 24, flex: 1 }}>
         <LinearGradient
           colors={["#E0F7FA", "#B2EBF2", "#80DEEA"]}
           style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}
@@ -2594,6 +2812,9 @@ export default function Analysis() {
             </Text>
           </View>
 
+          {/* Checklist Section - BEFORE References */}
+          {renderChecklist()}
+
           <View style={{ zIndex: 1 }}>
             <Text style={{ fontSize: 12, fontWeight: "700", color: theme.colors.text, marginBottom: 10 }}>
               📚 Scientific References
@@ -2654,7 +2875,7 @@ export default function Analysis() {
     const totalDuration = getTotalDurationMonths();
 
     return (
-      <View style={{ width: screenWidth, paddingHorizontal: 16, paddingVertical: 24, flex: 1 }}>
+      <View style={{ width: singleView ? "100%" : screenWidth, paddingHorizontal: 16, paddingVertical: 24, flex: 1 }}>
         <LinearGradient
           colors={["#FFF3E0", "#FFE0B2", "#FFCC80"]}
           style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}
@@ -2788,6 +3009,9 @@ export default function Analysis() {
             </Text>
           </View>
 
+          {/* Checklist Section - BEFORE References */}
+          {renderChecklist()}
+
           <View style={{ zIndex: 1 }}>
             <Text style={{ fontSize: 12, fontWeight: "700", color: theme.colors.text, marginBottom: 10 }}>
               📚 Scientific References
@@ -2817,7 +3041,7 @@ export default function Analysis() {
     const stressInfo = STRESS_LEVELS.find(s => s.level.toLowerCase().includes(stressLevel.toLowerCase())) || STRESS_LEVELS[0];
 
     return (
-      <View style={{ width: screenWidth, paddingHorizontal: 16, paddingVertical: 24, flex: 1 }}>
+      <View style={{ width: singleView ? "100%" : screenWidth, paddingHorizontal: 16, paddingVertical: 24, flex: 1 }}>
         <LinearGradient
           colors={stressInfo.level.includes("High") ? ["#FFEBEE", "#FFCDD2", "#EF9A9A"] : stressInfo.level.includes("Moderate") ? ["#FFF3E0", "#FFE0B2", "#FFCC80"] : ["#E8F5E9", "#C8E6C9", "#A5D6A7"]}
           style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}
@@ -2907,6 +3131,9 @@ export default function Analysis() {
             ))}
           </View>
 
+          {/* Checklist Section - BEFORE References */}
+          {renderChecklist()}
+
           {/* Scientific References */}
           <View style={{ zIndex: 1 }}>
             <Text style={{ fontSize: 12, fontWeight: "700", color: theme.colors.text, marginBottom: 10 }}>
@@ -2948,7 +3175,7 @@ export default function Analysis() {
     const mealInfo = getMealFrequencyInfo(mealFrequency);
 
     return (
-      <View style={{ width: screenWidth, paddingHorizontal: 16, paddingVertical: 24, flex: 1 }}>
+      <View style={{ width: singleView ? "100%" : screenWidth, paddingHorizontal: 16, paddingVertical: 24, flex: 1 }}>
         <LinearGradient
           colors={["#E8F5E9", "#C8E6C9", "#A5D6A7"]}
           style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}
@@ -3015,7 +3242,7 @@ export default function Analysis() {
               </Text>
               <View style={{ gap: 8 }}>
                 {allergies.map((allergy, idx) => (
-                  <View key={idx} style={{ backgroundColor: "#FFEBEE", borderRadius: 10, padding: 10, borderLeftWidth: 4, borderLeftColor: "#F44336", flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <View key={idx} style={{ backgroundColor: "#FFEBEE", borderRadius: 10, padding: 10, marginBottom: 8, borderLeftWidth: 4, borderLeftColor: "#F44336", flexDirection: "row", alignItems: "center", gap: 8 }}>
                     <Text style={{ fontSize: 16 }}>⚠️</Text>
                     <Text style={{ fontSize: 12, fontWeight: "600", color: theme.colors.text, flex: 1 }}>
                       {allergy}
@@ -3068,6 +3295,9 @@ export default function Analysis() {
             </Text>
           </View>
 
+          {/* Checklist Section - BEFORE References */}
+          {renderChecklist()}
+
           {/* Scientific References */}
           <View style={{ zIndex: 1 }}>
             <Text style={{ fontSize: 12, fontWeight: "700", color: theme.colors.text, marginBottom: 10 }}>
@@ -3102,7 +3332,7 @@ export default function Analysis() {
     const bloodTypeData = BLOOD_TYPE_INFO[bloodType as keyof typeof BLOOD_TYPE_INFO];
 
     return (
-      <View style={{ width: screenWidth, paddingHorizontal: 16, paddingVertical: 24, flex: 1 }}>
+      <View style={{ width: singleView ? "100%" : screenWidth, paddingHorizontal: 16, paddingVertical: 24, flex: 1 }}>
         <LinearGradient
           colors={["#F3E5F5", "#E1BEE7", "#CE93D8"]}
           style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}
@@ -3200,7 +3430,7 @@ export default function Analysis() {
               {medications.map((medication, idx) => (
                 <View key={idx} style={{ backgroundColor: "#E3F2FD", borderRadius: 10, padding: 10, marginBottom: 8, borderLeftWidth: 4, borderLeftColor: "#2196F3", flexDirection: "row", alignItems: "center", gap: 8 }}>
                   <Text style={{ fontSize: 16 }}>💊</Text>
-                  <Text style={{ fontSize: 11, fontWeight: "600", color: theme.colors.text, flex: 1 }}>
+                  <Text style={{ fontSize: 12, fontWeight: "600", color: theme.colors.text, flex: 1 }}>
                     {medication}
                   </Text>
                 </View>
@@ -3247,6 +3477,9 @@ export default function Analysis() {
               • Report any new symptoms immediately
             </Text>
           </View>
+
+          {/* Checklist Section - BEFORE References */}
+          {renderChecklist()}
 
           {/* Scientific References */}
           <View style={{ zIndex: 1 }}>
@@ -3304,10 +3537,10 @@ export default function Analysis() {
               <Text style={{ fontSize: 16, color: theme.colors.text + "88", marginBottom: 8, fontWeight: "600", textTransform: "uppercase", letterSpacing: 1 }}>
                 Pollution Exposure
               </Text>
-              <Text style={{ fontSize: 20, fontWeight: "700", color: pollutionInfo.color, marginBottom: 8 }}>
+              <Text style={{ fontSize: 20, fontWeight: "700", color: "#00ACC1", marginBottom: 8 }}>
                 {pollutionInfo.level}
               </Text>
-              <Text style={{ fontSize: 11, fontWeight: "600", color: theme.colors.text + "99", marginBottom: 8 }}>
+              <Text style={{ fontSize: 11, fontWeight: "600", color: theme.colors.text, marginBottom: 8 }}>
                 {pollutionInfo.aqi}
               </Text>
               <Text style={{ fontSize: 12, color: theme.colors.text + "88", lineHeight: 16 }}>
@@ -3390,7 +3623,7 @@ export default function Analysis() {
               {/* Rows */}
               {POLLUTION_EXPOSURE_LEVELS.map((level, idx) => (
                 <View key={idx} style={{ flexDirection: "row", paddingHorizontal: 10, paddingVertical: 10, borderBottomWidth: idx < POLLUTION_EXPOSURE_LEVELS.length - 1 ? 1 : 0, borderBottomColor: "#00897B" + "22", backgroundColor: idx % 2 === 0 ? "transparent" : "#00897B" + "11" }}>
-                  <Text style={{ flex: 0.8, fontSize: 10, fontWeight: "700", color: level.color }}>{level.level}</Text>
+                  <Text style={{ flex: 0.8, fontSize: 10, fontWeight: "700", color: theme.colors.text }}>{level.level}</Text>
                   <Text style={{ flex: 1.3, fontSize: 9, fontWeight: "600", color: theme.colors.text }}>{level.aqi}</Text>
                   <Text style={{ flex: 1.3, fontSize: 9, color: theme.colors.text + "88", lineHeight: 13 }}>{level.health}</Text>
                 </View>
@@ -3420,6 +3653,9 @@ export default function Analysis() {
               ))}
             </View>
           </View>
+
+          {/* Checklist Section - BEFORE References */}
+          {renderChecklist()}
 
           {/* Scientific References */}
           <View style={{ zIndex: 1 }}>
@@ -3486,6 +3722,69 @@ export default function Analysis() {
     );
   }
 
+  // If parent requested a single metric view, render only that page (no horizontal pager)
+  const renderMetricById = (id?: string) => {
+    switch ((id || "").toLowerCase()) {
+      case "bmi":
+        return renderBMIPage();
+      case "activity":
+        return renderActivityPage();
+      case "sleep":
+        return renderSleepPage();
+      case "water":
+        return renderWaterPage();
+      case "stress":
+        return renderStressPage();
+      case "dietary":
+        return renderDietaryPage();
+      case "health":
+        return renderHealthStatusPage();
+      case "environment":
+        return renderEnvironmentalPage();
+      case "addiction":
+        return renderAddictionPage();
+      case "predictions":
+        return renderPredictionPage();
+      default:
+        return (
+          <View style={{ padding: 16 }}>
+            <Text style={{ color: theme.colors.text }}>Metric not found.</Text>
+          </View>
+        );
+    }
+  };
+
+  if (initialMetric) {
+    return (
+      <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+        {onClose && (
+          <TouchableOpacity
+            onPress={onClose}
+            style={{
+              position: "absolute",
+              top: 40,
+              right: 16,
+              zIndex: 999,
+              backgroundColor: theme.colors.surface,
+              padding: 8,
+              borderRadius: 20,
+            }}
+          >
+            <Text style={{ fontSize: 18, color: theme.colors.text }}>✕</Text>
+          </TouchableOpacity>
+        )}
+
+        <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "center", alignItems: "center", padding: 16 }}>
+          <View style={{ width: contentMaxWidth }}>
+            {renderMetricById(initialMetric)}
+          </View>
+        </ScrollView>
+
+        <Toast />
+      </View>
+    );
+  }
+
   const pages = [
     { label: "BMI", component: renderBMIPage },
     { label: "Activity", component: renderActivityPage },
@@ -3501,6 +3800,23 @@ export default function Analysis() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      {/* Close button when embedded (AnalysisDashboard passes onClose) */}
+      {onClose && (
+        <TouchableOpacity
+          onPress={onClose}
+          style={{
+            position: "absolute",
+            top: 40,
+            right: 16,
+            zIndex: 999,
+            backgroundColor: theme.colors.surface,
+            padding: 8,
+            borderRadius: 20,
+          }}
+        >
+          <Text style={{ fontSize: 18, color: theme.colors.text }}>✕</Text>
+        </TouchableOpacity>
+      )}
       <ScrollView
         ref={scrollViewRef}
         horizontal
