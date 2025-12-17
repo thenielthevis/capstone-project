@@ -10,12 +10,12 @@ import {
   Alert,
   Linking,
   Modal,
-  Pressable,
   RefreshControl,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -25,10 +25,125 @@ import { foodLogApi } from '../../api/foodLogApi';
 import { useUser } from '../../context/UserContext';
 import { getUserAllergies, getTodayCalorieBalance } from '../../api/userApi';
 
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
 const COMMON_ALLERGENS = [
   'Peanuts', 'Tree Nuts', 'Milk', 'Eggs', 'Wheat', 'Soy',
   'Fish', 'Shellfish', 'Sesame', 'Gluten'
 ];
+
+// Stat Card Component
+const StatCard = ({ 
+  icon, 
+  label, 
+  value, 
+  color, 
+  theme,
+  suffix = '',
+}: { 
+  icon: string; 
+  label: string; 
+  value: string | number; 
+  color: string;
+  theme: any;
+  suffix?: string;
+}) => (
+  <View style={{
+    flex: 1,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    padding: 12,
+    marginHorizontal: 4,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  }}>
+    <View style={{
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: color + '20',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 8,
+    }}>
+      <MaterialCommunityIcons name={icon as any} size={18} color={color} />
+    </View>
+    <Text style={{ 
+      fontFamily: theme.fonts.heading, 
+      fontSize: theme.fontSizes.lg, 
+      color: theme.colors.text 
+    }}>
+      {value}{suffix}
+    </Text>
+    <Text style={{ 
+      fontFamily: theme.fonts.body, 
+      fontSize: theme.fontSizes.xs, 
+      color: theme.colors.text + '77',
+      marginTop: 2,
+      textAlign: 'center',
+    }}>
+      {label}
+    </Text>
+  </View>
+);
+
+// Quick Action Button Component
+const QuickActionButton = ({
+  icon,
+  label,
+  onPress,
+  color,
+  theme,
+  disabled = false,
+}: {
+  icon: string;
+  label: string;
+  onPress: () => void;
+  color: string;
+  theme: any;
+  disabled?: boolean;
+}) => (
+  <TouchableOpacity
+    onPress={onPress}
+    disabled={disabled}
+    style={{
+      flex: 1,
+      backgroundColor: theme.colors.surface,
+      borderRadius: 16,
+      padding: 16,
+      marginHorizontal: 6,
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: color + '30',
+      opacity: disabled ? 0.5 : 1,
+    }}
+    activeOpacity={0.7}
+  >
+    <View style={{
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: color + '15',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 8,
+    }}>
+      <MaterialCommunityIcons name={icon as any} size={24} color={color} />
+    </View>
+    <Text style={{ 
+      fontFamily: theme.fonts.bodyBold, 
+      fontSize: theme.fontSizes.sm, 
+      color: theme.colors.text,
+      textAlign: 'center',
+    }}>
+      {label}
+    </Text>
+  </TouchableOpacity>
+);
 
 export default function Food() {
   const { theme } = useTheme();
@@ -424,24 +539,53 @@ export default function Food() {
     return Math.min((value / max) * 100, 100);
   };
 
-  const NutrientBar = ({ label, value, unit, max, color = '#3b82f6' }: {
+  const NutrientBar = ({ label, value, unit, max, color = '#3b82f6', icon }: {
     label: string;
     value: number;
     unit: string;
     max: number;
     color?: string;
+    icon?: string;
   }) => {
     const percentage = getPercentage(value, max);
     return (
-      <View className="mb-3">
-        <View className="flex-row justify-between mb-1">
-          <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>{label}</Text>
-          <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>{value}{unit}</Text>
+      <View style={{ marginBottom: 16 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {icon && (
+              <View style={{
+                width: 28,
+                height: 28,
+                borderRadius: 14,
+                backgroundColor: color + '20',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginRight: 8,
+              }}>
+                <MaterialCommunityIcons name={icon as any} size={14} color={color} />
+              </View>
+            )}
+            <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>
+              {label}
+            </Text>
+          </View>
+          <Text style={{ fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.sm, color }}>
+            {value}{unit}
+          </Text>
         </View>
-        <View className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme.colors.background }}>
+        <View style={{ 
+          height: 8, 
+          borderRadius: 4, 
+          backgroundColor: theme.colors.background,
+          overflow: 'hidden',
+        }}>
           <View
-            style={{ width: `${percentage}%`, backgroundColor: color }}
-            className="h-full rounded-full"
+            style={{ 
+              width: `${percentage}%`, 
+              backgroundColor: color,
+              height: '100%',
+              borderRadius: 4,
+            }}
           />
         </View>
       </View>
@@ -451,305 +595,616 @@ export default function Food() {
   if (result) {
     return (
       <>
-      <SafeAreaView className="flex-1" style={{ backgroundColor: theme.colors.background }}>
-        <View className="px-6 pt-3">
-          <TouchableOpacity onPress={() => router.replace("/screens/record/Food")} className="flex-row items-center mb-4">
-            <Ionicons name="chevron-back" size={theme.fontSizes.xl + 4} color={theme.colors.text} />
-            <Text
-              className="ml-2"
-              style={{
-                color: theme.colors.text,
-                fontFamily: theme.fonts.heading,
-                fontSize: theme.fontSizes.xl,
-                lineHeight: theme.fontSizes.xl * 1.2,
-              }}
-            >
-              Back
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+        {/* Header */}
+        <View style={{ 
+          paddingHorizontal: 20, 
+          paddingTop: 12,
+          paddingBottom: 8,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+          <TouchableOpacity 
+            onPress={handleReset} 
+            style={{ 
+              flexDirection: 'row', 
+              alignItems: 'center',
+              padding: 8,
+              marginLeft: -8,
+            }}
+          >
+            <Ionicons name="chevron-back" size={24} color={theme.colors.text} />
+            <Text style={{
+              color: theme.colors.text,
+              fontFamily: theme.fonts.heading,
+              fontSize: theme.fontSizes.xl,
+              marginLeft: 4,
+            }}>
+              Results
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            onPress={handleReset}
+            style={{
+              backgroundColor: theme.colors.primary,
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+              borderRadius: 20,
+              flexDirection: 'row',
+              alignItems: 'center',
+            }}
+          >
+            <MaterialCommunityIcons name="plus" size={18} color="#FFFFFF" />
+            <Text style={{
+              fontFamily: theme.fonts.bodyBold,
+              fontSize: theme.fontSizes.sm,
+              color: '#FFFFFF',
+              marginLeft: 4,
+            }}>
+              New
             </Text>
           </TouchableOpacity>
         </View>
-      <ScrollView className="flex-1" style={{ backgroundColor: theme.colors.background }}>
-        <View className="p-4">
-          <View className="rounded-lg p-4 mb-4" style={{ backgroundColor: theme.colors.surface, borderLeftWidth: 4, borderLeftColor: theme.colors.primary }}>
-            <Text style={{ fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.xl, color: theme.colors.text }} className="mb-2">Analysis Results</Text>
-            <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.lg, color: theme.colors.primary }}>{result.foodName}</Text>
-            
-            {result.brandedProduct?.isBranded && (
-              <View className="mt-2 px-3 py-2 rounded-full inline-flex flex-row items-center" style={{ backgroundColor: theme.colors.accent + '33' }}>
-                <Text className="text-lg mr-1">🏷️</Text>
-                <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.accent }}>
-                  {result.brandedProduct.brandName && result.brandedProduct.productName
-                    ? `${result.brandedProduct.brandName} - ${result.brandedProduct.productName}`
-                    : result.brandedProduct.brandName || result.brandedProduct.productName || 'Branded Product'}
+
+        <ScrollView 
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: 100 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Food Name Header Card */}
+          <View style={{
+            marginHorizontal: 20,
+            marginTop: 8,
+            backgroundColor: theme.colors.surface,
+            borderRadius: 24,
+            overflow: 'hidden',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.08,
+            shadowRadius: 12,
+            elevation: 4,
+          }}>
+            {imageUri && (
+              <Image 
+                source={{ uri: imageUri }} 
+                style={{ width: '100%', height: 180 }} 
+                resizeMode="cover" 
+              />
+            )}
+            <View style={{ padding: 20 }}>
+              <Text style={{ 
+                fontFamily: theme.fonts.heading, 
+                fontSize: 22, 
+                color: theme.colors.text,
+                marginBottom: 8,
+              }}>
+                {result.foodName}
+              </Text>
+              
+              {result.brandedProduct?.isBranded && (
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: theme.colors.accent + '20',
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 20,
+                  alignSelf: 'flex-start',
+                }}>
+                  <MaterialCommunityIcons name="tag" size={14} color={theme.colors.accent} />
+                  <Text style={{ 
+                    fontFamily: theme.fonts.body, 
+                    fontSize: theme.fontSizes.sm, 
+                    color: theme.colors.accent,
+                    marginLeft: 6,
+                  }}>
+                    {result.brandedProduct.brandName && result.brandedProduct.productName
+                      ? `${result.brandedProduct.brandName} - ${result.brandedProduct.productName}`
+                      : result.brandedProduct.brandName || result.brandedProduct.productName || 'Branded Product'}
+                  </Text>
+                </View>
+              )}
+              
+              {result.servingSize && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+                  <MaterialCommunityIcons name="scale" size={16} color={theme.colors.text + '77'} />
+                  <Text style={{ 
+                    fontFamily: theme.fonts.body, 
+                    fontSize: theme.fontSizes.sm, 
+                    color: theme.colors.text + '77',
+                    marginLeft: 6,
+                  }}>
+                    Serving: {result.servingSize}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {/* Allergy Warning */}
+          {result.allergyWarnings?.detected?.length > 0 && (
+            <View style={{
+              marginHorizontal: 20,
+              marginTop: 16,
+              backgroundColor: '#fee2e2',
+              borderRadius: 20,
+              padding: 16,
+              flexDirection: 'row',
+            }}>
+              <View style={{
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                backgroundColor: '#ef444420',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginRight: 12,
+              }}>
+                <Ionicons name="warning" size={24} color="#ef4444" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ 
+                  fontFamily: theme.fonts.heading, 
+                  fontSize: theme.fontSizes.base, 
+                  color: '#991b1b',
+                  marginBottom: 4,
+                }}>
+                  Allergy Warning
+                </Text>
+                <Text style={{ 
+                  fontFamily: theme.fonts.body, 
+                  fontSize: theme.fontSizes.sm, 
+                  color: '#b91c1c' 
+                }}>
+                  Contains: {result.allergyWarnings.detected.join(', ')}
                 </Text>
               </View>
-            )}
-          </View>
-
-          {imageUri && (
-            <View className="mb-4 rounded-lg overflow-hidden" style={{ borderWidth: 2, borderColor: theme.colors.primary }}>
-              <Image source={{ uri: imageUri }} className="w-full h-48" resizeMode="cover" />
             </View>
           )}
 
-          {result.allergyWarnings?.detected?.length > 0 && (
-            <View className="rounded-lg p-4 mb-4" style={{ backgroundColor: '#fee2e2', borderLeftWidth: 4, borderLeftColor: '#ef4444' }}>
-              <Text style={{ fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.lg, color: '#b91c1c' }} className="mb-2">⚠️ Allergy Warning</Text>
-              <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.sm, color: '#7f1d1d' }} className="mb-2">{result.allergyWarnings.warning}</Text>
-              <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: '#991b1b' }} className="mb-1">Detected allergens:</Text>
-              {result.allergyWarnings.detected.map((allergen, index) => (
-                <Text key={index} style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: '#b91c1c' }} className="ml-2">• {allergen}</Text>
-              ))}
+          {/* Calorie Display */}
+          <View style={{
+            marginHorizontal: 20,
+            marginTop: 16,
+            backgroundColor: theme.colors.surface,
+            borderRadius: 24,
+            padding: 24,
+            alignItems: 'center',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.05,
+            shadowRadius: 8,
+            elevation: 2,
+          }}>
+            <View style={{
+              width: 120,
+              height: 120,
+              borderRadius: 60,
+              backgroundColor: theme.colors.primary + '15',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderWidth: 6,
+              borderColor: theme.colors.primary,
+            }}>
+              <Text style={{ 
+                fontFamily: theme.fonts.heading, 
+                fontSize: 36, 
+                color: theme.colors.primary 
+              }}>
+                {result.calories}
+              </Text>
+              <Text style={{ 
+                fontFamily: theme.fonts.body, 
+                fontSize: theme.fontSizes.sm, 
+                color: theme.colors.text + '77' 
+              }}>
+                kcal
+              </Text>
             </View>
-          )}
-
-          <View className="rounded-lg p-6 mb-4 items-center" style={{ backgroundColor: theme.colors.surface }}>
-            <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.lg, color: theme.colors.text }} className="mb-2">Calories</Text>
-            <View className="w-32 h-32 rounded-full items-center justify-center mb-2" style={{ backgroundColor: theme.colors.background, shadowColor: theme.colors.primary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 }}>
-              <Text style={{ fontFamily: theme.fonts.heading, fontSize: 40, color: theme.colors.primary }}>{result.calories}</Text>
-              <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>kcal</Text>
-            </View>
-            {result.servingSize && (
-              <View className="mt-2">
-                <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>Serving Size</Text>
-                <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>{result.servingSize}</Text>
-              </View>
-            )}
           </View>
 
-          {result.nutrients && Object.keys(result.nutrients).length > 0 && (
-            <View className="rounded-lg p-4 mb-4" style={{ backgroundColor: theme.colors.surface }}>
-              <Text style={{ fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.lg, color: theme.colors.text }} className="mb-4">Nutrition Facts</Text>
-              
+          {/* Macros */}
+          {result.nutrients && (
+            <View style={{
+              marginHorizontal: 20,
+              marginTop: 16,
+              flexDirection: 'row',
+            }}>
               {result.nutrients.protein! > 0 && (
-                <NutrientBar label="Protein" value={result.nutrients.protein!} unit="g" max={50} color="#3b82f6" />
+                <StatCard
+                  icon="arm-flex"
+                  label="Protein"
+                  value={result.nutrients.protein!}
+                  suffix="g"
+                  color="#3b82f6"
+                  theme={theme}
+                />
               )}
               {result.nutrients.carbs! > 0 && (
-                <NutrientBar label="Carbs" value={result.nutrients.carbs!} unit="g" max={300} color="#8b5cf6" />
+                <StatCard
+                  icon="bread-slice"
+                  label="Carbs"
+                  value={result.nutrients.carbs!}
+                  suffix="g"
+                  color="#8b5cf6"
+                  theme={theme}
+                />
               )}
               {result.nutrients.fat! > 0 && (
-                <NutrientBar label="Fat" value={result.nutrients.fat!} unit="g" max={78} color="#ec4899" />
+                <StatCard
+                  icon="water"
+                  label="Fat"
+                  value={result.nutrients.fat!}
+                  suffix="g"
+                  color="#ec4899"
+                  theme={theme}
+                />
+              )}
+            </View>
+          )}
+
+          {/* Detailed Nutrition */}
+          {result.nutrients && Object.keys(result.nutrients).length > 0 && (
+            <View style={{
+              marginHorizontal: 20,
+              marginTop: 16,
+              backgroundColor: theme.colors.surface,
+              borderRadius: 24,
+              padding: 20,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 8,
+              elevation: 2,
+            }}>
+              <Text style={{ 
+                fontFamily: theme.fonts.heading, 
+                fontSize: theme.fontSizes.lg, 
+                color: theme.colors.text,
+                marginBottom: 16,
+              }}>
+                Nutrition Facts
+              </Text>
+              
+              {result.nutrients.protein! > 0 && (
+                <NutrientBar label="Protein" value={result.nutrients.protein!} unit="g" max={50} color="#3b82f6" icon="arm-flex" />
+              )}
+              {result.nutrients.carbs! > 0 && (
+                <NutrientBar label="Carbohydrates" value={result.nutrients.carbs!} unit="g" max={300} color="#8b5cf6" icon="bread-slice" />
+              )}
+              {result.nutrients.fat! > 0 && (
+                <NutrientBar label="Total Fat" value={result.nutrients.fat!} unit="g" max={78} color="#ec4899" icon="water" />
               )}
               {result.nutrients.fiber! > 0 && (
-                <NutrientBar label="Fiber" value={result.nutrients.fiber!} unit="g" max={28} color="#10b981" />
+                <NutrientBar label="Fiber" value={result.nutrients.fiber!} unit="g" max={28} color="#10b981" icon="leaf" />
               )}
+              {result.nutrients.sugar! > 0 && (
+                <NutrientBar label="Sugar" value={result.nutrients.sugar!} unit="g" max={50} color="#f97316" icon="cube-outline" />
+              )}
+              {result.nutrients.sodium! > 0 && (
+                <NutrientBar label="Sodium" value={result.nutrients.sodium!} unit="mg" max={2300} color="#6366f1" icon="shaker" />
+              )}
+            </View>
+          )}
 
-              <View className="mt-4 pt-4" style={{ borderTopWidth: 1, borderTopColor: theme.colors.secondary + '33' }}>
-                <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base, color: theme.colors.text }} className="mb-3">Complete Nutritional Information</Text>
-                {result.calories > 0 && (
-                  <View className="flex-row justify-between py-2" style={{ borderBottomWidth: 1, borderBottomColor: theme.colors.secondary + '22' }}>
-                    <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>Calories</Text>
-                    <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>{result.calories} kcal</Text>
+          {/* Complete Nutritional Information */}
+          {result.nutrients && (
+            <View style={{
+              marginHorizontal: 20,
+              marginTop: 16,
+              backgroundColor: theme.colors.surface,
+              borderRadius: 24,
+              padding: 20,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 8,
+              elevation: 2,
+            }}>
+              <Text style={{ 
+                fontFamily: theme.fonts.heading, 
+                fontSize: theme.fontSizes.lg, 
+                color: theme.colors.text,
+                marginBottom: 16,
+              }}>
+                Complete Details
+              </Text>
+              
+              {result.calories > 0 && (
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.colors.secondary + '22' }}>
+                  <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>Calories</Text>
+                  <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>{result.calories} kcal</Text>
+                </View>
+              )}
+              {result.nutrients.fat! > 0 && (
+                <>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.colors.secondary + '22' }}>
+                    <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>Total Fat</Text>
+                    <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>{result.nutrients.fat}g</Text>
                   </View>
-                )}
-                {result.nutrients.fat! > 0 && (
-                  <>
-                    <View className="flex-row justify-between py-2" style={{ borderBottomWidth: 1, borderBottomColor: theme.colors.secondary + '22' }}>
-                      <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>Total Fat</Text>
-                      <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>{result.nutrients.fat}g</Text>
-                    </View>
-                    {result.nutrients.saturatedFat! > 0 && (
-                      <View className="flex-row justify-between py-2 pl-4" style={{ borderBottomWidth: 1, borderBottomColor: theme.colors.secondary + '22' }}>
-                        <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>Saturated Fat</Text>
-                        <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>{result.nutrients.saturatedFat}g</Text>
-                      </View>
-                    )}
-                    {result.nutrients.transFat! > 0 && (
-                      <View className="flex-row justify-between py-2 pl-4" style={{ borderBottomWidth: 1, borderBottomColor: theme.colors.secondary + '22' }}>
-                        <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>Trans Fat</Text>
-                        <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>{result.nutrients.transFat}g</Text>
-                      </View>
-                    )}
-                  </>
-                )}
-                {result.nutrients.cholesterol! > 0 && (
-                  <View className="flex-row justify-between py-2" style={{ borderBottomWidth: 1, borderBottomColor: theme.colors.secondary + '22' }}>
-                    <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>Cholesterol</Text>
-                    <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>{result.nutrients.cholesterol}mg</Text>
-                  </View>
-                )}
-                {result.nutrients.sodium! > 0 && (
-                  <View className="flex-row justify-between py-2" style={{ borderBottomWidth: 1, borderBottomColor: theme.colors.secondary + '22' }}>
-                    <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>Sodium</Text>
-                    <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>{result.nutrients.sodium}mg</Text>
-                  </View>
-                )}
-                {result.nutrients.potassium! > 0 && (
-                  <View className="flex-row justify-between py-2" style={{ borderBottomWidth: 1, borderBottomColor: theme.colors.secondary + '22' }}>
-                    <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>Potassium</Text>
-                    <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>{result.nutrients.potassium}mg</Text>
-                  </View>
-                )}
-                {result.nutrients.carbs! > 0 && (
-                  <>
-                    <View className="flex-row justify-between py-2" style={{ borderBottomWidth: 1, borderBottomColor: theme.colors.secondary + '22' }}>
-                      <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>Total Carbohydrate</Text>
-                      <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>{result.nutrients.carbs}g</Text>
-                    </View>
-                    {result.nutrients.fiber! > 0 && (
-                      <View className="flex-row justify-between py-2 pl-4" style={{ borderBottomWidth: 1, borderBottomColor: theme.colors.secondary + '22' }}>
-                        <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>Dietary Fiber</Text>
-                        <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>{result.nutrients.fiber}g</Text>
-                      </View>
-                    )}
-                    {result.nutrients.sugar! > 0 && (
-                      <View className="flex-row justify-between py-2 pl-4" style={{ borderBottomWidth: 1, borderBottomColor: theme.colors.secondary + '22' }}>
-                        <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>Total Sugars</Text>
-                        <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>{result.nutrients.sugar}g</Text>
-                      </View>
-                    )}
-                  </>
-                )}
-                {result.nutrients.protein! > 0 && (
-                  <View className="flex-row justify-between py-2" style={{ borderBottomWidth: 1, borderBottomColor: theme.colors.secondary + '22' }}>
-                    <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>Protein</Text>
-                    <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>{result.nutrients.protein}g</Text>
-                  </View>
-                )}
-              </View>
-
-              {(result.nutrients.vitaminA || result.nutrients.vitaminC || 
-                result.nutrients.vitaminD || result.nutrients.calcium || 
-                result.nutrients.iron) && (
-                <View className="mt-4 pt-4" style={{ borderTopWidth: 1, borderTopColor: theme.colors.secondary + '33' }}>
-                  <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base, color: theme.colors.text }} className="mb-3">Vitamins & Minerals (% Daily Value)</Text>
-                  {result.nutrients.vitaminA! > 0 && (
-                    <View className="flex-row justify-between py-2" style={{ borderBottomWidth: 1, borderBottomColor: theme.colors.secondary + '22' }}>
-                      <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>Vitamin A</Text>
-                      <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>{result.nutrients.vitaminA}%</Text>
+                  {result.nutrients.saturatedFat! > 0 && (
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, paddingLeft: 16, borderBottomWidth: 1, borderBottomColor: theme.colors.secondary + '22' }}>
+                      <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text + '99' }}>Saturated Fat</Text>
+                      <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text + '99' }}>{result.nutrients.saturatedFat}g</Text>
                     </View>
                   )}
-                  {result.nutrients.vitaminC! > 0 && (
-                    <View className="flex-row justify-between py-2" style={{ borderBottomWidth: 1, borderBottomColor: theme.colors.secondary + '22' }}>
-                      <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>Vitamin C</Text>
-                      <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>{result.nutrients.vitaminC}%</Text>
+                  {result.nutrients.transFat! > 0 && (
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, paddingLeft: 16, borderBottomWidth: 1, borderBottomColor: theme.colors.secondary + '22' }}>
+                      <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text + '99' }}>Trans Fat</Text>
+                      <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text + '99' }}>{result.nutrients.transFat}g</Text>
                     </View>
                   )}
-                  {result.nutrients.vitaminD! > 0 && (
-                    <View className="flex-row justify-between py-2" style={{ borderBottomWidth: 1, borderBottomColor: theme.colors.secondary + '22' }}>
-                      <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>Vitamin D</Text>
-                      <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>{result.nutrients.vitaminD}%</Text>
+                </>
+              )}
+              {result.nutrients.cholesterol! > 0 && (
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.colors.secondary + '22' }}>
+                  <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>Cholesterol</Text>
+                  <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>{result.nutrients.cholesterol}mg</Text>
+                </View>
+              )}
+              {result.nutrients.sodium! > 0 && (
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.colors.secondary + '22' }}>
+                  <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>Sodium</Text>
+                  <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>{result.nutrients.sodium}mg</Text>
+                </View>
+              )}
+              {result.nutrients.potassium! > 0 && (
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.colors.secondary + '22' }}>
+                  <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>Potassium</Text>
+                  <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>{result.nutrients.potassium}mg</Text>
+                </View>
+              )}
+              {result.nutrients.carbs! > 0 && (
+                <>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.colors.secondary + '22' }}>
+                    <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>Total Carbohydrate</Text>
+                    <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>{result.nutrients.carbs}g</Text>
+                  </View>
+                  {result.nutrients.fiber! > 0 && (
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, paddingLeft: 16, borderBottomWidth: 1, borderBottomColor: theme.colors.secondary + '22' }}>
+                      <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text + '99' }}>Dietary Fiber</Text>
+                      <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text + '99' }}>{result.nutrients.fiber}g</Text>
                     </View>
                   )}
-                  {result.nutrients.calcium! > 0 && (
-                    <View className="flex-row justify-between py-2" style={{ borderBottomWidth: 1, borderBottomColor: theme.colors.secondary + '22' }}>
-                      <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>Calcium</Text>
-                      <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>{result.nutrients.calcium}%</Text>
+                  {result.nutrients.sugar! > 0 && (
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, paddingLeft: 16, borderBottomWidth: 1, borderBottomColor: theme.colors.secondary + '22' }}>
+                      <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text + '99' }}>Total Sugars</Text>
+                      <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text + '99' }}>{result.nutrients.sugar}g</Text>
                     </View>
                   )}
-                  {result.nutrients.iron! > 0 && (
-                    <View className="flex-row justify-between py-2" style={{ borderBottomWidth: 1, borderBottomColor: theme.colors.secondary + '22' }}>
-                      <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>Iron</Text>
-                      <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>{result.nutrients.iron}%</Text>
-                    </View>
-                  )}
+                </>
+              )}
+              {result.nutrients.protein! > 0 && (
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10 }}>
+                  <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>Protein</Text>
+                  <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>{result.nutrients.protein}g</Text>
                 </View>
               )}
             </View>
           )}
 
+          {/* Vitamins & Minerals */}
+          {(result.nutrients?.vitaminA || result.nutrients?.vitaminC || 
+            result.nutrients?.vitaminD || result.nutrients?.calcium || 
+            result.nutrients?.iron) && (
+            <View style={{
+              marginHorizontal: 20,
+              marginTop: 16,
+              backgroundColor: theme.colors.surface,
+              borderRadius: 24,
+              padding: 20,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 8,
+              elevation: 2,
+            }}>
+              <Text style={{ 
+                fontFamily: theme.fonts.heading, 
+                fontSize: theme.fontSizes.lg, 
+                color: theme.colors.text,
+                marginBottom: 16,
+              }}>
+                Vitamins & Minerals
+              </Text>
+              
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -6 }}>
+                {result.nutrients.vitaminA! > 0 && (
+                  <View style={{ width: '50%', paddingHorizontal: 6, marginBottom: 12 }}>
+                    <View style={{ backgroundColor: theme.colors.background, borderRadius: 12, padding: 12 }}>
+                      <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, color: theme.colors.text + '77' }}>Vitamin A</Text>
+                      <Text style={{ fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.base, color: theme.colors.text }}>{result.nutrients.vitaminA}%</Text>
+                    </View>
+                  </View>
+                )}
+                {result.nutrients.vitaminC! > 0 && (
+                  <View style={{ width: '50%', paddingHorizontal: 6, marginBottom: 12 }}>
+                    <View style={{ backgroundColor: theme.colors.background, borderRadius: 12, padding: 12 }}>
+                      <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, color: theme.colors.text + '77' }}>Vitamin C</Text>
+                      <Text style={{ fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.base, color: theme.colors.text }}>{result.nutrients.vitaminC}%</Text>
+                    </View>
+                  </View>
+                )}
+                {result.nutrients.vitaminD! > 0 && (
+                  <View style={{ width: '50%', paddingHorizontal: 6, marginBottom: 12 }}>
+                    <View style={{ backgroundColor: theme.colors.background, borderRadius: 12, padding: 12 }}>
+                      <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, color: theme.colors.text + '77' }}>Vitamin D</Text>
+                      <Text style={{ fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.base, color: theme.colors.text }}>{result.nutrients.vitaminD}%</Text>
+                    </View>
+                  </View>
+                )}
+                {result.nutrients.calcium! > 0 && (
+                  <View style={{ width: '50%', paddingHorizontal: 6, marginBottom: 12 }}>
+                    <View style={{ backgroundColor: theme.colors.background, borderRadius: 12, padding: 12 }}>
+                      <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, color: theme.colors.text + '77' }}>Calcium</Text>
+                      <Text style={{ fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.base, color: theme.colors.text }}>{result.nutrients.calcium}%</Text>
+                    </View>
+                  </View>
+                )}
+                {result.nutrients.iron! > 0 && (
+                  <View style={{ width: '50%', paddingHorizontal: 6, marginBottom: 12 }}>
+                    <View style={{ backgroundColor: theme.colors.background, borderRadius: 12, padding: 12 }}>
+                      <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, color: theme.colors.text + '77' }}>Iron</Text>
+                      <Text style={{ fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.base, color: theme.colors.text }}>{result.nutrients.iron}%</Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+
+          {/* Branded Product Ingredients */}
           {result.brandedProduct?.isBranded && result.brandedProduct?.ingredients && (
-            <View className="rounded-lg p-4 mb-4" style={{ backgroundColor: theme.colors.surface }}>
-              <Text style={{ fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.lg, color: theme.colors.text }} className="mb-2">📋 Ingredients</Text>
-              <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>{result.brandedProduct.ingredients}</Text>
+            <View style={{
+              marginHorizontal: 20,
+              marginTop: 16,
+              backgroundColor: theme.colors.surface,
+              borderRadius: 24,
+              padding: 20,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 8,
+              elevation: 2,
+            }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                <MaterialCommunityIcons name="clipboard-list" size={20} color={theme.colors.primary} />
+                <Text style={{ 
+                  fontFamily: theme.fonts.heading, 
+                  fontSize: theme.fontSizes.lg, 
+                  color: theme.colors.text,
+                  marginLeft: 8,
+                }}>
+                  Ingredients
+                </Text>
+              </View>
+              <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>
+                {result.brandedProduct.ingredients}
+              </Text>
             </View>
           )}
 
-          {result.brandedProduct?.isBranded && result.brandedProduct?.purchaseLinks && (
-            Object.values(result.brandedProduct.purchaseLinks).some(link => link) && (
-              <View className="rounded-lg p-4 mb-4" style={{ backgroundColor: theme.colors.surface }}>
-                <Text style={{ fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.lg, color: theme.colors.text }} className="mb-3">🛒 Where to Buy</Text>
-                <View className="space-y-2">
-                  {result.brandedProduct.purchaseLinks.lazada && (
-                    <TouchableOpacity
-                      onPress={() => Linking.openURL(result.brandedProduct.purchaseLinks.lazada!)}
-                      className="px-4 py-3 rounded-lg flex-row items-center justify-between mb-2"
-                      style={{ backgroundColor: '#ff6700' }}
-                    >
-                      <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base, color: '#FFFFFF' }}>🛍️ Lazada</Text>
-                      <Text style={{ color: '#FFFFFF' }}>→</Text>
-                    </TouchableOpacity>
-                  )}
-                  {result.brandedProduct.purchaseLinks.shopee && (
-                    <TouchableOpacity
-                      onPress={() => Linking.openURL(result.brandedProduct.purchaseLinks.shopee!)}
-                      className="px-4 py-3 rounded-lg flex-row items-center justify-between mb-2"
-                      style={{ backgroundColor: '#ee4d2d' }}
-                    >
-                      <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base, color: '#FFFFFF' }}>🛍️ Shopee</Text>
-                      <Text style={{ color: '#FFFFFF' }}>→</Text>
-                    </TouchableOpacity>
-                  )}
-                  {result.brandedProduct.purchaseLinks.puregold && (
-                    <TouchableOpacity
-                      onPress={() => Linking.openURL(result.brandedProduct.purchaseLinks.puregold!)}
-                      className="px-4 py-3 rounded-lg flex-row items-center justify-between mb-2"
-                      style={{ backgroundColor: '#16a34a' }}
-                    >
-                      <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base, color: '#FFFFFF' }}>🛍️ Puregold</Text>
-                      <Text style={{ color: '#FFFFFF' }}>→</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </View>
-            )
-          )}
-
+          {/* Recipe Links */}
           {result.recipeLinks?.length > 0 && (
-            <View className="rounded-lg p-4 mb-4" style={{ backgroundColor: theme.colors.surface }}>
-              <Text style={{ fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.lg, color: theme.colors.text }} className="mb-3">👨‍🍳 Recipe Ideas</Text>
+            <View style={{
+              marginHorizontal: 20,
+              marginTop: 16,
+              backgroundColor: theme.colors.surface,
+              borderRadius: 24,
+              padding: 20,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 8,
+              elevation: 2,
+            }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                <MaterialCommunityIcons name="chef-hat" size={20} color={theme.colors.primary} />
+                <Text style={{ 
+                  fontFamily: theme.fonts.heading, 
+                  fontSize: theme.fontSizes.lg, 
+                  color: theme.colors.text,
+                  marginLeft: 8,
+                }}>
+                  Recipe Ideas
+                </Text>
+              </View>
               {result.recipeLinks.map((recipe, index) => (
                 <TouchableOpacity
                   key={index}
                   onPress={() => Linking.openURL(recipe.url)}
-                  className="px-4 py-3 rounded-lg flex-row items-center justify-between mb-2"
-                  style={{ backgroundColor: theme.colors.background, borderWidth: 1, borderColor: theme.colors.secondary + '33' }}
+                  style={{
+                    backgroundColor: theme.colors.background,
+                    borderRadius: 12,
+                    padding: 14,
+                    marginBottom: 8,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                  }}
                 >
-                  <View className="flex-1">
+                  <View style={{ flex: 1 }}>
                     <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>{recipe.title}</Text>
-                    <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, color: theme.colors.secondary }}>{recipe.source}</Text>
+                    <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, color: theme.colors.text + '77', marginTop: 2 }}>{recipe.source}</Text>
                   </View>
-                  <Text style={{ color: theme.colors.primary }}>→</Text>
+                  <Ionicons name="chevron-forward" size={18} color={theme.colors.primary} />
                 </TouchableOpacity>
               ))}
             </View>
           )}
 
-          {result.nutritionSources?.length > 0 && (
-            <View className="rounded-lg p-4 mb-4" style={{ backgroundColor: theme.colors.surface }}>
-              <Text style={{ fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.lg, color: theme.colors.text }} className="mb-2">🔍 Nutrition Data Sources</Text>
-              <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.secondary }} className="mb-3">Cross-referenced from:</Text>
-              {result.nutritionSources.map((source, index) => (
-                <TouchableOpacity
-                  key={index}
-                  onPress={() => Linking.openURL(source.url)}
-                  className="px-4 py-3 rounded-lg flex-row items-center justify-between mb-2"
-                  style={{ backgroundColor: theme.colors.background, borderWidth: 1, borderColor: theme.colors.secondary + '33' }}
-                >
-                  <View className="flex-1">
-                    <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>{source.source}</Text>
-                    <Text className="text-xs mt-1" style={{
-                      color: source.reliability === 'high' ? '#16a34a' :
-                             source.reliability === 'medium' ? '#ca8a04' :
-                             theme.colors.secondary
-                    }}>
-                      {source.reliability === 'high' ? '✓ High' :
-                       source.reliability === 'medium' ? '◐ Medium' :
-                       '○ Low'} Reliability
-                    </Text>
+          {/* Healthy Alternatives */}
+          {result.healthyAlternatives?.length > 0 && (
+            <View style={{
+              marginHorizontal: 20,
+              marginTop: 16,
+              backgroundColor: '#dcfce7',
+              borderRadius: 24,
+              padding: 20,
+            }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                <MaterialCommunityIcons name="lightbulb-on" size={20} color="#16a34a" />
+                <Text style={{ 
+                  fontFamily: theme.fonts.heading, 
+                  fontSize: theme.fontSizes.lg, 
+                  color: '#166534',
+                  marginLeft: 8,
+                }}>
+                  Healthier Alternatives
+                </Text>
+              </View>
+              {result.healthyAlternatives.map((alt, index) => (
+                <View key={index} style={{
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: 12,
+                  padding: 14,
+                  marginBottom: 8,
+                }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base, color: theme.colors.text, flex: 1 }}>{alt.name}</Text>
+                    {alt.caloriesSaved > 0 && (
+                      <View style={{ backgroundColor: '#bbf7d0', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
+                        <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, color: '#166534' }}>-{alt.caloriesSaved} kcal</Text>
+                      </View>
+                    )}
                   </View>
-                  <Text style={{ color: theme.colors.primary }}>→</Text>
-                </TouchableOpacity>
+                  <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text + '99' }}>{alt.reason}</Text>
+                </View>
               ))}
             </View>
           )}
 
+          {/* May Contain Allergens */}
           {result.allergyWarnings?.mayContain?.length > 0 && (
-            <View className="rounded-lg p-4 mb-4" style={{ backgroundColor: '#fef3c7' }}>
-              <Text style={{ fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.lg, color: '#92400e' }} className="mb-2">⚠️ May Contain</Text>
-              <View className="flex-row flex-wrap">
+            <View style={{
+              marginHorizontal: 20,
+              marginTop: 16,
+              backgroundColor: '#fef3c7',
+              borderRadius: 24,
+              padding: 20,
+            }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                <Ionicons name="alert-circle" size={20} color="#92400e" />
+                <Text style={{ 
+                  fontFamily: theme.fonts.heading, 
+                  fontSize: theme.fontSizes.lg, 
+                  color: '#92400e',
+                  marginLeft: 8,
+                }}>
+                  May Contain
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
                 {result.allergyWarnings.mayContain.map((allergen, index) => (
-                  <View key={index} className="px-3 py-1 rounded-full mr-2 mb-2" style={{ backgroundColor: '#fde68a' }}>
+                  <View key={index} style={{
+                    backgroundColor: '#fde68a',
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 16,
+                    marginRight: 8,
+                    marginBottom: 8,
+                  }}>
                     <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: '#92400e' }}>{allergen}</Text>
                   </View>
                 ))}
@@ -757,90 +1212,151 @@ export default function Food() {
             </View>
           )}
 
-          {result.healthyAlternatives?.length > 0 && (
-            <View className="rounded-lg p-4 mb-4" style={{ backgroundColor: '#dcfce7' }}>
-              <Text style={{ fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.lg, color: '#166534' }} className="mb-3">💡 Healthier Alternatives</Text>
-              {result.healthyAlternatives.map((alt, index) => (
-                <View key={index} className="rounded-lg p-3 mb-3" style={{ backgroundColor: theme.colors.background, borderWidth: 1, borderColor: '#86efac' }}>
-                  <View className="flex-row justify-between items-center mb-1">
-                    <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base, color: theme.colors.text }} className="flex-1">{alt.name}</Text>
-                    {alt.caloriesSaved > 0 && (
-                      <View className="px-2 py-1 rounded" style={{ backgroundColor: '#bbf7d0' }}>
-                        <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: '#166534' }}>-{alt.caloriesSaved} kcal</Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>{alt.reason}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {result.confidence && (
-            <View className="mb-4">
-              <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>
-                Confidence: <Text style={{ fontFamily: theme.fonts.bodyBold, color: theme.colors.text }}>{result.confidence}</Text>
-              </Text>
-            </View>
-          )}
-
+          {/* Additional Notes */}
           {result.notes && (
-            <View className="rounded-lg p-4 mb-4" style={{ backgroundColor: theme.colors.primary + '22' }}>
-              <Text style={{ fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.lg, color: theme.colors.primary }} className="mb-2">ℹ️ Additional Notes</Text>
+            <View style={{
+              marginHorizontal: 20,
+              marginTop: 16,
+              backgroundColor: theme.colors.primary + '15',
+              borderRadius: 24,
+              padding: 20,
+            }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                <Ionicons name="information-circle" size={20} color={theme.colors.primary} />
+                <Text style={{ 
+                  fontFamily: theme.fonts.heading, 
+                  fontSize: theme.fontSizes.lg, 
+                  color: theme.colors.primary,
+                  marginLeft: 8,
+                }}>
+                  Notes
+                </Text>
+              </View>
               <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>{result.notes}</Text>
             </View>
           )}
 
-          <TouchableOpacity
-            onPress={handleReset}
-            className="py-4 rounded-lg items-center mb-6"
-            style={{ backgroundColor: theme.colors.primary }}
-          >
-            <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base, color: '#FFFFFF' }}>Analyze Another Food</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-
-      {/* Camera Modal */}
-      <Modal
-        visible={showCamera}
-        animationType="slide"
-        onRequestClose={closeCamera}
-      >
-        <View className="flex-1 bg-black">
-          <CameraView
-            ref={cameraRef}
-            className="flex-1"
-            facing={facing}
-          >
-            {/* Top controls */}
-            <View className="absolute top-0 left-0 right-0 p-4 flex-row justify-between items-center">
-              <TouchableOpacity
-                onPress={closeCamera}
-                className="bg-black/50 rounded-full p-3"
-              >
-                <Text className="text-white text-lg font-bold">✕</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={toggleCameraFacing}
-                className="bg-black/50 rounded-full p-3"
-              >
-                <Text className="text-white text-lg">🔄</Text>
-              </TouchableOpacity>
+          {/* Confidence */}
+          {result.confidence && (
+            <View style={{ marginHorizontal: 20, marginTop: 16, alignItems: 'center' }}>
+              <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, color: theme.colors.text + '77' }}>
+                Analysis Confidence: <Text style={{ fontFamily: theme.fonts.bodyBold }}>{result.confidence}</Text>
+              </Text>
             </View>
+          )}
 
-            {/* Bottom capture button */}
-            <View className="absolute bottom-0 left-0 right-0 p-8 items-center">
+          {/* Analyze Another Button */}
+          <View style={{ marginHorizontal: 20, marginTop: 24, marginBottom: 20 }}>
+            <TouchableOpacity
+              onPress={handleReset}
+              style={{
+                backgroundColor: theme.colors.primary,
+                borderRadius: 16,
+                paddingVertical: 16,
+                alignItems: 'center',
+                flexDirection: 'row',
+                justifyContent: 'center',
+              }}
+            >
+              <MaterialCommunityIcons name="plus" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
+              <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base, color: '#FFFFFF' }}>
+                Analyze Another Food
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+
+        {/* Camera Modal */}
+        <Modal
+          visible={showCamera}
+          animationType="slide"
+          onRequestClose={closeCamera}
+        >
+          <View style={{ flex: 1, backgroundColor: '#000' }}>
+            <CameraView
+              ref={cameraRef}
+              style={{ flex: 1 }}
+              facing={facing}
+            />
+            
+            <SafeAreaView style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
+              <View style={{ 
+                flexDirection: 'row', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                paddingHorizontal: 20,
+                paddingTop: 10,
+              }}>
+                <TouchableOpacity
+                  onPress={closeCamera}
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 22,
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Ionicons name="close" size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={toggleCameraFacing}
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 22,
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Ionicons name="camera-reverse" size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+            </SafeAreaView>
+
+            <View style={{ 
+              position: 'absolute', 
+              bottom: 0, 
+              left: 0, 
+              right: 0,
+              paddingBottom: 50,
+              paddingTop: 20,
+              alignItems: 'center',
+              backgroundColor: 'rgba(0,0,0,0.3)',
+            }}>
               <TouchableOpacity
                 onPress={capturePhoto}
-                className="bg-white rounded-full w-20 h-20 border-4 border-gray-300 items-center justify-center"
+                style={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: 40,
+                  backgroundColor: '#FFFFFF',
+                  borderWidth: 4,
+                  borderColor: 'rgba(255,255,255,0.5)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
               >
-                <View className="bg-white rounded-full w-16 h-16" />
+                <View style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: 32,
+                  backgroundColor: '#FFFFFF',
+                }} />
               </TouchableOpacity>
+              <Text style={{ 
+                color: '#FFFFFF', 
+                marginTop: 12, 
+                fontFamily: theme.fonts.body, 
+                fontSize: theme.fontSizes.sm 
+              }}>
+                Tap to capture
+              </Text>
             </View>
-          </CameraView>
-        </View>
-      </Modal>
+          </View>
+        </Modal>
       </SafeAreaView>
       </>
     );
@@ -848,166 +1364,650 @@ export default function Food() {
 
   return (
     <>
-    <SafeAreaView className="flex-1" style={{ backgroundColor: theme.colors.background }}>
-      <View className="px-6 pt-3">
-        <TouchableOpacity onPress={() => router.back()} className="flex-row items-center mb-4">
-          <Ionicons name="chevron-back" size={theme.fontSizes.xl + 4} color={theme.colors.text} />
-          <Text
-            className="ml-2"
-            style={{
-              color: theme.colors.text,
-              fontFamily: theme.fonts.heading,
-              fontSize: theme.fontSizes.xl,
-              lineHeight: theme.fontSizes.xl * 1.2,
-            }}
-          >
-            Back
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      {/* Header */}
+      <View style={{ 
+        paddingHorizontal: 20, 
+        paddingTop: 12,
+        paddingBottom: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      }}>
+        <TouchableOpacity 
+          onPress={() => router.back()} 
+          style={{ 
+            flexDirection: 'row', 
+            alignItems: 'center',
+            padding: 8,
+            marginLeft: -8,
+          }}
+        >
+          <Ionicons name="chevron-back" size={24} color={theme.colors.text} />
+          <Text style={{
+            color: theme.colors.text,
+            fontFamily: theme.fonts.heading,
+            fontSize: theme.fontSizes.xl,
+            marginLeft: 4,
+          }}>
+            Food Tracker
           </Text>
         </TouchableOpacity>
-      </View>
-    <ScrollView 
-      className="flex-1" 
-      style={{ backgroundColor: theme.colors.background }}
-      refreshControl={
-        viewMode === 'history' ? (
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        ) : undefined
-      }
-    >
-      <View className="rounded-b-2xl p-6">
-        <Text style={{ fontFamily: theme.fonts.heading, fontSize: 28, color: theme.colors.primary }} className="mb-2">Food Calorie Tracker</Text>
-        <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.base, color: theme.colors.text + 'CC' }} className="mb-4">
-          {viewMode === 'analyze' ? 'Upload a food image or enter ingredients manually' : 'View your food tracking history'}
-        </Text>
         
-        {/* Daily Calorie Balance Display */}
-        {calorieBalance && viewMode === 'analyze' && (
-          <View className="rounded-lg p-4 mb-4" style={{ 
-            backgroundColor: theme.colors.surface, 
-            borderLeftWidth: 4, 
-            borderLeftColor: calorieBalance.status === 'under' ? '#22c55e' : 
-                            calorieBalance.status === 'over' ? '#ef4444' : theme.colors.primary 
-          }}>
-            <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base, color: theme.colors.text }} className="mb-2">
-              Today's Calorie Balance
+        {user && (
+          <TouchableOpacity
+            onPress={() => setViewMode(viewMode === 'analyze' ? 'history' : 'analyze')}
+            style={{
+              backgroundColor: theme.colors.surface,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              borderRadius: 20,
+              flexDirection: 'row',
+              alignItems: 'center',
+            }}
+          >
+            <MaterialCommunityIcons 
+              name={viewMode === 'analyze' ? 'history' : 'plus-circle'} 
+              size={18} 
+              color={theme.colors.primary} 
+            />
+            <Text style={{
+              fontFamily: theme.fonts.body,
+              fontSize: theme.fontSizes.sm,
+              color: theme.colors.primary,
+              marginLeft: 4,
+            }}>
+              {viewMode === 'analyze' ? 'History' : 'New'}
             </Text>
-            <View className="flex-row justify-between items-center">
-              <View className="items-center flex-1">
-                <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, color: theme.colors.text + '99' }}>Goal</Text>
-                <Text style={{ fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.lg, color: theme.colors.text }}>
-                  {calorieBalance.goal_kcal}
-                </Text>
-              </View>
-              <View className="items-center flex-1">
-                <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, color: theme.colors.text + '99' }}>Consumed</Text>
-                <Text style={{ fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.lg, color: '#f97316' }}>
-                  +{calorieBalance.consumed_kcal}
-                </Text>
-              </View>
-              <View className="items-center flex-1">
-                <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, color: theme.colors.text + '99' }}>Burned</Text>
-                <Text style={{ fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.lg, color: '#22c55e' }}>
-                  -{calorieBalance.burned_kcal}
-                </Text>
-              </View>
-              <View className="items-center flex-1">
-                <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, color: theme.colors.text + '99' }}>Remaining</Text>
-                <Text style={{ fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.lg, color: 
-                  calorieBalance.goal_kcal - calorieBalance.net_kcal > 0 ? '#22c55e' : '#ef4444' 
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <ScrollView 
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          viewMode === 'history' ? (
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={onRefresh}
+              tintColor={theme.colors.primary}
+            />
+          ) : undefined
+        }
+      >
+        {/* Calorie Dashboard Card */}
+        {calorieBalance && viewMode === 'analyze' && (
+          <View style={{
+            marginHorizontal: 20,
+            marginTop: 8,
+            marginBottom: 20,
+            backgroundColor: theme.colors.surface,
+            borderRadius: 24,
+            padding: 20,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.08,
+            shadowRadius: 12,
+            elevation: 4,
+          }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={{ 
+                fontFamily: theme.fonts.heading, 
+                fontSize: theme.fontSizes.lg, 
+                color: theme.colors.text 
+              }}>
+                Today's Progress
+              </Text>
+              <View style={{
+                backgroundColor: calorieBalance.status === 'under' ? '#22c55e20' : 
+                              calorieBalance.status === 'over' ? '#ef444420' : theme.colors.primary + '20',
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+                borderRadius: 12,
+              }}>
+                <Text style={{
+                  fontFamily: theme.fonts.bodyBold,
+                  fontSize: theme.fontSizes.xs,
+                  color: calorieBalance.status === 'under' ? '#22c55e' : 
+                        calorieBalance.status === 'over' ? '#ef4444' : theme.colors.primary,
                 }}>
-                  {calorieBalance.goal_kcal - calorieBalance.net_kcal}
+                  {calorieBalance.status === 'under' ? '✓ On Track' : 
+                   calorieBalance.status === 'over' ? '⚠ Over' : '✓ Perfect'}
                 </Text>
               </View>
             </View>
-            {/* Progress bar */}
-            <View className="mt-3 h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme.colors.background }}>
-              <View 
-                style={{ 
-                  width: `${Math.min((calorieBalance.net_kcal / calorieBalance.goal_kcal) * 100, 100)}%`,
-                  backgroundColor: calorieBalance.status === 'under' ? '#22c55e' : 
-                                  calorieBalance.status === 'over' ? '#ef4444' : theme.colors.primary
-                }} 
-                className="h-full rounded-full"
+
+            {/* Main Progress Display */}
+            <View style={{ alignItems: 'center', marginBottom: 20 }}>
+              <View style={{
+                width: 140,
+                height: 140,
+                borderRadius: 70,
+                backgroundColor: theme.colors.background,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderWidth: 8,
+                borderColor: calorieBalance.status === 'under' ? '#22c55e' : 
+                            calorieBalance.status === 'over' ? '#ef4444' : theme.colors.primary,
+              }}>
+                <Text style={{ 
+                  fontFamily: theme.fonts.heading, 
+                  fontSize: 32, 
+                  color: theme.colors.text 
+                }}>
+                  {calorieBalance.consumed_kcal}
+                </Text>
+                <Text style={{ 
+                  fontFamily: theme.fonts.body, 
+                  fontSize: theme.fontSizes.xs, 
+                  color: theme.colors.text + '77' 
+                }}>
+                  / {calorieBalance.goal_kcal} kcal
+                </Text>
+              </View>
+            </View>
+
+            {/* Stats Row */}
+            <View style={{ flexDirection: 'row', marginHorizontal: -4 }}>
+              <StatCard
+                icon="silverware-fork-knife"
+                label="Consumed"
+                value={calorieBalance.consumed_kcal}
+                suffix=""
+                color="#f97316"
+                theme={theme}
+              />
+              <StatCard
+                icon="fire"
+                label="Burned"
+                value={calorieBalance.burned_kcal}
+                suffix=""
+                color="#22c55e"
+                theme={theme}
+              />
+              <StatCard
+                icon="target"
+                label="Remaining"
+                value={Math.max(0, calorieBalance.goal_kcal - calorieBalance.net_kcal)}
+                suffix=""
+                color={theme.colors.primary}
+                theme={theme}
               />
             </View>
-            <Text className="mt-2 text-center" style={{ 
-              fontFamily: theme.fonts.body, 
-              fontSize: theme.fontSizes.xs, 
-              color: calorieBalance.status === 'under' ? '#22c55e' : 
-                    calorieBalance.status === 'over' ? '#ef4444' : theme.colors.primary 
-            }}>
-              {calorieBalance.status === 'under' ? '✓ Under budget' : 
-               calorieBalance.status === 'over' ? '⚠ Over budget' : '✓ On target'}
-            </Text>
           </View>
         )}
-        
-        <View className="flex-row gap-2 mb-4">
-          <TouchableOpacity
-            onPress={() => setViewMode('analyze')}
-            className="flex-1 py-3 rounded-lg"
-            style={{ backgroundColor: viewMode === 'analyze' ? theme.colors.primary : theme.colors.secondary + '66' }}
-          >
-            <Text className="text-center" style={{
-              fontFamily: theme.fonts.bodyBold,
-              fontSize: theme.fontSizes.base,
-              color: viewMode === 'analyze' ? '#FFFFFF' : '#FFFFFF'
-            }}>
-              Analyze Food
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setViewMode('history')}
-            className="flex-1 py-3 rounded-lg"
-            style={{ backgroundColor: viewMode === 'history' ? theme.colors.primary : theme.colors.secondary + '66' }}
-          >
-            <Text className="text-center" style={{
-              fontFamily: theme.fonts.bodyBold,
-              fontSize: theme.fontSizes.base,
-              color: viewMode === 'history' ? '#FFFFFF' : '#FFFFFF'
-            }}>
-              History
-            </Text>
-          </TouchableOpacity>
-        </View>
 
-        {viewMode === 'analyze' && (
-          <View className="flex-row gap-2">
-            <TouchableOpacity
-              onPress={() => setInputMode('image')}
-              className="flex-1 py-3 rounded-lg"
-              style={{ backgroundColor: inputMode === 'image' ? theme.colors.primary : theme.colors.secondary + '66' }}
-            >
-              <Text className="text-center" style={{
-                fontFamily: theme.fonts.bodyBold,
-                fontSize: theme.fontSizes.base,
-                color: inputMode === 'image' ? '#FFFFFF' : '#FFFFFF'
-              }}>
-                Upload Image
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setInputMode('manual')}
-              className="flex-1 py-3 rounded-lg"
-              style={{ backgroundColor: inputMode === 'manual' ? theme.colors.primary : theme.colors.secondary + '66' }}
-            >
-              <Text className="text-center" style={{
-                fontFamily: theme.fonts.bodyBold,
-                fontSize: theme.fontSizes.base,
-                color: inputMode === 'manual' ? '#FFFFFF' : '#FFFFFF'
-              }}>
-                Manual Input
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
-
-      <View className="p-4">
-        {viewMode === 'history' ? (
-          // History View
+        {viewMode === 'analyze' ? (
           <>
-            <View className="mb-4">
+            {/* Quick Actions */}
+            <View style={{ paddingHorizontal: 20, marginBottom: 20 }}>
+              <Text style={{ 
+                fontFamily: theme.fonts.heading, 
+                fontSize: theme.fontSizes.lg, 
+                color: theme.colors.text,
+                marginBottom: 12,
+              }}>
+                Add Food Entry
+              </Text>
+              <View style={{ flexDirection: 'row', marginHorizontal: -6 }}>
+                <QuickActionButton
+                  icon="camera"
+                  label="Take Photo"
+                  onPress={() => {
+                    setInputMode('image');
+                    takePhoto();
+                  }}
+                  color={theme.colors.primary}
+                  theme={theme}
+                  disabled={loading}
+                />
+                <QuickActionButton
+                  icon="image"
+                  label="Gallery"
+                  onPress={() => {
+                    setInputMode('image');
+                    pickImage();
+                  }}
+                  color="#8b5cf6"
+                  theme={theme}
+                  disabled={loading}
+                />
+                <QuickActionButton
+                  icon="pencil"
+                  label="Manual"
+                  onPress={() => setInputMode('manual')}
+                  color="#10b981"
+                  theme={theme}
+                  disabled={loading}
+                />
+              </View>
+            </View>
+
+            {/* Error Display */}
+            {error && (
+              <View style={{
+                marginHorizontal: 20,
+                marginBottom: 16,
+                backgroundColor: '#fee2e2',
+                borderRadius: 16,
+                padding: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+              }}>
+                <View style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: '#ef444420',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: 12,
+                }}>
+                  <Ionicons name="alert-circle" size={24} color="#ef4444" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.sm, color: '#991b1b' }}>
+                    Analysis Failed
+                  </Text>
+                  <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, color: '#991b1b' }}>
+                    {error}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {/* Input Section */}
+            <View style={{
+              marginHorizontal: 20,
+              backgroundColor: theme.colors.surface,
+              borderRadius: 24,
+              padding: 20,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 8,
+              elevation: 2,
+            }}>
+              {/* Mode Toggle */}
+              <View style={{
+                flexDirection: 'row',
+                backgroundColor: theme.colors.background,
+                borderRadius: 12,
+                padding: 4,
+                marginBottom: 20,
+              }}>
+                <TouchableOpacity
+                  onPress={() => setInputMode('image')}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 10,
+                    borderRadius: 10,
+                    backgroundColor: inputMode === 'image' ? theme.colors.primary : 'transparent',
+                    alignItems: 'center',
+                    flexDirection: 'row',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <MaterialCommunityIcons 
+                    name="camera" 
+                    size={18} 
+                    color={inputMode === 'image' ? '#FFFFFF' : theme.colors.text + '77'} 
+                  />
+                  <Text style={{
+                    fontFamily: theme.fonts.bodyBold,
+                    fontSize: theme.fontSizes.sm,
+                    color: inputMode === 'image' ? '#FFFFFF' : theme.colors.text + '77',
+                    marginLeft: 6,
+                  }}>
+                    Image
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setInputMode('manual')}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 10,
+                    borderRadius: 10,
+                    backgroundColor: inputMode === 'manual' ? theme.colors.primary : 'transparent',
+                    alignItems: 'center',
+                    flexDirection: 'row',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <MaterialCommunityIcons 
+                    name="text-box-outline" 
+                    size={18} 
+                    color={inputMode === 'manual' ? '#FFFFFF' : theme.colors.text + '77'} 
+                  />
+                  <Text style={{
+                    fontFamily: theme.fonts.bodyBold,
+                    fontSize: theme.fontSizes.sm,
+                    color: inputMode === 'manual' ? '#FFFFFF' : theme.colors.text + '77',
+                    marginLeft: 6,
+                  }}>
+                    Manual
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Dish Name Input */}
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ 
+                  fontFamily: theme.fonts.bodyBold, 
+                  fontSize: theme.fontSizes.sm, 
+                  color: theme.colors.text,
+                  marginBottom: 8,
+                }}>
+                  Dish Name
+                  <Text style={{ color: theme.colors.text + '55' }}> (Optional)</Text>
+                </Text>
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: theme.colors.input,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: theme.colors.secondary + '22',
+                }}>
+                  <View style={{ paddingLeft: 14 }}>
+                    <MaterialCommunityIcons name="food" size={20} color={theme.colors.text + '55'} />
+                  </View>
+                  <TextInput
+                    value={dishName}
+                    onChangeText={setDishName}
+                    placeholder="e.g., Grilled Chicken Salad"
+                    placeholderTextColor={theme.colors.text + '55'}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 14,
+                      paddingHorizontal: 12,
+                      color: theme.colors.text,
+                      fontFamily: theme.fonts.body,
+                      fontSize: theme.fontSizes.base,
+                    }}
+                    editable={!loading}
+                  />
+                </View>
+              </View>
+
+              {/* Allergies Section */}
+              <View style={{ marginBottom: 20 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <Text style={{ 
+                    fontFamily: theme.fonts.bodyBold, 
+                    fontSize: theme.fontSizes.sm, 
+                    color: theme.colors.text 
+                  }}>
+                    Allergies
+                  </Text>
+                  {allergiesLoaded && selectedAllergies.length > 0 && (
+                    <View style={{
+                      backgroundColor: theme.colors.primary + '15',
+                      paddingHorizontal: 8,
+                      paddingVertical: 3,
+                      borderRadius: 8,
+                    }}>
+                      <Text style={{ 
+                        fontFamily: theme.fonts.body, 
+                        fontSize: theme.fontSizes.xs, 
+                        color: theme.colors.primary 
+                      }}>
+                        From profile
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 10 }}>
+                  {COMMON_ALLERGENS.map(allergen => (
+                    <TouchableOpacity
+                      key={allergen}
+                      onPress={() => toggleAllergy(allergen)}
+                      disabled={loading}
+                      style={{
+                        paddingHorizontal: 14,
+                        paddingVertical: 8,
+                        borderRadius: 20,
+                        marginRight: 8,
+                        marginBottom: 8,
+                        backgroundColor: selectedAllergies.includes(allergen)
+                          ? theme.colors.primary
+                          : theme.colors.background,
+                        borderWidth: 1,
+                        borderColor: selectedAllergies.includes(allergen)
+                          ? theme.colors.primary
+                          : theme.colors.secondary + '33',
+                      }}
+                    >
+                      <Text style={{
+                        fontFamily: selectedAllergies.includes(allergen) ? theme.fonts.bodyBold : theme.fonts.body,
+                        fontSize: theme.fontSizes.sm,
+                        color: selectedAllergies.includes(allergen) ? '#FFFFFF' : theme.colors.text + '99',
+                      }}>
+                        {allergen}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <TextInput
+                  value={customAllergies}
+                  onChangeText={setCustomAllergies}
+                  placeholder="Other allergies (comma-separated)"
+                  placeholderTextColor={theme.colors.text + '55'}
+                  style={{
+                    backgroundColor: theme.colors.input,
+                    borderRadius: 12,
+                    paddingVertical: 12,
+                    paddingHorizontal: 14,
+                    color: theme.colors.text,
+                    fontFamily: theme.fonts.body,
+                    fontSize: theme.fontSizes.base,
+                    borderWidth: 1,
+                    borderColor: theme.colors.secondary + '22',
+                  }}
+                  editable={!loading}
+                />
+              </View>
+
+              {/* Image Upload / Ingredients Input */}
+              {inputMode === 'image' ? (
+                <>
+                  {imageUri ? (
+                    <View style={{ marginBottom: 16 }}>
+                      <View style={{
+                        borderRadius: 16,
+                        overflow: 'hidden',
+                        marginBottom: 12,
+                      }}>
+                        <Image 
+                          source={{ uri: imageUri }} 
+                          style={{ width: '100%', height: 200 }} 
+                          resizeMode="cover" 
+                        />
+                        <View style={{
+                          position: 'absolute',
+                          top: 12,
+                          right: 12,
+                          backgroundColor: 'rgba(0,0,0,0.5)',
+                          borderRadius: 20,
+                          padding: 8,
+                        }}>
+                          <TouchableOpacity onPress={() => setImageUri(null)} disabled={loading}>
+                            <Ionicons name="close" size={20} color="#FFFFFF" />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                      <TouchableOpacity
+                        onPress={handleAnalyzeImage}
+                        disabled={loading}
+                        style={{
+                          backgroundColor: loading ? theme.colors.primary + '77' : theme.colors.primary,
+                          borderRadius: 16,
+                          paddingVertical: 16,
+                          alignItems: 'center',
+                          flexDirection: 'row',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        {loading ? (
+                          <>
+                            <ActivityIndicator color="white" style={{ marginRight: 8 }} />
+                            <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base, color: '#FFFFFF' }}>
+                              Analyzing...
+                            </Text>
+                          </>
+                        ) : (
+                          <>
+                            <MaterialCommunityIcons name="magnify" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
+                            <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base, color: '#FFFFFF' }}>
+                              Analyze Food
+                            </Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      onPress={pickImage}
+                      disabled={loading}
+                      style={{
+                        borderWidth: 2,
+                        borderStyle: 'dashed',
+                        borderColor: theme.colors.primary + '44',
+                        borderRadius: 16,
+                        padding: 32,
+                        alignItems: 'center',
+                        backgroundColor: theme.colors.primary + '08',
+                      }}
+                    >
+                      <View style={{
+                        width: 64,
+                        height: 64,
+                        borderRadius: 32,
+                        backgroundColor: theme.colors.primary + '15',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginBottom: 12,
+                      }}>
+                        <MaterialCommunityIcons name="image-plus" size={32} color={theme.colors.primary} />
+                      </View>
+                      <Text style={{ 
+                        fontFamily: theme.fonts.bodyBold, 
+                        fontSize: theme.fontSizes.base, 
+                        color: theme.colors.text,
+                        marginBottom: 4,
+                      }}>
+                        Upload Food Image
+                      </Text>
+                      <Text style={{ 
+                        fontFamily: theme.fonts.body, 
+                        fontSize: theme.fontSizes.sm, 
+                        color: theme.colors.text + '77',
+                        textAlign: 'center',
+                      }}>
+                        Tap to select from gallery{'\n'}or use quick actions above
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </>
+              ) : (
+                <View>
+                  <Text style={{ 
+                    fontFamily: theme.fonts.bodyBold, 
+                    fontSize: theme.fontSizes.sm, 
+                    color: theme.colors.text,
+                    marginBottom: 8,
+                  }}>
+                    Ingredients & Quantities
+                  </Text>
+                  <TextInput
+                    value={ingredients}
+                    onChangeText={setIngredients}
+                    placeholder={'Enter ingredients:\n• 2 eggs\n• 1 cup rice\n• 100g chicken breast\n• 1 tbsp olive oil'}
+                    placeholderTextColor={theme.colors.text + '55'}
+                    multiline
+                    numberOfLines={8}
+                    textAlignVertical="top"
+                    style={{
+                      backgroundColor: theme.colors.input,
+                      borderRadius: 12,
+                      padding: 14,
+                      minHeight: 160,
+                      color: theme.colors.text,
+                      fontFamily: theme.fonts.body,
+                      fontSize: theme.fontSizes.base,
+                      borderWidth: 1,
+                      borderColor: theme.colors.secondary + '22',
+                      marginBottom: 16,
+                    }}
+                    editable={!loading}
+                  />
+                  <TouchableOpacity
+                    onPress={handleAnalyzeIngredients}
+                    disabled={loading || !ingredients.trim()}
+                    style={{
+                      backgroundColor: (loading || !ingredients.trim()) ? theme.colors.primary + '44' : theme.colors.primary,
+                      borderRadius: 16,
+                      paddingVertical: 16,
+                      alignItems: 'center',
+                      flexDirection: 'row',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {loading ? (
+                      <>
+                        <ActivityIndicator color="white" style={{ marginRight: 8 }} />
+                        <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base, color: '#FFFFFF' }}>
+                          Analyzing...
+                        </Text>
+                      </>
+                    ) : (
+                      <>
+                        <MaterialCommunityIcons name="calculator" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
+                        <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base, color: '#FFFFFF' }}>
+                          Calculate Nutrition
+                        </Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+
+            {/* Footer */}
+            <View style={{ alignItems: 'center', paddingVertical: 20 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <MaterialCommunityIcons name="robot-happy" size={16} color={theme.colors.text + '55'} />
+                <Text style={{ 
+                  fontFamily: theme.fonts.body, 
+                  fontSize: theme.fontSizes.xs, 
+                  color: theme.colors.text + '55',
+                  marginLeft: 6,
+                }}>
+                  Powered by Google Gemini AI
+                </Text>
+              </View>
+            </View>
+          </>
+        ) : (
+          /* History View */
+          <View style={{ paddingHorizontal: 20 }}>
+            {/* Search Bar */}
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: theme.colors.surface,
+              borderRadius: 16,
+              paddingHorizontal: 16,
+              marginBottom: 20,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 8,
+              elevation: 2,
+            }}>
+              <MaterialCommunityIcons name="magnify" size={22} color={theme.colors.text + '55'} />
               <TextInput
                 value={searchQuery}
                 onChangeText={(text) => {
@@ -1016,283 +2016,272 @@ export default function Food() {
                     loadFoodHistory(1, text);
                   }
                 }}
-                placeholder="Search by food name..."
-                placeholderTextColor={theme.colors.text + '77'}
-                className="rounded-lg px-4 py-3"
-                style={{ 
-                  borderWidth: 1, 
-                  borderColor: theme.colors.secondary + '55', 
-                  color: theme.colors.text, 
-                  fontFamily: theme.fonts.body, 
-                  fontSize: theme.fontSizes.base, 
-                  backgroundColor: theme.colors.input 
+                placeholder="Search your food history..."
+                placeholderTextColor={theme.colors.text + '55'}
+                style={{
+                  flex: 1,
+                  paddingVertical: 14,
+                  paddingHorizontal: 12,
+                  color: theme.colors.text,
+                  fontFamily: theme.fonts.body,
+                  fontSize: theme.fontSizes.base,
                 }}
               />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => {
+                  setSearchQuery('');
+                  loadFoodHistory(1, '');
+                }}>
+                  <Ionicons name="close-circle" size={20} color={theme.colors.text + '55'} />
+                </TouchableOpacity>
+              )}
             </View>
 
             {historyLoading ? (
-              <ActivityIndicator size="large" color={theme.colors.primary} />
-            ) : foodHistory.length === 0 ? (
-              <View className="items-center py-8">
-                <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.base, color: theme.colors.text }}>
-                  No food logs yet. Start by analyzing your first meal!
+              <View style={{ alignItems: 'center', paddingVertical: 60 }}>
+                <ActivityIndicator size="large" color={theme.colors.primary} />
+                <Text style={{ 
+                  fontFamily: theme.fonts.body, 
+                  fontSize: theme.fontSizes.sm, 
+                  color: theme.colors.text + '77',
+                  marginTop: 12,
+                }}>
+                  Loading your food history...
                 </Text>
+              </View>
+            ) : foodHistory.length === 0 ? (
+              <View style={{
+                alignItems: 'center',
+                paddingVertical: 60,
+                paddingHorizontal: 20,
+              }}>
+                <View style={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: 40,
+                  backgroundColor: theme.colors.surface,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 16,
+                }}>
+                  <MaterialCommunityIcons name="food-off" size={40} color={theme.colors.text + '44'} />
+                </View>
+                <Text style={{ 
+                  fontFamily: theme.fonts.heading, 
+                  fontSize: theme.fontSizes.lg, 
+                  color: theme.colors.text,
+                  marginBottom: 8,
+                }}>
+                  No food logs yet
+                </Text>
+                <Text style={{ 
+                  fontFamily: theme.fonts.body, 
+                  fontSize: theme.fontSizes.sm, 
+                  color: theme.colors.text + '77',
+                  textAlign: 'center',
+                }}>
+                  Start tracking your meals by analyzing your first food item!
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setViewMode('analyze')}
+                  style={{
+                    backgroundColor: theme.colors.primary,
+                    paddingHorizontal: 24,
+                    paddingVertical: 12,
+                    borderRadius: 24,
+                    marginTop: 20,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                  }}
+                >
+                  <MaterialCommunityIcons name="plus" size={20} color="#FFFFFF" />
+                  <Text style={{ 
+                    fontFamily: theme.fonts.bodyBold, 
+                    fontSize: theme.fontSizes.base, 
+                    color: '#FFFFFF',
+                    marginLeft: 8,
+                  }}>
+                    Add First Meal
+                  </Text>
+                </TouchableOpacity>
               </View>
             ) : (
               <>
-                {foodHistory.map((log) => (
+                {/* History List */}
+                {foodHistory.map((log, index) => (
                   <TouchableOpacity
                     key={log._id}
                     onPress={() => {
                       setResult(log);
                       setViewMode('analyze');
                     }}
-                    className="rounded-lg p-4 mb-3"
-                    style={{ backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.secondary + '33' }}
+                    style={{
+                      backgroundColor: theme.colors.surface,
+                      borderRadius: 20,
+                      marginBottom: 12,
+                      overflow: 'hidden',
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.05,
+                      shadowRadius: 8,
+                      elevation: 2,
+                    }}
+                    activeOpacity={0.7}
                   >
-                    <View className="flex-row">
-                      {log.imageUrl && (
-                        <Image 
-                          source={{ uri: log.imageUrl }} 
-                          className="w-20 h-20 rounded-lg mr-3" 
+                    <View style={{ flexDirection: 'row' }}>
+                      {log.imageUrl ? (
+                        <Image
+                          source={{ uri: log.imageUrl }}
+                          style={{ width: 100, height: 100 }}
                           resizeMode="cover"
                         />
+                      ) : (
+                        <View style={{
+                          width: 100,
+                          height: 100,
+                          backgroundColor: theme.colors.primary + '15',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}>
+                          <MaterialCommunityIcons name="food" size={40} color={theme.colors.primary + '55'} />
+                        </View>
                       )}
-                      <View className="flex-1">
-                        <Text style={{ fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.lg, color: theme.colors.text }} numberOfLines={1}>
+                      <View style={{ flex: 1, padding: 14 }}>
+                        <Text 
+                          style={{ 
+                            fontFamily: theme.fonts.heading, 
+                            fontSize: theme.fontSizes.base, 
+                            color: theme.colors.text,
+                            marginBottom: 4,
+                          }} 
+                          numberOfLines={1}
+                        >
                           {log.dishName || log.foodName}
                         </Text>
-                        <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text + "CC"}} className="mt-1">
-                          {log.calories} kcal • {log.servingSize}
-                        </Text>
-                        <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, color: theme.colors.text + "CC"}} className="mt-1">
-                          {new Date(log.analyzedAt).toLocaleDateString()} {new Date(log.analyzedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </Text>
+                        
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                          <View style={{
+                            backgroundColor: theme.colors.primary + '15',
+                            paddingHorizontal: 8,
+                            paddingVertical: 3,
+                            borderRadius: 8,
+                            marginRight: 8,
+                          }}>
+                            <Text style={{ 
+                              fontFamily: theme.fonts.bodyBold, 
+                              fontSize: theme.fontSizes.xs, 
+                              color: theme.colors.primary 
+                            }}>
+                              {log.calories} kcal
+                            </Text>
+                          </View>
+                          {log.servingSize && (
+                            <Text style={{ 
+                              fontFamily: theme.fonts.body, 
+                              fontSize: theme.fontSizes.xs, 
+                              color: theme.colors.text + '77' 
+                            }}>
+                              {log.servingSize}
+                            </Text>
+                          )}
+                        </View>
+
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <MaterialCommunityIcons name="clock-outline" size={14} color={theme.colors.text + '55'} />
+                          <Text style={{ 
+                            fontFamily: theme.fonts.body, 
+                            fontSize: theme.fontSizes.xs, 
+                            color: theme.colors.text + '55',
+                            marginLeft: 4,
+                          }}>
+                            {new Date(log.analyzedAt).toLocaleDateString()} at {new Date(log.analyzedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={{ justifyContent: 'center', paddingRight: 14 }}>
+                        <Ionicons name="chevron-forward" size={20} color={theme.colors.text + '44'} />
                       </View>
                     </View>
+                    
                     {log.allergyWarnings?.detected?.length > 0 && (
-                      <View className="mt-2 px-2 py-1 rounded" style={{ backgroundColor: '#fee2e2' }}>
-                        <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, color: '#991b1b' }}>
-                          ⚠️ Contains: {log.allergyWarnings.detected.join(', ')}
+                      <View style={{
+                        backgroundColor: '#fee2e2',
+                        paddingHorizontal: 14,
+                        paddingVertical: 8,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                      }}>
+                        <Ionicons name="warning" size={14} color="#ef4444" />
+                        <Text style={{ 
+                          fontFamily: theme.fonts.body, 
+                          fontSize: theme.fontSizes.xs, 
+                          color: '#991b1b',
+                          marginLeft: 6,
+                        }}>
+                          Contains: {log.allergyWarnings.detected.join(', ')}
                         </Text>
                       </View>
                     )}
                   </TouchableOpacity>
                 ))}
 
+                {/* Pagination */}
                 {totalPages > 1 && (
-                  <View className="flex-row justify-center items-center gap-2 mt-4">
+                  <View style={{
+                    flexDirection: 'row',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    marginTop: 16,
+                    marginBottom: 20,
+                  }}>
                     <TouchableOpacity
                       onPress={() => loadFoodHistory(currentPage - 1, searchQuery)}
                       disabled={currentPage === 1}
-                      className="px-4 py-2 rounded-lg"
-                      style={{ 
-                        backgroundColor: currentPage === 1 ? theme.colors.secondary + '33' : theme.colors.primary,
-                        opacity: currentPage === 1 ? 0.5 : 1
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 20,
+                        backgroundColor: currentPage === 1 ? theme.colors.surface : theme.colors.primary,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        opacity: currentPage === 1 ? 0.5 : 1,
                       }}
                     >
-                      <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.sm, color: '#FFFFFF' }}>
-                        Previous
-                      </Text>
+                      <Ionicons name="chevron-back" size={20} color={currentPage === 1 ? theme.colors.text + '55' : '#FFFFFF'} />
                     </TouchableOpacity>
-                    <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>
-                      Page {currentPage} of {totalPages}
-                    </Text>
+                    
+                    <View style={{ paddingHorizontal: 20 }}>
+                      <Text style={{ 
+                        fontFamily: theme.fonts.body, 
+                        fontSize: theme.fontSizes.sm, 
+                        color: theme.colors.text 
+                      }}>
+                        Page <Text style={{ fontFamily: theme.fonts.bodyBold }}>{currentPage}</Text> of {totalPages}
+                      </Text>
+                    </View>
+                    
                     <TouchableOpacity
                       onPress={() => loadFoodHistory(currentPage + 1, searchQuery)}
                       disabled={currentPage === totalPages}
-                      className="px-4 py-2 rounded-lg"
-                      style={{ 
-                        backgroundColor: currentPage === totalPages ? theme.colors.secondary + '33' : theme.colors.primary,
-                        opacity: currentPage === totalPages ? 0.5 : 1
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 20,
+                        backgroundColor: currentPage === totalPages ? theme.colors.surface : theme.colors.primary,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        opacity: currentPage === totalPages ? 0.5 : 1,
                       }}
                     >
-                      <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.sm, color: '#FFFFFF' }}>
-                        Next
-                      </Text>
+                      <Ionicons name="chevron-forward" size={20} color={currentPage === totalPages ? theme.colors.text + '55' : '#FFFFFF'} />
                     </TouchableOpacity>
                   </View>
                 )}
               </>
             )}
-          </>
-        ) : (
-          // Analysis View (existing code)
-          <>
-        {error && (
-          <View className="rounded-lg p-4 mb-4" style={{ backgroundColor: '#fee2e2', borderWidth: 1, borderColor: '#fecaca' }}>
-            <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: '#991b1b' }}>{error}</Text>
           </View>
         )}
-
-        <View className="rounded-lg p-4 mb-4" style={{ backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.secondary + '33' }}>
-          <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base, color: theme.colors.text }} className="mb-3">
-            {inputMode === 'image' ? 'Upload Food Image' : 'Enter Ingredients'}
-          </Text>
-
-          <View className="mb-4">
-            <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }} className="mb-2">Dish Name (Optional)</Text>
-            <TextInput
-              value={dishName}
-              onChangeText={setDishName}
-              placeholder="e.g., Grilled Chicken Salad"
-              placeholderTextColor={theme.colors.text + '77'}
-              className="rounded-lg px-4 py-3"
-              style={{ borderWidth: 1, borderColor: theme.colors.secondary + '55', color: theme.colors.text, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.base, backgroundColor: theme.colors.input }}
-              editable={!loading}
-            />
-            <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, color: theme.colors.secondary }} className="mt-1">Help AI identify your food more accurately</Text>
-          </View>
-
-          <View className="mb-4">
-            <View className="flex-row items-center justify-between mb-2">
-              <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>Allergies & Dietary Restrictions (Optional)</Text>
-              {allergiesLoaded && selectedAllergies.length > 0 && (
-                <View className="px-2 py-1 rounded" style={{ backgroundColor: theme.colors.primary + '22' }}>
-                  <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, color: theme.colors.primary }}>
-                    From profile
-                  </Text>
-                </View>
-              )}
-            </View>
-            <View className="flex-row flex-wrap mb-2">
-              {COMMON_ALLERGENS.map(allergen => (
-                <TouchableOpacity
-                  key={allergen}
-                  onPress={() => toggleAllergy(allergen)}
-                  disabled={loading}
-                  className="px-3 py-2 rounded-full mr-2 mb-2"
-                  style={{
-                    backgroundColor: selectedAllergies.includes(allergen)
-                      ? theme.colors.primary
-                      : theme.colors.background
-                  }}
-                >
-                  <Text style={{
-                    fontFamily: selectedAllergies.includes(allergen) ? theme.fonts.bodyBold : theme.fonts.body,
-                    fontSize: theme.fontSizes.sm,
-                    color: selectedAllergies.includes(allergen) ? '#FFFFFF' : theme.colors.text
-                  }}>
-                    {allergen}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <TextInput
-              value={customAllergies}
-              onChangeText={setCustomAllergies}
-              placeholder="Other allergies (comma-separated)"
-              placeholderTextColor={theme.colors.text + '77'}
-              className="rounded-lg px-4 py-3"
-              style={{ borderWidth: 1, borderColor: theme.colors.secondary + '55', color: theme.colors.text, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.base, backgroundColor: theme.colors.input }}
-              editable={!loading}
-            />
-            <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, color: theme.colors.secondary }} className="mt-1">We'll check for allergens and warn you</Text>
-          </View>
-
-          {inputMode === 'image' ? (
-            <>
-              {imageUri ? (
-                <View className="mb-4">
-                  <Image source={{ uri: imageUri }} className="w-full h-64 rounded-lg mb-3" resizeMode="cover" />
-                  <TouchableOpacity
-                    onPress={() => setImageUri(null)}
-                    className="py-2 rounded-lg"
-                    style={{ backgroundColor: theme.colors.background }}
-                    disabled={loading}
-                  >
-                    <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.base, color: theme.colors.text }} className="text-center">Change Image</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <View className="rounded-lg p-8 items-center mb-4" style={{ borderWidth: 2, borderStyle: 'dashed', borderColor: theme.colors.secondary + '66' }}>
-                  <Text className="text-6xl mb-3">📷</Text>
-                  <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.base, color: theme.colors.text }} className="mb-4 text-center">Take a photo or choose from gallery</Text>
-                  <View className="flex-row gap-2">
-                    <TouchableOpacity
-                      onPress={takePhoto}
-                      className="px-6 py-3 rounded-lg"
-                      style={{ backgroundColor: theme.colors.primary }}
-                      disabled={loading}
-                    >
-                      <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base, color: '#FFFFFF' }}>Take Photo</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={pickImage}
-                      className="px-6 py-3 rounded-lg"
-                      style={{ backgroundColor: theme.colors.primary }}
-                      disabled={loading}
-                    >
-                      <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base, color: '#FFFFFF' }}>Choose Image</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.secondary }} className="mt-3">Supports: JPG, PNG (Max 10MB)</Text>
-                </View>
-              )}
-
-              {imageUri && (
-                <TouchableOpacity
-                  onPress={handleAnalyzeImage}
-                  disabled={loading}
-                  className="py-4 rounded-lg items-center"
-                  style={{ backgroundColor: loading ? theme.colors.primary + '77' : theme.colors.primary }}
-                >
-                  {loading ? (
-                    <View className="flex-row items-center">
-                      <ActivityIndicator color="white" className="mr-2" />
-                      <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base, color: '#FFFFFF' }}>Analyzing...</Text>
-                    </View>
-                  ) : (
-                    <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base, color: '#FFFFFF' }}>Analyze Image</Text>
-                  )}
-                </TouchableOpacity>
-              )}
-            </>
-          ) : (
-            <>
-              <View className="mb-4">
-                <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }} className="mb-2">Ingredients & Quantities</Text>
-                <TextInput
-                  value={ingredients}
-                  onChangeText={setIngredients}
-                  placeholder={'Example:\n2 eggs\n1 cup rice\n100g chicken breast\n1 tablespoon olive oil\n1/2 avocado'}
-                  placeholderTextColor={theme.colors.text + '77'}
-                  multiline
-                  numberOfLines={8}
-                  textAlignVertical="top"
-                  className="rounded-lg px-4 py-3 h-40"
-                  style={{ borderWidth: 1, borderColor: theme.colors.secondary + '55', color: theme.colors.text, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.base, backgroundColor: theme.colors.input }}
-                  editable={!loading}
-                />
-                <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, color: theme.colors.secondary }} className="mt-1">Be specific with quantities for accurate estimates</Text>
-              </View>
-
-              <TouchableOpacity
-                onPress={handleAnalyzeIngredients}
-                disabled={loading || !ingredients.trim()}
-                className="py-4 rounded-lg items-center"
-                style={{ backgroundColor: (loading || !ingredients.trim()) ? theme.colors.primary + '77' : theme.colors.primary }}
-              >
-                {loading ? (
-                  <View className="flex-row items-center">
-                    <ActivityIndicator color="white" className="mr-2" />
-                    <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base, color: '#FFFFFF' }}>Analyzing...</Text>
-                  </View>
-                ) : (
-                  <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base, color: '#FFFFFF' }}>Analyze Ingredients</Text>
-                )}
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-
-        <View className="items-center py-4">
-          <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.secondary }}>Powered by Google Gemini AI</Text>
-        </View>
-          </>
-        )}
-      </View>
-    </ScrollView>
+      </ScrollView>
 
     {/* Camera Modal */}
     <Modal
@@ -1300,7 +2289,7 @@ export default function Food() {
       animationType="slide"
       onRequestClose={closeCamera}
     >
-      <View className="flex-1 bg-black">
+      <View style={{ flex: 1, backgroundColor: '#000' }}>
         <CameraView
           ref={cameraRef}
           style={{ flex: 1 }}
@@ -1308,29 +2297,82 @@ export default function Food() {
         />
         
         {/* Top controls */}
-        <View className="absolute top-0 left-0 right-0 p-4 flex-row justify-between items-center" style={{ zIndex: 1 }}>
-          <TouchableOpacity
-            onPress={closeCamera}
-            className="bg-black/50 rounded-full p-3"
-          >
-            <Text className="text-white text-lg font-bold">✕</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={toggleCameraFacing}
-            className="bg-black/50 rounded-full p-3"
-          >
-            <Text className="text-white text-lg">🔄</Text>
-          </TouchableOpacity>
-        </View>
+        <SafeAreaView style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
+          <View style={{ 
+            flexDirection: 'row', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            paddingHorizontal: 20,
+            paddingTop: 10,
+          }}>
+            <TouchableOpacity
+              onPress={closeCamera}
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                backgroundColor: 'rgba(0,0,0,0.5)',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Ionicons name="close" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={toggleCameraFacing}
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                backgroundColor: 'rgba(0,0,0,0.5)',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Ionicons name="camera-reverse" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
 
         {/* Bottom capture button */}
-        <View className="absolute bottom-0 left-0 right-0 p-8 items-center" style={{ zIndex: 1 }}>
+        <View style={{ 
+          position: 'absolute', 
+          bottom: 0, 
+          left: 0, 
+          right: 0,
+          paddingBottom: 50,
+          paddingTop: 20,
+          alignItems: 'center',
+          backgroundColor: 'rgba(0,0,0,0.3)',
+        }}>
           <TouchableOpacity
             onPress={capturePhoto}
-            className="bg-white rounded-full w-20 h-20 border-4 border-gray-300 items-center justify-center"
+            style={{
+              width: 80,
+              height: 80,
+              borderRadius: 40,
+              backgroundColor: '#FFFFFF',
+              borderWidth: 4,
+              borderColor: 'rgba(255,255,255,0.5)',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
           >
-            <View className="bg-white rounded-full w-16 h-16" />
+            <View style={{
+              width: 64,
+              height: 64,
+              borderRadius: 32,
+              backgroundColor: '#FFFFFF',
+            }} />
           </TouchableOpacity>
+          <Text style={{ 
+            color: '#FFFFFF', 
+            marginTop: 12, 
+            fontFamily: theme.fonts.body, 
+            fontSize: theme.fontSizes.sm 
+          }}>
+            Tap to capture
+          </Text>
         </View>
       </View>
     </Modal>
