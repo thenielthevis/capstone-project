@@ -3,7 +3,7 @@ import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-si
 import axios from "axios";
 
 // fallback to local dev server for emulator if env not provided
-export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://10.0.2.2:5000';
+export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://10.32.50.18:5000/api';
 
 // Fix: Add profilePicture to the type definition for userInfo
 export const registerGoogleUser = async (userInfo: { username: string; email: string; googleId: string; profilePicture?: string }) => {

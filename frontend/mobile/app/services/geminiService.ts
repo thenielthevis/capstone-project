@@ -78,6 +78,139 @@ export interface FoodAnalysisResult {
 }
 
 /**
+ * Generate a short actionable checklist for a given health metric using Gemini.
+ * Returns an array of checklist items (strings).
+ */
+export async function generateChecklist(metricId: string, context: any = {}): Promise<string[]> {
+  // If no API key is present, fall back to a deterministic checklist generator
+  if (!API_KEY) {
+    console.warn('Gemini API key not configured — using local checklist fallback for', metricId);
+    return localChecklistForMetric(metricId, context);
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+
+    const prompt = `Generate a concise checklist (3-8 items) of actionable, user-friendly steps the user can take to improve or monitor their ${metricId} metric. Return only a JSON array of strings, for example:\n["Item 1","Item 2"]\n\nInclude simple, practical items and avoid medical advice. Use the provided context if available: ${JSON.stringify(context)}`;
+
+    const result = await model.generateContent([prompt]);
+    const response = await result.response;
+    const text = response.text();
+
+    // Try to parse JSON from model output
+    try {
+      const cleaned = (await text).replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const parsed = JSON.parse(cleaned);
+      if (Array.isArray(parsed)) return parsed.map(String);
+    } catch (e) {
+      // fallthrough to heuristic extraction
+    }
+
+    // Heuristic: extract lines starting with dash or numbers
+    const out = (await text) || '';
+    const lines = out.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+    const items: string[] = [];
+    for (const line of lines) {
+      const m = line.replace(/^[-•\d\.\)\s]+/, '').trim();
+      if (m && m.length > 3) items.push(m);
+      if (items.length >= 8) break;
+    }
+    return items.length > 0 ? items : localChecklistForMetric(metricId, context);
+  } catch (err: any) {
+    // If the API quota is exceeded or any error occurs, log and use the local fallback
+    console.error('Error generating checklist from Gemini:', err);
+    return localChecklistForMetric(metricId, context);
+  }
+}
+
+/**
+ * Deterministic, local checklist generator used as a fallback when Gemini is unavailable.
+ * Keeps checklists concise and practical so UI always has useful suggestions.
+ */
+function localChecklistForMetric(metricId: string, context: any = {}): string[] {
+  const id = String(metricId || '').toLowerCase();
+
+  const common = {
+    bmi: [
+      'Measure your weight and height and calculate BMI once a week.',
+      'Track daily calorie intake using a simple food log or app.',
+      'Aim for gradual weight change: ~0.5kg per week if changing weight.',
+      'Include 2–3 strength-training sessions per week to build lean mass.',
+      'Choose whole foods: vegetables, lean proteins, whole grains.',
+    ],
+    activity: [
+      'Aim for at least 150 minutes of moderate aerobic activity per week.',
+      'Add short 10–15 minute walks after meals to increase daily steps.',
+      'Include 2 sessions of resistance training per week.',
+      'Set step goals and gradually increase by 500 steps every week.',
+      'Track workouts and rest days to avoid overtraining.',
+    ],
+    sleep: [
+      'Keep a consistent sleep schedule: same bed and wake time daily.',
+      'Create a wind-down routine 30–60 minutes before bed (no screens).',
+      'Keep bedroom cool, dark, and quiet for better sleep quality.',
+      'Avoid heavy meals and caffeine within 3–4 hours of bedtime.',
+      'If sleep problems persist, track sleep for 2 weeks and consult a specialist.',
+    ],
+    water: [
+      'Aim for regular water intake—start with a glass upon waking.',
+      'Carry a reusable bottle and sip throughout the day.',
+      'Set hourly reminders to drink if you forget.',
+      'Prefer water over sugary drinks; add fruit if you need flavor.',
+    ],
+    stress: [
+      'Practice a short breathing exercise (5 minutes) when stressed.',
+      'Schedule 10–20 minutes of daily relaxation or mindfulness.',
+      'Identify and log stress triggers to spot patterns.',
+      'Include regular physical activity to help regulate stress.',
+      'Prioritize sleep and social support when feeling overwhelmed.',
+    ],
+    dietary: [
+      'Track one week of meals to identify areas for small swaps.',
+      'Add a serving of vegetables to at least two meals daily.',
+      'Choose whole grains instead of refined grains where possible.',
+      'Replace one sugary snack with a fruit or nuts each day.',
+      'Plan simple meals ahead to avoid impulsive choices.',
+    ],
+    'health status': [
+      'Review recent health metrics and note any trends weekly.',
+      'Keep a medication and supplement list up to date.',
+      'Book regular preventive check-ups as recommended by your provider.',
+      'Log symptoms and share summaries with your clinician when needed.',
+    ],
+    environmental: [
+      'Check local air quality before outdoor workouts and plan accordingly.',
+      'Limit outdoor activity when pollution or extreme heat is present.',
+      'Use shade, sunscreen, and hydration on hot days.',
+    ],
+    addiction: [
+      'Identify triggers and replace substance use with a healthier habit.',
+      'Set small, measurable goals and track progress daily.',
+      'Reach out to support groups or a trusted person for accountability.',
+      'Remove easy access to the addictive substance where possible.',
+      'Seek professional help if attempts to quit are unsuccessful.',
+    ],
+    prediction: [
+      'Review the prediction details and what inputs contributed to it.',
+      'Save or snapshot current data to compare against future predictions.',
+      'Follow small actionable steps suggested by the app to improve outcomes.',
+    ],
+  } as Record<string, string[]>;
+
+  // find best match
+  for (const key of Object.keys(common)) {
+    if (id.includes(key)) return common[key].slice(0, 6);
+  }
+
+  // default generic checklist
+  return [
+    `Track this metric consistently for 2 weeks to establish a baseline.`,
+    `Make one small daily change related to this metric and monitor effects.`,
+    `Review progress weekly and adjust goals as needed.`,
+  ];
+}
+
+/**
  * Convert base64 image to format Gemini can process
  */
 async function imageToGenerativePart(base64Image: string, mimeType: string) {

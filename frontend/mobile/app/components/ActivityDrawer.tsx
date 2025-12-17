@@ -52,7 +52,7 @@ export default function ActivityDrawer({
           setLoadingActivities(true);
           const data = await getAllGeoActivities();
           setActivities(data);
-          if (data.length > 0 && !activityType) setActivityType(data[0]._id);
+          if (data.length > 0 && !activityType) setActivityType(data[0]._id, data[0].name);
         } catch (err) {
           // Optionally handle error
         } finally {
@@ -137,7 +137,8 @@ export default function ActivityDrawer({
 
   // Select activity and close sheet
   const selectActivity = (id: ActivityType) => {
-    setActivityType(id);
+    const selected = activities.find(a => a._id === id);
+    setActivityType(id, selected?.name || "Walking");
     activitySheetRef.current?.close();
   };
 

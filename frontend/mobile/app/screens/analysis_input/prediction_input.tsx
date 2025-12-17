@@ -29,7 +29,7 @@ export function setPredictionUpdateFlag(value: boolean) {
   predictionWasUpdated = value;
 }
 
-const LOCAL_IP = process.env.EXPO_LOCAL_IP || '192.168.1.100';
+const LOCAL_IP = process.env.EXPO_LOCAL_IP || '168.1.100';
 const ENV_API = process.env.EXPO_PUBLIC_API_URL;
 const API_URL = ENV_API
   ? ENV_API

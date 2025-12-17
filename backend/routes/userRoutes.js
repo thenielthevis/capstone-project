@@ -13,7 +13,9 @@ const { registerUser,
         refreshToken,
         submitHealthAssessment,
         createOrUpdateDailyCalorieBalance,
-        updateDailyCalories
+        updateDailyCalories,
+        getUserAllergies,
+        getTodayCalorieBalance
 } = require('../controllers/userControllers');
 
 router.get('/me', userMiddleware, currentlyLoggedInUser);
@@ -30,5 +32,9 @@ router.post('/refresh-token', refreshToken);
 router.post('/health-assessment', auth, submitHealthAssessment);
 router.post('/daily-calorie-balance', auth, createOrUpdateDailyCalorieBalance);
 router.patch('/daily-calorie-balance', auth, updateDailyCalories);
+// Get user allergies for food tracker auto-population
+router.get('/allergies', auth, getUserAllergies);
+// Get today's calorie balance
+router.get('/daily-calorie-balance/today', auth, getTodayCalorieBalance);
 
 module.exports = router;

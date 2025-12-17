@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
@@ -23,6 +23,7 @@ import { analyzeFood, analyzeIngredients, FoodAnalysisResult } from '../../servi
 import { useTheme } from '../../context/ThemeContext';
 import { foodLogApi } from '../../api/foodLogApi';
 import { useUser } from '../../context/UserContext';
+import { getUserAllergies, getTodayCalorieBalance } from '../../api/userApi';
 
 const COMMON_ALLERGENS = [
   'Peanuts', 'Tree Nuts', 'Milk', 'Eggs', 'Wheat', 'Soy',
@@ -61,6 +62,106 @@ export default function Food() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Calorie balance state
+  const [calorieBalance, setCalorieBalance] = useState<{
+    goal_kcal: number;
+    consumed_kcal: number;
+    burned_kcal: number;
+    net_kcal: number;
+    status: string;
+  } | null>(null);
+  const [allergiesLoaded, setAllergiesLoaded] = useState(false);
+
+  // Load user allergies from profile on mount
+  useEffect(() => {
+    const loadUserAllergies = async () => {
+      if (!user || allergiesLoaded) return;
+      
+      try {
+        const response = await getUserAllergies();
+        const userAllergies = response.allergies || [];
+        
+        // Map user allergies to common allergens format and set selected
+        const mappedAllergies = userAllergies.map((allergy: string) => {
+          // Capitalize first letter to match COMMON_ALLERGENS format
+          return allergy.charAt(0).toUpperCase() + allergy.slice(1).toLowerCase();
+        });
+        
+        // Set common allergens that match user's allergies
+        const commonMatches = COMMON_ALLERGENS.filter(a => 
+          mappedAllergies.some((ua: string) => ua.toLowerCase() === a.toLowerCase())
+        );
+        
+        // Set custom allergies (ones not in COMMON_ALLERGENS)
+        const customMatches = mappedAllergies.filter((ua: string) => 
+          !COMMON_ALLERGENS.some(a => a.toLowerCase() === ua.toLowerCase())
+        );
+        
+        if (commonMatches.length > 0) {
+          setSelectedAllergies(commonMatches);
+        }
+        if (customMatches.length > 0) {
+          setCustomAllergies(customMatches.join(', '));
+        }
+        
+        setAllergiesLoaded(true);
+        console.log('[Food] Loaded user allergies:', userAllergies);
+      } catch (error) {
+        console.error('[Food] Error loading user allergies:', error);
+      }
+    };
+
+    loadUserAllergies();
+  }, [user]);
+
+  // Load today's calorie balance
+  useEffect(() => {
+    const loadCalorieBalance = async () => {
+      if (!user) return;
+      
+      try {
+        const response = await getTodayCalorieBalance();
+        if (response.entry) {
+          setCalorieBalance(response.entry);
+        }
+      } catch (error) {
+        console.error('[Food] Error loading calorie balance:', error);
+      }
+    };
+
+    loadCalorieBalance();
+  }, [user]);
+
+  // Refresh calorie balance when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      const refreshOnFocus = async () => {
+        if (!user) return;
+        try {
+          const response = await getTodayCalorieBalance();
+          if (response.entry) {
+            setCalorieBalance(response.entry);
+          }
+        } catch (error) {
+          console.error('[Food] Error refreshing calorie balance on focus:', error);
+        }
+      };
+      refreshOnFocus();
+    }, [user])
+  );
+
+  // Refresh calorie balance after food log is saved
+  const refreshCalorieBalance = async () => {
+    try {
+      const response = await getTodayCalorieBalance();
+      if (response.entry) {
+        setCalorieBalance(response.entry);
+      }
+    } catch (error) {
+      console.error('[Food] Error refreshing calorie balance:', error);
+    }
+  };
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -219,6 +320,9 @@ export default function Food() {
       });
       
       console.log('Food log saved successfully:', response);
+      
+      // Refresh calorie balance after saving food log
+      await refreshCalorieBalance();
     } catch (err: any) {
       console.error('Error saving food log:', err);
       console.error('Error details:', err.response?.data || err.message);
@@ -776,6 +880,68 @@ export default function Food() {
           {viewMode === 'analyze' ? 'Upload a food image or enter ingredients manually' : 'View your food tracking history'}
         </Text>
         
+        {/* Daily Calorie Balance Display */}
+        {calorieBalance && viewMode === 'analyze' && (
+          <View className="rounded-lg p-4 mb-4" style={{ 
+            backgroundColor: theme.colors.surface, 
+            borderLeftWidth: 4, 
+            borderLeftColor: calorieBalance.status === 'under' ? '#22c55e' : 
+                            calorieBalance.status === 'over' ? '#ef4444' : theme.colors.primary 
+          }}>
+            <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base, color: theme.colors.text }} className="mb-2">
+              Today's Calorie Balance
+            </Text>
+            <View className="flex-row justify-between items-center">
+              <View className="items-center flex-1">
+                <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, color: theme.colors.text + '99' }}>Goal</Text>
+                <Text style={{ fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.lg, color: theme.colors.text }}>
+                  {calorieBalance.goal_kcal}
+                </Text>
+              </View>
+              <View className="items-center flex-1">
+                <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, color: theme.colors.text + '99' }}>Consumed</Text>
+                <Text style={{ fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.lg, color: '#f97316' }}>
+                  +{calorieBalance.consumed_kcal}
+                </Text>
+              </View>
+              <View className="items-center flex-1">
+                <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, color: theme.colors.text + '99' }}>Burned</Text>
+                <Text style={{ fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.lg, color: '#22c55e' }}>
+                  -{calorieBalance.burned_kcal}
+                </Text>
+              </View>
+              <View className="items-center flex-1">
+                <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, color: theme.colors.text + '99' }}>Remaining</Text>
+                <Text style={{ fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.lg, color: 
+                  calorieBalance.goal_kcal - calorieBalance.net_kcal > 0 ? '#22c55e' : '#ef4444' 
+                }}>
+                  {calorieBalance.goal_kcal - calorieBalance.net_kcal}
+                </Text>
+              </View>
+            </View>
+            {/* Progress bar */}
+            <View className="mt-3 h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme.colors.background }}>
+              <View 
+                style={{ 
+                  width: `${Math.min((calorieBalance.net_kcal / calorieBalance.goal_kcal) * 100, 100)}%`,
+                  backgroundColor: calorieBalance.status === 'under' ? '#22c55e' : 
+                                  calorieBalance.status === 'over' ? '#ef4444' : theme.colors.primary
+                }} 
+                className="h-full rounded-full"
+              />
+            </View>
+            <Text className="mt-2 text-center" style={{ 
+              fontFamily: theme.fonts.body, 
+              fontSize: theme.fontSizes.xs, 
+              color: calorieBalance.status === 'under' ? '#22c55e' : 
+                    calorieBalance.status === 'over' ? '#ef4444' : theme.colors.primary 
+            }}>
+              {calorieBalance.status === 'under' ? '✓ Under budget' : 
+               calorieBalance.status === 'over' ? '⚠ Over budget' : '✓ On target'}
+            </Text>
+          </View>
+        )}
+        
         <View className="flex-row gap-2 mb-4">
           <TouchableOpacity
             onPress={() => setViewMode('analyze')}
@@ -979,7 +1145,16 @@ export default function Food() {
           </View>
 
           <View className="mb-4">
-            <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }} className="mb-2">Allergies & Dietary Restrictions (Optional)</Text>
+            <View className="flex-row items-center justify-between mb-2">
+              <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.text }}>Allergies & Dietary Restrictions (Optional)</Text>
+              {allergiesLoaded && selectedAllergies.length > 0 && (
+                <View className="px-2 py-1 rounded" style={{ backgroundColor: theme.colors.primary + '22' }}>
+                  <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, color: theme.colors.primary }}>
+                    From profile
+                  </Text>
+                </View>
+              )}
+            </View>
             <View className="flex-row flex-wrap mb-2">
               {COMMON_ALLERGENS.map(allergen => (
                 <TouchableOpacity

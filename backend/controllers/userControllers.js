@@ -428,6 +428,62 @@ exports.createOrUpdateDailyCalorieBalance = async (req, res) => {
     }
 };
 
+// GET: Get user's allergies and dietary preferences
+exports.getUserAllergies = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const user = await User.findById(userId).select('dietaryProfile.allergies dietaryProfile.preferences');
+        
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.status(200).json({
+            message: 'User allergies fetched successfully',
+            allergies: user.dietaryProfile?.allergies || [],
+            dietaryPreferences: user.dietaryProfile?.preferences || []
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+// GET: Get today's calorie balance for the user
+exports.getTodayCalorieBalance = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const user = await User.findById(userId);
+        
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const entry = user.dailyCalorieBalance.find(e => {
+            const entryDate = new Date(e.date);
+            entryDate.setHours(0, 0, 0, 0);
+            return entryDate.getTime() === today.getTime();
+        });
+
+        if (!entry) {
+            // Return default values if no entry exists
+            return res.status(200).json({
+                message: 'No calorie balance entry for today',
+                entry: null
+            });
+        }
+
+        res.status(200).json({
+            message: 'Today\'s calorie balance fetched successfully',
+            entry
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
 // PATCH: Update today's calories and automate net_kcal
 exports.updateDailyCalories = async (req, res) => {
     try {
