@@ -1,22 +1,19 @@
-import React, { useRef, useMemo, useState } from "react";
-import { View, Text, TouchableOpacity, LayoutAnimation, Platform, UIManager } from "react-native";
+import React, { useRef, useMemo, useState, useEffect } from "react";
+import { View, Text, TouchableOpacity, LayoutAnimation, Platform, UIManager, Image, ActivityIndicator } from "react-native";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
-import { Ionicons, FontAwesome5, Feather } from "@expo/vector-icons";
+import { Ionicons, Feather } from "@expo/vector-icons";
 import { useTheme } from "../context/ThemeContext";
 import { useRouter } from "expo-router";
+import { getAllGeoActivities, GeoActivity } from "../api/geoActivityApi";
+import { useActivityMetrics } from "../context/ActivityMetricsContext";
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const activityOptions = {
-  Running: { label: "Running", iconName: "running" },
-  Walking: { label: "Walking", iconName: "walking" },
-  Cycling: { label: "Cycling", iconName: "biking" },
-};
 
-type ActivityType = keyof typeof activityOptions;
+type ActivityType = string;
 
 type ActivityDrawerProps = {
   speed?: number;
@@ -45,7 +42,26 @@ export default function ActivityDrawer({
   const snapPoints = useMemo(() => ["15%", "25%",], []);
   const activitySnapPoints = useMemo(() => ["30%"], []);
   const router = useRouter();
-  const [activityType, setActivityType] = useState<ActivityType>("Running");
+  const { activityType, setActivityType } = useActivityMetrics();
+  const [activities, setActivities] = useState<GeoActivity[]>([]);
+  const [loadingActivities, setLoadingActivities] = useState(true);
+    // Fetch activities from backend
+    useEffect(() => {
+      const fetchActivities = async () => {
+        try {
+          setLoadingActivities(true);
+          const data = await getAllGeoActivities();
+          setActivities(data);
+          if (data.length > 0 && !activityType) setActivityType(data[0]._id);
+        } catch (err) {
+          // Optionally handle error
+        } finally {
+          setLoadingActivities(false);
+        }
+      };
+      fetchActivities();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
   const [recording, setRecording] = useState(externalRecording || false);
   const [hasStartedRecording, setHasStartedRecording] = useState(false);
 
@@ -120,8 +136,8 @@ export default function ActivityDrawer({
   };
 
   // Select activity and close sheet
-  const selectActivity = (type: ActivityType) => {
-    setActivityType(type);
+  const selectActivity = (id: ActivityType) => {
+    setActivityType(id);
     activitySheetRef.current?.close();
   };
 
@@ -229,20 +245,30 @@ export default function ActivityDrawer({
                     backgroundColor: theme.colors.surface,
                   }}
                 >
-                  <FontAwesome5
-                    name={activityOptions[activityType].iconName}
-                    size={16}
-                    color={theme.colors.primary}
-                  />
-                  <Text
-                    style={{
-                      fontFamily: theme.fonts.heading,
-                      color: theme.colors.primary,
-                      marginLeft: 6,
-                    }}
-                  >
-                    {activityOptions[activityType].label}
-                  </Text>
+                  {loadingActivities ? (
+                    <ActivityIndicator size="small" color={theme.colors.primary} />
+                  ) : (
+                    (() => {
+                      const selected = activities.find(a => a._id === activityType);
+                      if (!selected) return <Text style={{ color: theme.colors.text }}>Select</Text>;
+                      return (
+                        <>
+                          {selected.icon ? (
+                            <Image source={{ uri: selected.icon }} style={{ width: 20, height: 20, marginRight: 6, borderRadius: 4, backgroundColor: "#F8FAFC" }} />
+                          ) : null}
+                          <Text
+                            style={{
+                              fontFamily: theme.fonts.heading,
+                              color: theme.colors.primary,
+                              marginLeft: selected.icon ? 0 : 6,
+                            }}
+                          >
+                            {selected.name}
+                          </Text>
+                        </>
+                      );
+                    })()
+                  )}
                 </TouchableOpacity>
                 <Text
                   style={{
@@ -404,42 +430,43 @@ export default function ActivityDrawer({
             >
               Select Activity Type
             </Text>
-            {Object.entries(activityOptions).map(([type, { label, iconName }]) => (
-              <TouchableOpacity
-                key={type}
-                onPress={() => selectActivity(type as ActivityType)}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  padding: 12,
-                  marginVertical: 6,
-                  borderRadius: 999,
-                  borderWidth: 1,
-                  borderColor: theme.colors.primary,
-                  backgroundColor:
-                    activityType === type
-                      ? theme.colors.primary + "20"
-                      : theme.colors.surface,
-                }}
-              >
-                <FontAwesome5
-                  name={iconName}
-                  size={20}
-                  color={theme.colors.primary}
-                  style={{ marginRight: 8 }}
-                />
-                <Text
+            {loadingActivities ? (
+              <ActivityIndicator size="small" color={theme.colors.primary} style={{ marginTop: 16 }} />
+            ) : (
+              activities.map(activity => (
+                <TouchableOpacity
+                  key={activity._id}
+                  onPress={() => selectActivity(activity._id)}
                   style={{
-                    fontFamily: theme.fonts.subheading,
-                    color: theme.colors.primary,
-                    marginLeft: 8,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: 12,
+                    marginVertical: 6,
+                    borderRadius: 999,
+                    borderWidth: 1,
+                    borderColor: theme.colors.primary,
+                    backgroundColor:
+                      activityType === activity._id
+                        ? theme.colors.primary + "20"
+                        : theme.colors.surface,
                   }}
                 >
-                  {label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                  {activity.icon ? (
+                    <Image source={{ uri: activity.icon }} style={{ width: 20, height: 20, marginRight: 8, borderRadius: 4, backgroundColor: "#F8FAFC" }} />
+                  ) : null}
+                  <Text
+                    style={{
+                      fontFamily: theme.fonts.subheading,
+                      color: theme.colors.primary,
+                      marginLeft: activity.icon ? 0 : 8,
+                    }}
+                  >
+                    {activity.name}
+                  </Text>
+                </TouchableOpacity>
+              ))
+            )}
           </View>
         </BottomSheetView>
       </BottomSheet>

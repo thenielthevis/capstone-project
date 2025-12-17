@@ -12,6 +12,8 @@ type ActivityMetricsContextType = {
   time: number;
   recording: boolean;
   splits: Split[];
+  activityType: string;
+  setActivityType: (type: string) => void;
   setSpeed: (speed: number) => void;
   setDistance: (distance: number) => void;
   setTime: (time: number) => void;
@@ -28,6 +30,7 @@ export const ActivityMetricsProvider = ({ children }: { children: ReactNode }) =
   const [time, setTime] = useState<number>(0);
   const [recording, setRecording] = useState<boolean>(false);
   const [splits, setSplits] = useState<Split[]>([]);
+  const [activityType, setActivityType] = useState<string>("");
 
   const addSplit = (split: Split) => {
     setSplits((prev) => [...prev, split]);
@@ -39,6 +42,7 @@ export const ActivityMetricsProvider = ({ children }: { children: ReactNode }) =
     setTime(0);
     setRecording(false);
     setSplits([]);
+    setActivityType("");
   };
 
   return (
@@ -49,6 +53,8 @@ export const ActivityMetricsProvider = ({ children }: { children: ReactNode }) =
         time,
         recording,
         splits,
+        activityType,
+        setActivityType,
         setSpeed,
         setDistance,
         setTime,
