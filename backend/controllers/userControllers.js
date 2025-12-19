@@ -520,3 +520,262 @@ exports.updateDailyCalories = async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
+
+// GET: Get full user profile (comprehensive profile data)
+exports.getUserProfile = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const user = await User.findById(userId).select('-password -__v').lean();
+        
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Calculate additional profile stats
+        const memberSince = user.registeredDate ? new Date(user.registeredDate) : null;
+        const daysSinceRegistration = memberSince 
+            ? Math.floor((new Date() - memberSince) / (1000 * 60 * 60 * 24)) 
+            : 0;
+
+        // Calculate BMI if height and weight are available
+        let calculatedBMI = null;
+        if (user.physicalMetrics?.height?.value && user.physicalMetrics?.weight?.value) {
+            const heightInMeters = user.physicalMetrics.height.value / 100;
+            calculatedBMI = parseFloat((user.physicalMetrics.weight.value / (heightInMeters * heightInMeters)).toFixed(1));
+        }
+
+        // Get completion percentage for profile
+        const profileFields = [
+            user.username,
+            user.email,
+            user.profilePicture,
+            user.birthdate || user.age,
+            user.gender,
+            user.physicalMetrics?.height?.value,
+            user.physicalMetrics?.weight?.value,
+            user.lifestyle?.activityLevel,
+            user.lifestyle?.sleepHours,
+            user.dietaryProfile?.dailyWaterIntake,
+            user.healthProfile?.bloodType,
+        ];
+        const filledFields = profileFields.filter(field => field !== null && field !== undefined).length;
+        const profileCompletion = Math.round((filledFields / profileFields.length) * 100);
+
+        res.status(200).json({
+            message: 'User profile fetched successfully',
+            profile: {
+                // Basic Info
+                id: user._id,
+                username: user.username,
+                email: user.email,
+                profilePicture: user.profilePicture,
+                role: user.role,
+                verified: user.verified,
+                registeredDate: user.registeredDate,
+                daysSinceRegistration,
+                
+                // Personal Info
+                birthdate: user.birthdate,
+                age: user.age,
+                gender: user.gender,
+                
+                // Physical Metrics
+                physicalMetrics: {
+                    height: user.physicalMetrics?.height?.value || null,
+                    weight: user.physicalMetrics?.weight?.value || null,
+                    targetWeight: user.physicalMetrics?.targetWeight?.value || null,
+                    bmi: calculatedBMI || user.physicalMetrics?.bmi || null,
+                    waistCircumference: user.physicalMetrics?.waistCircumference || null,
+                },
+                
+                // Lifestyle
+                lifestyle: {
+                    activityLevel: user.lifestyle?.activityLevel || null,
+                    sleepHours: user.lifestyle?.sleepHours || null,
+                },
+                
+                // Dietary Profile
+                dietaryProfile: {
+                    preferences: user.dietaryProfile?.preferences || [],
+                    allergies: user.dietaryProfile?.allergies || [],
+                    dailyWaterIntake: user.dietaryProfile?.dailyWaterIntake || null,
+                    mealFrequency: user.dietaryProfile?.mealFrequency || null,
+                },
+                
+                // Health Profile
+                healthProfile: {
+                    currentConditions: user.healthProfile?.currentConditions || [],
+                    familyHistory: user.healthProfile?.familyHistory || [],
+                    medications: user.healthProfile?.medications || [],
+                    bloodType: user.healthProfile?.bloodType || null,
+                },
+                
+                // Environmental Factors
+                environmentalFactors: {
+                    pollutionExposure: user.environmentalFactors?.pollutionExposure || null,
+                    occupationType: user.environmentalFactors?.occupationType || null,
+                },
+                
+                // Risk Factors
+                riskFactors: {
+                    addictions: user.riskFactors?.addictions || [],
+                    stressLevel: user.riskFactors?.stressLevel || null,
+                },
+                
+                // Last Prediction Summary
+                lastPrediction: user.lastPrediction ? {
+                    disease: user.lastPrediction.disease,
+                    probability: user.lastPrediction.probability,
+                    predictedAt: user.lastPrediction.predictedAt,
+                    source: user.lastPrediction.source,
+                } : null,
+                
+                // Profile Stats
+                profileCompletion,
+            }
+        });
+    } catch (error) {
+        console.error('getUserProfile error:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+// PATCH: Update user profile
+exports.updateUserProfile = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const updates = req.body;
+        
+        // Fields that can be updated
+        const allowedUpdates = [
+            'username',
+            'birthdate',
+            'age',
+            'gender',
+            'physicalMetrics',
+            'lifestyle',
+            'dietaryProfile',
+            'healthProfile',
+            'environmentalFactors',
+            'riskFactors',
+        ];
+
+        // Filter out non-allowed fields
+        const filteredUpdates = {};
+        for (const key of allowedUpdates) {
+            if (updates[key] !== undefined) {
+                filteredUpdates[key] = updates[key];
+            }
+        }
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Handle nested updates properly
+        if (filteredUpdates.physicalMetrics) {
+            user.physicalMetrics = {
+                ...user.physicalMetrics?.toObject?.() || user.physicalMetrics || {},
+                ...filteredUpdates.physicalMetrics,
+            };
+            delete filteredUpdates.physicalMetrics;
+        }
+
+        if (filteredUpdates.lifestyle) {
+            user.lifestyle = {
+                ...user.lifestyle?.toObject?.() || user.lifestyle || {},
+                ...filteredUpdates.lifestyle,
+            };
+            delete filteredUpdates.lifestyle;
+        }
+
+        if (filteredUpdates.dietaryProfile) {
+            user.dietaryProfile = {
+                ...user.dietaryProfile?.toObject?.() || user.dietaryProfile || {},
+                ...filteredUpdates.dietaryProfile,
+            };
+            delete filteredUpdates.dietaryProfile;
+        }
+
+        if (filteredUpdates.healthProfile) {
+            user.healthProfile = {
+                ...user.healthProfile?.toObject?.() || user.healthProfile || {},
+                ...filteredUpdates.healthProfile,
+            };
+            delete filteredUpdates.healthProfile;
+        }
+
+        if (filteredUpdates.environmentalFactors) {
+            user.environmentalFactors = {
+                ...user.environmentalFactors?.toObject?.() || user.environmentalFactors || {},
+                ...filteredUpdates.environmentalFactors,
+            };
+            delete filteredUpdates.environmentalFactors;
+        }
+
+        if (filteredUpdates.riskFactors) {
+            user.riskFactors = {
+                ...user.riskFactors?.toObject?.() || user.riskFactors || {},
+                ...filteredUpdates.riskFactors,
+            };
+            delete filteredUpdates.riskFactors;
+        }
+
+        // Apply remaining simple updates
+        Object.assign(user, filteredUpdates);
+
+        await user.save();
+
+        // Return updated profile
+        const updatedUser = await User.findById(userId).select('-password -__v').lean();
+        
+        res.status(200).json({
+            message: 'Profile updated successfully',
+            profile: updatedUser,
+        });
+    } catch (error) {
+        console.error('updateUserProfile error:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+// POST: Update profile picture
+exports.updateProfilePicture = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { profilePicture } = req.body;
+        
+        if (!profilePicture) {
+            return res.status(400).json({ message: 'Profile picture URL or base64 required' });
+        }
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // If base64 is provided, upload to Cloudinary
+        let imageUrl = profilePicture;
+        if (profilePicture.startsWith('data:') || profilePicture.length > 500) {
+            try {
+                const uploadResult = await uploadProfilePicture(profilePicture, userId);
+                imageUrl = uploadResult.secure_url;
+            } catch (uploadError) {
+                console.error('Cloudinary upload error:', uploadError);
+                return res.status(500).json({ message: 'Failed to upload image', error: uploadError.message });
+            }
+        }
+
+        user.profilePicture = imageUrl;
+        await user.save();
+
+        res.status(200).json({
+            message: 'Profile picture updated successfully',
+            profilePicture: imageUrl,
+        });
+    } catch (error) {
+        console.error('updateProfilePicture error:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};

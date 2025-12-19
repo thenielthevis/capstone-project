@@ -15,7 +15,10 @@ const { registerUser,
         createOrUpdateDailyCalorieBalance,
         updateDailyCalories,
         getUserAllergies,
-        getTodayCalorieBalance
+        getTodayCalorieBalance,
+        getUserProfile,
+        updateUserProfile,
+        updateProfilePicture
 } = require('../controllers/userControllers');
 
 router.get('/me', userMiddleware, currentlyLoggedInUser);
@@ -36,5 +39,10 @@ router.patch('/daily-calorie-balance', auth, updateDailyCalories);
 router.get('/allergies', auth, getUserAllergies);
 // Get today's calorie balance
 router.get('/daily-calorie-balance/today', auth, getTodayCalorieBalance);
+
+// User Profile Routes
+router.get('/profile', auth, getUserProfile);
+router.patch('/profile', auth, updateUserProfile);
+router.post('/profile/picture', auth, updateProfilePicture);
 
 module.exports = router;

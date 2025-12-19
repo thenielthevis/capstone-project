@@ -32,6 +32,77 @@ export const updateDailyCalories = async (data: { consumed_kcal?: number; burned
   return response.data;
 };
 
+// Get full user profile
+export const getUserProfile = async () => {
+  const response = await axiosInstance.get("/users/profile");
+  return response.data;
+};
+
+// Update user profile
+export const updateUserProfile = async (data: any) => {
+  const response = await axiosInstance.patch("/users/profile", data);
+  return response.data;
+};
+
+// Update profile picture
+export const updateProfilePicture = async (profilePicture: string) => {
+  const response = await axiosInstance.post("/users/profile/picture", { profilePicture });
+  return response.data;
+};
+
+// Profile Types
+export interface UserProfile {
+  id: string;
+  username: string;
+  email: string;
+  profilePicture: string | null;
+  role: string;
+  verified: boolean;
+  registeredDate: string;
+  daysSinceRegistration: number;
+  birthdate: string | null;
+  age: number | null;
+  gender: 'male' | 'female' | 'other' | null;
+  physicalMetrics: {
+    height: number | null;
+    weight: number | null;
+    targetWeight: number | null;
+    bmi: number | null;
+    waistCircumference: number | null;
+  };
+  lifestyle: {
+    activityLevel: string | null;
+    sleepHours: number | null;
+  };
+  dietaryProfile: {
+    preferences: string[];
+    allergies: string[];
+    dailyWaterIntake: number | null;
+    mealFrequency: number | null;
+  };
+  healthProfile: {
+    currentConditions: string[];
+    familyHistory: string[];
+    medications: string[];
+    bloodType: string | null;
+  };
+  environmentalFactors: {
+    pollutionExposure: string | null;
+    occupationType: string | null;
+  };
+  riskFactors: {
+    addictions: Array<{ substance: string; severity: string; duration: number }>;
+    stressLevel: string | null;
+  };
+  lastPrediction: {
+    disease: string[];
+    probability: number;
+    predictedAt: string;
+    source: string;
+  } | null;
+  profileCompletion: number;
+}
+
 export default submitHealthAssessment;
 
 // Add more user-related API functions here...
