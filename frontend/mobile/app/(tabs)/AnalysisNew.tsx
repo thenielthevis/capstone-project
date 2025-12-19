@@ -10,6 +10,7 @@ import {
   Animated,
   Linking,
 } from "react-native";
+import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../context/ThemeContext";
 import { useUser } from "../context/UserContext";
 import { useFocusEffect } from "expo-router";
@@ -91,7 +92,7 @@ const ACTIVITY_LEVELS = {
     description: "Little or no exercise",
     examples: "Cerebral palsy patient, office worker getting little or no exercise",
     tips: "Try incorporating 10-15 min walks daily",
-    icon: "🪑",
+    icon: "chair-rolling",
   },
   lightly_active: {
     met: "1.375-1.55",
@@ -99,7 +100,7 @@ const ACTIVITY_LEVELS = {
     description: "Exercise 1-3 days/week",
     examples: "Light manual work, weekend walking, casual sports",
     tips: "Increase frequency to 3-4 days per week",
-    icon: "🚶",
+    icon: "walk",
   },
   moderately_active: {
     met: "1.55-1.725",
@@ -107,7 +108,7 @@ const ACTIVITY_LEVELS = {
     description: "Exercise 3-5 days/week",
     examples: "Construction worker or person running one hour daily",
     tips: "Great maintenance level! Keep it consistent",
-    icon: "🚶‍♀️",
+    icon: "run",
   },
   very_active: {
     met: "1.725-1.9",
@@ -115,7 +116,7 @@ const ACTIVITY_LEVELS = {
     description: "Exercise 6-7 days/week",
     examples: "Agricultural worker (non mechanized) or person swimming two hours daily",
     tips: "Ensure proper recovery and nutrition",
-    icon: "🏃",
+    icon: "run-fast",
   },
   extremely_active: {
     met: "1.9+",
@@ -123,7 +124,7 @@ const ACTIVITY_LEVELS = {
     description: "Very intense exercise daily",
     examples: "Competitive cyclist, elite athlete, professional sports",
     tips: "Monitor for overtraining, prioritize recovery",
-    icon: "💪",
+    icon: "dumbbell",
   },
 };
 
@@ -221,7 +222,7 @@ const WATER_GUIDELINES = [
     color: "#4CAF50",
     bgColor: "#E8F5E9",
     tips: "Optimal hydration level - maintain current water intake",
-    icon: "💧",
+    icon: "water",
   },
   {
     range: "295-299.9 mmol/L",
@@ -229,7 +230,7 @@ const WATER_GUIDELINES = [
     color: "#FF9800",
     bgColor: "#FFF3E0",
     tips: "Start increasing water intake gradually",
-    icon: "⚠️",
+    icon: "alert-circle",
   },
   {
     range: "≥ 300 mmol/L",
@@ -237,7 +238,7 @@ const WATER_GUIDELINES = [
     color: "#F44336",
     bgColor: "#FFEBEE",
     tips: "Increase water intake immediately - aim for 2-3 liters daily",
-    icon: "🚨",
+    icon: "alert-octagon",
   },
 ];
 
@@ -253,7 +254,7 @@ const ADDICTION_CRITERIA = [
       "Failed attempts to reduce use",
       "Continued use despite health concerns",
     ],
-    icon: "🟡",
+    icon: "circle",
   },
   {
     severity: "Moderate",
@@ -267,7 +268,7 @@ const ADDICTION_CRITERIA = [
       "Spending significant time obtaining substance",
       "Continued use despite social/occupational problems",
     ],
-    icon: "🟠",
+    icon: "circle",
   },
   {
     severity: "Severe",
@@ -284,7 +285,7 @@ const ADDICTION_CRITERIA = [
       "Dangerous use (driving under influence)",
       "Tolerance with dose escalation",
     ],
-    icon: "🔴",
+    icon: "circle",
   },
 ];
 
@@ -343,7 +344,7 @@ const STRESS_LEVELS = [
     color: "#4CAF50",
     bgColor: "#E8F5E9",
     description: "You have a healthy stress level with good coping skills",
-    icon: "😊",
+    icon: "emoticon-happy",
     recommendations: [
       "Maintain your current healthy lifestyle",
       "Continue regular exercise and social activities",
@@ -357,7 +358,7 @@ const STRESS_LEVELS = [
     color: "#FF9800",
     bgColor: "#FFF3E0",
     description: "You experience moderate stress levels. Consider stress management techniques",
-    icon: "😌",
+    icon: "emoticon-neutral",
     recommendations: [
       "Practice daily relaxation techniques (meditation, deep breathing)",
       "Engage in regular physical activity (30 mins, 5x/week)",
@@ -372,7 +373,7 @@ const STRESS_LEVELS = [
     color: "#F44336",
     bgColor: "#FFEBEE",
     description: "You experience high stress levels. Professional support is recommended",
-    icon: "😟",
+    icon: "emoticon-sad",
     recommendations: [
       "Seek support from a mental health professional or counselor",
       "Practice stress-reduction techniques (yoga, meditation, tai chi)",
@@ -405,13 +406,13 @@ const STRESS_SCIENTIFIC_REFERENCES = [
 
 // Dietary Profile Data
 const DIETARY_PREFERENCES_INFO = [
-  { preference: "🌱 Vegetarian", description: "No meat, but includes dairy & eggs" },
-  { preference: "🥗 Vegan", description: "No animal products at all" },
-  { preference: "🐟 Pescatarian", description: "Fish but no other meat" },
-  { preference: "✡️ Kosher", description: "Follows Jewish dietary laws" },
-  { preference: "☪️ Halal", description: "Follows Islamic dietary laws" },
-  { preference: "🌾 Gluten-free", description: "No gluten-containing foods" },
-  { preference: "🥛 Dairy-free", description: "No milk or dairy products" },
+  { preference: "Vegetarian", description: "No meat, but includes dairy & eggs" },
+  { preference: "Vegan", description: "No animal products at all" },
+  { preference: "Pescatarian", description: "Fish but no other meat" },
+  { preference: "Kosher", description: "Follows Jewish dietary laws" },
+  { preference: "Halal", description: "Follows Islamic dietary laws" },
+  { preference: "Gluten-free", description: "No gluten-containing foods" },
+  { preference: "Dairy-free", description: "No milk or dairy products" },
 ];
 
 // Meal Frequency Guidelines (based on nutritional research)
@@ -622,6 +623,29 @@ const ENVIRONMENTAL_SCIENTIFIC_REFERENCES = [
   },
 ];
 
+const DISEASE_PREDICTION_REFERENCES = [
+  {
+    title: "American Heart Association - Hypertension Guide",
+    description: "Understanding high blood pressure prevention and management",
+    url: "https://www.heart.org/en/health-topics/consumer/answers/answers-by-heart-fact-sheets-about-heart-attack/answers-about-high-blood-pressure",
+  },
+  {
+    title: "CDC - Diabetes Prevention & Management",
+    description: "Evidence-based strategies for diabetes prevention and control",
+    url: "https://www.cdc.gov/diabetes/basics/diabetes.html",
+  },
+  {
+    title: "NIH - Cardiovascular Disease Risk Factors",
+    description: "Research on heart disease prevention and risk assessment",
+    url: "https://www.nhlbi.nih.gov/health/heart/disease",
+  },
+  {
+    title: "WHO - Asthma Overview",
+    description: "Global asthma facts and prevention strategies",
+    url: "https://www.who.int/news-room/fact-sheets/detail/asthma",
+  },
+];
+
 export default function Analysis({ initialMetric, onClose }: { initialMetric?: string; onClose?: () => void }) {
   const { theme } = useTheme();
   const { user } = useUser();
@@ -637,6 +661,49 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
   const singleView = !!initialMetric;
   const contentMaxWidth = Math.min(screenWidth * 0.95, 900);
 
+  // Theme-based color helper
+  const getSemanticColor = (type: 'success' | 'warning' | 'danger' | 'info' | 'secondary' | 'accent') => {
+    return (theme.semanticColors as any)?.[type] || '#666';
+  };
+
+  const getStatusBackground = (type: 'success' | 'warning' | 'danger' | 'info' | 'secondary' | 'accent') => {
+    return (theme.statusBackgrounds as any)?.[type] || '#f5f5f5';
+  };
+
+  // Theme-based font helpers - all using consistent body font (Inter)
+  const getHeadingFont = () => ({
+    fontFamily: theme.fonts.body,
+  });
+
+  const getBodyFont = () => ({
+    fontFamily: theme.fonts.body,
+  });
+
+  const getBodyBoldFont = () => ({
+    fontFamily: theme.fonts.bodyBold,
+  });
+
+  const getSubHeadingFont = () => ({
+    fontFamily: theme.fonts.body,
+  });
+
+  // Icon helper function - renders vector icons instead of Lottie
+  const renderIcon = (iconName: string, size: number = 24, color?: string) => {
+    const iconColor = color || theme.colors.primary;
+    return (
+      <MaterialCommunityIcons
+        name={iconName as any}
+        size={size}
+        color={iconColor}
+      />
+    );
+  };
+
+  // Helper function to get appropriate background color for cards based on theme
+  const getCardBackground = () => {
+    return theme.mode === 'dark' ? theme.colors.surface : '#FFFFFF';
+  };
+
   useEffect(() => {
     loadUserData();
     if (initialMetric) {
@@ -650,7 +717,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
         Toast.show({
           type: "success",
           position: "top",
-          text1: "✅ Data Updated",
+          text1: "Data Updated",
           text2: "Your health data has been updated successfully",
         });
         setPredictionUpdateFlag(false);
@@ -713,7 +780,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             marginBottom: 12,
           }}
         >
-          ✅ Action Checklist
+          <MaterialCommunityIcons name="checkbox-marked-circle" size={16} color="#4CAF50" /> Action Checklist
         </Text>
 
         {checklistLoading ? (
@@ -747,9 +814,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                   }}
                 >
                   {task.completed && (
-                    <Text style={{ color: "white", fontWeight: "bold", fontSize: 14 }}>
-                      ✓
-                    </Text>
+                    <MaterialCommunityIcons name="check" size={14} color="white" />
                   )}
                 </View>
                 <Text
@@ -996,7 +1061,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
         }}
       >
         <LinearGradient
-          colors={["#E3F2FD", "#BBDEFB", "#90CAF9"]}
+          colors={theme.gradients.bmi as [string, string, ...string[]]}
           style={{
             position: "absolute",
             top: 0,
@@ -1016,12 +1081,12 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             <Text
               style={{
                 fontSize: 28,
-                fontWeight: "800",
                 color: theme.colors.text,
                 marginBottom: 8,
+                ...getHeadingFont(),
               }}
             >
-              📏 Body Mass Index
+              Body Mass Index
             </Text>
             <Text
               style={{
@@ -1039,7 +1104,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
           {/* Main BMI Card */}
           <View
             style={{
-              backgroundColor: bmiInfo.bgColor,
+              backgroundColor: theme.mode === 'dark' ? theme.colors.surface : bmiInfo.bgColor,
               borderRadius: 24,
               padding: 24,
               marginBottom: 20,
@@ -1055,9 +1120,9 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                   fontSize: 16,
                   color: theme.colors.text + "88",
                   marginBottom: 8,
-                  fontWeight: "600",
                   textTransform: "uppercase",
                   letterSpacing: 1,
+                  ...getBodyBoldFont(),
                 }}
               >
                 Your BMI
@@ -1065,9 +1130,9 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               <Text
                 style={{
                   fontSize: 56,
-                  fontWeight: "900",
                   color: bmiInfo.color,
                   marginBottom: 8,
+                  ...getHeadingFont(),
                 }}
               >
                 {bmi ? bmi.toFixed(1) : "N/A"}
@@ -1075,10 +1140,10 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               <Text
                 style={{
                   fontSize: 18,
-                  fontWeight: "700",
                   color: bmiInfo.color,
                   textTransform: "uppercase",
                   letterSpacing: 0.5,
+                  ...getHeadingFont(),
                 }}
               >
                 {bmiInfo.status}
@@ -1090,7 +1155,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               <View
                 style={{
                   height: 24,
-                  backgroundColor: "#fff" + "44",
+                  backgroundColor: theme.mode === 'dark' ? theme.colors.text + '22' : '#F0F0F0',
                   borderRadius: 12,
                   overflow: "hidden",
                   marginBottom: 8,
@@ -1105,7 +1170,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                     alignItems: "center",
                   }}
                 >
-                  <Text style={{ fontSize: 9, fontWeight: "bold", color: "#fff" }}>
+                  <Text style={{ fontSize: 9, color: "#fff", ...getBodyBoldFont() }}>
                     &lt;18.5
                   </Text>
                 </View>
@@ -1117,7 +1182,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                     alignItems: "center",
                   }}
                 >
-                  <Text style={{ fontSize: 9, fontWeight: "bold", color: "#fff" }}>
+                  <Text style={{ fontSize: 9, color: "#fff", ...getBodyBoldFont() }}>
                     18.5-25
                   </Text>
                 </View>
@@ -1129,7 +1194,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                     alignItems: "center",
                   }}
                 >
-                  <Text style={{ fontSize: 9, fontWeight: "bold", color: "#fff" }}>
+                  <Text style={{ fontSize: 9, color: "#fff", ...getBodyBoldFont() }}>
                     25-30
                   </Text>
                 </View>
@@ -1141,7 +1206,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                     alignItems: "center",
                   }}
                 >
-                  <Text style={{ fontSize: 9, fontWeight: "bold", color: "#fff" }}>
+                  <Text style={{ fontSize: 9, color: "#fff", ...getBodyBoldFont() }}>
                     30+
                   </Text>
                 </View>
@@ -1158,8 +1223,8 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 <Text
                   style={{
                     fontSize: 9,
-                    fontWeight: "600",
                     color: theme.colors.text,
+                    ...getBodyBoldFont(),
                   }}
                 >
                   Underweight
@@ -1167,8 +1232,8 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 <Text
                   style={{
                     fontSize: 9,
-                    fontWeight: "600",
                     color: theme.colors.text,
+                    ...getBodyBoldFont(),
                   }}
                 >
                   Normal
@@ -1176,8 +1241,8 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 <Text
                   style={{
                     fontSize: 9,
-                    fontWeight: "600",
                     color: theme.colors.text,
+                    ...getBodyBoldFont(),
                   }}
                 >
                   Overweight
@@ -1185,8 +1250,8 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 <Text
                   style={{
                     fontSize: 9,
-                    fontWeight: "600",
                     color: theme.colors.text,
+                    ...getBodyBoldFont(),
                   }}
                 >
                   Obese
@@ -1213,7 +1278,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                         fontSize: 11,
                         color: theme.colors.text + "88",
                         marginBottom: 4,
-                        fontWeight: "600",
+                        ...getBodyBoldFont(),
                       }}
                     >
                       Height
@@ -1221,8 +1286,8 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                     <Text
                       style={{
                         fontSize: 16,
-                        fontWeight: "bold",
                         color: theme.colors.text,
+                        ...getHeadingFont(),
                       }}
                     >
                       {userData.physicalMetrics.height.value} cm
@@ -1234,7 +1299,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                         fontSize: 11,
                         color: theme.colors.text + "88",
                         marginBottom: 4,
-                        fontWeight: "600",
+                        ...getBodyBoldFont(),
                       }}
                     >
                       Weight
@@ -1242,8 +1307,8 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                     <Text
                       style={{
                         fontSize: 16,
-                        fontWeight: "bold",
                         color: theme.colors.text,
+                        ...getHeadingFont(),
                       }}
                     >
                       {userData.physicalMetrics.weight.value} kg
@@ -1256,7 +1321,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                           fontSize: 11,
                           color: theme.colors.text + "88",
                           marginBottom: 4,
-                          fontWeight: "600",
+                          ...getBodyBoldFont(),
                         }}
                       >
                         Waist
@@ -1264,8 +1329,8 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                       <Text
                         style={{
                           fontSize: 16,
-                          fontWeight: "bold",
                           color: theme.colors.text,
+                          ...getHeadingFont(),
                         }}
                       >
                         {userData.physicalMetrics.waistCircumference} cm
@@ -1279,7 +1344,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
           {/* Engagement Message */}
           <View
             style={{
-              backgroundColor: "#fff" + "99",
+              backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FAFAFA',
               borderRadius: 16,
               padding: 16,
               marginBottom: 20,
@@ -1288,22 +1353,24 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               zIndex: 1,
             }}
           >
-            <Text
-              style={{
-                fontSize: 13,
-                fontWeight: "700",
-                color: theme.colors.text,
-                marginBottom: 8,
-              }}
-            >
-              💡 Your Goal
-            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              {renderIcon("lightbulb", 16)}
+              <Text
+                style={{
+                  fontSize: 13,
+                  color: theme.colors.text,
+                  ...getSubHeadingFont(),
+                }}
+              >
+                Your Goal
+              </Text>
+            </View>
             <Text
               style={{
                 fontSize: 12,
                 color: theme.colors.text + "99",
                 lineHeight: 18,
-                fontWeight: "500",
+                ...getBodyFont(),
               }}
             >
               {bmiInfo.message}
@@ -1312,19 +1379,21 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
 
           {/* Tips Section */}
           <View style={{ zIndex: 1 }}>
-            <Text
-              style={{
-                fontSize: 14,
-                fontWeight: "700",
-                color: theme.colors.text,
-                marginBottom: 12,
-              }}
-            >
-              🎯 Quick Tips
-            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              {renderIcon("target", 18)}
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: theme.colors.text,
+                  ...getSubHeadingFont(),
+                }}
+              >
+                Quick Tips
+              </Text>
+            </View>
             <View
               style={{
-                backgroundColor: "#fff" + "88",
+                backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#F5F5F5',
                 borderRadius: 12,
                 padding: 12,
                 gap: 8,
@@ -1334,7 +1403,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               <Text
                 style={{
                   fontSize: 11,
-                  color: theme.colors.text + "99",
+                  color: theme.colors.text + "88",
                   lineHeight: 16,
                 }}
               >
@@ -1343,7 +1412,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               <Text
                 style={{
                   fontSize: 11,
-                  color: theme.colors.text + "99",
+                  color: theme.colors.text + "88",
                   lineHeight: 16,
                 }}
               >
@@ -1352,7 +1421,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               <Text
                 style={{
                   fontSize: 11,
-                  color: theme.colors.text + "99",
+                  color: theme.colors.text + "88",
                   lineHeight: 16,
                 }}
               >
@@ -1361,7 +1430,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               <Text
                 style={{
                   fontSize: 11,
-                  color: theme.colors.text + "99",
+                  color: theme.colors.text + "88",
                   lineHeight: 16,
                 }}
               >
@@ -1378,12 +1447,15 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             <Text
               style={{
                 fontSize: 12,
-                fontWeight: "700",
                 color: theme.colors.text,
                 marginBottom: 10,
+                ...getBodyBoldFont(),
               }}
             >
-              📚 Scientific References
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                {renderIcon("book-open-variant", 14)}
+                <Text>Scientific References</Text>
+              </View>
             </Text>
             <View style={{ gap: 8 }}>
               {BMI_SCIENTIFIC_REFERENCES.map((ref, idx) => (
@@ -1391,7 +1463,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                   key={idx}
                   onPress={() => Linking.openURL(ref.url)}
                   style={{
-                    backgroundColor: "#fff" + "88",
+                    backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#F5F5F5',
                     borderRadius: 10,
                     padding: 12,
                     borderLeftWidth: 4,
@@ -1403,19 +1475,20 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                   <Text
                     style={{
                       fontSize: 10,
-                      fontWeight: "700",
                       color: bmiInfo.color,
                       marginBottom: 4,
                       textDecorationLine: "underline",
+                      ...getBodyBoldFont(),
                     }}
                   >
-                    🔗 {ref.title}
+                    🌐 {ref.title}
                   </Text>
                   <Text
                     style={{
                       fontSize: 9,
                       color: theme.colors.text + "88",
                       lineHeight: 14,
+                      ...getBodyFont(),
                     }}
                   >
                     {ref.description}
@@ -1438,16 +1511,16 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
         <Text
           style={{
             fontSize: 13,
-            fontWeight: "700",
             color: theme.colors.text,
             marginBottom: 10,
+            ...getSubHeadingFont(),
           }}
         >
           {icon} {title}
         </Text>
         <View
           style={{
-            backgroundColor: "#fff" + "88",
+            backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FFFFFF',
             borderRadius: 12,
             overflow: "hidden",
             elevation: 2,
@@ -1468,10 +1541,10 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               style={{
                 flex: 2,
                 fontSize: 10,
-                fontWeight: "700",
                 color: theme.colors.text,
                 textTransform: "uppercase",
                 letterSpacing: 0.5,
+                ...getBodyBoldFont(),
               }}
             >
               Activity
@@ -1480,11 +1553,11 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               style={{
                 flex: 1,
                 fontSize: 10,
-                fontWeight: "700",
                 color: theme.colors.text,
                 textAlign: "center",
                 textTransform: "uppercase",
                 letterSpacing: 0.5,
+                ...getBodyBoldFont(),
               }}
             >
               MET
@@ -1508,8 +1581,8 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 style={{
                   flex: 2,
                   fontSize: 11,
-                  fontWeight: "500",
                   color: theme.colors.text,
+                  ...getBodyFont(),
                 }}
               >
                 {item.activity}
@@ -1518,9 +1591,9 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 style={{
                   flex: 1,
                   fontSize: 11,
-                  fontWeight: "700",
                   color: "#6A1B9A",
                   textAlign: "center",
+                  ...getBodyBoldFont(),
                 }}
               >
                 {item.met}
@@ -1536,16 +1609,19 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
         <Text
           style={{
             fontSize: 13,
-            fontWeight: "700",
             color: theme.colors.text,
             marginBottom: 10,
+            ...getSubHeadingFont(),
           }}
         >
-          📊 Physical Activity Guidelines
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            {renderIcon("chart-line", 14)}
+            <Text>Physical Activity Guidelines</Text>
+          </View>
         </Text>
         <View
           style={{
-            backgroundColor: "#fff" + "88",
+            backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FFFFFF',
             borderRadius: 12,
             overflow: "hidden",
             elevation: 2,
@@ -1566,10 +1642,10 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               style={{
                 flex: 1.2,
                 fontSize: 9,
-                fontWeight: "700",
                 color: theme.colors.text,
                 textTransform: "uppercase",
                 letterSpacing: 0.3,
+                ...getBodyBoldFont(),
               }}
             >
               Lifestyle
@@ -1578,10 +1654,10 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               style={{
                 flex: 1.8,
                 fontSize: 9,
-                fontWeight: "700",
                 color: theme.colors.text,
                 textTransform: "uppercase",
                 letterSpacing: 0.3,
+                ...getBodyBoldFont(),
               }}
             >
               Activity Example
@@ -1590,11 +1666,11 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               style={{
                 flex: 0.8,
                 fontSize: 9,
-                fontWeight: "700",
                 color: theme.colors.text,
                 textAlign: "center",
                 textTransform: "uppercase",
                 letterSpacing: 0.3,
+                ...getBodyBoldFont(),
               }}
             >
               PAL
@@ -1614,23 +1690,32 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 backgroundColor: idx % 2 === 0 ? "transparent" : "#9C27B0" + "11",
               }}
             >
-              <Text
+              <View
                 style={{
                   flex: 1.2,
-                  fontSize: 10,
-                  fontWeight: "600",
-                  color: theme.colors.text,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
                 }}
               >
-                {value.icon} {key.replace(/_/g, " ")}
-              </Text>
+                {renderIcon(value.icon, 12)}
+                <Text
+                  style={{
+                    fontSize: 10,
+                    color: theme.colors.text,
+                    ...getBodyBoldFont(),
+                  }}
+                >
+                  {key.replace(/_/g, " ")}
+                </Text>
+              </View>
               <Text
                 style={{
                   flex: 1.8,
                   fontSize: 9,
-                  fontWeight: "500",
                   color: theme.colors.text + "99",
                   lineHeight: 14,
+                  ...getBodyFont(),
                 }}
               >
                 {value.examples}
@@ -1639,9 +1724,9 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 style={{
                   flex: 0.8,
                   fontSize: 10,
-                  fontWeight: "700",
                   color: "#6A1B9A",
                   textAlign: "center",
+                  ...getBodyBoldFont(),
                 }}
               >
                 {value.pal}
@@ -1654,23 +1739,17 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
 
     const renderScientificReferences = () => (
       <View style={{ zIndex: 1 }}>
-        <Text
-          style={{
-            fontSize: 12,
-            fontWeight: "700",
-            color: theme.colors.text,
-            marginBottom: 10,
-          }}
-        >
-          📚 Scientific References
-        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          {renderIcon("book-open-variant", 14)}
+          <Text style={{ fontSize: 12, color: theme.colors.text, ...getBodyBoldFont() }}>Scientific References</Text>
+        </View>
         <View style={{ gap: 8 }}>
           {ACTIVITY_SCIENTIFIC_REFERENCES.map((ref, idx) => (
             <TouchableOpacity
               key={idx}
               onPress={() => Linking.openURL(ref.url)}
               style={{
-                backgroundColor: "#fff" + "88",
+                backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#F5F5F5',
                 borderRadius: 10,
                 padding: 12,
                 borderLeftWidth: 4,
@@ -1682,19 +1761,20 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               <Text
                 style={{
                   fontSize: 10,
-                  fontWeight: "700",
-                  color: "#6A1B9A",
+                  color: theme.mode === 'dark' ? theme.colors.primary : '#6A1B9A',
                   marginBottom: 4,
                   textDecorationLine: "underline",
+                  ...getBodyBoldFont(),
                 }}
               >
-                🔗 {ref.title}
+                Reference: {ref.title}
               </Text>
               <Text
                 style={{
                   fontSize: 9,
                   color: theme.colors.text + "88",
                   lineHeight: 14,
+                  ...getBodyFont(),
                 }}
               >
                 {ref.description}
@@ -1715,7 +1795,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             }}
       >
         <LinearGradient
-          colors={["#F3E5F5", "#E1BEE7", "#CE93D8"]}
+          colors={theme.gradients.activity as [string, string, ...string[]]}
           style={{
             position: "absolute",
             top: 0,
@@ -1732,16 +1812,18 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
         >
           {/* Header */}
           <View style={{ marginBottom: 24, zIndex: 1 }}>
-            <Text
-              style={{
-                fontSize: 28,
-                fontWeight: "800",
-                color: theme.colors.text,
-                marginBottom: 8,
-              }}
-            >
-              {activityInfo.icon} Activity Level
-            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 8 }}>
+              {renderIcon(activityInfo.icon, 28)}
+              <Text
+                style={{
+                  fontSize: 28,
+                  color: theme.colors.text,
+                  ...getHeadingFont(),
+                }}
+              >
+                Activity Level
+              </Text>
+            </View>
             <Text
               style={{
                 fontSize: 13,
@@ -1756,7 +1838,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
           {/* Main Activity Card */}
           <View
             style={{
-              backgroundColor: "#fff" + "99",
+              backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FAFAFA',
               borderRadius: 24,
               padding: 24,
               marginBottom: 20,
@@ -1770,9 +1852,9 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               <Text
                 style={{
                   fontSize: 32,
-                  fontWeight: "900",
                   color: "#6A1B9A",
                   marginBottom: 8,
+                  ...getHeadingFont(),
                 }}
               >
                 {activityLevel.replace(/_/g, " ").toUpperCase()}
@@ -1781,8 +1863,8 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 style={{
                   fontSize: 13,
                   color: theme.colors.text + "88",
-                  fontWeight: "600",
                   marginBottom: 12,
+                  ...getBodyBoldFont(),
                 }}
               >
                 {activityInfo.description}
@@ -1801,21 +1883,21 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               }}
             >
               <View
-                style={{
-                  flex: 1,
-                  backgroundColor: "#F3E5F5",
-                  borderRadius: 12,
-                  padding: 12,
-                  alignItems: "center",
-                }}
+                  style={{
+                    flex: 1,
+                    backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#F3E5F5',
+                    borderRadius: 12,
+                    padding: 12,
+                    alignItems: "center",
+                  }}
               >
                 <Text
                   style={{
                     fontSize: 10,
                     color: theme.colors.text + "88",
                     marginBottom: 4,
-                    fontWeight: "700",
                     textTransform: "uppercase",
+                    ...getBodyBoldFont(),
                   }}
                 >
                   PAL Value
@@ -1823,29 +1905,29 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 <Text
                   style={{
                     fontSize: 16,
-                    fontWeight: "bold",
                     color: "#6A1B9A",
+                    ...getHeadingFont(),
                   }}
                 >
                   {activityInfo.pal}
                 </Text>
               </View>
               <View
-                style={{
-                  flex: 1,
-                  backgroundColor: "#F3E5F5",
-                  borderRadius: 12,
-                  padding: 12,
-                  alignItems: "center",
-                }}
+                  style={{
+                    flex: 1,
+                    backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#F3E5F5',
+                    borderRadius: 12,
+                    padding: 12,
+                    alignItems: "center",
+                  }}
               >
                 <Text
                   style={{
                     fontSize: 10,
                     color: theme.colors.text + "88",
                     marginBottom: 4,
-                    fontWeight: "700",
                     textTransform: "uppercase",
+                    ...getBodyBoldFont(),
                   }}
                 >
                   MET Range
@@ -1853,8 +1935,8 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 <Text
                   style={{
                     fontSize: 16,
-                    fontWeight: "bold",
                     color: "#6A1B9A",
+                    ...getHeadingFont(),
                   }}
                 >
                   {activityInfo.met}
@@ -1867,16 +1949,16 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               <Text
                 style={{
                   fontSize: 12,
-                  fontWeight: "700",
                   color: theme.colors.text,
                   marginBottom: 10,
+                  ...getBodyBoldFont(),
                 }}
               >
-                📌 Activity Description
+                <MaterialCommunityIcons name="pin" size={12} color={theme.colors.text} /> Activity Description
               </Text>
               <View
                 style={{
-                  backgroundColor: "#fff" + "88",
+                  backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#F5F5F5',
                   borderRadius: 10,
                   paddingHorizontal: 12,
                   paddingVertical: 10,
@@ -1887,9 +1969,9 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 <Text
                   style={{
                     fontSize: 11,
-                    fontWeight: "500",
                     color: theme.colors.text,
                     lineHeight: 16,
+                    ...getBodyFont(),
                   }}
                 >
                   {activityInfo.examples}
@@ -1902,15 +1984,15 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
           {renderGuidelinesTable()}
 
           {/* Daily Activities Table */}
-          {renderActivityTable("Daily Activities", DAILY_ACTIVITIES, "📋")}
+          {renderActivityTable("Daily Activities", DAILY_ACTIVITIES, "clipboard-list")}
 
           {/* Exercises Table (WHO-based for athletes) */}
-          {renderActivityTable("Exercises (WHO Guidelines)", EXERCISES_DATA, "💪")}
+          {renderActivityTable("Exercises (WHO Guidelines)", EXERCISES_DATA, "dumbbell")}
 
           {/* Engagement Message */}
           <View
             style={{
-              backgroundColor: "#fff" + "99",
+              backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FAFAFA',
               borderRadius: 16,
               padding: 16,
               marginBottom: 20,
@@ -1922,19 +2004,19 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             <Text
               style={{
                 fontSize: 13,
-                fontWeight: "700",
                 color: theme.colors.text,
                 marginBottom: 8,
+                ...getSubHeadingFont(),
               }}
             >
-              ⭐ Your Recommendation
+              <MaterialCommunityIcons name="star" size={14} color={theme.colors.text} /> Your Recommendation
             </Text>
             <Text
               style={{
                 fontSize: 12,
                 color: theme.colors.text + "99",
                 lineHeight: 18,
-                fontWeight: "500",
+                ...getBodyFont(),
               }}
             >
               {activityInfo.tips}
@@ -1944,8 +2026,61 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
           {/* Checklist Section - BEFORE References */}
           {renderChecklist()}
 
-          {/* Scientific Sources */}
-          {renderScientificReferences()}
+          {/* Scientific References */}
+          <View style={{ zIndex: 1 }}>
+            <Text
+              style={{
+                fontSize: 12,
+                color: theme.colors.text,
+                marginBottom: 10,
+                ...getBodyBoldFont(),
+              }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                {renderIcon("book-open-variant", 14)}
+                <Text>Scientific References</Text>
+              </View>
+            </Text>
+            <View style={{ gap: 8 }}>
+              {ACTIVITY_SCIENTIFIC_REFERENCES.map((ref, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  onPress={() => Linking.openURL(ref.url)}
+                  style={{
+                    backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#F5F5F5',
+                    borderRadius: 10,
+                    padding: 12,
+                    borderLeftWidth: 4,
+                    borderLeftColor: "#6A1B9A",
+                    borderBottomWidth: 2,
+                    borderBottomColor: "#9C27B0",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      color: theme.mode === 'dark' ? theme.colors.primary : '#6A1B9A',
+                      marginBottom: 4,
+                      textDecorationLine: "underline",
+                      ...getBodyBoldFont(),
+                    }}
+                  >
+                    Reference: {ref.title}
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 9,
+                      color: theme.colors.text + "88",
+                      lineHeight: 14,
+                      ...getBodyFont(),
+                    }}
+                  >
+                    {ref.description}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
         </ScrollView>
       </View>
     );
@@ -1992,11 +2127,14 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             marginBottom: 10,
           }}
         >
-          📊 Sleep Duration Guidelines
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            {renderIcon("chart-line", 14)}
+            <Text>Sleep Duration Guidelines</Text>
+          </View>
         </Text>
         <View
           style={{
-            backgroundColor: "#fff" + "88",
+            backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FFFFFF',
             borderRadius: 12,
             overflow: "hidden",
             elevation: 2,
@@ -2006,7 +2144,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
           <View
             style={{
               flexDirection: "row",
-              backgroundColor: "#E91E63" + "33",
+              backgroundColor: theme.mode === 'dark' ? theme.colors.primary + '22' : '#E91E63' + '22',
               paddingHorizontal: 10,
               paddingVertical: 10,
               borderBottomWidth: 2,
@@ -2121,7 +2259,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
         }}
       >
         <LinearGradient
-          colors={["#FCE4EC", "#F8BBD0", "#F48FB1"]}
+          colors={theme.gradients.addiction as [string, string, ...string[]]}
           style={{
             position: "absolute",
             top: 0,
@@ -2146,7 +2284,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 marginBottom: 8,
               }}
             >
-              😴 Sleep Quality
+              Sleep Quality
             </Text>
             <Text
               style={{
@@ -2162,7 +2300,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
           {/* Main Sleep Card */}
           <View
             style={{
-              backgroundColor: sleepStatus.bgColor,
+              backgroundColor: theme.mode === 'dark' ? theme.colors.surface : sleepStatus.bgColor,
               borderRadius: 24,
               padding: 24,
               marginBottom: 20,
@@ -2223,7 +2361,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               <View
                 style={{
                   height: 28,
-                  backgroundColor: "#fff" + "44",
+                  backgroundColor: theme.mode === 'dark' ? theme.colors.text + '22' : '#F0F0F0',
                   borderRadius: 14,
                   overflow: "hidden",
                   marginBottom: 8,
@@ -2327,12 +2465,12 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             {/* Mortality Risk Info */}
             <View
               style={{
-                backgroundColor: "#fff" + "88",
+                backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FAFAFA',
                 borderRadius: 12,
                 padding: 12,
                 marginTop: 12,
-                borderLeftWidth: 4,
-                borderLeftColor: sleepStatus.color,
+                borderTopWidth: 2,
+                borderTopColor: sleepStatus.color + "44",
               }}
             >
               <Text
@@ -2343,7 +2481,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                   marginBottom: 6,
                 }}
               >
-                ⚠️ Mortality Risk
+                <MaterialCommunityIcons name="alert-octagon" size={14} color={theme.colors.text} /> Mortality Risk
               </Text>
               <Text
                 style={{
@@ -2363,7 +2501,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
           {/* Engagement Message */}
           <View
             style={{
-              backgroundColor: "#fff" + "99",
+              backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FAFAFA',
               borderRadius: 16,
               padding: 16,
               marginBottom: 20,
@@ -2380,7 +2518,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 marginBottom: 8,
               }}
             >
-              ⭐ Your Recommendation
+              <MaterialCommunityIcons name="star" size={14} color={theme.colors.text} /> Your Recommendation
             </Text>
             <Text
               style={{
@@ -2404,11 +2542,11 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 marginBottom: 10,
               }}
             >
-              💡 Sleep Hygiene Tips
+              Sleep Hygiene Tips
             </Text>
             <View
               style={{
-                backgroundColor: "#fff" + "88",
+                backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#F5F5F5',
                 borderRadius: 12,
                 padding: 12,
                 gap: 8,
@@ -2418,16 +2556,16 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               <Text
                 style={{
                   fontSize: 11,
-                  color: theme.colors.text + "99",
+                  color: theme.colors.text + "88",
                   lineHeight: 16,
                 }}
               >
-                • Keep a consistent sleep schedule (same bedtime &amp; wake time)
+                • Keep a consistent sleep schedule (same bedtime & wake time)
               </Text>
               <Text
                 style={{
                   fontSize: 11,
-                  color: theme.colors.text + "99",
+                  color: theme.colors.text + "88",
                   lineHeight: 16,
                 }}
               >
@@ -2436,7 +2574,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               <Text
                 style={{
                   fontSize: 11,
-                  color: theme.colors.text + "99",
+                  color: theme.colors.text + "88",
                   lineHeight: 16,
                 }}
               >
@@ -2445,7 +2583,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               <Text
                 style={{
                   fontSize: 11,
-                  color: theme.colors.text + "99",
+                  color: theme.colors.text + "88",
                   lineHeight: 16,
                 }}
               >
@@ -2454,7 +2592,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               <Text
                 style={{
                   fontSize: 11,
-                  color: theme.colors.text + "99",
+                  color: theme.colors.text + "88",
                   lineHeight: 16,
                 }}
               >
@@ -2476,14 +2614,14 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 marginBottom: 10,
               }}
             >
-              📚 Scientific References
+              <MaterialCommunityIcons name="book-open-variant" size={12} color={theme.colors.text} /> Scientific References
             </Text>
             {SLEEP_SCIENTIFIC_REFERENCES.map((ref, idx) => (
               <TouchableOpacity
                 key={idx}
                 onPress={() => Linking.openURL(ref.url)}
                 style={{
-                  backgroundColor: "#fff" + "88",
+                  backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#F5F5F5',
                   borderRadius: 10,
                   padding: 12,
                   borderLeftWidth: 4,
@@ -2501,7 +2639,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                     textDecorationLine: "underline",
                   }}
                 >
-                  🔗 {ref.title}
+                  Reference: {ref.title}
                 </Text>
                 <Text
                   style={{
@@ -2534,7 +2672,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
           }}
         >
           <LinearGradient
-            colors={["#FFEBEE", "#FFCDD2", "#EF9A9A"]}
+            colors={theme.gradients.prediction as [string, string, ...string[]]}
             style={{
               position: "absolute",
               top: 0,
@@ -2568,7 +2706,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
         }}
       >
         <LinearGradient
-          colors={["#FFEBEE", "#FFCDD2", "#EF9A9A"]}
+          colors={theme.gradients.prediction as [string, string, ...string[]]}
           style={{
             position: "absolute",
             top: 0,
@@ -2592,7 +2730,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 marginBottom: 8,
               }}
             >
-              🔍 Disease Predictions
+              <MaterialCommunityIcons name="magnify" size={20} color={theme.colors.text} /> Disease Predictions
             </Text>
             <Text
               style={{
@@ -2698,7 +2836,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
 
           <View
             style={{
-              backgroundColor: "#fff" + "88",
+              backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#F5F5F5',
               borderRadius: 16,
               padding: 16,
               marginTop: 20,
@@ -2715,7 +2853,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 marginBottom: 8,
               }}
             >
-              📋 Important Note
+              Important Note
             </Text>
             <Text
               style={{
@@ -2742,28 +2880,31 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
     return (
       <View style={{ width: singleView ? "100%" : screenWidth, paddingHorizontal: 16, paddingVertical: 24, flex: 1 }}>
         <LinearGradient
-          colors={["#E0F7FA", "#B2EBF2", "#80DEEA"]}
+          colors={theme.gradients.water as [string, string, ...string[]]}
           style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}
         />
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
           <View style={{ marginBottom: 24, zIndex: 1 }}>
-            <Text style={{ fontSize: 28, fontWeight: "800", color: theme.colors.text, marginBottom: 8 }}>
-              💧 Daily Water Intake
-            </Text>
-            <Text style={{ fontSize: 13, color: theme.colors.text + "77", lineHeight: 20 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <MaterialCommunityIcons name="water" size={28} color={theme.colors.text} />
+              <Text style={{ fontSize: 28, color: theme.colors.text, ...getHeadingFont() }}>
+                Daily Water Intake
+              </Text>
+            </View>
+            <Text style={{ fontSize: 13, color: theme.colors.text + "77", lineHeight: 20, ...getBodyFont() }}>
               Hydration status is critical for body functions
             </Text>
           </View>
 
           {/* Water Status Card */}
-          <View style={{ backgroundColor: "#E0F7FA", borderRadius: 24, padding: 24, marginBottom: 20, borderWidth: 3, borderColor: "#00ACC1", elevation: 8, zIndex: 1 }}>
+          <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#E0F7FA', borderRadius: 24, padding: 24, marginBottom: 20, borderWidth: 3, borderColor: "#00ACC1", elevation: 8, zIndex: 1 }}>
             <View style={{ alignItems: "center", marginBottom: 20 }}>
-              <Text style={{ fontSize: 32, marginBottom: 12 }}>💧</Text>
-              <Text style={{ fontSize: 16, color: theme.colors.text + "88", marginBottom: 8, fontWeight: "600", textTransform: "uppercase", letterSpacing: 1 }}>
+              <MaterialCommunityIcons name="water" size={48} color="#00ACC1" style={{ marginBottom: 12 }} />
+              <Text style={{ fontSize: 16, color: theme.colors.text + "88", marginBottom: 8, textTransform: "uppercase", letterSpacing: 1, ...getBodyBoldFont() }}>
                 Your Water Intake
               </Text>
-              <Text style={{ fontSize: 16, fontWeight: "700", color: "#00ACC1", marginBottom: 8 }}>
+              <Text style={{ fontSize: 16, color: "#00ACC1", marginBottom: 8, ...getHeadingFont() }}>
                 {waterIntake ? `${waterIntake} liters/day` : "Data not entered"}
               </Text>
             </View>
@@ -2771,8 +2912,8 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
 
           {/* Hydration Guidelines */}
           <View style={{ marginBottom: 20, zIndex: 1 }}>
-            <Text style={{ fontSize: 13, fontWeight: "700", color: theme.colors.text, marginBottom: 10 }}>
-              📋 Hydration Guidelines
+            <Text style={{ fontSize: 13, color: theme.colors.text, marginBottom: 10, ...getSubHeadingFont() }}>
+              Hydration Guidelines
             </Text>
             {WATER_GUIDELINES.map((guideline, idx) => (
               <View
@@ -2781,7 +2922,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                   padding: 12,
                   borderBottomWidth: idx < WATER_GUIDELINES.length - 1 ? 1 : 0,
                   borderBottomColor: "#999" + "22",
-                  backgroundColor: guideline.bgColor,
+                  backgroundColor: theme.mode === 'dark' ? theme.colors.surface : guideline.bgColor,
                   borderLeftWidth: 4,
                   borderLeftColor: guideline.color,
                   borderRadius: 12,
@@ -2789,10 +2930,10 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 }}
               >
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <Text style={{ fontSize: 11, fontWeight: "700", color: guideline.color }}>
+                  <Text style={{ fontSize: 11, color: guideline.color, ...getBodyBoldFont() }}>
                     {guideline.range}
                   </Text>
-                  <Text style={{ fontSize: 10, fontWeight: "700", color: theme.colors.text, backgroundColor: guideline.color + "22", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}>
+                  <Text style={{ fontSize: 10, color: theme.colors.text, backgroundColor: theme.mode === 'dark' ? guideline.color + "11" : guideline.color + "22", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, ...getBodyBoldFont() }}>
                     {guideline.status}
                   </Text>
                 </View>
@@ -2803,11 +2944,11 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             ))}
           </View>
 
-          <View style={{ backgroundColor: "#fff" + "99", borderRadius: 16, padding: 16, marginBottom: 20, borderLeftWidth: 5, borderLeftColor: "#00ACC1", zIndex: 1 }}>
-            <Text style={{ fontSize: 13, fontWeight: "700", color: theme.colors.text, marginBottom: 8 }}>
-              💡 Hydration Tips
+          <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FAFAFA', borderRadius: 16, padding: 16, marginBottom: 20, borderLeftWidth: 5, borderLeftColor: "#00ACC1", zIndex: 1 }}>
+            <Text style={{ fontSize: 13, color: theme.colors.text, marginBottom: 8, ...getSubHeadingFont() }}>
+              Hydration Tips
             </Text>
-            <Text style={{ fontSize: 12, color: theme.colors.text + "99", lineHeight: 18, fontWeight: "500" }}>
+            <Text style={{ fontSize: 12, color: theme.colors.text + "88", lineHeight: 18, ...getBodyFont() }}>
               Drink water consistently throughout the day. A good rule: if you're thirsty, you're already mildly dehydrated. Aim for pale urine as an indicator of good hydration.
             </Text>
           </View>
@@ -2816,19 +2957,19 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
           {renderChecklist()}
 
           <View style={{ zIndex: 1 }}>
-            <Text style={{ fontSize: 12, fontWeight: "700", color: theme.colors.text, marginBottom: 10 }}>
-              📚 Scientific References
+            <Text style={{ fontSize: 12, color: theme.colors.text, marginBottom: 10, ...getBodyBoldFont() }}>
+              <MaterialCommunityIcons name="book-open-variant" size={12} color={theme.colors.text} /> Scientific References
             </Text>
             {WATER_SCIENTIFIC_REFERENCES.map((ref) => (
               <TouchableOpacity
                 key={ref.url}
                 onPress={() => Linking.openURL(ref.url)}
-                style={{ backgroundColor: "#fff" + "88", borderRadius: 10, padding: 12, borderLeftWidth: 4, borderLeftColor: theme.colors.primary, marginBottom: 8 }}
+                style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#F5F5F5', borderRadius: 10, padding: 12, borderLeftWidth: 4, borderLeftColor: theme.colors.primary, marginBottom: 8 }}
               >
-                <Text style={{ fontSize: 10, fontWeight: "700", color: theme.colors.primary, marginBottom: 4, textDecorationLine: "underline" }}>
-                  🔗 {ref.title}
+                <Text style={{ fontSize: 10, color: theme.colors.primary, marginBottom: 4, textDecorationLine: "underline", ...getBodyBoldFont() }}>
+                  Reference: {ref.title}
                 </Text>
-                <Text style={{ fontSize: 9, color: theme.colors.text + "88", lineHeight: 14 }}>
+                <Text style={{ fontSize: 9, color: theme.colors.text + "88", lineHeight: 14, ...getBodyFont() }}>
                   {ref.description}
                 </Text>
               </TouchableOpacity>
@@ -2877,47 +3018,47 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
     return (
       <View style={{ width: singleView ? "100%" : screenWidth, paddingHorizontal: 16, paddingVertical: 24, flex: 1 }}>
         <LinearGradient
-          colors={["#FFF3E0", "#FFE0B2", "#FFCC80"]}
+          colors={theme.gradients.addiction as [string, string, ...string[]]}
           style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}
         />
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
           <View style={{ marginBottom: 24, zIndex: 1 }}>
-            <Text style={{ fontSize: 28, fontWeight: "800", color: theme.colors.text, marginBottom: 8 }}>
-              🚨 Addiction Risk Assessment
+            <Text style={{ fontSize: 28, color: theme.colors.text, marginBottom: 8, ...getHeadingFont() }}>
+              <MaterialCommunityIcons name="alert-circle" size={28} color={theme.colors.text} /> Addiction Risk Assessment
             </Text>
-            <Text style={{ fontSize: 13, color: theme.colors.text + "77", lineHeight: 20 }}>
+            <Text style={{ fontSize: 13, color: theme.colors.text + "77", lineHeight: 20, ...getBodyFont() }}>
               Understanding substance use patterns and severity
             </Text>
           </View>
 
           {addictionInfo ? (
-            <View style={{ backgroundColor: addictionInfo.bgColor, borderRadius: 24, padding: 24, marginBottom: 20, borderWidth: 3, borderColor: addictionInfo.color, elevation: 8, zIndex: 1 }}>
+            <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : addictionInfo.bgColor, borderRadius: 24, padding: 24, marginBottom: 20, borderWidth: 3, borderColor: addictionInfo.color, elevation: 8, zIndex: 1 }}>
               <View style={{ alignItems: "center", marginBottom: 20 }}>
-                <Text style={{ fontSize: 32, marginBottom: 12 }}>{addictionInfo.icon}</Text>
-                <Text style={{ fontSize: 20, fontWeight: "900", color: addictionInfo.color, marginBottom: 8 }}>
+                <View style={{ marginBottom: 12 }}>{renderIcon(addictionInfo.icon, 48)}</View>
+                <Text style={{ fontSize: 20, color: addictionInfo.color, marginBottom: 8, ...getHeadingFont() }}>
                   {addictionInfo.severity} Severity
                 </Text>
-                <Text style={{ fontSize: 12, color: theme.colors.text + "88", fontWeight: "600", marginBottom: 12 }}>
+                <Text style={{ fontSize: 12, color: theme.colors.text + "88", marginBottom: 12, ...getBodyBoldFont() }}>
                   {addictionInfo.criteria}
                 </Text>
-                <Text style={{ fontSize: 13, fontWeight: "700", color: addictionInfo.color, marginBottom: 8 }}>
+                <Text style={{ fontSize: 13, color: addictionInfo.color, marginBottom: 8, ...getSubHeadingFont() }}>
                   Duration: {getDurationMetrics(totalDuration)}
                 </Text>
               </View>
 
               {addictions.length > 0 && (
                 <View style={{ paddingTop: 16, borderTopWidth: 2, borderTopColor: addictionInfo.color + "44" }}>
-                  <Text style={{ fontSize: 11, fontWeight: "700", color: theme.colors.text, marginBottom: 12 }}>
-                    📋 Substance Tracking:
+                  <Text style={{ fontSize: 11, color: theme.colors.text, marginBottom: 12, ...getBodyBoldFont() }}>
+                    Substance Tracking:
                   </Text>
                   {addictions.map((add, idx) => (
-                    <View key={idx} style={{ marginBottom: 12, backgroundColor: "#fff" + "66", borderRadius: 10, padding: 10 }}>
+                    <View key={idx} style={{ marginBottom: 12, backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#F5F5F5', borderRadius: 10, padding: 10 }}>
                       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                        <Text style={{ fontSize: 12, color: theme.colors.text, fontWeight: "700" }}>
+                        <Text style={{ fontSize: 12, color: theme.colors.text, ...getBodyBoldFont() }}>
                           • {add.substance}
                         </Text>
-                        <Text style={{ fontSize: 10, fontWeight: "600", color: addictionInfo.color, backgroundColor: addictionInfo.color + "22", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4 }}>
+                        <Text style={{ fontSize: 10, color: addictionInfo.color, backgroundColor: addictionInfo.color + "22", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4, ...getBodyBoldFont() }}>
                           {add.severity.toUpperCase()}
                         </Text>
                       </View>
@@ -2930,10 +3071,10 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               )}
             </View>
           ) : (
-            <View style={{ backgroundColor: "#E8F5E9", borderRadius: 24, padding: 24, marginBottom: 20, borderWidth: 3, borderColor: "#4CAF50", elevation: 8, zIndex: 1 }}>
+            <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#E8F5E9', borderRadius: 24, padding: 24, marginBottom: 20, borderWidth: 3, borderColor: "#4CAF50", elevation: 8, zIndex: 1 }}>
               <View style={{ alignItems: "center" }}>
-                <Text style={{ fontSize: 32, marginBottom: 12 }}>✅</Text>
-                <Text style={{ fontSize: 18, fontWeight: "700", color: "#4CAF50", marginBottom: 8 }}>
+                <MaterialCommunityIcons name="check-circle" size={32} color="#4CAF50" style={{ marginBottom: 12 }} />
+                <Text style={{ fontSize: 18, color: "#4CAF50", marginBottom: 8, ...getHeadingFont() }}>
                   No Addiction Risk
                 </Text>
                 <Text style={{ fontSize: 12, color: theme.colors.text + "88" }}>
@@ -2946,15 +3087,15 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
           {/* Duration Scale */}
           {addictions.length > 0 && (
             <View style={{ marginBottom: 20, zIndex: 1 }}>
-              <Text style={{ fontSize: 13, fontWeight: "700", color: theme.colors.text, marginBottom: 10 }}>
-                📊 Duration Categories
+              <Text style={{ fontSize: 13, color: theme.colors.text, marginBottom: 10, ...getSubHeadingFont() }}>
+                Duration Categories
               </Text>
-              <View style={{ backgroundColor: "#fff" + "88", borderRadius: 12, overflow: "hidden", elevation: 2 }}>
+              <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FFFFFF', borderRadius: 12, overflow: "hidden", elevation: 2 }}>
                 {/* Header */}
                 <View style={{ flexDirection: "row", backgroundColor: "#FF9800" + "33", paddingHorizontal: 10, paddingVertical: 10, borderBottomWidth: 2, borderBottomColor: "#FF9800" }}>
-                  <Text style={{ flex: 1.5, fontSize: 10, fontWeight: "700", color: theme.colors.text, textTransform: "uppercase" }}>Duration Stage</Text>
-                  <Text style={{ flex: 1, fontSize: 10, fontWeight: "700", color: theme.colors.text, textTransform: "uppercase" }}>Status</Text>
-                  <Text style={{ flex: 1.2, fontSize: 10, fontWeight: "700", color: theme.colors.text, textTransform: "uppercase" }}>Concern Level</Text>
+                  <Text style={{ flex: 1.5, fontSize: 10, color: theme.colors.text, textTransform: "uppercase", ...getBodyBoldFont() }}>Duration Stage</Text>
+                  <Text style={{ flex: 1, fontSize: 10, color: theme.colors.text, textTransform: "uppercase", ...getBodyBoldFont() }}>Status</Text>
+                  <Text style={{ flex: 1.2, fontSize: 10, color: theme.colors.text, textTransform: "uppercase", ...getBodyBoldFont() }}>Concern Level</Text>
                 </View>
                 {/* Rows */}
                 {[
@@ -2965,9 +3106,9 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                   { range: "> 1 year", status: "Chronic", level: "High" },
                 ].map((item, idx) => (
                   <View key={idx} style={{ flexDirection: "row", paddingHorizontal: 10, paddingVertical: 10, borderBottomWidth: idx < 4 ? 1 : 0, borderBottomColor: "#FF9800" + "22", backgroundColor: idx % 2 === 0 ? "transparent" : "#FF9800" + "11" }}>
-                    <Text style={{ flex: 1.5, fontSize: 10, fontWeight: "600", color: theme.colors.text }}>{item.range}</Text>
-                    <Text style={{ flex: 1, fontSize: 10, fontWeight: "500", color: theme.colors.text + "88" }}>{item.status}</Text>
-                    <Text style={{ flex: 1.2, fontSize: 10, fontWeight: "600", color: item.level === "High" ? "#F44336" : item.level === "Medium" ? "#FF9800" : "#4CAF50" }}>{item.level}</Text>
+                    <Text style={{ flex: 1.5, fontSize: 10, color: theme.colors.text, ...getBodyBoldFont() }}>{item.range}</Text>
+                    <Text style={{ flex: 1, fontSize: 10, color: theme.colors.text + "88", ...getBodyFont() }}>{item.status}</Text>
+                    <Text style={{ flex: 1.2, fontSize: 10, color: item.level === "High" ? "#F44336" : item.level === "Medium" ? "#FF9800" : "#4CAF50", ...getBodyBoldFont() }}>{item.level}</Text>
                   </View>
                 ))}
               </View>
@@ -2976,16 +3117,19 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
 
           {/* Addiction Severity Criteria */}
           <View style={{ marginBottom: 20, zIndex: 1 }}>
-            <Text style={{ fontSize: 13, fontWeight: "700", color: theme.colors.text, marginBottom: 10 }}>
-              📊 Addiction Severity Levels
+            <Text style={{ fontSize: 13, color: theme.colors.text, marginBottom: 10, ...getSubHeadingFont() }}>
+              Addiction Severity Levels
             </Text>
             {ADDICTION_CRITERIA.map((criterion, idx) => (
-              <View key={idx} style={{ backgroundColor: criterion.bgColor, borderRadius: 12, padding: 12, marginBottom: 10, borderLeftWidth: 4, borderLeftColor: criterion.color }}>
+              <View key={idx} style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : criterion.bgColor, borderRadius: 12, padding: 12, marginBottom: 10, borderLeftWidth: 4, borderLeftColor: criterion.color }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                  <Text style={{ fontSize: 12, fontWeight: "700", color: criterion.color }}>
-                    {criterion.icon} {criterion.severity}
-                  </Text>
-                  <Text style={{ fontSize: 10, fontWeight: "700", color: theme.colors.text }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    {renderIcon(criterion.icon, 14)}
+                    <Text style={{ fontSize: 12, color: criterion.color, ...getBodyBoldFont() }}>
+                      {criterion.severity}
+                    </Text>
+                  </View>
+                  <Text style={{ fontSize: 10, color: theme.colors.text, ...getBodyBoldFont() }}>
                     {criterion.criteria}
                   </Text>
                 </View>
@@ -3000,11 +3144,11 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             ))}
           </View>
 
-          <View style={{ backgroundColor: "#fff" + "99", borderRadius: 16, padding: 16, marginBottom: 20, borderLeftWidth: 5, borderLeftColor: "#FF6F00", zIndex: 1 }}>
-            <Text style={{ fontSize: 13, fontWeight: "700", color: theme.colors.text, marginBottom: 8 }}>
-              📞 Need Help?
+          <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : "#fff" + "99", borderRadius: 16, padding: 16, marginBottom: 20, borderLeftWidth: 5, borderLeftColor: "#FF6F00", zIndex: 1 }}>
+            <Text style={{ fontSize: 13, color: theme.colors.text, marginBottom: 8, ...getSubHeadingFont() }}>
+              <MaterialCommunityIcons name="phone" size={13} color={theme.colors.text} /> Need Help?
             </Text>
-            <Text style={{ fontSize: 12, color: theme.colors.text + "99", lineHeight: 18, fontWeight: "500" }}>
+            <Text style={{ fontSize: 12, color: theme.colors.text + "88", lineHeight: 18, ...getBodyFont() }}>
               If you or someone you know is struggling with substance use, please reach out to a healthcare provider or addiction specialist for professional support.
             </Text>
           </View>
@@ -3013,8 +3157,8 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
           {renderChecklist()}
 
           <View style={{ zIndex: 1 }}>
-            <Text style={{ fontSize: 12, fontWeight: "700", color: theme.colors.text, marginBottom: 10 }}>
-              📚 Scientific References
+            <Text style={{ fontSize: 12, color: theme.colors.text, marginBottom: 10, ...getBodyBoldFont() }}>
+              <MaterialCommunityIcons name="book-open-variant" size={12} color={theme.colors.text} /> Scientific References
             </Text>
             {ADDICTION_SCIENTIFIC_REFERENCES.map((ref) => (
               <TouchableOpacity
@@ -3022,10 +3166,10 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 onPress={() => Linking.openURL(ref.url)}
                 style={{ backgroundColor: "#fff" + "88", borderRadius: 10, padding: 12, borderLeftWidth: 4, borderLeftColor: theme.colors.primary, marginBottom: 8 }}
               >
-                <Text style={{ fontSize: 10, fontWeight: "700", color: theme.colors.primary, marginBottom: 4, textDecorationLine: "underline" }}>
-                  🔗 {ref.title}
+                <Text style={{ fontSize: 10, color: theme.colors.primary, marginBottom: 4, textDecorationLine: "underline", ...getBodyBoldFont() }}>
+                  Reference: {ref.title}
                 </Text>
-                <Text style={{ fontSize: 9, color: theme.colors.text + "88", lineHeight: 14 }}>
+                <Text style={{ fontSize: 9, color: theme.colors.text + "88", lineHeight: 14, ...getBodyFont() }}>
                   {ref.description}
                 </Text>
               </TouchableOpacity>
@@ -3043,31 +3187,34 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
     return (
       <View style={{ width: singleView ? "100%" : screenWidth, paddingHorizontal: 16, paddingVertical: 24, flex: 1 }}>
         <LinearGradient
-          colors={stressInfo.level.includes("High") ? ["#FFEBEE", "#FFCDD2", "#EF9A9A"] : stressInfo.level.includes("Moderate") ? ["#FFF3E0", "#FFE0B2", "#FFCC80"] : ["#E8F5E9", "#C8E6C9", "#A5D6A7"]}
+          colors={theme.gradients.stress as [string, string, ...string[]]}
           style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}
         />
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
           <View style={{ marginBottom: 24, zIndex: 1 }}>
-            <Text style={{ fontSize: 28, fontWeight: "800", color: theme.colors.text, marginBottom: 8 }}>
-              {stressInfo.icon} Perceived Stress Level
-            </Text>
-            <Text style={{ fontSize: 13, color: theme.colors.text + "77", lineHeight: 20 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 8 }}>
+              {renderIcon(stressInfo.icon, 28)}
+              <Text style={{ fontSize: 28, color: theme.colors.text, ...getHeadingFont() }}>
+                Perceived Stress Level
+              </Text>
+            </View>
+            <Text style={{ fontSize: 13, color: theme.colors.text + "77", lineHeight: 20, ...getBodyFont() }}>
               Based on Perceived Stress Scale (PSS) Assessment
             </Text>
           </View>
 
           {/* Stress Status Card */}
-          <View style={{ backgroundColor: stressInfo.bgColor, borderRadius: 24, padding: 24, marginBottom: 20, borderWidth: 3, borderColor: stressInfo.color, elevation: 8, zIndex: 1 }}>
+          <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : stressInfo.bgColor, borderRadius: 24, padding: 24, marginBottom: 20, borderWidth: 3, borderColor: stressInfo.color, elevation: 8, zIndex: 1 }}>
             <View style={{ alignItems: "center", marginBottom: 20 }}>
-              <Text style={{ fontSize: 32, marginBottom: 12 }}>{stressInfo.icon}</Text>
-              <Text style={{ fontSize: 18, fontWeight: "700", color: stressInfo.color, marginBottom: 8 }}>
+              <View style={{ marginBottom: 12 }}>{renderIcon(stressInfo.icon, 48)}</View>
+              <Text style={{ fontSize: 18, color: stressInfo.color, marginBottom: 8, ...getHeadingFont() }}>
                 {stressInfo.level}
               </Text>
-              <Text style={{ fontSize: 12, color: theme.colors.text + "88", marginBottom: 12, fontWeight: "600" }}>
+              <Text style={{ fontSize: 12, color: theme.colors.text + "88", marginBottom: 12, ...getBodyBoldFont() }}>
                 Score: {stressInfo.range}
               </Text>
-              <Text style={{ fontSize: 12, color: theme.colors.text + "99", lineHeight: 18 }}>
+              <Text style={{ fontSize: 12, color: theme.colors.text + "88", lineHeight: 18, ...getBodyFont() }}>
                 {stressInfo.description}
               </Text>
             </View>
@@ -3075,15 +3222,15 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
 
           {/* Stress Assessment Questionnaire */}
           <View style={{ marginBottom: 20, zIndex: 1 }}>
-            <Text style={{ fontSize: 13, fontWeight: "700", color: theme.colors.text, marginBottom: 12 }}>
-              📋 Perceived Stress Scale Questions
+            <Text style={{ fontSize: 13, color: theme.colors.text, marginBottom: 12, ...getSubHeadingFont() }}>
+              Perceived Stress Scale Questions
             </Text>
-            <Text style={{ fontSize: 11, color: theme.colors.text + "88", marginBottom: 12, fontStyle: "italic" }}>
+            <Text style={{ fontSize: 11, color: theme.colors.text + "88", marginBottom: 12, ...getBodyFont() }}>
               Rate each question on how often you felt or behaved this way during the past month (0-4 scale)
             </Text>
             {STRESS_QUESTIONNAIRE.map((q, idx) => (
-              <View key={idx} style={{ backgroundColor: "#fff" + "88", borderRadius: 12, padding: 12, marginBottom: 10, borderLeftWidth: 4, borderLeftColor: stressInfo.color }}>
-                <Text style={{ fontSize: 12, fontWeight: "700", color: theme.colors.text, marginBottom: 10 }}>
+              <View key={idx} style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : "#fff" + "88", borderRadius: 12, padding: 12, marginBottom: 10, borderLeftWidth: 4, borderLeftColor: stressInfo.color }}>
+                <Text style={{ fontSize: 12, color: theme.colors.text, marginBottom: 10, ...getBodyBoldFont() }}>
                   {idx + 1}. {q.question}
                 </Text>
                 <View style={{ gap: 6 }}>
@@ -3098,12 +3245,12 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
           </View>
 
           {/* Recommendations */}
-          <View style={{ backgroundColor: "#fff" + "99", borderRadius: 16, padding: 16, marginBottom: 20, borderLeftWidth: 5, borderLeftColor: stressInfo.color, zIndex: 1 }}>
-            <Text style={{ fontSize: 13, fontWeight: "700", color: theme.colors.text, marginBottom: 10 }}>
-              ⭐ Recommendations
+          <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 20, borderLeftWidth: 5, borderLeftColor: stressInfo.color, zIndex: 1 }}>
+            <Text style={{ fontSize: 13, color: theme.colors.text, marginBottom: 10, ...getSubHeadingFont() }}>
+              <MaterialCommunityIcons name="star" size={14} color={theme.colors.text} /> Recommendations
             </Text>
             {stressInfo.recommendations.map((rec, idx) => (
-              <Text key={idx} style={{ fontSize: 11, color: theme.colors.text + "99", marginBottom: 8, lineHeight: 16 }}>
+              <Text key={idx} style={{ fontSize: 11, color: theme.colors.text + "88", marginBottom: 8, lineHeight: 16 }}>
                 • {rec}
               </Text>
             ))}
@@ -3111,16 +3258,19 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
 
           {/* Stress Levels Reference */}
           <View style={{ marginBottom: 20, zIndex: 1 }}>
-            <Text style={{ fontSize: 13, fontWeight: "700", color: theme.colors.text, marginBottom: 10 }}>
-              📊 Stress Level Categories
+            <Text style={{ fontSize: 13, color: theme.colors.text, marginBottom: 10, ...getSubHeadingFont() }}>
+              Stress Level Categories
             </Text>
             {STRESS_LEVELS.map((level, idx) => (
-              <View key={idx} style={{ backgroundColor: level.bgColor, borderRadius: 12, padding: 12, marginBottom: 10, borderLeftWidth: 4, borderLeftColor: level.color }}>
+              <View key={idx} style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : level.bgColor, borderRadius: 12, padding: 12, marginBottom: 10, borderLeftWidth: 4, borderLeftColor: level.color }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <Text style={{ fontSize: 12, fontWeight: "700", color: level.color }}>
-                    {level.icon} {level.level}
-                  </Text>
-                  <Text style={{ fontSize: 10, fontWeight: "700", color: theme.colors.text, backgroundColor: level.color + "22", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    {renderIcon(level.icon, 14)}
+                    <Text style={{ fontSize: 12, color: level.color, ...getBodyBoldFont() }}>
+                      {level.level}
+                    </Text>
+                  </View>
+                  <Text style={{ fontSize: 10, color: theme.colors.text, backgroundColor: level.color + "22", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4, ...getBodyBoldFont() }}>
                     {level.range}
                   </Text>
                 </View>
@@ -3136,8 +3286,8 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
 
           {/* Scientific References */}
           <View style={{ zIndex: 1 }}>
-            <Text style={{ fontSize: 12, fontWeight: "700", color: theme.colors.text, marginBottom: 10 }}>
-              📚 Scientific References
+            <Text style={{ fontSize: 12, color: theme.colors.text, marginBottom: 10, ...getBodyBoldFont() }}>
+              <MaterialCommunityIcons name="book-open-variant" size={12} color={theme.colors.text} /> Scientific References
             </Text>
             {STRESS_SCIENTIFIC_REFERENCES.map((ref) => (
               <TouchableOpacity
@@ -3145,10 +3295,10 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 onPress={() => Linking.openURL(ref.url)}
                 style={{ backgroundColor: "#fff" + "88", borderRadius: 10, padding: 12, borderLeftWidth: 4, borderLeftColor: theme.colors.primary, marginBottom: 8 }}
               >
-                <Text style={{ fontSize: 10, fontWeight: "700", color: theme.colors.primary, marginBottom: 4, textDecorationLine: "underline" }}>
-                  🔗 {ref.title}
+                <Text style={{ fontSize: 10, color: theme.colors.primary, marginBottom: 4, textDecorationLine: "underline", ...getBodyBoldFont() }}>
+                  Reference: {ref.title}
                 </Text>
-                <Text style={{ fontSize: 9, color: theme.colors.text + "88", lineHeight: 14 }}>
+                <Text style={{ fontSize: 9, color: theme.colors.text + "88", lineHeight: 14, ...getBodyFont() }}>
                   {ref.description}
                 </Text>
               </TouchableOpacity>
@@ -3177,34 +3327,34 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
     return (
       <View style={{ width: singleView ? "100%" : screenWidth, paddingHorizontal: 16, paddingVertical: 24, flex: 1 }}>
         <LinearGradient
-          colors={["#E8F5E9", "#C8E6C9", "#A5D6A7"]}
+          colors={theme.gradients.dietary as [string, string, ...string[]]}
           style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}
         />
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
           <View style={{ marginBottom: 24, zIndex: 1 }}>
-            <Text style={{ fontSize: 28, fontWeight: "800", color: theme.colors.text, marginBottom: 8 }}>
-              🍽️ Dietary Profile
+            <Text style={{ fontSize: 28, color: theme.colors.text, marginBottom: 8, ...getHeadingFont() }}>
+              <MaterialCommunityIcons name="silverware-fork-knife" size={20} color={theme.colors.text} /> Dietary Profile
             </Text>
-            <Text style={{ fontSize: 13, color: theme.colors.text + "77", lineHeight: 20 }}>
+            <Text style={{ fontSize: 13, color: theme.colors.text + "77", lineHeight: 20, ...getBodyFont() }}>
               Your nutrition preferences, allergies, and eating patterns
             </Text>
           </View>
 
           {/* Meal Frequency Card */}
-          <View style={{ backgroundColor: mealInfo.bgColor, borderRadius: 24, padding: 24, marginBottom: 20, borderWidth: 3, borderColor: mealInfo.color, elevation: 8, zIndex: 1 }}>
+          <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : mealInfo.bgColor, borderRadius: 24, padding: 24, marginBottom: 20, borderWidth: 3, borderColor: mealInfo.color, elevation: 8, zIndex: 1 }}>
             <View style={{ alignItems: "center", marginBottom: 20 }}>
-              <Text style={{ fontSize: 32, marginBottom: 12 }}>🍴</Text>
-              <Text style={{ fontSize: 16, color: theme.colors.text + "88", marginBottom: 8, fontWeight: "600", textTransform: "uppercase", letterSpacing: 1 }}>
-                Meal Frequency
+              <MaterialCommunityIcons name="silverware-fork-knife" size={28} color={theme.colors.text} style={{ marginBottom: 12 }} />
+              <Text style={{ fontSize: 16, color: theme.colors.text + "88", marginBottom: 8, textTransform: "uppercase", letterSpacing: 1, ...getBodyBoldFont() }}>
+                Your Meal Frequency
               </Text>
-              <Text style={{ fontSize: 20, fontWeight: "700", color: mealInfo.color, marginBottom: 8 }}>
+              <Text style={{ fontSize: 20, color: mealInfo.color, marginBottom: 8, ...getHeadingFont() }}>
                 {mealFrequency} meals/day
               </Text>
-              <Text style={{ fontSize: 12, fontWeight: "600", color: mealInfo.color, marginBottom: 12, textTransform: "uppercase" }}>
+              <Text style={{ fontSize: 12, color: mealInfo.color, marginBottom: 12, textTransform: "uppercase", ...getBodyBoldFont() }}>
                 {mealInfo.status}
               </Text>
-              <Text style={{ fontSize: 11, color: theme.colors.text + "88", lineHeight: 16 }}>
+              <Text style={{ fontSize: 11, color: theme.colors.text + "88", lineHeight: 16, ...getBodyFont() }}>
                 {mealInfo.impact}
               </Text>
             </View>
@@ -3213,18 +3363,18 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
           {/* Dietary Preferences */}
           {preferences.length > 0 && (
             <View style={{ marginBottom: 20, zIndex: 1 }}>
-              <Text style={{ fontSize: 13, fontWeight: "700", color: theme.colors.text, marginBottom: 10 }}>
-                📋 Dietary Preferences
+              <Text style={{ fontSize: 13, color: theme.colors.text, marginBottom: 10, ...getSubHeadingFont() }}>
+                Dietary Preferences
               </Text>
               <View style={{ gap: 10 }}>
                 {preferences.map((pref, idx) => {
                   const prefInfo = DIETARY_PREFERENCES_INFO.find(p => p.preference.toLowerCase().includes(pref.toLowerCase()));
                   return (
                     <View key={idx} style={{ backgroundColor: "#fff" + "88", borderRadius: 12, padding: 12, borderLeftWidth: 4, borderLeftColor: "#4CAF50" }}>
-                      <Text style={{ fontSize: 12, fontWeight: "700", color: theme.colors.text, marginBottom: 4 }}>
+                      <Text style={{ fontSize: 12, color: theme.colors.text, marginBottom: 4, ...getBodyBoldFont() }}>
                         {prefInfo?.preference || pref}
                       </Text>
-                      <Text style={{ fontSize: 10, color: theme.colors.text + "88" }}>
+                      <Text style={{ fontSize: 10, color: theme.colors.text + "88", ...getBodyFont() }}>
                         {prefInfo?.description}
                       </Text>
                     </View>
@@ -3237,14 +3387,14 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
           {/* Allergies */}
           {allergies.length > 0 && (
             <View style={{ marginBottom: 20, zIndex: 1 }}>
-              <Text style={{ fontSize: 13, fontWeight: "700", color: theme.colors.text, marginBottom: 10 }}>
-                ⚠️ Food Allergies
+              <Text style={{ fontSize: 13, color: theme.colors.text, marginBottom: 10, ...getSubHeadingFont() }}>
+                Food Allergies
               </Text>
               <View style={{ gap: 8 }}>
                 {allergies.map((allergy, idx) => (
-                  <View key={idx} style={{ backgroundColor: "#FFEBEE", borderRadius: 10, padding: 10, marginBottom: 8, borderLeftWidth: 4, borderLeftColor: "#F44336", flexDirection: "row", alignItems: "center", gap: 8 }}>
-                    <Text style={{ fontSize: 16 }}>⚠️</Text>
-                    <Text style={{ fontSize: 12, fontWeight: "600", color: theme.colors.text, flex: 1 }}>
+                  <View key={idx} style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : "#FFEBEE", borderRadius: 10, padding: 10, marginBottom: 8, borderLeftWidth: 4, borderLeftColor: "#F44336", flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <MaterialCommunityIcons name="alert-circle" size={16} color="#F44336" />
+                    <Text style={{ fontSize: 12, color: theme.colors.text, flex: 1, ...getBodyBoldFont() }}>
                       {allergy}
                     </Text>
                   </View>
@@ -3255,42 +3405,42 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
 
           {/* Meal Frequency Guidelines Table */}
           <View style={{ marginBottom: 20, zIndex: 1 }}>
-            <Text style={{ fontSize: 13, fontWeight: "700", color: theme.colors.text, marginBottom: 10 }}>
-              📊 Meal Frequency Guidelines
+            <Text style={{ fontSize: 13, color: theme.colors.text, marginBottom: 10, ...getSubHeadingFont() }}>
+              Meal Frequency Guidelines
             </Text>
-            <View style={{ backgroundColor: "#fff" + "88", borderRadius: 12, overflow: "hidden", elevation: 2 }}>
+            <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : "#fff" + "88", borderRadius: 12, overflow: "hidden", elevation: 2 }}>
               {/* Header */}
               <View style={{ flexDirection: "row", backgroundColor: "#4CAF50" + "33", paddingHorizontal: 10, paddingVertical: 10, borderBottomWidth: 2, borderBottomColor: "#4CAF50" }}>
-                <Text style={{ flex: 1.2, fontSize: 9, fontWeight: "700", color: theme.colors.text, textTransform: "uppercase" }}>Frequency</Text>
-                <Text style={{ flex: 1, fontSize: 9, fontWeight: "700", color: theme.colors.text, textTransform: "uppercase" }}>Status</Text>
-                <Text style={{ flex: 1.3, fontSize: 9, fontWeight: "700", color: theme.colors.text, textTransform: "uppercase" }}>Impact</Text>
+                <Text style={{ flex: 1.2, fontSize: 9, color: theme.colors.text, textTransform: "uppercase", ...getBodyBoldFont() }}>Frequency</Text>
+                <Text style={{ flex: 1, fontSize: 9, color: theme.colors.text, textTransform: "uppercase", ...getBodyBoldFont() }}>Status</Text>
+                <Text style={{ flex: 1.3, fontSize: 9, color: theme.colors.text, textTransform: "uppercase", ...getBodyBoldFont() }}>Impact</Text>
               </View>
               {/* Rows */}
               {MEAL_FREQUENCY_GUIDELINES.map((guideline, idx) => (
                 <View key={idx} style={{ flexDirection: "row", paddingHorizontal: 10, paddingVertical: 10, borderBottomWidth: idx < MEAL_FREQUENCY_GUIDELINES.length - 1 ? 1 : 0, borderBottomColor: "#4CAF50" + "22", backgroundColor: idx % 2 === 0 ? "transparent" : "#4CAF50" + "11" }}>
-                  <Text style={{ flex: 1.2, fontSize: 10, fontWeight: "600", color: theme.colors.text }}>{guideline.frequency}</Text>
-                  <Text style={{ flex: 1, fontSize: 9, fontWeight: "600", color: guideline.color }}>{guideline.status}</Text>
-                  <Text style={{ flex: 1.3, fontSize: 9, color: theme.colors.text + "88", lineHeight: 13 }}>{guideline.impact}</Text>
+                  <Text style={{ flex: 1.2, fontSize: 10, color: theme.colors.text, ...getBodyBoldFont() }}>{guideline.frequency}</Text>
+                  <Text style={{ flex: 1, fontSize: 9, color: guideline.color, ...getBodyBoldFont() }}>{guideline.status}</Text>
+                  <Text style={{ flex: 1.3, fontSize: 9, color: theme.colors.text + "88", lineHeight: 13, ...getBodyFont() }}>{guideline.impact}</Text>
                 </View>
               ))}
             </View>
           </View>
 
           {/* Nutrition Tips */}
-          <View style={{ backgroundColor: "#fff" + "99", borderRadius: 16, padding: 16, marginBottom: 20, borderLeftWidth: 5, borderLeftColor: "#4CAF50", zIndex: 1 }}>
-            <Text style={{ fontSize: 13, fontWeight: "700", color: theme.colors.text, marginBottom: 10 }}>
-              ⭐ Nutrition Recommendations
+          <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 20, borderLeftWidth: 5, borderLeftColor: "#4CAF50", zIndex: 1 }}>
+            <Text style={{ fontSize: 13, color: theme.colors.text, marginBottom: 10, ...getSubHeadingFont() }}>
+              <MaterialCommunityIcons name="star" size={14} color={theme.colors.text} /> Nutrition Recommendations
             </Text>
-            <Text style={{ fontSize: 11, color: theme.colors.text + "99", marginBottom: 8, lineHeight: 16 }}>
+            <Text style={{ fontSize: 11, color: theme.colors.text + "88", marginBottom: 8, lineHeight: 16 }}>
               • Maintain consistent meal schedule for better metabolism
             </Text>
-            <Text style={{ fontSize: 11, color: theme.colors.text + "99", marginBottom: 8, lineHeight: 16 }}>
+            <Text style={{ fontSize: 11, color: theme.colors.text + "88", marginBottom: 8, lineHeight: 16 }}>
               • Eat balanced meals with proteins, carbs, and healthy fats
             </Text>
-            <Text style={{ fontSize: 11, color: theme.colors.text + "99", marginBottom: 8, lineHeight: 16 }}>
+            <Text style={{ fontSize: 11, color: theme.colors.text + "88", marginBottom: 8, lineHeight: 16 }}>
               • Include fruits and vegetables in each meal
             </Text>
-            <Text style={{ fontSize: 11, color: theme.colors.text + "99", lineHeight: 16 }}>
+            <Text style={{ fontSize: 11, color: theme.colors.text + "88", lineHeight: 16 }}>
               • Stay hydrated and limit sugary drinks
             </Text>
           </View>
@@ -3300,8 +3450,8 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
 
           {/* Scientific References */}
           <View style={{ zIndex: 1 }}>
-            <Text style={{ fontSize: 12, fontWeight: "700", color: theme.colors.text, marginBottom: 10 }}>
-              📚 Scientific References
+            <Text style={{ fontSize: 12, color: theme.colors.text, marginBottom: 10, ...getBodyBoldFont() }}>
+              <MaterialCommunityIcons name="book-open-variant" size={12} color={theme.colors.text} /> Scientific References
             </Text>
             {DIETARY_SCIENTIFIC_REFERENCES.map((ref) => (
               <TouchableOpacity
@@ -3309,10 +3459,10 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 onPress={() => Linking.openURL(ref.url)}
                 style={{ backgroundColor: "#fff" + "88", borderRadius: 10, padding: 12, borderLeftWidth: 4, borderLeftColor: theme.colors.primary, marginBottom: 8 }}
               >
-                <Text style={{ fontSize: 10, fontWeight: "700", color: theme.colors.primary, marginBottom: 4, textDecorationLine: "underline" }}>
-                  🔗 {ref.title}
+                <Text style={{ fontSize: 10, color: theme.colors.primary, marginBottom: 4, textDecorationLine: "underline", ...getBodyBoldFont() }}>
+                  Reference: {ref.title}
                 </Text>
-                <Text style={{ fontSize: 9, color: theme.colors.text + "88", lineHeight: 14 }}>
+                <Text style={{ fontSize: 9, color: theme.colors.text + "88", lineHeight: 14, ...getBodyFont() }}>
                   {ref.description}
                 </Text>
               </TouchableOpacity>
@@ -3334,37 +3484,37 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
     return (
       <View style={{ width: singleView ? "100%" : screenWidth, paddingHorizontal: 16, paddingVertical: 24, flex: 1 }}>
         <LinearGradient
-          colors={["#F3E5F5", "#E1BEE7", "#CE93D8"]}
+          colors={theme.gradients.health as [string, string, ...string[]]}
           style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}
         />
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
           <View style={{ marginBottom: 24, zIndex: 1 }}>
-            <Text style={{ fontSize: 28, fontWeight: "800", color: theme.colors.text, marginBottom: 8 }}>
-              🏥 Health Status
+            <Text style={{ fontSize: 28, color: theme.colors.text, marginBottom: 8, ...getHeadingFont() }}>
+              Health Status
             </Text>
-            <Text style={{ fontSize: 13, color: theme.colors.text + "77", lineHeight: 20 }}>
+            <Text style={{ fontSize: 13, color: theme.colors.text + "77", lineHeight: 20, ...getBodyFont() }}>
               Your medical profile, conditions, and family history
             </Text>
           </View>
 
           {/* Blood Type Card */}
           {bloodType !== "Unknown" && (
-            <View style={{ backgroundColor: "#FCE4EC", borderRadius: 24, padding: 24, marginBottom: 20, borderWidth: 3, borderColor: "#C2185B", elevation: 8, zIndex: 1 }}>
+            <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : "#FCE4EC", borderRadius: 24, padding: 24, marginBottom: 20, borderWidth: 3, borderColor: "#C2185B", elevation: 8, zIndex: 1 }}>
               <View style={{ alignItems: "center", marginBottom: 16 }}>
-                <Text style={{ fontSize: 32, marginBottom: 12 }}>🩸</Text>
-                <Text style={{ fontSize: 16, color: theme.colors.text + "88", marginBottom: 8, fontWeight: "600", textTransform: "uppercase", letterSpacing: 1 }}>
+                <MaterialCommunityIcons name="blood-bag" size={32} color="#C2185B" />
+                <Text style={{ fontSize: 16, color: theme.colors.text + "88", marginBottom: 8, textTransform: "uppercase", letterSpacing: 1, ...getBodyBoldFont() }}>
                   Blood Type
                 </Text>
-                <Text style={{ fontSize: 28, fontWeight: "900", color: "#C2185B", marginBottom: 8 }}>
+                <Text style={{ fontSize: 28, color: "#C2185B", marginBottom: 8, ...getHeadingFont() }}>
                   {bloodType}
                 </Text>
                 {bloodTypeData && (
                   <>
-                    <Text style={{ fontSize: 12, fontWeight: "600", color: theme.colors.text, marginBottom: 8 }}>
+                    <Text style={{ fontSize: 12, color: theme.colors.text, marginBottom: 8, ...getBodyBoldFont() }}>
                       {bloodTypeData.antigen}
                     </Text>
-                    <Text style={{ fontSize: 11, color: theme.colors.text + "88", lineHeight: 16 }}>
+                    <Text style={{ fontSize: 11, color: theme.colors.text + "88", lineHeight: 16, ...getBodyFont() }}>
                       {bloodTypeData.description}
                     </Text>
                   </>
@@ -3376,18 +3526,18 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
           {/* Current Conditions */}
           {currentConditions.length > 0 && (
             <View style={{ marginBottom: 20, zIndex: 1 }}>
-              <Text style={{ fontSize: 13, fontWeight: "700", color: theme.colors.text, marginBottom: 10 }}>
-                ⚕️ Current Conditions
+              <Text style={{ fontSize: 13, color: theme.colors.text, marginBottom: 10, ...getSubHeadingFont() }}>
+                <MaterialCommunityIcons name="stethoscope" size={13} color={theme.colors.text} /> Current Conditions
               </Text>
               {currentConditions.map((condition, idx) => {
                 const condInfo = HEALTH_CONDITIONS_INFO.find(c => c.condition.toLowerCase() === condition.toLowerCase());
                 return (
-                  <View key={idx} style={{ backgroundColor: "#fff" + "88", borderRadius: 12, padding: 12, marginBottom: 10, borderLeftWidth: 4, borderLeftColor: condInfo?.color || "#FF5722" }}>
-                    <Text style={{ fontSize: 12, fontWeight: "700", color: theme.colors.text, marginBottom: 4 }}>
+                  <View key={idx} style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : "#fff" + "88", borderRadius: 12, padding: 12, marginBottom: 10, borderLeftWidth: 4, borderLeftColor: condInfo?.color || "#FF5722" }}>
+                    <Text style={{ fontSize: 12, color: theme.colors.text, marginBottom: 4, ...getBodyBoldFont() }}>
                       • {condition}
                     </Text>
                     {condInfo && (
-                      <Text style={{ fontSize: 10, color: theme.colors.text + "88" }}>
+                      <Text style={{ fontSize: 10, color: theme.colors.text + "88", ...getBodyFont() }}>
                         {condInfo.impact}
                       </Text>
                     )}
@@ -3400,20 +3550,23 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
           {/* Family History */}
           {familyHistory.length > 0 && (
             <View style={{ marginBottom: 20, zIndex: 1 }}>
-              <Text style={{ fontSize: 13, fontWeight: "700", color: theme.colors.text, marginBottom: 10 }}>
-                👨‍👩‍👧‍👦 Family History
+              <Text style={{ fontSize: 13, color: theme.colors.text, marginBottom: 10, ...getSubHeadingFont() }}>
+                <MaterialCommunityIcons name="account-multiple" size={20} color={theme.colors.text} /> Family History
               </Text>
               {familyHistory.map((history, idx) => {
                 const historyInfo = FAMILY_HISTORY_INFO.find(h => h.history.toLowerCase() === history.toLowerCase());
                 return (
-                  <View key={idx} style={{ backgroundColor: "#fff" + "88", borderRadius: 12, padding: 12, marginBottom: 10, borderLeftWidth: 4, borderLeftColor: historyInfo?.color || "#FF5722" }}>
-                    <Text style={{ fontSize: 12, fontWeight: "700", color: theme.colors.text, marginBottom: 4 }}>
+                  <View key={idx} style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : "#fff" + "88", borderRadius: 12, padding: 12, marginBottom: 10, borderLeftWidth: 4, borderLeftColor: historyInfo?.color || "#FF5722" }}>
+                    <Text style={{ fontSize: 12, color: theme.colors.text, marginBottom: 4, ...getBodyBoldFont() }}>
                       • {history}
                     </Text>
                     {historyInfo && (
-                      <Text style={{ fontSize: 10, color: theme.colors.text + "88" }}>
-                        ⚠️ {historyInfo.risk}
-                      </Text>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                        <MaterialCommunityIcons name="alert-circle" size={10} color={theme.colors.text + "88"} />
+                        <Text style={{ fontSize: 10, color: theme.colors.text + "88", ...getBodyFont() }}>
+                          {historyInfo.risk}
+                        </Text>
+                      </View>
                     )}
                   </View>
                 );
@@ -3424,13 +3577,13 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
           {/* Medications */}
           {medications.length > 0 && (
             <View style={{ marginBottom: 20, zIndex: 1 }}>
-              <Text style={{ fontSize: 13, fontWeight: "700", color: theme.colors.text, marginBottom: 10 }}>
-                💊 Current Medications
+              <Text style={{ fontSize: 13, color: theme.colors.text, marginBottom: 10, ...getSubHeadingFont() }}>
+                <MaterialCommunityIcons name="pill" size={13} color={theme.colors.text} /> Current Medications
               </Text>
               {medications.map((medication, idx) => (
-                <View key={idx} style={{ backgroundColor: "#E3F2FD", borderRadius: 10, padding: 10, marginBottom: 8, borderLeftWidth: 4, borderLeftColor: "#2196F3", flexDirection: "row", alignItems: "center", gap: 8 }}>
-                  <Text style={{ fontSize: 16 }}>💊</Text>
-                  <Text style={{ fontSize: 12, fontWeight: "600", color: theme.colors.text, flex: 1 }}>
+                <View key={idx} style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : "#E3F2FD", borderRadius: 10, padding: 10, marginBottom: 8, borderLeftWidth: 4, borderLeftColor: "#2196F3", flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <MaterialCommunityIcons name="pill" size={16} color="#2196F3" />
+                  <Text style={{ fontSize: 12, color: theme.colors.text, flex: 1, ...getBodyBoldFont() }}>
                     {medication}
                   </Text>
                 </View>
@@ -3440,40 +3593,40 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
 
           {/* Health Conditions Reference Table */}
           <View style={{ marginBottom: 20, zIndex: 1 }}>
-            <Text style={{ fontSize: 13, fontWeight: "700", color: theme.colors.text, marginBottom: 10 }}>
-              📊 Common Health Conditions
+            <Text style={{ fontSize: 13, color: theme.colors.text, marginBottom: 10, ...getSubHeadingFont() }}>
+              Common Health Conditions
             </Text>
             <View style={{ backgroundColor: "#fff" + "88", borderRadius: 12, overflow: "hidden", elevation: 2 }}>
               {/* Header */}
               <View style={{ flexDirection: "row", backgroundColor: "#9C27B0" + "33", paddingHorizontal: 10, paddingVertical: 10, borderBottomWidth: 2, borderBottomColor: "#9C27B0" }}>
-                <Text style={{ flex: 1.2, fontSize: 9, fontWeight: "700", color: theme.colors.text, textTransform: "uppercase" }}>Condition</Text>
-                <Text style={{ flex: 1.8, fontSize: 9, fontWeight: "700", color: theme.colors.text, textTransform: "uppercase" }}>Impact</Text>
+                <Text style={{ flex: 1.2, fontSize: 9, color: theme.colors.text, textTransform: "uppercase", ...getBodyBoldFont() }}>Condition</Text>
+                <Text style={{ flex: 1.8, fontSize: 9, color: theme.colors.text, textTransform: "uppercase", ...getBodyBoldFont() }}>Impact</Text>
               </View>
               {/* Rows */}
               {HEALTH_CONDITIONS_INFO.map((cond, idx) => (
                 <View key={idx} style={{ flexDirection: "row", paddingHorizontal: 10, paddingVertical: 10, borderBottomWidth: idx < HEALTH_CONDITIONS_INFO.length - 1 ? 1 : 0, borderBottomColor: "#9C27B0" + "22", backgroundColor: idx % 2 === 0 ? "transparent" : "#9C27B0" + "11" }}>
-                  <Text style={{ flex: 1.2, fontSize: 10, fontWeight: "600", color: theme.colors.text }}>{cond.condition}</Text>
-                  <Text style={{ flex: 1.8, fontSize: 9, color: theme.colors.text + "88", lineHeight: 13 }}>{cond.impact}</Text>
+                  <Text style={{ flex: 1.2, fontSize: 10, color: theme.colors.text, ...getBodyBoldFont() }}>{cond.condition}</Text>
+                  <Text style={{ flex: 1.8, fontSize: 9, color: theme.colors.text + "88", lineHeight: 13, ...getBodyFont() }}>{cond.impact}</Text>
                 </View>
               ))}
             </View>
           </View>
 
           {/* Health Tips */}
-          <View style={{ backgroundColor: "#fff" + "99", borderRadius: 16, padding: 16, marginBottom: 20, borderLeftWidth: 5, borderLeftColor: "#9C27B0", zIndex: 1 }}>
-            <Text style={{ fontSize: 13, fontWeight: "700", color: theme.colors.text, marginBottom: 10 }}>
-              ⭐ Health Recommendations
+          <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : "#fff" + "99", borderRadius: 16, padding: 16, marginBottom: 20, borderLeftWidth: 5, borderLeftColor: "#9C27B0", zIndex: 1 }}>
+            <Text style={{ fontSize: 13, color: theme.colors.text, marginBottom: 10, ...getSubHeadingFont() }}>
+              <MaterialCommunityIcons name="star" size={14} color={theme.colors.text} /> Health Recommendations
             </Text>
-            <Text style={{ fontSize: 11, color: theme.colors.text + "99", marginBottom: 8, lineHeight: 16 }}>
+            <Text style={{ fontSize: 11, color: theme.colors.text + "88", marginBottom: 8, lineHeight: 16 }}>
               • Maintain regular check-ups with healthcare providers
             </Text>
-            <Text style={{ fontSize: 11, color: theme.colors.text + "99", marginBottom: 8, lineHeight: 16 }}>
+            <Text style={{ fontSize: 11, color: theme.colors.text + "88", marginBottom: 8, lineHeight: 16 }}>
               • Take medications as prescribed
             </Text>
-            <Text style={{ fontSize: 11, color: theme.colors.text + "99", marginBottom: 8, lineHeight: 16 }}>
+            <Text style={{ fontSize: 11, color: theme.colors.text + "88", marginBottom: 8, lineHeight: 16 }}>
               • Monitor family history for early detection
             </Text>
-            <Text style={{ fontSize: 11, color: theme.colors.text + "99", lineHeight: 16 }}>
+            <Text style={{ fontSize: 11, color: theme.colors.text + "88", lineHeight: 16 }}>
               • Report any new symptoms immediately
             </Text>
           </View>
@@ -3483,8 +3636,8 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
 
           {/* Scientific References */}
           <View style={{ zIndex: 1 }}>
-            <Text style={{ fontSize: 12, fontWeight: "700", color: theme.colors.text, marginBottom: 10 }}>
-              📚 Scientific References
+            <Text style={{ fontSize: 12, color: theme.colors.text, marginBottom: 10, ...getBodyBoldFont() }}>
+              <MaterialCommunityIcons name="book-open-variant" size={12} color={theme.colors.text} /> Scientific References
             </Text>
             {HEALTH_STATUS_SCIENTIFIC_REFERENCES.map((ref) => (
               <TouchableOpacity
@@ -3492,10 +3645,10 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 onPress={() => Linking.openURL(ref.url)}
                 style={{ backgroundColor: "#fff" + "88", borderRadius: 10, padding: 12, borderLeftWidth: 4, borderLeftColor: theme.colors.primary, marginBottom: 8 }}
               >
-                <Text style={{ fontSize: 10, fontWeight: "700", color: theme.colors.primary, marginBottom: 4, textDecorationLine: "underline" }}>
-                  🔗 {ref.title}
+                <Text style={{ fontSize: 10, color: theme.colors.primary, marginBottom: 4, textDecorationLine: "underline", ...getBodyBoldFont() }}>
+                  Reference: {ref.title}
                 </Text>
-                <Text style={{ fontSize: 9, color: theme.colors.text + "88", lineHeight: 14 }}>
+                <Text style={{ fontSize: 9, color: theme.colors.text + "88", lineHeight: 14, ...getBodyFont() }}>
                   {ref.description}
                 </Text>
               </TouchableOpacity>
@@ -3516,116 +3669,116 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
     return (
       <View style={{ width: screenWidth, paddingHorizontal: 16, paddingVertical: 24, flex: 1 }}>
         <LinearGradient
-          colors={["#E0F2F1", "#B2DFDB", "#80CBC4"]}
+          colors={theme.gradients.environment as [string, string, ...string[]]}
           style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}
         />
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
           <View style={{ marginBottom: 24, zIndex: 1 }}>
-            <Text style={{ fontSize: 28, fontWeight: "800", color: theme.colors.text, marginBottom: 8 }}>
-              🌍 Environmental Factors
+            <Text style={{ fontSize: 28, color: theme.colors.text, marginBottom: 8, ...getHeadingFont() }}>
+              <MaterialCommunityIcons name="earth" size={20} color={theme.colors.text} /> Environmental Factors
             </Text>
-            <Text style={{ fontSize: 13, color: theme.colors.text + "77", lineHeight: 20 }}>
+            <Text style={{ fontSize: 13, color: theme.colors.text + "77", lineHeight: 20, ...getBodyFont() }}>
               Your pollution exposure and occupational factors
             </Text>
           </View>
 
           {/* Pollution Exposure Card */}
-          <View style={{ backgroundColor: pollutionInfo.bgColor, borderRadius: 24, padding: 24, marginBottom: 20, borderWidth: 3, borderColor: pollutionInfo.color, elevation: 8, zIndex: 1 }}>
+          <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : pollutionInfo.bgColor, borderRadius: 24, padding: 24, marginBottom: 20, borderWidth: 3, borderColor: pollutionInfo.color, elevation: 8, zIndex: 1 }}>
             <View style={{ alignItems: "center", marginBottom: 20 }}>
-              <Text style={{ fontSize: 32, marginBottom: 12 }}>💨</Text>
-              <Text style={{ fontSize: 16, color: theme.colors.text + "88", marginBottom: 8, fontWeight: "600", textTransform: "uppercase", letterSpacing: 1 }}>
+              <MaterialCommunityIcons name="cloud-outline" size={32} color={pollutionInfo.color} />
+              <Text style={{ fontSize: 16, color: theme.colors.text + "88", marginBottom: 8, textTransform: "uppercase", letterSpacing: 1, ...getBodyBoldFont() }}>
                 Pollution Exposure
               </Text>
-              <Text style={{ fontSize: 20, fontWeight: "700", color: "#00ACC1", marginBottom: 8 }}>
+              <Text style={{ fontSize: 20, color: "#00ACC1", marginBottom: 8, ...getHeadingFont() }}>
                 {pollutionInfo.level}
               </Text>
-              <Text style={{ fontSize: 11, fontWeight: "600", color: theme.colors.text, marginBottom: 8 }}>
+              <Text style={{ fontSize: 11, color: theme.colors.text, marginBottom: 8, ...getBodyBoldFont() }}>
                 {pollutionInfo.aqi}
               </Text>
-              <Text style={{ fontSize: 12, color: theme.colors.text + "88", lineHeight: 16 }}>
+              <Text style={{ fontSize: 12, color: theme.colors.text + "88", lineHeight: 16, ...getBodyFont() }}>
                 {pollutionInfo.description}
               </Text>
             </View>
 
-            <View style={{ backgroundColor: "#fff" + "77", borderRadius: 12, padding: 12, marginTop: 16, borderTopWidth: 2, borderTopColor: pollutionInfo.color + "44" }}>
-              <Text style={{ fontSize: 11, fontWeight: "700", color: theme.colors.text, marginBottom: 6 }}>
+            <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FFFFFF', borderRadius: 12, padding: 12, marginTop: 16, borderTopWidth: 2, borderTopColor: pollutionInfo.color + "44" }}>
+              <Text style={{ fontSize: 11, color: theme.colors.text, marginBottom: 6, ...getBodyBoldFont() }}>
                 Health Impact:
               </Text>
-              <Text style={{ fontSize: 10, color: theme.colors.text + "88" }}>
+              <Text style={{ fontSize: 10, color: theme.colors.text + "88", ...getBodyFont() }}>
                 {pollutionInfo.health}
               </Text>
             </View>
           </View>
 
           {/* Pollution Recommendations */}
-          <View style={{ backgroundColor: "#fff" + "99", borderRadius: 16, padding: 16, marginBottom: 20, borderLeftWidth: 5, borderLeftColor: pollutionInfo.color, zIndex: 1 }}>
-            <Text style={{ fontSize: 13, fontWeight: "700", color: theme.colors.text, marginBottom: 10 }}>
-              ⭐ Recommendations
+          <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 20, borderLeftWidth: 5, borderLeftColor: pollutionInfo.color, zIndex: 1 }}>
+            <Text style={{ fontSize: 13, color: theme.colors.text, marginBottom: 10, ...getSubHeadingFont() }}>
+              <MaterialCommunityIcons name="star" size={14} color={theme.colors.text} /> Recommendations
             </Text>
             {pollutionInfo.recommendations.map((rec, idx) => (
-              <Text key={idx} style={{ fontSize: 11, color: theme.colors.text + "99", marginBottom: 8, lineHeight: 16 }}>
+              <Text key={idx} style={{ fontSize: 11, color: theme.colors.text + "88", marginBottom: 8, lineHeight: 16 }}>
                 • {rec}
               </Text>
             ))}
           </View>
 
           {/* Occupation Type Card */}
-          <View style={{ backgroundColor: "#FFF3E0", borderRadius: 24, padding: 24, marginBottom: 20, borderWidth: 3, borderColor: "#FF9800", elevation: 8, zIndex: 1 }}>
-            <View style={{ alignItems: "center", marginBottom: 20 }}>
-              <Text style={{ fontSize: 32, marginBottom: 12 }}>💼</Text>
-              <Text style={{ fontSize: 16, color: theme.colors.text + "88", marginBottom: 8, fontWeight: "600", textTransform: "uppercase", letterSpacing: 1 }}>
+          <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FFF3E0', borderRadius: 24, padding: 24, marginBottom: 20, borderWidth: 3, borderColor: '#FF9800', elevation: 8, zIndex: 1 }}>
+            <View style={{ alignItems: 'center', marginBottom: 20 }}>
+              <MaterialCommunityIcons name="briefcase" size={32} color={'#FF9800'} />
+              <Text style={{ fontSize: 16, color: theme.colors.text + '88', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1, ...getBodyBoldFont() }}>
                 Occupation Type
               </Text>
-              <Text style={{ fontSize: 20, fontWeight: "700", color: "#FF9800", marginBottom: 8 }}>
+              <Text style={{ fontSize: 20, color: '#FF9800', marginBottom: 8, ...getHeadingFont() }}>
                 {occupationInfo.type}
               </Text>
-              <Text style={{ fontSize: 12, color: theme.colors.text + "88", lineHeight: 16, marginBottom: 8 }}>
+              <Text style={{ fontSize: 12, color: theme.colors.text + '88', lineHeight: 16, marginBottom: 8, ...getBodyFont() }}>
                 {occupationInfo.description}
               </Text>
-              <Text style={{ fontSize: 11, fontWeight: "600", color: theme.colors.text, marginBottom: 8 }}>
+              <Text style={{ fontSize: 11, color: theme.colors.text, marginBottom: 8, ...getBodyBoldFont() }}>
                 Examples: {occupationInfo.examples}
               </Text>
             </View>
 
-            <View style={{ backgroundColor: "#fff" + "77", borderRadius: 12, padding: 12, marginTop: 12, borderTopWidth: 2, borderTopColor: "#FF9800" + "44" }}>
-              <Text style={{ fontSize: 11, fontWeight: "700", color: theme.colors.text, marginBottom: 6 }}>
+            <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FFFFFF', borderRadius: 12, padding: 12, marginTop: 12, borderTopWidth: 2, borderTopColor: '#FF9800' + '44' }}>
+              <Text style={{ fontSize: 11, color: theme.colors.text, marginBottom: 6, ...getBodyBoldFont() }}>
                 Health Risk:
               </Text>
-              <Text style={{ fontSize: 10, color: theme.colors.text + "88" }}>
+              <Text style={{ fontSize: 10, color: theme.colors.text + '88', ...getBodyFont() }}>
                 {occupationInfo.health_risk}
               </Text>
             </View>
           </View>
 
           {/* Occupation Recommendations */}
-          <View style={{ backgroundColor: "#fff" + "99", borderRadius: 16, padding: 16, marginBottom: 20, borderLeftWidth: 5, borderLeftColor: "#FF9800", zIndex: 1 }}>
-            <Text style={{ fontSize: 13, fontWeight: "700", color: theme.colors.text, marginBottom: 10 }}>
-              ⭐ Recommendations
+          <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 20, borderLeftWidth: 5, borderLeftColor: "#FF9800", zIndex: 1 }}>
+            <Text style={{ fontSize: 13, color: theme.colors.text, marginBottom: 10, ...getSubHeadingFont() }}>
+              <MaterialCommunityIcons name="star" size={14} color={theme.colors.text} /> Recommendations
             </Text>
-            <Text style={{ fontSize: 11, color: theme.colors.text + "99", lineHeight: 16 }}>
+            <Text style={{ fontSize: 11, color: theme.colors.text + "88", lineHeight: 16 }}>
               {occupationInfo.recommendations}
             </Text>
           </View>
 
           {/* Pollution Levels Reference Table */}
           <View style={{ marginBottom: 20, zIndex: 1 }}>
-            <Text style={{ fontSize: 13, fontWeight: "700", color: theme.colors.text, marginBottom: 10 }}>
-              📊 Pollution Exposure Levels
+            <Text style={{ fontSize: 13, color: theme.colors.text, marginBottom: 10, ...getSubHeadingFont() }}>
+              Pollution Exposure Levels
             </Text>
-            <View style={{ backgroundColor: "#fff" + "88", borderRadius: 12, overflow: "hidden", elevation: 2 }}>
+            <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : "#fff" + "88", borderRadius: 12, overflow: "hidden", elevation: 2 }}>
               {/* Header */}
               <View style={{ flexDirection: "row", backgroundColor: "#00897B" + "33", paddingHorizontal: 10, paddingVertical: 10, borderBottomWidth: 2, borderBottomColor: "#00897B" }}>
-                <Text style={{ flex: 0.8, fontSize: 9, fontWeight: "700", color: theme.colors.text, textTransform: "uppercase" }}>Level</Text>
-                <Text style={{ flex: 1.3, fontSize: 9, fontWeight: "700", color: theme.colors.text, textTransform: "uppercase" }}>AQI Range</Text>
-                <Text style={{ flex: 1.3, fontSize: 9, fontWeight: "700", color: theme.colors.text, textTransform: "uppercase" }}>Health Impact</Text>
+                <Text style={{ flex: 0.8, fontSize: 9, color: theme.colors.text, textTransform: "uppercase", ...getBodyBoldFont() }}>Level</Text>
+                <Text style={{ flex: 1.3, fontSize: 9, color: theme.colors.text, textTransform: "uppercase", ...getBodyBoldFont() }}>AQI Range</Text>
+                <Text style={{ flex: 1.3, fontSize: 9, color: theme.colors.text, textTransform: "uppercase", ...getBodyBoldFont() }}>Health Impact</Text>
               </View>
               {/* Rows */}
               {POLLUTION_EXPOSURE_LEVELS.map((level, idx) => (
                 <View key={idx} style={{ flexDirection: "row", paddingHorizontal: 10, paddingVertical: 10, borderBottomWidth: idx < POLLUTION_EXPOSURE_LEVELS.length - 1 ? 1 : 0, borderBottomColor: "#00897B" + "22", backgroundColor: idx % 2 === 0 ? "transparent" : "#00897B" + "11" }}>
-                  <Text style={{ flex: 0.8, fontSize: 10, fontWeight: "700", color: theme.colors.text }}>{level.level}</Text>
-                  <Text style={{ flex: 1.3, fontSize: 9, fontWeight: "600", color: theme.colors.text }}>{level.aqi}</Text>
-                  <Text style={{ flex: 1.3, fontSize: 9, color: theme.colors.text + "88", lineHeight: 13 }}>{level.health}</Text>
+                  <Text style={{ flex: 0.8, fontSize: 10, color: theme.colors.text, ...getBodyBoldFont() }}>{level.level}</Text>
+                  <Text style={{ flex: 1.3, fontSize: 9, color: theme.colors.text, ...getBodyBoldFont() }}>{level.aqi}</Text>
+                  <Text style={{ flex: 1.3, fontSize: 9, color: theme.colors.text + "88", lineHeight: 13, ...getBodyFont() }}>{level.health}</Text>
                 </View>
               ))}
             </View>
@@ -3633,22 +3786,22 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
 
           {/* Occupation Types Reference Table */}
           <View style={{ marginBottom: 20, zIndex: 1 }}>
-            <Text style={{ fontSize: 13, fontWeight: "700", color: theme.colors.text, marginBottom: 10 }}>
-              📊 Occupation Types
+            <Text style={{ fontSize: 13, color: theme.colors.text, marginBottom: 10, ...getSubHeadingFont() }}>
+              Occupation Types
             </Text>
-            <View style={{ backgroundColor: "#fff" + "88", borderRadius: 12, overflow: "hidden", elevation: 2 }}>
+            <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : "#fff" + "88", borderRadius: 12, overflow: "hidden", elevation: 2 }}>
               {/* Header */}
               <View style={{ flexDirection: "row", backgroundColor: "#F57C00" + "33", paddingHorizontal: 10, paddingVertical: 10, borderBottomWidth: 2, borderBottomColor: "#F57C00" }}>
-                <Text style={{ flex: 1, fontSize: 9, fontWeight: "700", color: theme.colors.text, textTransform: "uppercase" }}>Type</Text>
-                <Text style={{ flex: 1.2, fontSize: 9, fontWeight: "700", color: theme.colors.text, textTransform: "uppercase" }}>Description</Text>
-                <Text style={{ flex: 1.3, fontSize: 9, fontWeight: "700", color: theme.colors.text, textTransform: "uppercase" }}>Health Risk</Text>
+                <Text style={{ flex: 1, fontSize: 9, color: theme.colors.text, textTransform: "uppercase", ...getBodyBoldFont() }}>Type</Text>
+                <Text style={{ flex: 1.2, fontSize: 9, color: theme.colors.text, textTransform: "uppercase", ...getBodyBoldFont() }}>Description</Text>
+                <Text style={{ flex: 1.3, fontSize: 9, color: theme.colors.text, textTransform: "uppercase", ...getBodyBoldFont() }}>Health Risk</Text>
               </View>
               {/* Rows */}
               {OCCUPATION_TYPE_INFO.map((occ, idx) => (
                 <View key={idx} style={{ flexDirection: "row", paddingHorizontal: 10, paddingVertical: 10, borderBottomWidth: idx < OCCUPATION_TYPE_INFO.length - 1 ? 1 : 0, borderBottomColor: "#F57C00" + "22", backgroundColor: idx % 2 === 0 ? "transparent" : "#F57C00" + "11" }}>
-                  <Text style={{ flex: 1, fontSize: 10, fontWeight: "700", color: theme.colors.text }}>{occ.type}</Text>
-                  <Text style={{ flex: 1.2, fontSize: 9, color: theme.colors.text + "88", lineHeight: 13 }}>{occ.description}</Text>
-                  <Text style={{ flex: 1.3, fontSize: 9, color: theme.colors.text + "88", lineHeight: 13 }}>{occ.health_risk}</Text>
+                  <Text style={{ flex: 1, fontSize: 10, color: theme.colors.text, ...getBodyBoldFont() }}>{occ.type}</Text>
+                  <Text style={{ flex: 1.2, fontSize: 9, color: theme.colors.text + "88", lineHeight: 13, ...getBodyFont() }}>{occ.description}</Text>
+                  <Text style={{ flex: 1.3, fontSize: 9, color: theme.colors.text + "88", lineHeight: 13, ...getBodyFont() }}>{occ.health_risk}</Text>
                 </View>
               ))}
             </View>
@@ -3659,8 +3812,8 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
 
           {/* Scientific References */}
           <View style={{ zIndex: 1 }}>
-            <Text style={{ fontSize: 12, fontWeight: "700", color: theme.colors.text, marginBottom: 10 }}>
-              📚 Scientific References
+            <Text style={{ fontSize: 12, color: theme.colors.text, marginBottom: 10, ...getBodyBoldFont() }}>
+              <MaterialCommunityIcons name="book-open-variant" size={12} color={theme.colors.text} /> Scientific References
             </Text>
             {ENVIRONMENTAL_SCIENTIFIC_REFERENCES.map((ref) => (
               <TouchableOpacity
@@ -3668,10 +3821,175 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 onPress={() => Linking.openURL(ref.url)}
                 style={{ backgroundColor: "#fff" + "88", borderRadius: 10, padding: 12, borderLeftWidth: 4, borderLeftColor: theme.colors.primary, marginBottom: 8 }}
               >
-                <Text style={{ fontSize: 10, fontWeight: "700", color: theme.colors.primary, marginBottom: 4, textDecorationLine: "underline" }}>
-                  🔗 {ref.title}
+                <Text style={{ fontSize: 10, color: theme.colors.primary, marginBottom: 4, textDecorationLine: "underline", ...getBodyBoldFont() }}>
+                  Reference: {ref.title}
                 </Text>
-                <Text style={{ fontSize: 9, color: theme.colors.text + "88", lineHeight: 14 }}>
+                <Text style={{ fontSize: 9, color: theme.colors.text + "88", lineHeight: 14, ...getBodyFont() }}>
+                  {ref.description}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+      </View>
+    );
+  };
+
+  const renderDiseaseRisksPage = () => {
+    const diseases = [
+      { name: "Hypertension (High Blood Pressure)", icon: "heart-alert", description: "Elevated blood pressure affecting heart and blood vessels" },
+      { name: "Diabetes (Type 2)", icon: "diabetes", description: "Blood sugar regulation disorder" },
+      { name: "Heart Disease", icon: "heart-broken", description: "Cardiovascular system complications" },
+      { name: "Asthma", icon: "lungs", description: "Chronic respiratory airway inflammation" },
+      { name: "Arthritis", icon: "bone", description: "Joint inflammation and mobility issues" },
+    ];
+
+    return (
+      <View style={{ width: screenWidth, paddingHorizontal: 16, paddingVertical: 24, flex: 1 }}>
+        <LinearGradient
+          colors={theme.gradients.risks as [string, string, ...string[]]}
+          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}
+        />
+
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
+          <View style={{ marginBottom: 24, zIndex: 1 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <MaterialCommunityIcons name="alert-circle" size={28} color={theme.colors.text} />
+              <Text style={{ fontSize: 28, color: theme.colors.text, ...getHeadingFont() }}>
+                Potential Disease Risks
+              </Text>
+            </View>
+            <Text style={{ fontSize: 13, color: theme.colors.text + "77", lineHeight: 20, ...getBodyFont() }}>
+              Based on your health profile, here are conditions you may be at risk for
+            </Text>
+          </View>
+
+          {/* Info Section */}
+          <View style={{ backgroundColor: "#fff" + "88", borderRadius: 16, padding: 16, marginBottom: 20, zIndex: 1, borderLeftWidth: 5, borderLeftColor: "#FF6F00" }}>
+            <Text style={{ fontSize: 12, color: theme.colors.text + "88", lineHeight: 18, ...getBodyFont() }}>
+              These predictions are based on your health data analysis. They are NOT a diagnosis. Please consult with healthcare professionals for proper evaluation.
+            </Text>
+          </View>
+
+          {/* Disease List Card */}
+          <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : "#FFF3E0", borderRadius: 24, padding: 24, marginBottom: 20, borderWidth: 2, borderColor: "#FF6F00", elevation: 8, zIndex: 1 }}>
+            <Text style={{ fontSize: 16, color: "#E65100", marginBottom: 16, ...getHeadingFont() }}>
+              <MaterialCommunityIcons name="magnify" size={20} color={theme.colors.text} /> Potential Conditions
+            </Text>
+            {diseases.map((disease, idx) => (
+              <View
+                key={idx}
+                style={{
+                  paddingVertical: 12,
+                  borderBottomWidth: idx < diseases.length - 1 ? 1 : 0,
+                  borderBottomColor: "#FF6F00" + "33",
+                }}
+              >
+                <View style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: 4, gap: 12 }}>
+                  <View style={{ marginTop: 2 }}>{renderIcon(disease.icon, 18)}</View>
+                  <Text style={{ fontSize: 14, fontWeight: "700", color: "#E65100", flex: 1, ...getBodyBoldFont() }}>
+                    {disease.name}
+                  </Text>
+                </View>
+                <View style={{ marginLeft: 32 }}>
+                  <Text style={{ fontSize: 12, color: "#BF360C", lineHeight: 16, ...getBodyFont() }}>
+                    {disease.description}
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </View>
+
+          {/* Doctor Consultation Warning - RED */}
+          <View
+            style={{
+              backgroundColor: theme.mode === 'dark' ? theme.colors.surface : "#FFEBEE",
+              marginBottom: 16,
+              borderRadius: 16,
+              borderLeftWidth: 6,
+              borderLeftColor: "#F44336",
+              paddingHorizontal: 16,
+              paddingVertical: 14,
+              elevation: 3,
+              zIndex: 1,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 12,
+                color: "#C62828",
+                marginBottom: 8,
+                ...getHeadingFont(),
+              }}
+            >
+              <MaterialCommunityIcons name="alert-octagon" size={14} color="#C62828" /> Important Medical Advice
+            </Text>
+            <Text
+              style={{
+                fontSize: 11,
+                color: "#C62828",
+                lineHeight: 16,
+                ...getBodyFont(),
+              }}
+            >
+              1. Schedule a health checkup with your doctor{"\n"}2. Discuss these potential risks{"\n"}3. Get proper screening tests{"\n"}4. Create a prevention plan{"\n"}5. Monitor your health metrics regularly
+            </Text>
+          </View>
+
+          {/* Health Tips - GREEN */}
+          <View
+            style={{
+              backgroundColor: theme.mode === 'dark' ? theme.colors.surface : "#E8F5E9",
+              marginBottom: 20,
+              borderRadius: 16,
+              borderLeftWidth: 6,
+              borderLeftColor: "#4CAF50",
+              paddingHorizontal: 16,
+              paddingVertical: 14,
+              elevation: 3,
+              zIndex: 1,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 12,
+                color: "#2E7D32",
+                marginBottom: 8,
+                ...getHeadingFont(),
+              }}
+            >
+              <MaterialCommunityIcons name="lightbulb" size={14} color={theme.colors.text} /> Prevention Tips
+            </Text>
+            <Text
+              style={{
+                fontSize: 11,
+                color: "#2E7D32",
+                lineHeight: 18,
+                ...getBodyFont(),
+              }}
+            >
+              • Maintain a healthy diet and exercise regularly{"\n"}• Keep your health profile updated with accurate information{"\n"}• Monitor your vital signs and health metrics{"\n"}• Reduce stress and get adequate sleep{"\n"}• Avoid harmful substances and maintain healthy habits
+            </Text>
+          </View>
+
+          {/* Checklist Section - BEFORE References */}
+          {renderChecklist()}
+
+          {/* Scientific References */}
+          <View style={{ zIndex: 1 }}>
+            <Text style={{ fontSize: 12, color: theme.colors.text, marginBottom: 10, ...getBodyBoldFont() }}>
+              <MaterialCommunityIcons name="book-open-variant" size={12} color={theme.colors.text} /> Scientific References
+            </Text>
+            {DISEASE_PREDICTION_REFERENCES.map((ref) => (
+              <TouchableOpacity
+                key={ref.url}
+                onPress={() => Linking.openURL(ref.url)}
+                style={{ backgroundColor: "#fff" + "88", borderRadius: 10, padding: 12, borderLeftWidth: 4, borderLeftColor: theme.colors.primary, marginBottom: 8 }}
+              >
+                <Text style={{ fontSize: 10, color: theme.colors.primary, marginBottom: 4, textDecorationLine: "underline", ...getBodyBoldFont() }}>
+                  Reference: {ref.title}
+                </Text>
+                <Text style={{ fontSize: 9, color: theme.colors.text + "88", lineHeight: 14, ...getBodyFont() }}>
                   {ref.description}
                 </Text>
               </TouchableOpacity>
@@ -3743,6 +4061,8 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
         return renderEnvironmentalPage();
       case "addiction":
         return renderAddictionPage();
+      case "risks":
+        return renderDiseaseRisksPage();
       case "predictions":
         return renderPredictionPage();
       default:
@@ -3774,11 +4094,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
           </TouchableOpacity>
         )}
 
-        <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "center", alignItems: "center", padding: 16 }}>
-          <View style={{ width: contentMaxWidth }}>
-            {renderMetricById(initialMetric)}
-          </View>
-        </ScrollView>
+        {renderMetricById(initialMetric)}
 
         <Toast />
       </View>
@@ -3795,6 +4111,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
     { label: "Health", component: renderHealthStatusPage },
     { label: "Environment", component: renderEnvironmentalPage },
     { label: "Addiction", component: renderAddictionPage },
+    { label: "Risks", component: renderDiseaseRisksPage },
     { label: "Predictions", component: renderPredictionPage },
   ];
 

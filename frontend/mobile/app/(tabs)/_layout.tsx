@@ -90,7 +90,7 @@ export default function HomeTabs() {
               }}
               options={{
                 tabBarLabelStyle: {
-                  fontFamily: theme.fonts.subheading,
+                  fontFamily: theme.fonts.body,
                   fontSize: theme.fontSizes.xs,
                 },
                 tabBarIcon: ({ focused }) => (
@@ -119,7 +119,7 @@ export default function HomeTabs() {
               name="Record"
               options={{
                 tabBarLabelStyle: {
-                  fontFamily: theme.fonts.subheading,
+                  fontFamily: theme.fonts.body,
                   fontSize: theme.fontSizes.xs,
                 },
                 tabBarIcon: ({ focused }) => (
@@ -169,7 +169,7 @@ export default function HomeTabs() {
               }}
               options={{
                 tabBarLabelStyle: {
-                  fontFamily: theme.fonts.subheading,
+                  fontFamily: theme.fonts.body,
                   fontSize: theme.fontSizes.xs,
                 },
                 tabBarIcon: ({ focused }) => (
@@ -201,7 +201,7 @@ export default function HomeTabs() {
               }}
               options={{
                 tabBarLabelStyle: {
-                  fontFamily: theme.fonts.subheading,
+                  fontFamily: theme.fonts.body,
                   fontSize: theme.fontSizes.xs,
                 },
                 tabBarIcon: ({ focused }) => (
@@ -233,7 +233,7 @@ export default function HomeTabs() {
               }}
               options={{
                 tabBarLabelStyle: {
-                  fontFamily: theme.fonts.subheading,
+                  fontFamily: theme.fonts.body,
                   fontSize: theme.fontSizes.xs,
                 },
                 tabBarIcon: ({ focused }) => (
@@ -312,7 +312,7 @@ export default function HomeTabs() {
                       style={{
                         marginLeft: 8,
                         color: theme.colors.text,
-                        fontFamily: theme.fonts.subheading,
+                        fontFamily: theme.fonts.body,
                       }}
                     >
                       {action.label}

@@ -12,6 +12,8 @@ import {
   Animated,
   Linking,
 } from "react-native";
+import LottieView from "lottie-react-native";
+import { MaterialCommunityIcons, FontAwesome6, Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../context/ThemeContext";
 import { useUser } from "../context/UserContext";
 import { useFocusEffect } from "expo-router";
@@ -31,8 +33,6 @@ interface HealthMetric {
   id: string;
   title: string;
   icon: string;
-  color: string;
-  bgGradient: (ColorValue | string)[];
   description: string;
   detailKey: string;
   stats?: string;
@@ -81,9 +81,7 @@ const HEALTH_METRICS: HealthMetric[] = [
   {
     id: "bmi",
     title: "BMI Index",
-    icon: "📏",
-    color: "#90CAF9",
-    bgGradient: ["#E3F2FD", "#BBDEFB", "#90CAF9"],
+    icon: "weight-kilogram",
     description: "Body Mass Index",
     detailKey: "BMI_Weight_Management",
     stats: "Healthy Range",
@@ -91,9 +89,7 @@ const HEALTH_METRICS: HealthMetric[] = [
   {
     id: "activity",
     title: "Activity Level",
-    icon: "🏃",
-    color: "#81C784",
-    bgGradient: ["#E8F5E9", "#C8E6C9", "#81C784"],
+    icon: "run-fast",
     description: "Physical Activity",
     detailKey: "Physical_Activity",
     stats: "Moderate",
@@ -101,9 +97,7 @@ const HEALTH_METRICS: HealthMetric[] = [
   {
     id: "sleep",
     title: "Sleep Quality",
-    icon: "😴",
-    color: "#CE93D8",
-    bgGradient: ["#F3E5F5", "#E1BEE7", "#CE93D8"],
+    icon: "bed",
     description: "Sleep Duration",
     detailKey: "Sleep_Quality",
     stats: "7-9 hours",
@@ -111,9 +105,7 @@ const HEALTH_METRICS: HealthMetric[] = [
   {
     id: "water",
     title: "Daily Water Intake",
-    icon: "💧",
-    color: "#64B5F6",
-    bgGradient: ["#E1F5FE", "#B3E5FC", "#64B5F6"],
+    icon: "water",
     description: "Hydration Status",
     detailKey: "Hydration_Water",
     stats: "2L target",
@@ -121,9 +113,7 @@ const HEALTH_METRICS: HealthMetric[] = [
   {
     id: "stress",
     title: "Stress Level",
-    icon: "😊",
-    color: "#FFB74D",
-    bgGradient: ["#FFF3E0", "#FFE0B2", "#FFB74D"],
+    icon: "meditation",
     description: "Perceived Stress",
     detailKey: "Stress_Management",
     stats: "Low",
@@ -131,9 +121,7 @@ const HEALTH_METRICS: HealthMetric[] = [
   {
     id: "dietary",
     title: "Dietary Profile",
-    icon: "🥗",
-    color: "#A5D6A7",
-    bgGradient: ["#F1F8E9", "#DCEDC8", "#A5D6A7"],
+    icon: "apple",
     description: "Nutrition Habits",
     detailKey: "Dietary_Habits",
     stats: "Balanced",
@@ -141,9 +129,7 @@ const HEALTH_METRICS: HealthMetric[] = [
   {
     id: "health",
     title: "Health Status",
-    icon: "🏥",
-    color: "#EF9A9A",
-    bgGradient: ["#FFEBEE", "#FFCDD2", "#EF9A9A"],
+    icon: "hospital-box",
     description: "Medical Conditions",
     detailKey: "Health_Monitoring",
     stats: "Monitored",
@@ -151,9 +137,7 @@ const HEALTH_METRICS: HealthMetric[] = [
   {
     id: "environment",
     title: "Environmental Factors",
-    icon: "🌍",
-    color: "#80DEEA",
-    bgGradient: ["#E0F2F1", "#B2DFDB", "#80DEEA"],
+    icon: "earth",
     description: "Air Quality & Work",
     detailKey: "Environmental_Health",
     stats: "Clean",
@@ -161,12 +145,18 @@ const HEALTH_METRICS: HealthMetric[] = [
   {
     id: "addiction",
     title: "Addiction Risk",
-    icon: "⚠️",
-    color: "#F48FB1",
-    bgGradient: ["#FCE4EC", "#F8BBD0", "#F48FB1"],
+    icon: "alert-circle",
     description: "Substance Usage",
     detailKey: "Addiction_Risk_Management",
     stats: "Assessment",
+  },
+  {
+    id: "risks",
+    title: "Disease Risks",
+    icon: "heart-pulse",
+    description: "Potential Conditions",
+    detailKey: "Disease_Risk_Assessment",
+    stats: "Analysis",
   },
 ];
 
@@ -273,18 +263,64 @@ export default function AnalysisDashboard() {
     setSelectedMetric(null);
   };
 
+  // Icon helper function
+  const getMetricIcon = (metricId: string) => {
+    const iconProps = { size: 32, color: theme.colors.primary };
+    switch (metricId) {
+      case "bmi":
+        return <MaterialCommunityIcons name="weight" {...iconProps} />;
+      case "activity":
+        return <MaterialCommunityIcons name="run" {...iconProps} />;
+      case "sleep":
+        return <MaterialCommunityIcons name="bed" {...iconProps} />;
+      case "water":
+        return <MaterialCommunityIcons name="water" {...iconProps} />;
+      case "stress":
+        return <MaterialCommunityIcons name="meditation" {...iconProps} />;
+      case "dietary":
+        return <MaterialCommunityIcons name="leaf" {...iconProps} />;
+      case "health":
+        return <Ionicons name="medical" {...iconProps} />;
+      case "environment":
+        return <MaterialCommunityIcons name="earth" {...iconProps} />;
+      case "addiction":
+        return <MaterialCommunityIcons name="alert-circle" {...iconProps} />;
+      case "risks":
+        return <MaterialCommunityIcons name="heart-pulse" {...iconProps} />;
+      default:
+        return <MaterialCommunityIcons name="help-circle" {...iconProps} />;
+    }
+  };
+
+  // Font helper functions - consistent with Home and Record tabs
+  const getHeadingFont = () => ({
+    fontFamily: theme.fonts.heading,
+  });
+
+  const getBodyFont = () => ({
+    fontFamily: theme.fonts.body,
+  });
+
+  const getBodyBoldFont = () => ({
+    fontFamily: theme.fonts.bodyBold,
+  });
+
+  const cardSize = (screenWidth - 48) / 2;
+  const cardHeight = cardSize * 1.3;
+
   const renderMetricCard = (metric: HealthMetric) => (
     <TouchableOpacity
       key={metric.id}
       onPress={() => handleMetricPress(metric.id)}
       activeOpacity={0.7}
       style={{
-        width: (screenWidth - 48) / 2,
+        width: cardSize,
+        height: cardHeight,
         marginBottom: 16,
       }}
     >
       <LinearGradient
-        colors={metric.bgGradient as [string, string, ...string[]]}
+        colors={theme.gradients[metric.id as keyof typeof theme.gradients] as [string, string, ...string[]]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={{
@@ -295,22 +331,19 @@ export default function AnalysisDashboard() {
           shadowOffset: { width: 0, height: 2 },
           shadowOpacity: 0.15,
           shadowRadius: 4,
+          flex: 1,
+          justifyContent: "space-between",
         }}
       >
-        <Text
-          style={{
-            fontSize: 40,
-            marginBottom: 12,
-          }}
-        >
-          {metric.icon}
-        </Text>
+        <View style={{ marginBottom: 12 }}>
+          {getMetricIcon(metric.id)}
+        </View>
 
         <Text
           style={{
             fontSize: 16,
-            fontWeight: "700",
-            color: "#1a1a1a",
+            fontFamily: theme.fonts.heading,
+            color: theme.colors.text,
             marginBottom: 4,
           }}
         >
@@ -320,7 +353,8 @@ export default function AnalysisDashboard() {
         <Text
           style={{
             fontSize: 12,
-            color: "#555",
+            fontFamily: theme.fonts.body,
+            color: theme.colors.text + "88",
             marginBottom: 8,
           }}
         >
@@ -340,8 +374,8 @@ export default function AnalysisDashboard() {
             <Text
               style={{
                 fontSize: 11,
-                fontWeight: "600",
-                color: metric.color,
+                fontFamily: theme.fonts.bodyBold,
+                color: theme.colors.primary,
               }}
             >
               {metric.stats}
@@ -351,6 +385,20 @@ export default function AnalysisDashboard() {
       </LinearGradient>
     </TouchableOpacity>
   );
+
+  // Standardize button styles
+  const buttonStyle = {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 8,
+  };
+
+  const buttonTextStyle = {
+    color: "#fff",
+    fontSize: theme.fontSizes.m,
+    fontFamily: theme.fonts.bodyBold,
+  };
 
   if (loading) {
     return (
@@ -390,13 +438,13 @@ export default function AnalysisDashboard() {
         <Text
           style={{
             fontSize: 18,
-            fontWeight: "700",
+            fontFamily: theme.fonts.heading,
             color: theme.colors.text,
             marginBottom: 8,
             textAlign: "center",
           }}
         >
-          ⚠️ Unable to Load
+          Unable to Load
         </Text>
         <Text
           style={{
@@ -410,20 +458,9 @@ export default function AnalysisDashboard() {
         </Text>
         <TouchableOpacity
           onPress={loadUserData}
-          style={{
-            backgroundColor: theme.colors.primary,
-            paddingHorizontal: 32,
-            paddingVertical: 12,
-            borderRadius: 8,
-          }}
+          style={buttonStyle}
         >
-          <Text
-            style={{
-              color: "#fff",
-              fontWeight: "700",
-              fontSize: 14,
-            }}
-          >
+          <Text style={buttonTextStyle}>
             Retry
           </Text>
         </TouchableOpacity>
@@ -446,12 +483,12 @@ export default function AnalysisDashboard() {
           <Text
             style={{
               fontSize: 28,
-              fontWeight: "800",
+              fontFamily: theme.fonts.heading,
               color: theme.colors.text,
               marginBottom: 4,
             }}
           >
-            💚 Health Analysis
+            Health Analysis
           </Text>
           <Text
             style={{
@@ -492,19 +529,30 @@ export default function AnalysisDashboard() {
               borderLeftColor: theme.colors.primary,
             }}
           >
-            <Text
-              style={{
-                fontSize: 13,
-                fontWeight: "700",
-                color: theme.colors.text,
-                marginBottom: 8,
-              }}
-            >
-              📊 Quick Tips
-            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <View style={{ width: 20, height: 20 }}>
+                <LottieView
+                  source={{ uri: "https://lottie.host/7c5e5c5e-8e5e-9f5e-ab5e-5c5e5c5e5c5e/chart.json" }}
+                  autoPlay
+                  loop
+                  resizeMode="cover"
+                  style={{ width: 20, height: 20 }}
+                />
+              </View>
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontFamily: theme.fonts.heading,
+                  color: theme.colors.text,
+                }}
+              >
+                Quick Tips
+              </Text>
+            </View>
             <Text
               style={{
                 fontSize: 12,
+                fontFamily: theme.fonts.body,
                 color: theme.colors.text + "88",
                 lineHeight: 18,
               }}
@@ -517,7 +565,7 @@ export default function AnalysisDashboard() {
 
       {/* Full-screen Analysis Screen (replaces Modal) */}
       {showDetail && (
-        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}>
+        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000 }}>
           <Analysis initialMetric={selectedMetric ?? undefined} onClose={handleCloseDetail} />
         </View>
       )}
