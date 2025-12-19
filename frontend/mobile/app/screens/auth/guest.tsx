@@ -1,213 +1,300 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, Image } from "react-native";
+import React, { useState, useEffect, useRef } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  Animated,
+  StatusBar,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
+import { LinearGradient } from "expo-linear-gradient";
 
 export default function GuestScreen() {
   const router = useRouter();
   const { theme } = useTheme();
   const [currentFeature, setCurrentFeature] = useState(0);
+  
+  // Animations
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(40)).current;
+  const logoScale = useRef(new Animated.Value(0.8)).current;
+  const featureAnim = useRef(new Animated.Value(0)).current;
+  const buttonAnim = useRef(new Animated.Value(0)).current;
 
   const features = [
-    { icon: "location-outline", title: "Smart Tracking", subtitle: "GPS-powered activity monitoring" },
-    { icon: "analytics-outline", title: "AI Insights", subtitle: "Personalized health analytics" },
-    { icon: "person-outline", title: "Virtual Avatar", subtitle: "Your digital wellness companion" },
-    { icon: "camera-outline", title: "Smart Recognition", subtitle: "Automatic food & activity logging" },
-    { icon: "people-outline", title: "Community", subtitle: "Connect & achieve together" },
+    { 
+      icon: "fitness-outline", 
+      title: "Smart Tracking", 
+      color: "#38b6ff"
+    },
+    { 
+      icon: "sparkles-outline", 
+      title: "AI Analysis", 
+      color: "#8b5cf6"
+    },
+    { 
+      icon: "body-outline", 
+      title: "Digital Avatar", 
+      color: "#f59e0b"
+    },
+    { 
+      icon: "camera-outline", 
+      title: "Food Scanner", 
+      color: "#10b981"
+    },
+    { 
+      icon: "people-outline", 
+      title: "Community", 
+      color: "#ec4899"
+    },
   ];
 
   useEffect(() => {
+    // Staggered entrance animation
+    Animated.sequence([
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.spring(logoScale, {
+          toValue: 1,
+          friction: 8,
+          tension: 40,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.timing(buttonAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  useEffect(() => {
+    // Feature rotation
     const interval = setInterval(() => {
-      setCurrentFeature((prev) => (prev + 1) % features.length);
-    }, 3000);
+      Animated.timing(featureAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }).start(() => {
+        setCurrentFeature((prev) => (prev + 1) % features.length);
+        Animated.timing(featureAnim, {
+          toValue: 1,
+          duration: 250,
+          useNativeDriver: true,
+        }).start();
+      });
+    }, 2500);
+
+    Animated.timing(featureAnim, {
+      toValue: 1,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
+
     return () => clearInterval(interval);
   }, []);
 
+  const isDark = theme.mode === "dark";
+
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+
       {/* Main Content */}
-      <View className="flex-1 justify-center px-6 pt-16">
-        {/* Hero Text */}
-        <View className="items-center mb-12">
-          <Image
-            source={require("../../../assets/images/logo.png")}
-            className="w-24 h-24 mb-6"
-            resizeMode="contain"
-          />
-          <Text
-            className="text-4xl text-center mb-6 tracking-wider"
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 32 }}>
+        
+        {/* Logo & Brand */}
+        <Animated.View
+          style={{
+            alignItems: "center",
+            opacity: fadeAnim,
+            transform: [{ scale: logoScale }],
+          }}
+        >
+          <View
             style={{
-              color: theme.colors.primary,
+              width: 88,
+              height: 88,
+              borderRadius: 24,
+              backgroundColor: theme.colors.primary + "12",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: 24,
+            }}
+          >
+            <Image
+              source={require("../../../assets/images/logo.png")}
+              style={{ width: 60, height: 60 }}
+              resizeMode="contain"
+            />
+          </View>
+          
+          <Text
+            style={{
+              fontSize: 32,
+              letterSpacing: 8,
+              color: theme.colors.text,
               fontFamily: theme.fonts.heading,
-              fontSize: theme.fontSizes["2xl"],
+              marginBottom: 12,
             }}
           >
             LIFORA
           </Text>
+          
           <Text
-            className="text-lg text-center leading-relaxed px-4"
             style={{
-              color: theme.colors.text + "B3",
-              fontFamily: theme.fonts.subheading,
-              fontSize: theme.fontSizes.base,
+              fontSize: 14,
+              color: theme.colors.text + "60",
+              fontFamily: theme.fonts.body,
+              letterSpacing: 1,
             }}
           >
-            AI-powered insights meet community support for your perfect wellness journey
+            Your wellness companion
           </Text>
-        </View>
+        </Animated.View>
 
-        {/* Rotating Feature Display */}
-        <View className="items-center mb-12">
-          <View
-            className="rounded-2xl p-8 w-full border"
-            style={{
-              backgroundColor: theme.colors.surface,
-              borderColor: theme.colors.secondary + "33",
-            }}
-          >
-            <View className="items-center">
-              <View
-                className="rounded-full p-4 mb-4"
-                style={{ backgroundColor: theme.colors.primary }}
-              >
-                <Ionicons
-                  name={features[currentFeature].icon as any}
-                  size={32}
-                  color={theme.mode === "dark" ? theme.colors.background : "#fff"}
-                />
-              </View>
-              <Text
-                className="text-xl text-center mb-2"
-                style={{
-                  color: theme.colors.text,
-                  fontFamily: theme.fonts.subheading,
-                  fontSize: theme.fontSizes.lg,
-                }}
-              >
-                {features[currentFeature].title}
-              </Text>
-              <Text
-                className="text-base text-center"
-                style={{
-                  color: theme.colors.text + "B3",
-                  fontFamily: theme.fonts.body,
-                  fontSize: theme.fontSizes.m,
-                }}
-              >
-                {features[currentFeature].subtitle}
-              </Text>
-            </View>
-          </View>
-
-          {/* Feature Dots */}
-          <View className="flex-row mt-6 justify-center">
-            {features.map((_, index) => (
-              <TouchableOpacity
-                key={index}
-                onPress={() => setCurrentFeature(index)}
-                activeOpacity={0.7}
-                style={{
-                  marginHorizontal: 4,
-                  width: 8,
-                  height: 8,
-                  borderRadius: 9999,
-                  backgroundColor:
-                    index === currentFeature
-                      ? theme.colors.primary
-                      : theme.colors.secondary + "55",
-                }}
-              />
-            ))}
-          </View>
-        </View>
-
-        {/* Quick Stats */}
-        <View
-          className="rounded-2xl p-6 mb-12 border"
+        {/* Animated Feature Pills */}
+        <Animated.View
           style={{
-            backgroundColor: theme.colors.surface,
-            borderColor: theme.colors.secondary + "33",
+            marginTop: 48,
+            opacity: slideAnim.interpolate({
+              inputRange: [0, 40],
+              outputRange: [1, 0],
+            }),
+            transform: [{ translateY: slideAnim }],
           }}
         >
-          <View className="flex-row justify-around">
-            {[
-              { value: "50K+", label: "Users" },
-              { value: "98%", label: "Success" },
-              { value: "4.9★", label: "Rating" },
-            ].map((stat, index) => (
-              <View key={index} className="items-center">
-                <Text
-                  className="text-2xl"
+          <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 10 }}>
+            {features.map((feature, index) => (
+              <Animated.View
+                key={index}
+                style={{
+                  opacity: index === currentFeature ? 1 : 0.4,
+                  transform: [{
+                    scale: index === currentFeature ? 1 : 0.95,
+                  }],
+                }}
+              >
+                <View
                   style={{
-                    color: theme.colors.text,
-                    fontFamily: theme.fonts.body,
-                    fontSize: theme.fontSizes.xl,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    paddingHorizontal: 14,
+                    paddingVertical: 10,
+                    borderRadius: 20,
+                    backgroundColor: index === currentFeature 
+                      ? feature.color + "18"
+                      : theme.colors.surface,
+                    borderWidth: 1,
+                    borderColor: index === currentFeature 
+                      ? feature.color + "30"
+                      : "transparent",
                   }}
                 >
-                  {stat.value}
-                </Text>
-                <Text
-                  className="text-sm"
-                  style={{
-                    color: theme.colors.text + "B3",
-                    fontFamily: theme.fonts.body,
-                    fontSize: theme.fontSizes.sm,
-                  }}
-                >
-                  {stat.label}
-                </Text>
-              </View>
+                  <Ionicons
+                    name={feature.icon as any}
+                    size={16}
+                    color={index === currentFeature ? feature.color : theme.colors.text + "50"}
+                  />
+                  <Text
+                    style={{
+                      marginLeft: 6,
+                      fontSize: 13,
+                      color: index === currentFeature ? feature.color : theme.colors.text + "50",
+                      fontFamily: theme.fonts.body,
+                      fontWeight: index === currentFeature ? "600" : "400",
+                    }}
+                  >
+                    {feature.title}
+                  </Text>
+                </View>
+              </Animated.View>
             ))}
           </View>
-        </View>
+        </Animated.View>
       </View>
 
       {/* Bottom CTA */}
-      <View className="px-6 pb-12 pt-4">
+      <Animated.View
+        style={{
+          paddingHorizontal: 24,
+          paddingBottom: 50,
+          opacity: buttonAnim,
+          transform: [{
+            translateY: buttonAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [20, 0],
+            }),
+          }],
+        }}
+      >
         <TouchableOpacity
-          className="rounded-2xl py-5 mb-4"
           activeOpacity={0.9}
           onPress={() => router.push("/screens/auth/login")}
           style={{
-            backgroundColor: theme.colors.primary,
+            borderRadius: 14,
+            overflow: "hidden",
             shadowColor: theme.colors.primary,
             shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.2,
-            shadowRadius: 8,
-            elevation: 5,
+            shadowOpacity: 0.25,
+            shadowRadius: 12,
+            elevation: 6,
           }}
         >
-          <Text
-            className="text-lg font-semibold text-center"
+          <LinearGradient
+            colors={[theme.colors.primary, "#0891b2"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
             style={{
-              color: '#FFFFFF',
-              fontFamily: theme.fonts.heading,
-              fontSize: theme.fontSizes.lg,
+              paddingVertical: 16,
+              alignItems: "center",
+              flexDirection: "row",
+              justifyContent: "center",
             }}
           >
-            Start Your Journey Free
-          </Text>
+            <Text
+              style={{
+                fontSize: 16,
+                color: "#FFFFFF",
+                fontFamily: theme.fonts.heading,
+                marginRight: 8,
+              }}
+            >
+              Get Started
+            </Text>
+            <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+          </LinearGradient>
         </TouchableOpacity>
 
-        <View className="flex-row justify-center items-center">
-          <Ionicons
-            name="checkmark-circle"
-            size={16}
-            color={theme.colors.accent}
-          />
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => router.push("/screens/auth/login")}
+          style={{ marginTop: 16, alignItems: "center" }}
+        >
           <Text
-            className="text-sm ml-2"
             style={{
-              color: theme.colors.secondary,
-              fontFamily: theme.fonts.interRegular,
-              fontSize: theme.fontSizes.sm,
+              fontSize: 14,
+              color: theme.colors.text + "70",
+              fontFamily: theme.fonts.body,
             }}
           >
-            No credit card required • Join 50,000+ users
+            Already have an account? <Text style={{ color: theme.colors.primary, fontWeight: "600" }}>Sign in</Text>
           </Text>
-        </View>
-      </View>
+        </TouchableOpacity>
+      </Animated.View>
     </View>
   );
 }

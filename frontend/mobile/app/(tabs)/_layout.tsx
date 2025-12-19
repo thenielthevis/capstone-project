@@ -65,22 +65,26 @@ export default function HomeTabs() {
               headerShown: false,
               tabBarStyle: {
                 backgroundColor: theme.colors.surface,
-                height: 80,
-                borderTopWidth: 0.1,
-                borderTopColor: theme.colors.secondary + "33",
-                shadowOpacity: 0.1,
-                shadowRadius: 10,
+                height: 65,
+                borderTopWidth: 0,
+                paddingTop: 6,
+                paddingBottom: 8,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: -1 },
+                shadowOpacity: 0.05,
+                shadowRadius: 4,
+                elevation: 5,
               },
-              tabBarIconStyle: {
-                marginTop: 8,
-                marginBottom: 8,
+              tabBarItemStyle: {
+                paddingVertical: 2,
               },
               tabBarLabelStyle: {
                 fontSize: 11,
                 fontWeight: "600",
+                marginTop: 2,
               },
               tabBarActiveTintColor: theme.colors.primary,
-              tabBarInactiveTintColor: theme.colors.text,
+              tabBarInactiveTintColor: theme.colors.text + "99",
             }}
           >
             <Tabs.Screen
@@ -92,24 +96,23 @@ export default function HomeTabs() {
                 tabBarLabelStyle: {
                   fontFamily: theme.fonts.body,
                   fontSize: theme.fontSizes.xs,
+                  marginTop: 2,
                 },
                 tabBarIcon: ({ focused }) => (
                   <View
                     style={{
-                      height: 35,
-                      width: 50,
-                      borderRadius: 10,
-                      borderWidth: focused ? 1 : 0,
-                      borderColor: "transparent",
-                      backgroundColor: focused ? theme.colors.primary + "30" : "transparent",
+                      height: 32,
+                      width: 60,
+                      borderRadius: 16,
+                      backgroundColor: focused ? theme.colors.primary + "20" : "transparent",
                       alignItems: "center",
                       justifyContent: "center",
                     }}
                   >
                     <Ionicons
-                      size={24}
+                      size={26}
                       name={focused ? "home" : "home-outline"}
-                      color={focused ? theme.colors.primary : theme.colors.text}
+                      color={focused ? theme.colors.primary : theme.colors.text + "99"}
                     />
                   </View>
                 ),
@@ -121,45 +124,48 @@ export default function HomeTabs() {
                 tabBarLabelStyle: {
                   fontFamily: theme.fonts.body,
                   fontSize: theme.fontSizes.xs,
+                  marginTop: 10,
                 },
                 tabBarIcon: ({ focused }) => (
                   <View
                     style={{
-                      height: 35,
-                      width: 50,
-                      borderRadius: 10,
-                      borderWidth: focused || recordMenuOpen ? 1 : 0,
-                      borderColor: "transparent",
+                      height: 32,
+                      width: 60,
+                      borderRadius: 16,
                       backgroundColor:
-                        focused || recordMenuOpen ? theme.colors.primary + "30" : "transparent",
+                        focused || recordMenuOpen ? theme.colors.primary + "20" : "transparent",
                       alignItems: "center",
                       justifyContent: "center",
+                      marginTop: 18,
                     }}
                   >
                     <MaterialCommunityIcons
-                      size={24}
-                      name={focused ? "record-circle" : "record-circle-outline"}
-                      color={focused || recordMenuOpen ? theme.colors.primary : theme.colors.text}
+                      size={26}
+                      name={focused || recordMenuOpen ? "plus-circle" : "plus-circle-outline"}
+                      color={focused || recordMenuOpen ? theme.colors.primary : theme.colors.text + "99"}
                     />
                   </View>
                 ),
-                tabBarButton: ({ children, onPress, onLongPress, accessibilityState, accessibilityLabel, testID }) => (
-                  <TouchableOpacity
-                    accessibilityRole="button"
-                    accessibilityState={accessibilityState}
-                    accessibilityLabel={accessibilityLabel}
-                    testID={testID}
-                    activeOpacity={0.9}
-                    style={{ flex: 1, alignItems: "center", justifyContent: "center", marginTop: 7 }}
-                    onPress={(e) => {
-                      onPress?.(e);
-                      setRecordMenuOpen((prev) => !prev);
-                    }}
-                    onLongPress={onLongPress ?? undefined}
-                  >
-                    {children}
-                  </TouchableOpacity>
-                ),
+                tabBarButton: (props) => {
+                  const { children, onPress, onLongPress, accessibilityState, accessibilityLabel, testID, style } = props;
+                  return (
+                    <TouchableOpacity
+                      accessibilityRole="button"
+                      accessibilityState={accessibilityState}
+                      accessibilityLabel={accessibilityLabel}
+                      testID={testID}
+                      activeOpacity={0.7}
+                      style={[style, { alignItems: "center", justifyContent: "center" }]}
+                      onPress={(e) => {
+                        onPress?.(e);
+                        setRecordMenuOpen((prev) => !prev);
+                      }}
+                      onLongPress={onLongPress ?? undefined}
+                    >
+                      {children}
+                    </TouchableOpacity>
+                  );
+                },
               }}
             />
             <Tabs.Screen
@@ -171,24 +177,23 @@ export default function HomeTabs() {
                 tabBarLabelStyle: {
                   fontFamily: theme.fonts.body,
                   fontSize: theme.fontSizes.xs,
+                  marginTop: 2,
                 },
                 tabBarIcon: ({ focused }) => (
                   <View
                     style={{
-                      height: 35,
-                      width: 50,
-                      borderRadius: 10,
-                      borderWidth: focused ? 1 : 0,
-                      borderColor: "transparent",
-                      backgroundColor: focused ? theme.colors.primary + "30" : "transparent",
+                      height: 32,
+                      width: 60,
+                      borderRadius: 16,
+                      backgroundColor: focused ? theme.colors.primary + "20" : "transparent",
                       alignItems: "center",
                       justifyContent: "center",
                     }}
                   >
                     <FontAwesome6
-                      size={20}
+                      size={22}
                       name="person-rays"
-                      color={focused ? theme.colors.primary : theme.colors.text}
+                      color={focused ? theme.colors.primary : theme.colors.text + "99"}
                     />
                   </View>
                 ),
@@ -203,24 +208,23 @@ export default function HomeTabs() {
                 tabBarLabelStyle: {
                   fontFamily: theme.fonts.body,
                   fontSize: theme.fontSizes.xs,
+                  marginTop: 2,
                 },
                 tabBarIcon: ({ focused }) => (
                   <View
                     style={{
-                      height: 35,
-                      width: 50,
-                      borderRadius: 10,
-                      borderWidth: focused ? 1 : 0,
-                      borderColor: "transparent",
-                      backgroundColor: focused ? theme.colors.primary + "30" : "transparent",
+                      height: 32,
+                      width: 60,
+                      borderRadius: 16,
+                      backgroundColor: focused ? theme.colors.primary + "20" : "transparent",
                       alignItems: "center",
                       justifyContent: "center",
                     }}
                   >
                     <Ionicons
-                      size={24}
+                      size={26}
                       name={focused ? "people" : "people-outline"}
-                      color={focused ? theme.colors.primary : theme.colors.text}
+                      color={focused ? theme.colors.primary : theme.colors.text + "99"}
                     />
                   </View>
                 ),
@@ -235,27 +239,39 @@ export default function HomeTabs() {
                 tabBarLabelStyle: {
                   fontFamily: theme.fonts.body,
                   fontSize: theme.fontSizes.xs,
+                  marginTop: 2,
                 },
                 tabBarIcon: ({ focused }) => (
                   <View
                     style={{
-                      height: 35,
-                      width: 50,
-                      borderRadius: 10,
-                      borderWidth: focused ? 1 : 0,
-                      borderColor: "transparent",
-                      backgroundColor: focused ? theme.colors.primary + "30" : "transparent",
+                      height: 32,
+                      width: 60,
+                      borderRadius: 16,
+                      backgroundColor: focused ? theme.colors.primary + "20" : "transparent",
                       alignItems: "center",
                       justifyContent: "center",
                     }}
                   >
                     <Ionicons
-                      size={24}
+                      size={26}
                       name={focused ? "analytics" : "analytics-outline"}
-                      color={focused ? theme.colors.primary : theme.colors.text}
+                      color={focused ? theme.colors.primary : theme.colors.text + "99"}
                     />
                   </View>
                 ),
+              }}
+            />
+            {/* Hide unused Analysis screens from tabs */}
+            <Tabs.Screen
+              name="AnalysisDashboard"
+              options={{
+                href: null,
+              }}
+            />
+            <Tabs.Screen
+              name="AnalysisNew"
+              options={{
+                href: null,
               }}
             />
           </Tabs>
@@ -279,7 +295,7 @@ export default function HomeTabs() {
             pointerEvents="box-none"
             style={{
               position: "absolute",
-              bottom: 80,
+              bottom: 65,
               left: 60,
               alignItems: "flex-end",
             }}
@@ -295,24 +311,26 @@ export default function HomeTabs() {
                       flexDirection: "row",
                       alignItems: "center",
                       backgroundColor: theme.colors.surface,
-                      borderRadius: 999,
-                      paddingHorizontal: 16,
-                      paddingVertical: 10,
+                      borderRadius: 24,
+                      paddingHorizontal: 18,
+                      paddingVertical: 12,
                       shadowColor: "#000",
-                      shadowOpacity: 0.15,
-                      shadowRadius: 6,
-                      elevation: 4,
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.12,
+                      shadowRadius: 8,
+                      elevation: 6,
                       borderWidth: 1,
-                      borderColor: theme.colors.text + "10",
+                      borderColor: theme.colors.primary + "15",
                       justifyContent: "center",
                     }}
                   >
                     {action.icon}
                     <Text
                       style={{
-                        marginLeft: 8,
+                        marginLeft: 10,
                         color: theme.colors.text,
                         fontFamily: theme.fonts.body,
+                        fontWeight: "500",
                       }}
                     >
                       {action.label}

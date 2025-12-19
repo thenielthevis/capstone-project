@@ -32,12 +32,117 @@ const COMMON_ALLERGENS = [
   'Fish', 'Shellfish', 'Sesame', 'Gluten'
 ];
 
-// Stat Card Component
-const StatCard = ({
-  icon,
-  label,
-  value,
-  color,
+// Mini Calorie Progress Component (Simplified)
+const MiniCalorieProgress = ({ 
+  calorieBalance, 
+  theme 
+}: { 
+  calorieBalance: { consumed_kcal: number; goal_kcal: number; burned_kcal: number; status: string } | null;
+  theme: any;
+}) => {
+  if (!calorieBalance) return null;
+  
+  const percentage = Math.min((calorieBalance.consumed_kcal / calorieBalance.goal_kcal) * 100, 100);
+  const statusColor = calorieBalance.status === 'under' ? '#22c55e' : 
+                      calorieBalance.status === 'over' ? '#ef4444' : theme.colors.primary;
+  const remaining = Math.max(0, calorieBalance.goal_kcal - calorieBalance.consumed_kcal + calorieBalance.burned_kcal);
+  
+  return (
+    <View style={{
+      backgroundColor: theme.colors.surface,
+      borderRadius: 16,
+      padding: 16,
+      flexDirection: 'row',
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 6,
+      elevation: 2,
+    }}>
+      {/* Mini circular indicator */}
+      <View style={{
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: statusColor + '15',
+        borderWidth: 4,
+        borderColor: statusColor,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 14,
+      }}>
+        <Text style={{ 
+          fontFamily: theme.fonts.heading, 
+          fontSize: 14, 
+          color: statusColor 
+        }}>
+          {Math.round(percentage)}%
+        </Text>
+      </View>
+      
+      {/* Info */}
+      <View style={{ flex: 1 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text style={{ 
+            fontFamily: theme.fonts.bodyBold, 
+            fontSize: 14, 
+            color: theme.colors.text 
+          }}>
+            {calorieBalance.consumed_kcal} / {calorieBalance.goal_kcal} kcal
+          </Text>
+          <View style={{
+            backgroundColor: statusColor + '15',
+            paddingHorizontal: 8,
+            paddingVertical: 3,
+            borderRadius: 8,
+          }}>
+            <Text style={{ 
+              fontFamily: theme.fonts.body, 
+              fontSize: 10, 
+              color: statusColor 
+            }}>
+              {calorieBalance.status === 'under' ? 'On Track' : 
+               calorieBalance.status === 'over' ? 'Over' : 'Perfect'}
+            </Text>
+          </View>
+        </View>
+        
+        {/* Mini progress bar */}
+        <View style={{ 
+          height: 6, 
+          backgroundColor: theme.colors.background, 
+          borderRadius: 3, 
+          marginTop: 8,
+          overflow: 'hidden',
+        }}>
+          <View style={{
+            width: `${percentage}%`,
+            height: '100%',
+            backgroundColor: statusColor,
+            borderRadius: 3,
+          }} />
+        </View>
+        
+        <Text style={{ 
+          fontFamily: theme.fonts.body, 
+          fontSize: 11, 
+          color: theme.colors.text + '77',
+          marginTop: 6,
+        }}>
+          {remaining} kcal remaining
+        </Text>
+      </View>
+    </View>
+  );
+};
+
+// Macro Stat Card Component (for results view)
+const StatCard = ({ 
+  icon, 
+  label, 
+  value, 
+  color, 
   theme,
   suffix = '',
 }: {
@@ -1423,121 +1528,26 @@ export default function Food() {
           )}
         </View>
 
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: 100 }}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            viewMode === 'history' ? (
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                tintColor={theme.colors.primary}
-              />
-            ) : undefined
-          }
-        >
-          {/* Calorie Dashboard Card */}
-          {calorieBalance && viewMode === 'analyze' && (
-            <View style={{
-              marginHorizontal: 20,
-              marginTop: 8,
-              marginBottom: 20,
-              backgroundColor: theme.colors.surface,
-              borderRadius: 24,
-              padding: 20,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.08,
-              shadowRadius: 12,
-              elevation: 4,
-            }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <Text style={{
-                  fontFamily: theme.fonts.heading,
-                  fontSize: theme.fontSizes.lg,
-                  color: theme.colors.text
-                }}>
-                  Today's Progress
-                </Text>
-                <View style={{
-                  backgroundColor: calorieBalance.status === 'under' ? '#22c55e20' :
-                    calorieBalance.status === 'over' ? '#ef444420' : theme.colors.primary + '20',
-                  paddingHorizontal: 10,
-                  paddingVertical: 4,
-                  borderRadius: 12,
-                }}>
-                  <Text style={{
-                    fontFamily: theme.fonts.bodyBold,
-                    fontSize: theme.fontSizes.xs,
-                    color: calorieBalance.status === 'under' ? '#22c55e' :
-                      calorieBalance.status === 'over' ? '#ef4444' : theme.colors.primary,
-                  }}>
-                    {calorieBalance.status === 'under' ? '✓ On Track' :
-                      calorieBalance.status === 'over' ? '⚠ Over' : '✓ Perfect'}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Main Progress Display */}
-              <View style={{ alignItems: 'center', marginBottom: 20 }}>
-                <View style={{
-                  width: 140,
-                  height: 140,
-                  borderRadius: 70,
-                  backgroundColor: theme.colors.background,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderWidth: 8,
-                  borderColor: calorieBalance.status === 'under' ? '#22c55e' :
-                    calorieBalance.status === 'over' ? '#ef4444' : theme.colors.primary,
-                }}>
-                  <Text style={{
-                    fontFamily: theme.fonts.heading,
-                    fontSize: 32,
-                    color: theme.colors.text
-                  }}>
-                    {calorieBalance.consumed_kcal}
-                  </Text>
-                  <Text style={{
-                    fontFamily: theme.fonts.body,
-                    fontSize: theme.fontSizes.xs,
-                    color: theme.colors.text + '77'
-                  }}>
-                    / {calorieBalance.goal_kcal} kcal
-                  </Text>
-                </View>
-              </View>
-
-              {/* Stats Row */}
-              <View style={{ flexDirection: 'row', marginHorizontal: -4 }}>
-                <StatCard
-                  icon="silverware-fork-knife"
-                  label="Consumed"
-                  value={calorieBalance.consumed_kcal}
-                  suffix=""
-                  color="#f97316"
-                  theme={theme}
-                />
-                <StatCard
-                  icon="fire"
-                  label="Burned"
-                  value={calorieBalance.burned_kcal}
-                  suffix=""
-                  color="#22c55e"
-                  theme={theme}
-                />
-                <StatCard
-                  icon="target"
-                  label="Remaining"
-                  value={Math.max(0, calorieBalance.goal_kcal - calorieBalance.net_kcal)}
-                  suffix=""
-                  color={theme.colors.primary}
-                  theme={theme}
-                />
-              </View>
-            </View>
-          )}
+      <ScrollView 
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          viewMode === 'history' ? (
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={onRefresh}
+              tintColor={theme.colors.primary}
+            />
+          ) : undefined
+        }
+      >
+        {/* Mini Calorie Progress Bar */}
+        {calorieBalance && viewMode === 'analyze' && (
+          <View style={{ marginHorizontal: 20, marginTop: 8, marginBottom: 20 }}>
+            <MiniCalorieProgress calorieBalance={calorieBalance} theme={theme} />
+          </View>
+        )}
 
           {viewMode === 'analyze' ? (
             <>

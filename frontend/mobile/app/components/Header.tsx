@@ -2,7 +2,7 @@ import React from "react";
 import { View, TouchableOpacity, Image, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from '../context/ThemeContext';
-import { useRouter } from "expo-router";
+import { useRouter, Href } from "expo-router";
 import { fontSizes } from "@/design/tokens";
 import { useUser } from "../context/UserContext";
 
@@ -14,14 +14,22 @@ type HeaderProps = {
 };
 
 export default function Header({
-  onProfilePress = () => {},
-  onSettingsPress = () => {},
-  onNotificationsPress = () => {},
+  onProfilePress,
+  onSettingsPress = () => { },
+  onNotificationsPress = () => { },
   profileImage = null,
 }: HeaderProps) {
   const { theme } = useTheme();
   const router = useRouter();
   const { user } = useUser();
+
+  const handleProfilePress = () => {
+    if (onProfilePress) {
+      onProfilePress();
+    } else {
+      router.push("/screens/profile" as Href);
+    }
+  };
 
   return (
     <View
@@ -60,31 +68,49 @@ export default function Header({
 
       {/* Right icons container */}
       <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <TouchableOpacity onPress={onProfilePress}>
+        <TouchableOpacity onPress={handleProfilePress} activeOpacity={0.7}>
           {user?.profilePicture ? (
             <Image
               source={{ uri: user.profilePicture }}
-              style={{ width: 28, height: 28, borderRadius: 20, marginRight: 20 }}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                marginRight: 16,
+                borderWidth: 2,
+                borderColor: theme.colors.primary + '30',
+              }}
             />
           ) : (
-            <Ionicons
-              name="person-circle-outline"
-              size={28}
-              style={{ marginRight: 20 }}
-              color={theme.colors.text}
-            />
+            <View
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                backgroundColor: theme.colors.primary + '15',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginRight: 16,
+              }}
+            >
+              <Ionicons
+                name="person"
+                size={18}
+                color={theme.colors.primary}
+              />
+            </View>
           )}
         </TouchableOpacity>
-        <TouchableOpacity onPress={onNotificationsPress}>
+        <TouchableOpacity onPress={onNotificationsPress} activeOpacity={0.7}>
           <Ionicons
             name="notifications-outline"
-            size={28}
-            style={{ marginRight: 20 }}
+            size={26}
+            style={{ marginRight: 16 }}
             color={theme.colors.text}
           />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push("/screens/settings/list")}>
-          <Ionicons name="settings-outline" size={28} color={theme.colors.text} />
+        <TouchableOpacity onPress={() => router.push("/screens/settings/list" as Href)} activeOpacity={0.7}>
+          <Ionicons name="settings-outline" size={26} color={theme.colors.text} />
         </TouchableOpacity>
       </View>
     </View>
