@@ -1,30 +1,4 @@
-// Utility: Calculate daily calorie goal based on BMI, weight, target weight, age, gender, and activity level
-function calculateGoalKcal({ weight, height, age, gender, activityLevel, targetWeight }) {
-    // Mifflin-St Jeor Equation for BMR
-    let bmr;
-    if (gender === 'male') {
-        bmr = 10 * weight + 6.25 * height - 5 * age + 5;
-    } else {
-        bmr = 10 * weight + 6.25 * height - 5 * age - 161;
-    }
-    // Activity factor
-    const activityFactors = {
-        sedentary: 1.2,
-        lightly_active: 1.375,
-        moderately_active: 1.55,
-        very_active: 1.725,
-        extremely_active: 1.9
-    };
-    const activityMult = activityFactors[activityLevel] || 1.2;
-    let maintenance = bmr * activityMult;
-    // Adjust for weight goal (lose/gain 0.5kg/week = 500 kcal/day deficit/surplus)
-    if (targetWeight && Math.abs(targetWeight - weight) > 1) {
-        const diff = targetWeight - weight;
-        // If target is lower, deficit; if higher, surplus
-        maintenance += diff > 0 ? 250 : -250; // mild adjustment
-    }
-    return Math.round(maintenance);
-}
+const { calculateGoalKcal } = require('../utils/calorieCalculator');
 
 function calculateNetCalories(consumed, burned) {
     return consumed - burned;
@@ -35,27 +9,27 @@ const { uploadProfilePicture } = require('../utils/cloudinary');
 
 //Check logged in user-------------------------------------
 exports.currentlyLoggedInUser = async (req, res) => {
-  try {
-    const userId = req.user.id; // Extracted from JWT middleware
+    try {
+        const userId = req.user.id; // Extracted from JWT middleware
 
-    const user = await User.findById(userId);
+        const user = await User.findById(userId);
 
-    if (!user) {
-      return res.status(404).json({
-        message: "User not found"
-      });
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found"
+            });
+        }
+
+        res.status(200).json({
+            message: "Current logged-in user data fetched successfully",
+            user
+        });
+    } catch (error) {
+        res.status(500).json({
+            message: "Error fetching user data",
+            error: error.message
+        });
     }
-
-    res.status(200).json({
-      message: "Current logged-in user data fetched successfully",
-      user
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: "Error fetching user data",
-      error: error.message
-    });
-  }
 };
 
 //User Registration
@@ -100,16 +74,17 @@ exports.loginUser = async (req, res) => {
         console.log("[LoginUser] User logged in:", user);
         console.log("[LoginUser] Generated token:", token);
         res.status(200).json(
-          { message: 'Login successful',
-            token,
-            refreshToken,
-            user: {
-              id: user._id,
-              username: user.username,
-              email: user.email,
-              role: user.role
-            } 
-          });
+            {
+                message: 'Login successful',
+                token,
+                refreshToken,
+                user: {
+                    id: user._id,
+                    username: user.username,
+                    email: user.email,
+                    role: user.role
+                }
+            });
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
     }
@@ -132,10 +107,10 @@ exports.googleUserController = async (req, res) => {
         }
         if (!user) {
             const password = "google-auth-" + Math.random().toString(36).slice(-8);
-            user = new User({ 
-                username, 
-                email, 
-                password, 
+            user = new User({
+                username,
+                email,
+                password,
                 googleId,
                 profilePicture: cloudinaryUrl || null,
             });
@@ -211,28 +186,28 @@ exports.devCreateFullUser = async (req, res) => {
                 waistCircumference: 70 + Math.floor(Math.random() * 30)
             },
             lifestyle: {
-                activityLevel: ['sedentary','lightly_active','moderately_active','very_active','extremely_active'][Math.floor(Math.random()*5)],
-                sleepHours: 5 + Math.floor(Math.random()*4)
+                activityLevel: ['sedentary', 'lightly_active', 'moderately_active', 'very_active', 'extremely_active'][Math.floor(Math.random() * 5)],
+                sleepHours: 5 + Math.floor(Math.random() * 4)
             },
             dietaryProfile: {
-                preferences: ['vegetarian','vegan','pescatarian'].slice(0, Math.floor(Math.random()*2)+1),
+                preferences: ['vegetarian', 'vegan', 'pescatarian'].slice(0, Math.floor(Math.random() * 2) + 1),
                 allergies: [],
-                dailyWaterIntake: parseFloat((1 + Math.random()*2).toFixed(1)),
+                dailyWaterIntake: parseFloat((1 + Math.random() * 2).toFixed(1)),
                 mealFrequency: 3
             },
             healthProfile: {
                 currentConditions: [],
                 familyHistory: [],
                 medications: [],
-                bloodType: ['A+','A-','B+','B-','AB+','AB-','O+','O-'][Math.floor(Math.random()*8)]
+                bloodType: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'][Math.floor(Math.random() * 8)]
             },
             environmentalFactors: {
-                pollutionExposure: ['low','medium','high'][Math.floor(Math.random()*3)],
-                occupationType: ['sedentary','physical','mixed'][Math.floor(Math.random()*3)]
+                pollutionExposure: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)],
+                occupationType: ['sedentary', 'physical', 'mixed'][Math.floor(Math.random() * 3)]
             },
             riskFactors: {
                 addictions: [],
-                stressLevel: ['low','moderate','high'][Math.floor(Math.random()*3)]
+                stressLevel: ['low', 'moderate', 'high'][Math.floor(Math.random() * 3)]
             }
         };
 
@@ -433,7 +408,7 @@ exports.getUserAllergies = async (req, res) => {
     try {
         const userId = req.user.id;
         const user = await User.findById(userId).select('dietaryProfile.allergies dietaryProfile.preferences');
-        
+
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
@@ -453,7 +428,7 @@ exports.getTodayCalorieBalance = async (req, res) => {
     try {
         const userId = req.user.id;
         const user = await User.findById(userId);
-        
+
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }

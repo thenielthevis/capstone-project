@@ -795,7 +795,7 @@ export default function ProgramInterface() {
                       fontSize: theme.fontSizes.lg,
                     }}
                   >
-                    {showDeleteModal?.type === 'workout' ? 'Delete Workout' : 'Delete Activity'}
+                    {showDeleteModal?.type === 'workout' ? 'Remove Workout' : 'Remove Activity'}
                   </Text>
 
                   <Text

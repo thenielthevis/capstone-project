@@ -26,29 +26,18 @@ async function updateUserDailyBurnedCalories(userId, caloriesBurned) {
       const height = physicalMetrics?.height?.value;
       const targetWeight = physicalMetrics?.targetWeight?.value;
       const activityLevel = lifestyle?.activityLevel;
-      
+
       let goal_kcal = 2000; // Default
       if (weight && height && age && gender) {
-        // Mifflin-St Jeor Equation for BMR
-        let bmr;
-        if (gender === 'male') {
-          bmr = 10 * weight + 6.25 * height - 5 * age + 5;
-        } else {
-          bmr = 10 * weight + 6.25 * height - 5 * age - 161;
-        }
-        const activityFactors = {
-          sedentary: 1.2,
-          lightly_active: 1.375,
-          moderately_active: 1.55,
-          very_active: 1.725,
-          extremely_active: 1.9
-        };
-        const activityMult = activityFactors[activityLevel] || 1.2;
-        goal_kcal = Math.round(bmr * activityMult);
-        if (targetWeight && Math.abs(targetWeight - weight) > 1) {
-          const diff = targetWeight - weight;
-          goal_kcal += diff > 0 ? 250 : -250;
-        }
+        const { calculateGoalKcal } = require("../utils/calorieCalculator");
+        goal_kcal = calculateGoalKcal({
+          weight,
+          height,
+          age,
+          gender,
+          activityLevel,
+          targetWeight
+        });
       }
 
       user.dailyCalorieBalance.push({
@@ -63,7 +52,7 @@ async function updateUserDailyBurnedCalories(userId, caloriesBurned) {
       // Update existing entry
       entry.burned_kcal = (entry.burned_kcal || 0) + caloriesBurned;
       entry.net_kcal = (entry.consumed_kcal || 0) - entry.burned_kcal;
-      
+
       // Update status
       if (entry.net_kcal < entry.goal_kcal - 100) {
         entry.status = 'under';
@@ -106,9 +95,60 @@ exports.createProgramSession = async (req, res) => {
 
     const savedProgramSession = await newProgramSession.save();
 
+    // Calculate total calories if not provided
+    let calculatedCalories = total_calories_burned || 0;
+
+    if (!calculatedCalories || calculatedCalories === 0) {
+      try {
+        const user = await User.findById(userId);
+        if (user) {
+          let geoCalories = 0;
+          let geoDurationMinutes = 0;
+
+          // Sum up provided geo calories and duration
+          if (geo_activities && geo_activities.length > 0) {
+            geo_activities.forEach(g => {
+              geoCalories += (g.calories_burned || 0);
+              geoDurationMinutes += ((g.moving_time_sec || 0) / 60);
+            });
+          }
+
+          // Calculate Workout Calories
+          // Assume remaining time is workout time. 
+          // If total_duration_minutes is less than geo time (unlikely), treat workout time as 0.
+          let totalDuration = total_duration_minutes || 0;
+          let workoutDurationMinutes = Math.max(0, totalDuration - geoDurationMinutes);
+
+          if (workouts && workouts.length > 0 && workoutDurationMinutes > 0) {
+            // Formula: MET * Weight(kg) * Time(hr) * 1.05 (TEF estimate)
+            // Standard Weight Training MET ~ 5.0
+            const MET = 5.0;
+            const weight = user.physicalMetrics?.weight?.value || 0;
+            const durationHours = workoutDurationMinutes / 60;
+
+            const workoutCalories = MET * weight * durationHours * 1.05;
+            calculatedCalories = Math.round(geoCalories + workoutCalories);
+
+            // Update the session record with calculated value
+            savedProgramSession.total_calories_burned = calculatedCalories;
+            await savedProgramSession.save();
+          } else {
+            // Only Geo or just very short
+            calculatedCalories = Math.round(geoCalories);
+            if (calculatedCalories > 0) {
+              savedProgramSession.total_calories_burned = calculatedCalories;
+              await savedProgramSession.save();
+            }
+          }
+        }
+      } catch (calcError) {
+        console.error("Error calculating program calories:", calcError);
+      }
+    }
+
     // Automatically update user's daily burned calories
-    if (total_calories_burned && total_calories_burned > 0) {
-      await updateUserDailyBurnedCalories(userId, total_calories_burned);
+    if (calculatedCalories > 0) {
+      await updateUserDailyBurnedCalories(userId, calculatedCalories);
     }
 
     res.status(201).json(savedProgramSession);
@@ -125,7 +165,7 @@ exports.getAllProgramSessions = async (req, res) => {
       .populate("workouts.workout_id")
       .populate("geo_activities.activity_id")
       .sort({ performed_at: -1 }); // Most recent first
-    
+
     res.status(200).json(programSessions);
   } catch (error) {
     res.status(500).json({ message: "Server Error", error: error.message });

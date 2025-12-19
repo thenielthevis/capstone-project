@@ -8,7 +8,7 @@ import {
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import MapLibreGL, {Logger} from "@maplibre/maplibre-react-native";
+import MapLibreGL, { Logger } from "@maplibre/maplibre-react-native";
 import * as Location from "expo-location";
 import Constants from "expo-constants";
 import { Ionicons, AntDesign, Entypo } from "@expo/vector-icons";
@@ -17,15 +17,15 @@ import { useTheme } from "../../context/ThemeContext";
 import { useRouter } from "expo-router";
 import { useActivityMetrics } from "../../context/ActivityMetricsContext";
 import { useUser } from "../../context/UserContext";
-import { createProgramSession } from "../../api/programSesssionApi";
+import { createGeoSession } from "../../api/geoSessionApi";
 import { getTodayCalorieBalance } from "../../api/userApi";
 
 Logger.setLogCallback(log => {
   const { message } = log;
-    if (  message.match('Request failed due to a permanent error: Canceled')  ) {
-        return true;
-      }
-        return false;
+  if (message.match('Request failed due to a permanent error: Canceled')) {
+    return true;
+  }
+  return false;
 });
 
 // safer Constants access (fixes common runtime/manifest differences)
@@ -51,7 +51,7 @@ export default function TestMap() {
     resetMetrics,
     calculateCaloriesBurned,
   } = useActivityMetrics();
-  
+
   const [location, setLocation] = useState<[number, number] | null>(null);
   // Store the route as an array of [lon, lat]
   const [routeCoords, setRouteCoords] = useState<Array<[number, number]>>([]);
@@ -60,7 +60,7 @@ export default function TestMap() {
   const [following, setFollowing] = useState<boolean>(true); // camera follows user by default
   const [mapBearing, setMapBearing] = useState<number>(0); // 0 = north-up, -1 = compass-follow
   const [mapPitch, setMapPitch] = useState<number>(80); // default pitch
-  
+
   // Track previous location and timestamp for calculations
   const prevLocationRef = useRef<[number, number] | null>(null);
   const prevTimestampRef = useRef<number | null>(null);
@@ -124,7 +124,7 @@ export default function TestMap() {
             // Check if we have a previous location to calculate from
             if (prevLocationRef.current && prevTimestampRef.current) {
               const [prevLon, prevLat] = prevLocationRef.current;
-              
+
               // Calculate distance between previous and current location
               const segmentDistance = calculateDistance(
                 prevLat,
@@ -145,13 +145,13 @@ export default function TestMap() {
                   // Calculate split time for the completed km
                   const kmTime = contextTime - kmStartTimeRef.current;
                   const kmPace = kmTime; // seconds per km
-                  
+
                   addSplit({
                     km: currentKm,
                     time: kmTime,
                     pace: kmPace,
                   });
-                  
+
                   lastKmMarkerRef.current = currentKm;
                   kmStartTimeRef.current = contextTime;
                 }
@@ -262,7 +262,7 @@ export default function TestMap() {
         const z = await cameraRef.current.getZoom();
         if (typeof z === "number") return z;
       }
-    } catch (e) {}
+    } catch (e) { }
     return 20;
   };
 
@@ -398,40 +398,33 @@ export default function TestMap() {
       // Get user weight for calorie calculation (default 70kg if not available)
       const userWeight = user?.physicalMetrics?.weight?.value || 70;
       const caloriesBurned = calculateCaloriesBurned(userWeight);
-      
+
       // Only save if there was actual activity
       if (contextTime > 0 && contextDistance > 0) {
         // Calculate average pace (min/km)
         const avgPace = contextDistance > 0 ? (contextTime / 60) / contextDistance : 0;
-        
+
         // Prepare route coordinates for saving
         const routeForSave = routeCoords.map(([lon, lat]) => ({
           latitude: lat,
           longitude: lon,
         }));
 
-        // Create program session with activity data
+        // Create geo session with activity data
         const sessionPayload = {
-          workouts: [],
-          geo_activities: [{
-            activity_id: getActivityId(activityType), // Map activity type to ID
-            distance_km: contextDistance,
-            avg_pace: avgPace,
-            moving_time_sec: contextTime,
-            route_coordinates: routeForSave,
-            calories_burned: caloriesBurned,
-            started_at: new Date(Date.now() - contextTime * 1000).toISOString(),
-            ended_at: new Date().toISOString(),
-          }],
-          total_duration_minutes: Math.round(contextTime / 60),
-          total_calories_burned: caloriesBurned,
-          performed_at: new Date(Date.now() - contextTime * 1000).toISOString(),
-          end_time: new Date().toISOString(),
+          activity_type: getActivityId(activityType), // Map activity type to ID
+          distance_km: contextDistance,
+          avg_pace: avgPace,
+          moving_time_sec: contextTime,
+          route_coordinates: routeForSave,
+          calories_burned: caloriesBurned,
+          started_at: new Date(Date.now() - contextTime * 1000).toISOString(),
+          ended_at: new Date().toISOString(),
         };
 
-        await createProgramSession(sessionPayload);
+        await createGeoSession(sessionPayload);
         console.log('[Activity] Session saved successfully, calories burned:', caloriesBurned);
-        
+
         // Refresh calorie balance after saving
         try {
           await getTodayCalorieBalance();
@@ -444,7 +437,7 @@ export default function TestMap() {
       console.error('[Activity] Error saving activity session:', error);
       Alert.alert('Note', 'Activity data could not be saved, but your session has ended.');
     }
-    
+
     // Reset all metrics
     resetMetrics();
     // Reset local refs
@@ -483,9 +476,9 @@ export default function TestMap() {
     const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
       Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c; // Distance in kilometers
   };
@@ -703,7 +696,7 @@ export default function TestMap() {
             />
           </TouchableOpacity>
         </View>
-        <ActivityDrawer 
+        <ActivityDrawer
           speed={contextSpeed}
           distance={contextDistance}
           time={contextTime}

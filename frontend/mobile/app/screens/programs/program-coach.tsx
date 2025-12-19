@@ -10,6 +10,7 @@ import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import axiosInstance from "../../api/axiosInstance";
 import { createProgramSession, ProgramSessionPayload } from "../../api/programSesssionApi";
 import { Audio } from "expo-av";
+import ProgramRest from "./program-rest";
 
 type ExerciseItem = {
   type: 'workout' | 'geo';
@@ -48,6 +49,8 @@ export default function ProgramCoach() {
   const bellSound = useRef<Audio.Sound | null>(null);
   const whistleSound = useRef<Audio.Sound | null>(null);
   const clappingSound = useRef<Audio.Sound | null>(null);
+  const onRestCompleteRef = useRef<(() => void) | null>(null);
+  const startTimeRef = useRef<Date | null>(null);
 
   const loadSound = async (path: any) => {
     const { sound } = await Audio.Sound.createAsync(path);
@@ -55,6 +58,7 @@ export default function ProgramCoach() {
   };
 
   useEffect(() => {
+    startTimeRef.current = new Date();
     fetchProgram();
     return () => {
       if (countdownInterval.current) clearInterval(countdownInterval.current);
@@ -95,9 +99,9 @@ export default function ProgramCoach() {
         require("../../../assets/sounds/activity/clapping-sound.mp3")
       );
     };
-  
+
     loadSounds();
-  
+
     return () => {
       bellSound.current?.unloadAsync();
       whistleSound.current?.unloadAsync();
@@ -118,7 +122,7 @@ export default function ProgramCoach() {
       console.log("Bell play error:", e);
     }
   };
-  
+
   const playWhistle = async () => {
     try {
       await whistleSound.current?.replayAsync();
@@ -305,9 +309,11 @@ export default function ProgramCoach() {
     return {
       workouts: workoutSessions,
       geo_activities: geoSessions,
-      total_duration_minutes: 0,
-      total_calories_burned: 0,
-      performed_at: new Date().toISOString(),
+      total_duration_minutes: startTimeRef.current
+        ? Math.round((Date.now() - startTimeRef.current.getTime()) / 60000)
+        : 0,
+      total_calories_burned: 0, // Calculated on backend
+      performed_at: startTimeRef.current ? startTimeRef.current.toISOString() : new Date().toISOString(),
       end_time: new Date().toISOString(),
     };
   };
@@ -372,20 +378,122 @@ export default function ProgramCoach() {
     }, 1000);
   };
 
-  const startRest = (seconds: number, onComplete: () => void) => {
+  const [viewMode, setViewMode] = useState<'exercise' | 'rest'>('exercise');
+
+  useEffect(() => {
+    let interval: any;
+
+    if (viewMode === "rest") {
+      // Logic handled in ProgramRest
+    } else {
+      // Normal Exercise Timer Logic
+      if (isPlaying && !isPaused && !isRepExercise) {
+        interval = setInterval(() => {
+          setExerciseTime((prev) => prev + 1);
+        }, 1000);
+        exerciseTimer.current = interval;
+      }
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isPlaying, isPaused, viewMode]);
+
+
+  const startRest = (seconds: number = 30, onComplete?: () => void) => {
+    if (exerciseTimer.current) clearInterval(exerciseTimer.current);
+
     setRestTime(seconds);
-    if (restTimer.current) clearInterval(restTimer.current);
-    
-    restTimer.current = setInterval(() => {
-      setRestTime((prev) => {
-        if (prev <= 1) {
-          if (restTimer.current) clearInterval(restTimer.current);
-          onComplete();
-          return 0;
+    if (onComplete) {
+      onRestCompleteRef.current = onComplete;
+    }
+    setViewMode('rest');
+
+    // Speech
+    let speech = `Rest for ${seconds} seconds.`;
+
+    // Check if up next is a new exercise
+    const isSwitchingExercise = isWorkout ? currentSet >= sets.length - 1 : true;
+    if (isSwitchingExercise && currentIndex < exercises.length - 1) {
+      const nextEx = exercises[currentIndex + 1];
+      const nextName = nextEx.type === 'workout' ? nextEx.workout_id?.name : nextEx.activity_id?.name;
+      const nextDesc = nextEx.type === 'workout' ? nextEx.workout_id?.description : nextEx.activity_id?.description;
+
+      if (nextName) {
+        speech += ` Up next, ${nextName}.`;
+      }
+      if (nextDesc) {
+        // Keep description short or maybe just name is enough? User asked for description.
+        speech += ` ${nextDesc}`;
+      }
+    }
+
+    Speech.speak(speech);
+  };
+
+  const finishRest = () => {
+    setViewMode('exercise');
+    setRestTime(0);
+
+    // If a callback was provided (e.g., for Geo redirection), run it and skip default logic
+    if (onRestCompleteRef.current) {
+      onRestCompleteRef.current();
+      onRestCompleteRef.current = null;
+      // Don't auto-reset state or play if we're redirecting or handling custom logic
+      return;
+    }
+
+    // Default: Proceed to next set or exercise logic
+    if (isWorkout && sets.length > 0) {
+      if (currentSet < sets.length - 1) {
+        // Next set
+        setCurrentSet((prev) => prev + 1);
+        // Pre-emptively set rep/time state to avoid timer flash
+        const nextSet = sets[currentSet + 1];
+        if (nextSet.reps) {
+          setIsRepExercise(true);
+          setExerciseTime(0);
+        } else {
+          setIsRepExercise(false);
+          setExerciseTime(nextSet.time_seconds ? Number(nextSet.time_seconds) : 0);
         }
-        return prev - 1;
-      });
-    }, 1000);
+
+      } else {
+        // Next exercise
+        if (currentIndex < exercises.length - 1) {
+          // Pre-emptively set state for the NEXT exercise to prevent timer bug
+          const nextEx = exercises[currentIndex + 1];
+          if (nextEx.type === 'workout') {
+            const nextSets = nextEx.sets || [];
+            if (nextSets.length > 0) {
+              const firstSet = nextSets[0];
+              if (firstSet.reps) {
+                setIsRepExercise(true);
+                setExerciseTime(0);
+              } else {
+                setIsRepExercise(false);
+                setExerciseTime(firstSet.time_seconds ? Number(firstSet.time_seconds) : 0);
+              }
+            }
+          }
+          nextExercise();
+        } else {
+          // Program Finished (Should be handled by check before rest, but failsafe)
+          setIsLastExerciseDone(true);
+          setIsPlaying(false);
+        }
+      }
+    } else {
+      // Geo/Simple activity next
+      if (currentIndex < exercises.length - 1) {
+        nextExercise();
+      }
+    }
+
+    // Auto-start next
+    setIsPaused(false);
+    setIsPlaying(true);
   };
 
   const startTimedSet = async (duration: number) => {
@@ -396,13 +504,20 @@ export default function ProgramCoach() {
         if (prev <= 1) {
           if (exerciseTimer.current) clearInterval(exerciseTimer.current);
           playBell();
-          speak("Set complete. Rest for 30 seconds.");
-          startRest(30, () => {
-            announcementKeyRef.current = null;
-            setCurrentSet((prevSet) => prevSet + 1);
-            setCurrentRep(0);
-            setExerciseTime(0);
-          });
+          speak("Set complete.");
+
+          // Check if this is the last set of the last exercise
+          const isLastExercise = currentIndex === exercises.length - 1;
+          const isLastSet = currentSet >= sets.length - 1;
+
+          if (isLastExercise && isLastSet) {
+            setIsLastExerciseDone(true);
+            playClapping();
+            speak("Program complete!");
+            setIsPlaying(false);
+          } else {
+            startRest(30);
+          }
           return 0;
         }
         return prev - 1;
@@ -459,7 +574,7 @@ export default function ProgramCoach() {
   const handleWorkoutExercise = async (exercise: ExerciseItem) => {
     const workout = exercise.workout_id;
     const sets = exercise.sets || [];
-    
+
     if (sets.length === 0) {
       // Exercise with no sets - mark as done if it's the last exercise
       if (currentIndex === exercises.length - 1) {
@@ -525,13 +640,20 @@ export default function ProgramCoach() {
     setIsRepExercise(false);
     setCurrentRep(0);
     playBell();
-    speak("Set complete. Rest for 30 seconds.");
-    startRest(30, () => {
-      announcementKeyRef.current = null;
-      setCurrentSet((prev) => prev + 1);
-      setCurrentRep(0);
-      setExerciseTime(0);
-    });
+    speak("Set complete.");
+
+    // Check if this is the last set of the last exercise
+    const isLastExercise = currentIndex === exercises.length - 1;
+    const isLastSet = currentSet >= sets.length - 1;
+
+    if (isLastExercise && isLastSet) {
+      setIsLastExerciseDone(true);
+      playClapping();
+      speak("Program complete!");
+      setIsPlaying(false);
+    } else {
+      startRest(30);
+    }
   };
 
   const handleGeoExercise = async (_exercise: ExerciseItem) => {
@@ -559,7 +681,26 @@ export default function ProgramCoach() {
       setExerciseTime(0);
       setCountdown(0);
       setRestTime(0);
-      setIsRepExercise(false);
+      setRestTime(0);
+
+      // Determine if next exercise is rep-based to avoid timer flash
+      const nextEx = exercises[next];
+      if (nextEx.type === 'workout') {
+        const nextSets = nextEx.sets || [];
+        if (nextSets.length > 0) {
+          const firstSet = nextSets[0];
+          if (firstSet.reps) {
+            setIsRepExercise(true);
+          } else {
+            setIsRepExercise(false);
+          }
+        } else {
+          setIsRepExercise(false);
+        }
+      } else {
+        setIsRepExercise(false);
+      }
+
       return next;
     });
   };
@@ -570,7 +711,7 @@ export default function ProgramCoach() {
     if (restTimer.current) clearInterval(restTimer.current);
     Speech.stop();
     announcementKeyRef.current = null;
-    
+
     setCurrentIndex((prev) => {
       if (prev <= 0) return prev;
       // Reset last exercise done flag when moving away from last exercise
@@ -664,19 +805,19 @@ export default function ProgramCoach() {
   const isLastExerciseCompleted = () => {
     // Must be on the last exercise
     if (currentIndex !== exercises.length - 1) return false;
-    
+
     // Check if we've explicitly marked the last exercise as done
     if (isLastExerciseDone) {
       // Ensure no active timers or states before showing finish button
       return countdown === 0 && restTime === 0 && exerciseTime === 0 && !isRepExercise;
     }
-    
+
     // For workout exercises, check if all sets are completed
     if (isWorkout) {
       const exerciseSets = sets || [];
       // No active timers or countdowns
       if (countdown > 0 || restTime > 0 || exerciseTime > 0 || isRepExercise) return false;
-      
+
       if (exerciseSets.length === 0) {
         // Exercises with no sets are marked as done in handleWorkoutExercise
         return isLastExerciseDone;
@@ -684,7 +825,7 @@ export default function ProgramCoach() {
       // Check if all sets are completed
       return currentSet >= exerciseSets.length;
     }
-    
+
     // For geo exercises, they redirect to Activity screen
     // Since they redirect, we can't easily track completion
     // Only show finish button if explicitly marked as done or if not in active state
@@ -718,46 +859,106 @@ export default function ProgramCoach() {
     }
   };
 
+  // Determine next exercise details for ProgramRest
+  // Determine next exercise details for ProgramRest
+  const getNextExerciseDetails = () => {
+    if (isWorkout && sets.length > 0 && currentSet < sets.length - 1) {
+      // Next set of same workout
+      return {
+        name: workout?.name,
+        info: `Set ${currentSet + 2} of ${sets.length}`,
+        image: workout?.animation_url,
+        isLottie: true
+      };
+    } else if (currentIndex < exercises.length - 1) {
+      // Next exercise
+      const nextEx = exercises[currentIndex + 1];
+      if (nextEx.type === 'workout') {
+        const nextSets = nextEx.sets?.length || 0;
+        return {
+          name: nextEx.workout_id?.name,
+          info: `${nextSets} Sets`,
+          image: nextEx.workout_id?.animation_url,
+          isLottie: true
+        };
+      } else {
+        return {
+          name: nextEx.activity_id?.name,
+          info: "Geo Activity",
+          image: nextEx.activity_id?.icon,
+          isLottie: false
+        };
+      }
+    }
+    return { name: "Finish", info: "Program Complete" };
+  };
+
+  if (viewMode === 'rest') {
+    const nextDetails = getNextExerciseDetails();
+    return (
+      <ProgramRest
+        initialDuration={restTime}
+        onComplete={finishRest}
+        onSkip={finishRest}
+        onAddSeconds={(s) => setRestTime(prev => prev + s)}
+        nextExerciseName={nextDetails.name}
+        nextExerciseInfo={nextDetails.info}
+        nextExerciseImage={nextDetails.image}
+        nextExerciseIsLottie={nextDetails.isLottie}
+      />
+    );
+  }
+
+  const nextDetails = getNextExerciseDetails();
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
       {/* Header */}
       <View style={{ paddingHorizontal: 24, paddingTop: 16, paddingBottom: 12 }}>
         <View className="flex-row items-center justify-between">
-          <TouchableOpacity onPress={() => router.back()}>
+          <TouchableOpacity onPress={() => router.back()} style={{ zIndex: 10 }}>
             <Ionicons name="close" size={28} color={theme.colors.text} />
           </TouchableOpacity>
-          <Text style={{ fontFamily: theme.fonts.heading, fontSize: 18, color: theme.colors.text }}>
-            {program?.name || "Workout Coach"}
-          </Text>
+          <View style={{ flex: 1, marginHorizontal: 16, alignItems: 'center' }}>
+            <Text
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              style={{ fontFamily: theme.fonts.heading, fontSize: 18, color: theme.colors.text }}
+            >
+              {program?.name || "Workout Coach"}
+            </Text>
+          </View>
           {/* Finish button - only show when last exercise is completed */}
-          {isLastExerciseCompleted() && (
+          {isLastExerciseCompleted() ? (
             <TouchableOpacity
-            onPress={handleFinishProgram}
-            disabled={isRecordingSession}
-            className="flex-row items-center justify-center"
-            style={{
-              paddingHorizontal: 16,
-              paddingVertical: 8,
-              borderRadius: 8,
-              backgroundColor: theme.colors.primary,
-              opacity: isRecordingSession ? 0.7 : 1,
-            }}
-          >
-            {isRecordingSession ? (
-              <ActivityIndicator size="small" color={theme.colors.text} />
-            ) : (
-              <>
-                <Ionicons name="stop" size={18} color={theme.colors.text} />
-                <Text style={{ color: theme.colors.text, fontFamily: theme.fonts.heading, marginLeft: 6, fontSize: 14, fontWeight: "600" }}>
-                  Finish
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
+              onPress={handleFinishProgram}
+              disabled={isRecordingSession}
+              className="flex-row items-center justify-center"
+              style={{
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderRadius: 8,
+                backgroundColor: theme.colors.primary,
+                opacity: isRecordingSession ? 0.7 : 1,
+                minWidth: 80,
+              }}
+            >
+              {isRecordingSession ? (
+                <ActivityIndicator size="small" color={theme.colors.text} />
+              ) : (
+                <>
+                  <Ionicons name="stop" size={18} color={theme.colors.text} />
+                  <Text style={{ color: theme.colors.text, fontFamily: theme.fonts.heading, marginLeft: 6, fontSize: 14, fontWeight: "600" }}>
+                    Finish
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          ) : (
+            <View style={{ width: 28 }} /> // Placeholder to balance close button
           )}
-          <View style={{ width: "auto" }} />
         </View>
-        
+
         {/* Progress Bar */}
         <View style={{ marginTop: 16, height: 4, backgroundColor: theme.colors.surface, borderRadius: 2, overflow: "hidden" }}>
           <View
@@ -775,70 +976,70 @@ export default function ProgramCoach() {
       </View>
 
       {/* Exercise Display */}
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 24 }}>
+      <View style={{ flex: 1, justifyContent: "flex-start", alignItems: "center" }}>
         {/* Animation/Icon with Countdown Overlay */}
         <View style={{ marginBottom: 24, alignItems: "center", justifyContent: "center" }}>
           <View style={{ position: "relative" }}>
-          {isWorkout ? (
-            workout?.animation_url ? (
-              <LottieView
-                source={{ uri: workout.animation_url }}
-                autoPlay
-                loop
-                style={{ minHeight: 400, minWidth: 400, backgroundColor: "#FFFFFF" }}
-              />
+            {isWorkout ? (
+              workout?.animation_url ? (
+                <LottieView
+                  source={{ uri: workout.animation_url }}
+                  autoPlay
+                  loop
+                  style={{ minHeight: 400, minWidth: 400, backgroundColor: "#FFFFFF" }}
+                />
+              ) : (
+                <View style={{ width: 400, height: 400, justifyContent: "center", alignItems: "center", backgroundColor: "#FFFFFF" }}>
+                  <Ionicons name="barbell" size={120} color={theme.colors.primary} />
+                </View>
+              )
             ) : (
-              <View style={{ width: 400, height: 400, justifyContent: "center", alignItems: "center", backgroundColor: "#FFFFFF"}}>
-                <Ionicons name="barbell" size={120} color={theme.colors.primary} />
-              </View>
-            )
-          ) : (
-            activity?.icon ? (
-              <Image
-                source={{ uri: activity.icon }}
-                style={{ width: 400, height: 400, backgroundColor: "#FFFFFF"}}
-                resizeMode="cover"
-              />
-            ) : (
-              <View style={{ width: 400, height: 400, justifyContent: "center", alignItems: "center", backgroundColor: "#FFFFFF"}}>
-                <Ionicons name="walk" size={120} color={theme.colors.primary} />
-              </View>
-            )
-          )}
-          {countdown > 0 && (
-            <Animated.View
-              style={{
-                position: "absolute",
-                top: 0,
-                bottom: 0,
-                left: 0,
-                right: 0,
-                alignItems: "center",
-                justifyContent: "center",
-                transform: [{ scale: scaleAnim }],
-              }}
-            >
-              <View
+              activity?.icon ? (
+                <Image
+                  source={{ uri: activity.icon }}
+                  style={{ width: 400, height: 400, backgroundColor: "#FFFFFF" }}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={{ width: 400, height: 400, justifyContent: "center", alignItems: "center", backgroundColor: "#FFFFFF" }}>
+                  <Ionicons name="walk" size={120} color={theme.colors.primary} />
+                </View>
+              )
+            )}
+            {countdown > 0 && (
+              <Animated.View
                 style={{
-                  width: 200,
-                  height: 200,
-                  borderRadius: 100,
-                  backgroundColor: "#00000066",
+                  position: "absolute",
+                  top: 0,
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
                   alignItems: "center",
                   justifyContent: "center",
+                  transform: [{ scale: scaleAnim }],
                 }}
               >
-                <Text style={{ fontFamily: theme.fonts.heading, fontSize: 72, color: "#FFFFFF", textAlign: "center" }}>
-                  {countdown <= 3 ? countdown : formatTime(countdown)}
-                </Text>
-              </View>
-            </Animated.View>
-          )}
+                <View
+                  style={{
+                    width: 200,
+                    height: 200,
+                    borderRadius: 100,
+                    backgroundColor: "#00000066",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text style={{ fontFamily: theme.fonts.heading, fontSize: 72, color: "#FFFFFF", textAlign: "center" }}>
+                    {countdown <= 3 ? countdown : formatTime(countdown)}
+                  </Text>
+                </View>
+              </Animated.View>
+            )}
           </View>
         </View>
 
         {/* Exercise Name with Info Button */}
-        <View className="flex-row items-center justify-center mb-4">
+        <View className="flex-row items-center justify-center">
           <Text style={{ fontFamily: theme.fonts.heading, fontSize: 24, color: theme.colors.primary, textAlign: "center", marginRight: 8 }}>
             {isWorkout ? workout?.name : activity?.name}
           </Text>
@@ -854,7 +1055,7 @@ export default function ProgramCoach() {
 
         {/* Exercise Info Row: Set | Reps | Timer | Weight */}
         {isWorkout && sets.length > 0 && (
-          <View className="flex-row items-center justify-center mb-6" style={{ flexWrap: "wrap", gap: 16 }}>
+          <View className="flex-row items-center justify-center" style={{ flexWrap: "wrap", gap: 16 }}>
             {/* Set Info */}
             <View className="flex-row items-center" style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: theme.colors.surface, borderRadius: 8 }}>
               <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: 14, color: theme.colors.text, marginRight: 4 }}>
@@ -919,7 +1120,7 @@ export default function ProgramCoach() {
         {/* Exercise Timer (when playing) */}
         {exerciseTime > 0 && (
           <View style={{ marginBottom: 16 }}>
-            <Text style={{ fontFamily: theme.fonts.heading, fontSize: 64, color: theme.colors.primary, textAlign: "center" }}>
+            <Text style={{ fontFamily: theme.fonts.heading, fontSize: 90, color: theme.colors.primary, textAlign: "center" }}>
               {formatTime(exerciseTime)}
             </Text>
           </View>
@@ -940,7 +1141,7 @@ export default function ProgramCoach() {
         {/* Reps Display (Done handled by play/pause button) */}
         {isRepExercise && currentRep > 0 && countdown === 0 && exerciseTime === 0 && restTime === 0 && (
           <View style={{ marginBottom: 16, alignItems: "center" }}>
-            <Text style={{ fontFamily: theme.fonts.heading, fontSize: 72, color: theme.colors.primary, textAlign: "center", marginBottom: 24 }}>
+            <Text style={{ fontFamily: theme.fonts.heading, fontSize: 90, color: theme.colors.primary, textAlign: "center", marginBottom: 24 }}>
               x{currentRep}
             </Text>
           </View>
@@ -989,10 +1190,10 @@ export default function ProgramCoach() {
                 isRepExercise
                   ? "checkmark-sharp"
                   : isPaused
-                  ? "play"
-                  : isPlaying
-                  ? "pause"
-                  : "play"
+                    ? "play"
+                    : isPlaying
+                      ? "pause"
+                      : "play"
               }
               size={24}
               color="#FFFFFF"
@@ -1009,10 +1210,10 @@ export default function ProgramCoach() {
               {isRepExercise
                 ? "Done"
                 : isPaused
-                ? "Continue"
-                : isPlaying
-                ? "Pause"
-                : "Play"}
+                  ? "Continue"
+                  : isPlaying
+                    ? "Pause"
+                    : "Play"}
             </Text>
           </TouchableOpacity>
 
@@ -1048,20 +1249,20 @@ export default function ProgramCoach() {
         handleIndicatorStyle={{ backgroundColor: theme.colors.text + "66" }}
       >
         <BottomSheetView>
-        <View style={{ padding: 24 }}>
-          <Text style={{ fontFamily: theme.fonts.heading, fontSize: 20, color: theme.colors.text, marginBottom: 12 }}>
-            {isWorkout ? workout?.name : activity?.name}
-          </Text>
-          {description ? (
-            <Text style={{ fontFamily: theme.fonts.body, fontSize: 14, color: theme.colors.text + "99", lineHeight: 22 }}>
-              {description}
+          <View style={{ padding: 24 }}>
+            <Text style={{ fontFamily: theme.fonts.heading, fontSize: 20, color: theme.colors.text, marginBottom: 12 }}>
+              {isWorkout ? workout?.name : activity?.name}
             </Text>
-          ) : (
-            <Text style={{ fontFamily: theme.fonts.body, fontSize: 14, color: theme.colors.text + "99" }}>
-              No description available.
-            </Text>
-          )}
-        </View>
+            {description ? (
+              <Text style={{ fontFamily: theme.fonts.body, fontSize: 14, color: theme.colors.text + "99", lineHeight: 22 }}>
+                {description}
+              </Text>
+            ) : (
+              <Text style={{ fontFamily: theme.fonts.body, fontSize: 14, color: theme.colors.text + "99" }}>
+                No description available.
+              </Text>
+            )}
+          </View>
         </BottomSheetView>
       </BottomSheet>
     </SafeAreaView>

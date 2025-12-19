@@ -8,7 +8,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useActivityMetrics } from '../../context/ActivityMetricsContext';
 import { useUser } from '../../context/UserContext';
 import ActivityDrawer from '../../components/ActivityDrawer';
-import { createProgramSession } from '../../api/programSesssionApi';
+import { createGeoSession } from '../../api/geoSessionApi';
 import { getTodayCalorieBalance } from '../../api/userApi';
 
 export default function ActivityMetrics() {
@@ -36,34 +36,27 @@ export default function ActivityMetrics() {
       // Get user weight for calorie calculation (default 70kg if not available)
       const userWeight = user?.physicalMetrics?.weight?.value || 70;
       const caloriesBurned = calculateCaloriesBurned(userWeight);
-      
+
       // Only save if there was actual activity
       if (time > 0 && distance > 0) {
         // Calculate average pace (min/km)
         const avgPace = distance > 0 ? (time / 60) / distance : 0;
 
-        // Create program session with activity data
+        // Create geo session with activity data
         const sessionPayload = {
-          workouts: [],
-          geo_activities: [{
-            activity_id: getActivityId(activityType),
-            distance_km: distance,
-            avg_pace: avgPace,
-            moving_time_sec: time,
-            route_coordinates: [],
-            calories_burned: caloriesBurned,
-            started_at: new Date(Date.now() - time * 1000).toISOString(),
-            ended_at: new Date().toISOString(),
-          }],
-          total_duration_minutes: Math.round(time / 60),
-          total_calories_burned: caloriesBurned,
-          performed_at: new Date(Date.now() - time * 1000).toISOString(),
-          end_time: new Date().toISOString(),
+          activity_type: getActivityId(activityType),
+          distance_km: distance,
+          avg_pace: avgPace,
+          moving_time_sec: time,
+          route_coordinates: [], // No route in metrics view usually? or should we pass it? The original code had empty array. structure matches.
+          calories_burned: caloriesBurned,
+          started_at: new Date(Date.now() - time * 1000).toISOString(),
+          ended_at: new Date().toISOString(),
         };
 
-        await createProgramSession(sessionPayload);
+        await createGeoSession(sessionPayload);
         console.log('[ActivityMetrics] Session saved successfully, calories burned:', caloriesBurned);
-        
+
         // Refresh calorie balance after saving
         try {
           await getTodayCalorieBalance();
@@ -76,7 +69,7 @@ export default function ActivityMetrics() {
       console.error('[ActivityMetrics] Error saving activity session:', error);
       Alert.alert('Note', 'Activity data could not be saved, but your session has ended.');
     }
-    
+
     // Reset metrics and navigate back
     resetMetrics();
     router.back();
@@ -132,7 +125,7 @@ export default function ActivityMetrics() {
     const percentage = Math.min((split.pace / maxPace) * 100, 100);
     const isSlow = split.pace > maxPace * 0.8;
     const isFast = split.pace < maxPace * 0.5;
-    
+
     return (
       <View className="mb-4">
         <View className="flex-row items-end justify-between mb-2">
@@ -155,7 +148,7 @@ export default function ActivityMetrics() {
             {formatPace(split.pace)}
           </Text>
         </View>
-        <View 
+        <View
           className="h-6 rounded-full overflow-hidden"
           style={{ backgroundColor: theme.colors.surface }}
         >
@@ -163,11 +156,11 @@ export default function ActivityMetrics() {
             className="h-full rounded-full"
             style={{
               width: `${percentage}%`,
-              backgroundColor: isFast 
-                ? theme.colors.success 
-                : isSlow 
-                ? theme.colors.error 
-                : theme.colors.primary,
+              backgroundColor: isFast
+                ? theme.colors.success
+                : isSlow
+                  ? theme.colors.error
+                  : theme.colors.primary,
             }}
           />
         </View>
@@ -179,7 +172,7 @@ export default function ActivityMetrics() {
     <SafeAreaView className="flex-1" style={{ backgroundColor: theme.colors.background }}>
       {/* Header with Time */}
       <View className="px-6 pt-3">
-        <View 
+        <View
           className="flex-row items-center justify-between pb-5 border-b"
           style={{ borderBottomColor: theme.colors.text + '20' }}
         >
@@ -205,7 +198,7 @@ export default function ActivityMetrics() {
       </View>
 
       {/* Main Content */}
-      <ScrollView 
+      <ScrollView
         className="flex-1 px-6 pt-8"
         showsVerticalScrollIndicator={false}
       >
@@ -220,7 +213,7 @@ export default function ActivityMetrics() {
           >
             Split Avg. (/km)
           </Text>
-          <Text 
+          <Text
             className="text-8xl font-bold"
             style={{
               color: theme.colors.primary,
@@ -232,11 +225,11 @@ export default function ActivityMetrics() {
         </View>
 
         {/* Distance and Speed Row */}
-        <View 
+        <View
           className="flex-row border-t border-b mb-12"
           style={{ borderColor: theme.colors.text + '20' }}
         >
-          <View 
+          <View
             className="flex-1 py-8 px-5 items-center border-r"
             style={{ borderRightColor: theme.colors.text + '20' }}
           >
@@ -295,10 +288,10 @@ export default function ActivityMetrics() {
           {splits.length > 0 ? (
             <View>
               {splits.map((split) => (
-                <SplitBar 
-                  key={split.km} 
-                  split={split} 
-                  maxPace={getMaxPace()} 
+                <SplitBar
+                  key={split.km}
+                  split={split}
+                  maxPace={getMaxPace()}
                 />
               ))}
             </View>
