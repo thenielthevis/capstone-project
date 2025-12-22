@@ -18,7 +18,9 @@ const { registerUser,
         getTodayCalorieBalance,
         getUserProfile,
         updateUserProfile,
-        updateProfilePicture
+        updateProfilePicture,
+        searchUsers,
+        getAllUsersForChat
 } = require('../controllers/userControllers');
 
 router.get('/me', userMiddleware, currentlyLoggedInUser);
@@ -44,5 +46,9 @@ router.get('/daily-calorie-balance/today', auth, getTodayCalorieBalance);
 router.get('/profile', auth, getUserProfile);
 router.patch('/profile', auth, updateUserProfile);
 router.post('/profile/picture', auth, updateProfilePicture);
+
+// Chat-related user routes
+router.get('/search', auth, searchUsers);
+router.get('/all', auth, getAllUsersForChat);
 
 module.exports = router;

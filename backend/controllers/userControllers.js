@@ -754,3 +754,41 @@ exports.updateProfilePicture = async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
+
+// GET: Search users for chat
+exports.searchUsers = async (req, res) => {
+    try {
+        const keyword = req.query.search
+            ? {
+                $or: [
+                    { username: { $regex: req.query.search, $options: "i" } },
+                    { email: { $regex: req.query.search, $options: "i" } },
+                ],
+            }
+            : {};
+
+        const users = await User.find(keyword)
+            .find({ _id: { $ne: req.user.id } })
+            .select('_id username email profilePicture')
+            .limit(20);
+
+        res.json(users);
+    } catch (error) {
+        console.error('searchUsers error:', error);
+        res.status(500).json({ message: 'Error searching users', error: error.message });
+    }
+};
+
+// GET: Get all users for chat (limited)
+exports.getAllUsersForChat = async (req, res) => {
+    try {
+        const users = await User.find({ _id: { $ne: req.user.id } })
+            .select('_id username email profilePicture')
+            .limit(50);
+
+        res.json(users);
+    } catch (error) {
+        console.error('getAllUsersForChat error:', error);
+        res.status(500).json({ message: 'Error fetching users', error: error.message });
+    }
+};
