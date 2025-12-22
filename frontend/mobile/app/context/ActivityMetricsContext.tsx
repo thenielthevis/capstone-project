@@ -6,7 +6,7 @@ type Split = {
   pace: number; // pace in seconds per km
 };
 
-type ActivityType = string; // Activity ID from backend
+type ActivityType = 'Running' | 'Walking' | 'Cycling';
 
 type ActivityMetricsContextType = {
   speed: number;
@@ -15,8 +15,7 @@ type ActivityMetricsContextType = {
   recording: boolean;
   splits: Split[];
   activityType: ActivityType;
-  activityName: string; // For MET value lookups
-  setActivityType: (type: ActivityType, name?: string) => void;
+  setActivityType: (type: ActivityType) => void;
   setSpeed: (speed: number) => void;
   setDistance: (distance: number) => void;
   setTime: (time: number) => void;
@@ -28,8 +27,8 @@ type ActivityMetricsContextType = {
 
 const ActivityMetricsContext = createContext<ActivityMetricsContextType | undefined>(undefined);
 
-// MET values for different activities - mapped by name
-const MET_VALUES: Record<string, number> = {
+// MET values for different activities
+const MET_VALUES: Record<ActivityType, number> = {
   Running: 9.8,    // Running at moderate pace (~8 km/h)
   Walking: 3.5,    // Walking at moderate pace (~5 km/h)
   Cycling: 7.5,    // Cycling at moderate pace (~16-19 km/h)
@@ -41,13 +40,7 @@ export const ActivityMetricsProvider = ({ children }: { children: ReactNode }) =
   const [time, setTime] = useState<number>(0);
   const [recording, setRecording] = useState<boolean>(false);
   const [splits, setSplits] = useState<Split[]>([]);
-  const [activityType, setActivityTypeState] = useState<ActivityType>("");
-  const [activityName, setActivityName] = useState<string>("Walking");
-
-  const setActivityType = (type: ActivityType, name: string = "Walking") => {
-    setActivityTypeState(type);
-    setActivityName(name);
-  };
+  const [activityType, setActivityType] = useState<ActivityType>("Walking");
 
   const addSplit = (split: Split) => {
     setSplits((prev) => [...prev, split]);
@@ -56,7 +49,7 @@ export const ActivityMetricsProvider = ({ children }: { children: ReactNode }) =
   // Calculate calories burned using MET formula
   // Calories = MET × weight(kg) × time(hours)
   const calculateCaloriesBurned = (weightKg: number = 70): number => {
-    const met = MET_VALUES[activityName] || MET_VALUES.Walking;
+    const met = MET_VALUES[activityType];
     const timeInHours = time / 3600;
     const calories = Math.round(met * weightKg * timeInHours);
     return calories;
@@ -68,7 +61,7 @@ export const ActivityMetricsProvider = ({ children }: { children: ReactNode }) =
     setTime(0);
     setRecording(false);
     setSplits([]);
-    setActivityType("", "Walking");
+    setActivityType("Walking");
   };
 
   return (
@@ -80,7 +73,6 @@ export const ActivityMetricsProvider = ({ children }: { children: ReactNode }) =
         recording,
         splits,
         activityType,
-        activityName,
         setActivityType,
         setSpeed,
         setDistance,

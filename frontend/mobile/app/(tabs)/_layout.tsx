@@ -136,7 +136,7 @@ export default function HomeTabs() {
                         focused || recordMenuOpen ? theme.colors.primary + "20" : "transparent",
                       alignItems: "center",
                       justifyContent: "center",
-                      marginTop: 18,
+                      marginTop: 16,
                     }}
                   >
                     <MaterialCommunityIcons
@@ -200,7 +200,7 @@ export default function HomeTabs() {
               }}
             />
             <Tabs.Screen
-              name="Groups"
+              name="Chat"
               listeners={{
                 tabPress: () => setRecordMenuOpen(false),
               }}
@@ -223,7 +223,7 @@ export default function HomeTabs() {
                   >
                     <Ionicons
                       size={26}
-                      name={focused ? "people" : "people-outline"}
+                      name={focused ? "chatbubble-ellipses" : "chatbubble-ellipses-outline"}
                       color={focused ? theme.colors.primary : theme.colors.text + "99"}
                     />
                   </View>
@@ -259,19 +259,6 @@ export default function HomeTabs() {
                     />
                   </View>
                 ),
-              }}
-            />
-            {/* Hide unused Analysis screens from tabs */}
-            <Tabs.Screen
-              name="AnalysisDashboard"
-              options={{
-                href: null,
-              }}
-            />
-            <Tabs.Screen
-              name="AnalysisNew"
-              options={{
-                href: null,
               }}
             />
           </Tabs>

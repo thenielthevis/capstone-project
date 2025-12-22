@@ -29,6 +29,8 @@ const programRoutes = require('./routes/programRoutes');
 const programSessionRoutes = require('./routes/programSessionRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const geminiRoutes = require('./routes/geminiRoutes');
+const chatRoutes = require('./routes/chatRoutes');
+const messageRoutes = require('./routes/messageRoutes');
 
 // During development allow all origins so phones/emulators can reach the server.
 // In production restrict this to a known list.
@@ -57,13 +59,15 @@ app.use('/api/programs', programRoutes);
 app.use('/api/program-sessions', programSessionRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/gemini', geminiRoutes);
+app.use('/api/chat', chatRoutes);
+app.use('/api/message', messageRoutes);
 console.log('[APP] Registered /api/admin routes');
 console.log('[APP] Registered /api/gemini routes');
 
 // Health check endpoint
 app.get('/', (req, res) => {
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     message: 'Capstone API Server Running',
     timestamp: new Date().toISOString()
   });
@@ -73,7 +77,7 @@ app.get('/', (req, res) => {
 app.use((req, res) => {
   console.log(`[404] ${req.method} ${req.originalUrl} - Route not found`);
   console.log(`[404] Available routes: /api/users, /api/predict, /api/geo, /api/workouts, /api/workout-sessions, /api/geo-sessions, /api/food-logs, /api/programs, /api/admin`);
-  res.status(404).json({ 
+  res.status(404).json({
     message: 'Route not found',
     path: req.originalUrl,
     method: req.method
