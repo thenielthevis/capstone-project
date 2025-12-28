@@ -9,6 +9,7 @@ import { Button, ProgressBar } from "react-native-paper";
 import { useTheme } from "../../context/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import * as Notifications from 'expo-notifications';
 import GeneticalConditionsInfoModal from "@/app/components/Modals/GeneticalConditionsInfoModal";
 import ActivityLevelInfoModal from "@/app/components/Modals/ActivityLevelInfoModal";
 import DietaryPreferencesInfoModal from "@/app/components/Modals/DietaryPreferencesInfoModal";
@@ -17,6 +18,17 @@ import SubstanceInfoModal from "@/app/components/Modals/SubstanceInfoModal";
 import MedicationInfoModal from "@/app/components/Modals/MedicationsInfoModal";
 import { submitHealthAssessment } from "../../api/userApi";
 import { tokenStorage } from "@/utils/tokenStorage";
+
+// Configure notifications behavior
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
 
 // Global flag to indicate prediction was updated
 let predictionWasUpdated = false;
@@ -29,7 +41,9 @@ export function setPredictionUpdateFlag(value: boolean) {
   predictionWasUpdated = value;
 }
 
-const LOCAL_IP = process.env.EXPO_LOCAL_IP || '168.1.100';
+// Use your machine IP by default so physical devices can reach the backend.
+// Update `EXPO_LOCAL_IP` or `EXPO_PUBLIC_API_URL` in env when switching networks.
+const LOCAL_IP = process.env.EXPO_LOCAL_IP || '10.95.119.18';
 const ENV_API = process.env.EXPO_PUBLIC_API_URL;
 const API_URL = ENV_API
   ? ENV_API
@@ -168,6 +182,29 @@ export default function PredictionInputScreen() {
     "Tobacco", "Alcohol", "Cannabis", "Opioids", "Stimulants", "Sedatives", "Caffeine", "Nicotine", "Vaping"
   ];
 
+  // Function to send push notification
+  const sendSuccessNotification = async () => {
+    try {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "✅ Health Metrics Updated",
+          body: "Your health assessment has been saved and new predictions have been generated!",
+          data: {
+            screen: "Analysis",
+          },
+          sound: 'default',
+          priority: 'high',
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+          seconds: 1, // Show notification immediately
+        },
+      });
+    } catch (error) {
+      console.error('Error sending notification:', error);
+    }
+  };
+
   const renderStepIndicator = () => (
     <View className="mb-4 mt-5">
       <Text style={{ color: theme.colors.primary, fontFamily: theme.fonts.heading, marginBottom: 8 }}>
@@ -303,8 +340,8 @@ export default function PredictionInputScreen() {
     setLoading(true);
     const token = await tokenStorage.getToken();
     if (!token) {
-      alert('No authentication token found');
       setLoading(false);
+      router.replace('/(tabs)/Analysis');
       return;
     }
 
@@ -328,7 +365,6 @@ export default function PredictionInputScreen() {
 
     if (!predictResponse.ok) {
       console.error('Prediction update failed');
-      alert('Health data saved, but prediction update failed');
       setLoading(false);
       // Navigate to Analysis tab instead of going back
       router.replace('/(tabs)/Analysis');
@@ -338,7 +374,9 @@ export default function PredictionInputScreen() {
     const predictData = await predictResponse.json();
     console.log("New predictions generated:", predictData);
     
-    alert('✅ Health data updated and new predictions generated!');
+    // Send success notification
+    await sendSuccessNotification();
+    
     setLoading(false);
     // Set flag to show notification in Analysis screen
     setPredictionUpdateFlag(true);
@@ -347,8 +385,8 @@ export default function PredictionInputScreen() {
     
   } catch (error) {
     console.error("Error submitting health assessment:", error);
-    alert('Error: ' + (error instanceof Error ? error.message : String(error)));
     setLoading(false);
+    router.replace('/(tabs)/Analysis');
   }
 };
 
@@ -401,12 +439,18 @@ export default function PredictionInputScreen() {
           <Button
             mode="contained"
             textColor={theme.colors.background}
-            onPress={() => {
+            onPress={async () => {
               if (currentStep === steps.length - 1) {
-                // Submit form
+                // Submit form: schedule notification immediately on button press,
+                // then perform the async submit flow which will navigate back when done.
                 console.log(formData);
-                handleSubmit();
-                router.back();
+                try {
+                  await sendSuccessNotification();
+                } catch (e) {
+                  console.error('Notification scheduling failed:', e);
+                }
+
+                await handleSubmit();
               } else {
                 setCurrentStep(current => current + 1);
               }
