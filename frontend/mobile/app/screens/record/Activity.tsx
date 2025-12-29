@@ -422,7 +422,7 @@ export default function TestMap() {
           ended_at: new Date().toISOString(),
         };
 
-        await createGeoSession(sessionPayload);
+        const response = await createGeoSession(sessionPayload);
         console.log('[Activity] Session saved successfully, calories burned:', caloriesBurned);
 
         // Refresh calorie balance after saving
@@ -432,23 +432,82 @@ export default function TestMap() {
         } catch (error) {
           console.error('[Activity] Error refreshing calorie balance:', error);
         }
+
+        // Prompt to share
+        Alert.alert(
+          "Session Saved",
+          "Would you like to share this activity to your feed?",
+          [
+            {
+              text: "No, thanks",
+              onPress: () => {
+                // Reset all metrics
+                resetMetrics();
+                // Reset local refs
+                totalDistanceRef.current = 0;
+                lastKmMarkerRef.current = 0;
+                kmStartTimeRef.current = 0;
+                prevLocationRef.current = null;
+                prevTimestampRef.current = null;
+                setRouteCoords([]); // Clear route
+                router.back();
+              },
+              style: "cancel"
+            },
+            {
+              text: "Share",
+              onPress: () => {
+                // Reset all metrics
+                resetMetrics();
+                // Reset local refs
+                totalDistanceRef.current = 0;
+                lastKmMarkerRef.current = 0;
+                kmStartTimeRef.current = 0;
+                prevLocationRef.current = null;
+                prevTimestampRef.current = null;
+                setRouteCoords([]); // Clear route
+
+                router.push({
+                  pathname: "/screens/post/post_session",
+                  params: {
+                    type: "GeoSession",
+                    id: response._id, // Ensure response has _id
+                    title: activityType,
+                    subtitle: `${contextDistance.toFixed(2)} km • ${formatTime(contextTime)}`
+                  }
+                });
+              }
+            }
+          ]
+        );
+      } else {
+        // No activity data
+        resetMetrics();
+        // Reset local refs
+        totalDistanceRef.current = 0;
+        lastKmMarkerRef.current = 0;
+        kmStartTimeRef.current = 0;
+        prevLocationRef.current = null;
+        prevTimestampRef.current = null;
+        setRouteCoords([]);
+        router.back();
       }
     } catch (error) {
       console.error('[Activity] Error saving activity session:', error);
       Alert.alert('Note', 'Activity data could not be saved, but your session has ended.');
+      // Still exit on error?
+      resetMetrics();
+      // Reset local refs
+      totalDistanceRef.current = 0;
+      lastKmMarkerRef.current = 0;
+      kmStartTimeRef.current = 0;
+      prevLocationRef.current = null;
+      prevTimestampRef.current = null;
+      setRouteCoords([]);
+      router.back();
     }
+    // Removed direct code here since it's handled in Alert callbacks now
 
-    // Reset all metrics
-    resetMetrics();
-    // Reset local refs
-    totalDistanceRef.current = 0;
-    lastKmMarkerRef.current = 0;
-    kmStartTimeRef.current = 0;
-    prevLocationRef.current = null;
-    prevTimestampRef.current = null;
-    setRouteCoords([]); // Clear route
-    // Navigate back
-    router.back();
   };
 
   // Map activity type to a placeholder activity ID (you may need to adjust based on your DB)

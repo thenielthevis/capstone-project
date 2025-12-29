@@ -65,6 +65,14 @@ exports.uploadGeoActivityAnimation = async (fileSource, publicId = null) => {
   return cloudinary.uploader.upload(fileSource, options);
 };
 
+exports.uploadPostImage = async (fileBuffer) => {
+  return uploadBufferStream(fileBuffer, {
+    folder: "post_images",
+    resource_type: "image",
+    type: "upload",
+  });
+};
+
 exports.deleteImage = async (publicId) => {
   return cloudinary.uploader.destroy(publicId);
 };

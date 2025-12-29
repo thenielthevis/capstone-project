@@ -844,12 +844,27 @@ export default function ProgramCoach() {
 
     try {
       setIsRecordingSession(true);
-      await createProgramSession(payload);
-      Alert.alert("Session recorded", "Great job! Your program session has been saved.", [
+      const response = await createProgramSession(payload);
+      Alert.alert("Session Recorded", "Great job! Your program session has been saved. Would you like to share it?", [
         {
-          text: "OK",
+          text: "No, thanks",
           onPress: () => router.back(),
+          style: "cancel"
         },
+        {
+          text: "Share",
+          onPress: () => {
+            router.push({
+              pathname: "/screens/post/post_session",
+              params: {
+                type: "ProgramSession",
+                id: response._id, // Ensure this exists on response
+                title: program.title,
+                subtitle: "Program Session" // Or format duration/calories
+              }
+            });
+          }
+        }
       ]);
     } catch (error) {
       console.error("Failed to record program session:", error);

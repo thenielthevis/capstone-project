@@ -33,20 +33,20 @@ const COMMON_ALLERGENS = [
 ];
 
 // Mini Calorie Progress Component (Simplified)
-const MiniCalorieProgress = ({ 
-  calorieBalance, 
-  theme 
-}: { 
+const MiniCalorieProgress = ({
+  calorieBalance,
+  theme
+}: {
   calorieBalance: { consumed_kcal: number; goal_kcal: number; burned_kcal: number; status: string } | null;
   theme: any;
 }) => {
   if (!calorieBalance) return null;
-  
+
   const percentage = Math.min((calorieBalance.consumed_kcal / calorieBalance.goal_kcal) * 100, 100);
-  const statusColor = calorieBalance.status === 'under' ? '#22c55e' : 
-                      calorieBalance.status === 'over' ? '#ef4444' : theme.colors.primary;
+  const statusColor = calorieBalance.status === 'under' ? '#22c55e' :
+    calorieBalance.status === 'over' ? '#ef4444' : theme.colors.primary;
   const remaining = Math.max(0, calorieBalance.goal_kcal - calorieBalance.consumed_kcal + calorieBalance.burned_kcal);
-  
+
   return (
     <View style={{
       backgroundColor: theme.colors.surface,
@@ -72,22 +72,22 @@ const MiniCalorieProgress = ({
         justifyContent: 'center',
         marginRight: 14,
       }}>
-        <Text style={{ 
-          fontFamily: theme.fonts.heading, 
-          fontSize: 14, 
-          color: statusColor 
+        <Text style={{
+          fontFamily: theme.fonts.heading,
+          fontSize: 14,
+          color: statusColor
         }}>
           {Math.round(percentage)}%
         </Text>
       </View>
-      
+
       {/* Info */}
       <View style={{ flex: 1 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Text style={{ 
-            fontFamily: theme.fonts.bodyBold, 
-            fontSize: 14, 
-            color: theme.colors.text 
+          <Text style={{
+            fontFamily: theme.fonts.bodyBold,
+            fontSize: 14,
+            color: theme.colors.text
           }}>
             {calorieBalance.consumed_kcal} / {calorieBalance.goal_kcal} kcal
           </Text>
@@ -97,22 +97,22 @@ const MiniCalorieProgress = ({
             paddingVertical: 3,
             borderRadius: 8,
           }}>
-            <Text style={{ 
-              fontFamily: theme.fonts.body, 
-              fontSize: 10, 
-              color: statusColor 
+            <Text style={{
+              fontFamily: theme.fonts.body,
+              fontSize: 10,
+              color: statusColor
             }}>
-              {calorieBalance.status === 'under' ? 'On Track' : 
-               calorieBalance.status === 'over' ? 'Over' : 'Perfect'}
+              {calorieBalance.status === 'under' ? 'On Track' :
+                calorieBalance.status === 'over' ? 'Over' : 'Perfect'}
             </Text>
           </View>
         </View>
-        
+
         {/* Mini progress bar */}
-        <View style={{ 
-          height: 6, 
-          backgroundColor: theme.colors.background, 
-          borderRadius: 3, 
+        <View style={{
+          height: 6,
+          backgroundColor: theme.colors.background,
+          borderRadius: 3,
           marginTop: 8,
           overflow: 'hidden',
         }}>
@@ -123,10 +123,10 @@ const MiniCalorieProgress = ({
             borderRadius: 3,
           }} />
         </View>
-        
-        <Text style={{ 
-          fontFamily: theme.fonts.body, 
-          fontSize: 11, 
+
+        <Text style={{
+          fontFamily: theme.fonts.body,
+          fontSize: 11,
           color: theme.colors.text + '77',
           marginTop: 6,
         }}>
@@ -138,11 +138,11 @@ const MiniCalorieProgress = ({
 };
 
 // Macro Stat Card Component (for results view)
-const StatCard = ({ 
-  icon, 
-  label, 
-  value, 
-  color, 
+const StatCard = ({
+  icon,
+  label,
+  value,
+  color,
   theme,
   suffix = '',
 }: {
@@ -543,6 +543,41 @@ export default function Food() {
 
       // Refresh calorie balance after saving food log
       await refreshCalorieBalance();
+
+      // Prompt to share
+      Alert.alert(
+        "Food Log Saved",
+        "Would you like to share this meal to your feed?",
+        [
+          {
+            text: "No, thanks",
+            style: "cancel",
+            onPress: () => {
+              // Optional: Navigate back or just stay on results? 
+              // Existing flow seemed to stay on results or didn't specify. 
+              // We will keep existing behavior (stay on results) or maybe logic was somewhere else.
+              // Actually the user might want to see the results. So we won't navigate back automatically unless requested.
+              // But usually "save" means "done". 
+              // Looking at handleAnalyzeImage, it sets result. 
+              // Let's just close the alert.
+            }
+          },
+          {
+            text: "Share",
+            onPress: () => {
+              router.push({
+                pathname: "/screens/post/post_session",
+                params: {
+                  type: "FoodLog",
+                  id: response.foodLog._id,
+                  title: response.foodLog.dishName || "Meal", // Adjust based on data
+                  subtitle: `${response.foodLog.calories} kcal`
+                }
+              });
+            }
+          }
+        ]
+      );
     } catch (err: any) {
       console.error('Error saving food log:', err);
       console.error('Error details:', err.response?.data || err.message);
@@ -1528,26 +1563,26 @@ export default function Food() {
           )}
         </View>
 
-      <ScrollView 
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 100 }}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          viewMode === 'history' ? (
-            <RefreshControl 
-              refreshing={refreshing} 
-              onRefresh={onRefresh}
-              tintColor={theme.colors.primary}
-            />
-          ) : undefined
-        }
-      >
-        {/* Mini Calorie Progress Bar */}
-        {calorieBalance && viewMode === 'analyze' && (
-          <View style={{ marginHorizontal: 20, marginTop: 8, marginBottom: 20 }}>
-            <MiniCalorieProgress calorieBalance={calorieBalance} theme={theme} />
-          </View>
-        )}
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: 100 }}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            viewMode === 'history' ? (
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={theme.colors.primary}
+              />
+            ) : undefined
+          }
+        >
+          {/* Mini Calorie Progress Bar */}
+          {calorieBalance && viewMode === 'analyze' && (
+            <View style={{ marginHorizontal: 20, marginTop: 8, marginBottom: 20 }}>
+              <MiniCalorieProgress calorieBalance={calorieBalance} theme={theme} />
+            </View>
+          )}
 
           {viewMode === 'analyze' ? (
             <>
