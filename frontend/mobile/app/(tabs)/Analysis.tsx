@@ -16,10 +16,12 @@ import LottieView from "lottie-react-native";
 import { MaterialCommunityIcons, FontAwesome6, Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../context/ThemeContext";
 import { useUser } from "../context/UserContext";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
+import * as Notifications from 'expo-notifications';
 import Toast from "react-native-toast-message";
 import { LinearGradient } from "expo-linear-gradient";
 import Analysis from "../screens/AnalysisNew";
+import { getPredictionUpdateFlag, setPredictionUpdateFlag } from "../screens/analysis_input/prediction_input";
 
 
 const getApiUrl = (): string => {
@@ -163,11 +165,13 @@ const HEALTH_METRICS: HealthMetric[] = [
 export default function AnalysisDashboard() {
   const { theme } = useTheme();
   const { user } = useUser();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [userData, setUserData] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedMetric, setSelectedMetric] = useState<string | null>(null);
   const [showDetail, setShowDetail] = useState(false);
+  const [showUpdateSuccess, setShowUpdateSuccess] = useState(false);
   const screenWidth = Dimensions.get("window").width;
   const screenHeight = Dimensions.get("window").height;
 
@@ -177,6 +181,19 @@ export default function AnalysisDashboard() {
 
   useFocusEffect(
     useCallback(() => {
+      // Check if prediction was just updated
+      if (getPredictionUpdateFlag()) {
+        setShowUpdateSuccess(true);
+        setPredictionUpdateFlag(false);
+        
+        // Auto-hide the success banner after 5 seconds
+        const timer = setTimeout(() => {
+          setShowUpdateSuccess(false);
+        }, 5000);
+        
+        return () => clearTimeout(timer);
+      }
+      
       loadUserData();
     }, [])
   );
@@ -471,6 +488,55 @@ export default function AnalysisDashboard() {
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <SafeAreaView style={{ flex: 1 }}>
+        {/* Success Banner */}
+        {showUpdateSuccess && (
+          <View
+            style={{
+              backgroundColor: "#4CAF50",
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              marginHorizontal: 16,
+              marginTop: 8,
+              borderRadius: 8,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 12,
+              marginBottom: 16,
+              elevation: 4,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.2,
+              shadowRadius: 4,
+            }}
+          >
+            <MaterialCommunityIcons name="check-circle" size={24} color="#fff" />
+            <View style={{ flex: 1 }}>
+              <Text
+                style={{
+                  fontSize: 14,
+                  fontFamily: theme.fonts.bodyBold,
+                  color: "#fff",
+                  marginBottom: 2,
+                }}
+              >
+                Health Metrics Updated
+              </Text>
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontFamily: theme.fonts.body,
+                  color: "#ffffff99",
+                }}
+              >
+                Your new predictions have been generated
+              </Text>
+            </View>
+            <TouchableOpacity onPress={() => setShowUpdateSuccess(false)}>
+              <Ionicons name="close" size={20} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        )}
+
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{
@@ -478,6 +544,49 @@ export default function AnalysisDashboard() {
             paddingVertical: 16,
           }}
         >
+          {/* Update Health Metrics Button */}
+          <TouchableOpacity
+            onPress={() => {
+              router.push("/screens/analysis_input/prediction_input");
+            }}
+            activeOpacity={0.7}
+            style={{
+              marginBottom: 24,
+              borderRadius: 16,
+              overflow: "hidden",
+            }}
+          >
+            <LinearGradient
+              colors={["#FF6B6B", "#FF8E8E"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                paddingVertical: 16,
+                paddingHorizontal: 20,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 12,
+                elevation: 5,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 3 },
+                shadowOpacity: 0.2,
+                shadowRadius: 6,
+              }}
+            >
+              <MaterialCommunityIcons name="heart-pulse" size={24} color="#fff" />
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontFamily: theme.fonts.bodyBold,
+                  color: "#fff",
+                }}
+              >
+                Update Health Metrics
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
           <View
             style={{
               flexDirection: "row",

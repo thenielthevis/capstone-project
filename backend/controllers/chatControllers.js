@@ -191,3 +191,43 @@ exports.removeFromGroup = async (req, res) => {
         res.json(removed);
     }
 };
+
+// @desc    Update Group Photo
+// @route   PUT /api/chat/groupphoto
+// @access  Protected
+exports.updateGroupPhoto = async (req, res) => {
+    const { chatId, groupPhoto } = req.body;
+
+    if (!chatId || !groupPhoto) {
+        return res.status(400).json({ message: "Chat ID and photo URL are required" });
+    }
+
+    try {
+        const chat = await Chat.findById(chatId);
+        
+        if (!chat) {
+            return res.status(404).json({ message: "Chat not found" });
+        }
+
+        if (!chat.isGroupChat) {
+            return res.status(400).json({ message: "Cannot set photo for non-group chat" });
+        }
+
+        // Check if user is the group admin
+        if (chat.groupAdmin.toString() !== req.user.id) {
+            return res.status(403).json({ message: "Only admin can update group photo" });
+        }
+
+        const updatedChat = await Chat.findByIdAndUpdate(
+            chatId,
+            { groupPhoto },
+            { new: true }
+        )
+            .populate("users", "-password")
+            .populate("groupAdmin", "-password");
+
+        res.json(updatedChat);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
