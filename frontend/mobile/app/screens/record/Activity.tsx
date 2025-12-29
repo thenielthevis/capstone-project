@@ -482,15 +482,15 @@ export default function TestMap() {
         );
       } else {
         // No activity data
-        resetMetrics();
-        // Reset local refs
-        totalDistanceRef.current = 0;
-        lastKmMarkerRef.current = 0;
-        kmStartTimeRef.current = 0;
-        prevLocationRef.current = null;
-        prevTimestampRef.current = null;
-        setRouteCoords([]);
-        router.back();
+        Alert.alert(
+          "Session Discarded",
+          "No distance or time was recorded for this session.",
+          [
+            {
+              text: "OK",
+            }
+          ]
+        );
       }
     } catch (error) {
       console.error('[Activity] Error saving activity session:', error);

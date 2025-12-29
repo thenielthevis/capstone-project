@@ -185,15 +185,15 @@ export default function AnalysisDashboard() {
       if (getPredictionUpdateFlag()) {
         setShowUpdateSuccess(true);
         setPredictionUpdateFlag(false);
-        
+
         // Auto-hide the success banner after 5 seconds
         const timer = setTimeout(() => {
           setShowUpdateSuccess(false);
         }, 5000);
-        
+
         return () => clearTimeout(timer);
       }
-      
+
       loadUserData();
     }, [])
   );
@@ -557,7 +557,7 @@ export default function AnalysisDashboard() {
             }}
           >
             <LinearGradient
-              colors={["#FF6B6B", "#FF8E8E"]}
+              colors={[theme.colors.primary, theme.colors.secondary]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={{

@@ -146,11 +146,10 @@ export default function Home() {
     return (
       <View
         key={post._id}
-        className="mb-4 overflow-hidden"
+        className="overflow-hidden"
         style={{
           backgroundColor: theme.colors.background,
           borderTopWidth: 3,
-          borderBottomWidth: 3,
           borderColor: theme.colors.overlay + "99",
         }}
       >
@@ -374,11 +373,11 @@ export default function Home() {
         }
       >
         {/* Introduction Section */}
-        <View className="mb-6 rounded-2xl p-5 overflow-hidden relative mx-1" style={{ backgroundColor: theme.colors.background }}>
+        <View className="mb-3 rounded-2xl p-5 overflow-hidden relative mx-1" style={{ backgroundColor: theme.colors.background }}>
           <View style={{ position: 'absolute', top: -30, right: -20, width: 120, height: 120, borderRadius: 60, backgroundColor: theme.colors.primary + '15' }} />
 
           <Text style={{ fontFamily: theme.fonts.heading, fontSize: 22, color: theme.colors.text, marginBottom: 6 }}>
-            Share your journey! 🚀
+            Share your journey! <MaterialCommunityIcons name="rocket-launch-outline" size={22} color={theme.colors.primary} />
           </Text>
           <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '99', marginBottom: 16 }}>
             Record your activities to track your progress and inspire others.
@@ -411,19 +410,18 @@ export default function Home() {
       </ScrollView>
       {/* Floating Action Button */}
       <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
-        <View style={{ position: "absolute", right: 24, bottom: 32, alignItems: "flex-end", width: 64 }}>
+        <View style={{ position: "absolute", right: 16, bottom: 16, alignItems: "flex-end", width: 64 }}>
           {/* FAB Options */}
-          <Animated.View style={[{ position: "absolute", bottom: 70, right: 0, alignItems: "flex-end", width: 220 }, animatedOptionsStyle]} pointerEvents={fabOpen ? "auto" : "none"}>
+          <Animated.View style={[{ position: "absolute", bottom: 60, right: 0, alignItems: "flex-end", width: 220 }, animatedOptionsStyle]} pointerEvents={fabOpen ? "auto" : "none"}>
             <TouchableOpacity
               style={{
-                backgroundColor: theme.colors.primary + "99",
+                backgroundColor: theme.colors.secondary,
                 flexDirection: "row",
                 alignItems: "center",
                 borderRadius: 24,
                 paddingVertical: 10,
                 paddingHorizontal: 16,
-                marginBottom: 10,
-                shadowColor: theme.colors.primary + "99",
+                shadowColor: theme.colors.secondary,
                 shadowOpacity: 0.15,
                 shadowRadius: 6,
                 elevation: 4,

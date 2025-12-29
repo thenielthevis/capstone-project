@@ -26,8 +26,8 @@ type ActivityDrawerProps = {
   lockedIndex?: number;
 };
 
-export default function ActivityDrawer({ 
-  speed = 0, 
+export default function ActivityDrawer({
+  speed = 0,
   distance = 0,
   time = 0,
   recording: externalRecording,
@@ -46,23 +46,27 @@ export default function ActivityDrawer({
   const { activityType, setActivityType } = useActivityMetrics();
   const [activities, setActivities] = useState<GeoActivity[]>([]);
   const [loadingActivities, setLoadingActivities] = useState(true);
-    // Fetch activities from backend
-    useEffect(() => {
-      const fetchActivities = async () => {
-        try {
-          setLoadingActivities(true);
-          const data = await getAllGeoActivities();
-          setActivities(data);
-          if (data.length > 0 && !activityType) setActivityType(data[0]._id, data[0].name);
-        } catch (err) {
-          // Optionally handle error
-        } finally {
-          setLoadingActivities(false);
+  // Fetch activities from backend
+  useEffect(() => {
+    const fetchActivities = async () => {
+      try {
+        setLoadingActivities(true);
+        const data = await getAllGeoActivities();
+        setActivities(data);
+        // Use the name as the ActivityType for context
+        if (data.length > 0 && !activityType) {
+          // Check if name is valid ActivityType or cast if dynamic
+          setActivityType(data[0].name as any);
         }
-      };
-      fetchActivities();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+      } catch (err) {
+        // Optionally handle error
+      } finally {
+        setLoadingActivities(false);
+      }
+    };
+    fetchActivities();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [recording, setRecording] = useState(externalRecording || false);
   const [hasStartedRecording, setHasStartedRecording] = useState(false);
 
@@ -139,7 +143,9 @@ export default function ActivityDrawer({
   // Select activity and close sheet
   const selectActivity = (id: ActivityType) => {
     const selected = activities.find(a => a._id === id);
-    setActivityType(id, selected?.name || "Walking");
+    if (selected) {
+      setActivityType(selected.name as any);
+    }
     activitySheetRef.current?.close();
   };
 
@@ -252,7 +258,7 @@ export default function ActivityDrawer({
                   ) : (
                     (() => {
                       const selected = activities.find(a => a._id === activityType);
-                      if (!selected) return <Text style={{ color: theme.colors.text }}>Select</Text>;
+                      if (!selected) return <Text style={{ fontFamily: theme.fonts.heading, color: theme.colors.primary }}>Select</Text>;
                       return (
                         <>
                           {selected.icon ? (
