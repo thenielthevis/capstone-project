@@ -6,6 +6,8 @@ import { Ionicons, MaterialCommunityIcons, Entypo } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { commentApi } from "../../api/commentApi";
 import { postApi } from "../../api/postApi";
+import { useUser } from "../../context/UserContext";
+import ReactionButton, { REACTIONS } from "../../components/ReactionButton";
 
 type Comment = {
     _id: string;
@@ -44,6 +46,8 @@ type Post = {
 
 export default function DiscussionSection() {
     const { theme } = useTheme();
+    const { user } = useUser();
+    const userId = user?._id || user?.id;
     const router = useRouter();
     const params = useLocalSearchParams();
     const postId = params.postId as string;
@@ -114,9 +118,9 @@ export default function DiscussionSection() {
         }
     };
 
-    const handleReactComment = async (commentId: string) => {
+    const handleReactComment = async (commentId: string, reactionType: string) => {
         try {
-            await commentApi.reactComment(commentId);
+            await commentApi.reactComment(commentId, reactionType);
             await fetchData();
         } catch (error) {
             console.error("Error reacting:", error);
@@ -132,9 +136,9 @@ export default function DiscussionSection() {
         }
     };
 
-    const handleReaction = async (postId: string) => {
+    const handleReaction = async (postId: string, reactionType: string) => {
         try {
-            await postApi.likePost(postId);
+            await postApi.likePost(postId, reactionType);
             await fetchData();
         } catch (error) {
             console.error("Error reacting to post:", error);
@@ -185,7 +189,7 @@ export default function DiscussionSection() {
         const isReplying = replyingTo === comment._id;
 
         return (
-            <View key={comment._id} className={depth > 0 ? "ml-8 mt-3" : "mt-4"}>
+            <View key={comment._id} className={depth > 0 ? "mt-3" : "mt-4"}>
                 <View className="flex-row">
                     {/* Avatar */}
                     <View className="w-8 h-8 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.colors.primary + '20' }}>
@@ -215,25 +219,34 @@ export default function DiscussionSection() {
                         {/* Action Bar */}
                         <View className="flex-row items-center mt-2 ml-3">
                             <TouchableOpacity onPress={() => handleVoteComment(comment._id, "up")} className="flex-row items-center mr-4">
-                                <Ionicons name="arrow-up-circle-outline" size={18} color={theme.colors.primary} />
+                                <Ionicons
+                                    name={comment.votes?.upvotes?.some((v: any) => v.toString() === userId) ? "arrow-up-circle" : "arrow-up-circle-outline"}
+                                    size={18}
+                                    color={comment.votes?.upvotes?.some((v: any) => v.toString() === userId) ? theme.colors.primary : theme.colors.text + '77'}
+                                />
                                 <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '77' }} className="ml-1 text-xs">
                                     {upvoteCount}
                                 </Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity onPress={() => handleVoteComment(comment._id, "down")} className="flex-row items-center mr-4">
-                                <Ionicons name="arrow-down-circle-outline" size={18} color={theme.colors.text + '77'} />
+                                <Ionicons
+                                    name={comment.votes?.downvotes?.some((v: any) => v.toString() === userId) ? "arrow-down-circle" : "arrow-down-circle-outline"}
+                                    size={18}
+                                    color={comment.votes?.downvotes?.some((v: any) => v.toString() === userId) ? theme.colors.primary : theme.colors.text + '77'}
+                                />
                                 <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '77' }} className="ml-1 text-xs">
                                     {downvoteCount}
                                 </Text>
                             </TouchableOpacity>
 
-                            <TouchableOpacity onPress={() => handleReactComment(comment._id)} className="flex-row items-center mr-4">
-                                <MaterialCommunityIcons name="heart-outline" size={18} color={theme.colors.primary} />
-                                <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '77' }} className="ml-1 text-xs">
-                                    {reactionCount}
-                                </Text>
-                            </TouchableOpacity>
+                            <View className="mr-4">
+                                <ReactionButton
+                                    userReaction={comment.reactions?.find((r: any) => r.user === userId || r.user?._id === userId)?.type}
+                                    reactionCount={reactionCount}
+                                    onReact={(type) => handleReactComment(comment._id, type)}
+                                />
+                            </View>
 
                             <TouchableOpacity onPress={() => setReplyingTo(isReplying ? null : comment._id)} className="flex-row items-center">
                                 <MaterialCommunityIcons name="reply-outline" size={16} color={theme.colors.text + '77'} />
@@ -245,7 +258,7 @@ export default function DiscussionSection() {
 
                         {/* Replies */}
                         {comment.replies && comment.replies.length > 0 && (
-                            <View>
+                            <View className="mt-2 pl-3" style={{ borderLeftWidth: 2, borderLeftColor: theme.colors.text + '10' }}>
                                 {comment.replies.map(reply => renderComment(reply as Comment & { replies: Comment[] }, depth + 1))}
                             </View>
                         )}
@@ -300,10 +313,10 @@ export default function DiscussionSection() {
                     className="flex-1"
                     showsVerticalScrollIndicator={false}
                     refreshControl={
-                        <RefreshControl 
-                            refreshing={refreshing} 
-                            onRefresh={onRefresh} 
-                            tintColor={theme.colors.primary} 
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            tintColor={theme.colors.primary}
                             colors={[theme.colors.primary]}
                             progressBackgroundColor={theme.colors.surface}
                         />
@@ -364,14 +377,52 @@ export default function DiscussionSection() {
                             </ScrollView>
                         )}
 
+                        {/* Post Stats Row */}
+                        {((post as any).reactions?.length > 0 || comments.length > 0) && (
+                            <View className="flex-row items-center justify-between mt-2 mb-1">
+                                {/* Left: Reactions */}
+                                <View className="flex-row items-center">
+                                    {(post as any).reactions?.length > 0 && (
+                                        <>
+                                            <View className="flex-row">
+                                                {REACTIONS.filter(r => (post as any).reactions.some((pr: any) => pr.type === r.type))
+                                                    .slice(0, 3)
+                                                    .map((r, i) => (
+                                                        <Text key={r.type} style={{ fontSize: 15, marginLeft: i === 0 ? 0 : -5, zIndex: 3 - i }}>
+                                                            {r.emoji}
+                                                        </Text>
+                                                    ))}
+                                            </View>
+                                            <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '99', fontSize: 13, marginLeft: 4 }}>
+                                                {(post as any).reactions.length > 1000 ? ((post as any).reactions.length / 1000).toFixed(1) + 'k' : (post as any).reactions.length}
+                                            </Text>
+                                        </>
+                                    )}
+                                </View>
+
+                                {/* Right: Comments & Shares */}
+                                <View className="flex-row items-center">
+                                    {comments.length > 0 && (
+                                        <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '99', fontSize: 13 }}>
+                                            {comments.length} comments
+                                        </Text>
+                                    )}
+                                </View>
+                            </View>
+                        )}
+
                         {/* Post Interaction Bar */}
-                        <View className="flex-row items-center mt-4 pt-3 border-t" style={{ borderTopColor: theme.colors.text + '11' }}>
+                        <View className="flex-row items-center mt-2 pt-3 border-t" style={{ borderTopColor: theme.colors.text + '11' }}>
                             {/* Upvote */}
                             <TouchableOpacity
                                 onPress={() => handleVote(post._id, "up")}
                                 className="flex-row items-center mr-4"
                             >
-                                <Ionicons name="arrow-up-circle-outline" size={22} color={theme.colors.primary} />
+                                <Ionicons
+                                    name={(post as any).votes?.upvotes?.some((v: any) => v.toString() === userId) ? "arrow-up-circle" : "arrow-up-circle-outline"}
+                                    size={22}
+                                    color={(post as any).votes?.upvotes?.some((v: any) => v.toString() === userId) ? theme.colors.primary : theme.colors.text + '77'}
+                                />
                                 <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text }} className="ml-1 text-sm">
                                     {(post as any).votes?.upvotes?.length || 0}
                                 </Text>
@@ -382,22 +433,24 @@ export default function DiscussionSection() {
                                 onPress={() => handleVote(post._id, "down")}
                                 className="flex-row items-center mr-4"
                             >
-                                <Ionicons name="arrow-down-circle-outline" size={22} color={theme.colors.text + '77'} />
+                                <Ionicons
+                                    name={(post as any).votes?.downvotes?.some((v: any) => v.toString() === userId) ? "arrow-down-circle" : "arrow-down-circle-outline"}
+                                    size={22}
+                                    color={(post as any).votes?.downvotes?.some((v: any) => v.toString() === userId) ? theme.colors.primary : theme.colors.text + '77'}
+                                />
                                 <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text }} className="ml-1 text-sm">
                                     {(post as any).votes?.downvotes?.length || 0}
                                 </Text>
                             </TouchableOpacity>
 
                             {/* Reactions */}
-                            <TouchableOpacity
-                                onPress={() => handleReaction(post._id)}
-                                className="flex-row items-center mr-4"
-                            >
-                                <MaterialCommunityIcons name="heart-outline" size={22} color={theme.colors.primary} />
-                                <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text }} className="ml-1 text-sm">
-                                    {(post as any).reactions?.length || 0}
-                                </Text>
-                            </TouchableOpacity>
+                            <View className="mr-4">
+                                <ReactionButton
+                                    userReaction={(post as any).reactions?.find((r: any) => r.user === userId || r.user?._id === userId)?.type}
+                                    reactionCount={(post as any).reactions?.length || 0}
+                                    onReact={(type) => handleReaction(post._id, type)}
+                                />
+                            </View>
 
                             {/* Share */}
                             <TouchableOpacity className="flex-1">

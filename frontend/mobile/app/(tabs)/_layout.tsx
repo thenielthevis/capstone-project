@@ -75,9 +75,6 @@ export default function HomeTabs() {
                 shadowRadius: 4,
                 elevation: 5,
               },
-              tabBarItemStyle: {
-                paddingVertical: 2,
-              },
               tabBarLabelStyle: {
                 fontSize: 11,
                 fontWeight: "600",
@@ -124,7 +121,7 @@ export default function HomeTabs() {
                 tabBarLabelStyle: {
                   fontFamily: theme.fonts.body,
                   fontSize: theme.fontSizes.xs,
-                  marginTop: 10,
+                  marginTop: 6,
                 },
                 tabBarIcon: ({ focused }) => (
                   <View
@@ -136,7 +133,7 @@ export default function HomeTabs() {
                         focused || recordMenuOpen ? theme.colors.primary + "20" : "transparent",
                       alignItems: "center",
                       justifyContent: "center",
-                      marginTop: 16,
+                      marginTop: 8,
                     }}
                   >
                     <MaterialCommunityIcons

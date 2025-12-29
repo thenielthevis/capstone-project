@@ -5,6 +5,8 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import { postApi } from "../../api/postApi";
+import { useUser } from "../../context/UserContext";
+import ReactionButton, { REACTIONS } from "../../components/ReactionButton";
 import ImageViewer from "react-native-image-zoom-viewer";
 import Modal from "react-native-modal";
 import { ScrollView } from "react-native-gesture-handler";
@@ -13,6 +15,8 @@ const { width, height } = Dimensions.get("window");
 
 export default function ImageMax() {
   const { theme } = useTheme();
+  const { user } = useUser();
+  const userId = user?._id || user?.id;
   const router = useRouter();
   const params = useLocalSearchParams();
   const images = params.images ? JSON.parse(params.images as string) : [];
@@ -53,17 +57,17 @@ export default function ImageMax() {
     try {
       await postApi.votePost(post._id, voteType);
       await fetchPost();
-    } catch (e) {}
+    } catch (e) { }
     setVoteLoading(false);
   };
 
-  const handleReaction = async () => {
+  const handleReaction = async (reactionType: string) => {
     if (!post) return;
     setReactionLoading(true);
     try {
-      await postApi.likePost(post._id);
+      await postApi.likePost(post._id, reactionType);
       await fetchPost();
-    } catch (e) {}
+    } catch (e) { }
     setReactionLoading(false);
   };
 
@@ -162,23 +166,69 @@ export default function ImageMax() {
                 </Text>
               )}
             </View>
+            {/* Post Stats Row */}
+            {(post.reactions?.length > 0 || ((post as any).commentCount || 0) > 0) && (
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8, paddingHorizontal: 4 }}>
+                {/* Left: Reactions */}
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  {post.reactions?.length > 0 && (
+                    <>
+                      <View style={{ flexDirection: "row" }}>
+                        {REACTIONS.filter(r => post.reactions.some((pr: any) => pr.type === r.type))
+                          .slice(0, 3)
+                          .map((r, i) => (
+                            <Text key={r.type} style={{ fontSize: 15, marginLeft: i === 0 ? 0 : -5, zIndex: 3 - i }}>
+                              {r.emoji}
+                            </Text>
+                          ))}
+                      </View>
+                      <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '99', fontSize: 13, marginLeft: 4 }}>
+                        {post.reactions.length > 1000 ? (post.reactions.length / 1000).toFixed(1) + 'k' : post.reactions.length}
+                      </Text>
+                    </>
+                  )}
+                </View>
+
+                {/* Right: Comments */}
+                {((post as any).commentCount || 0) > 0 && (
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '99', fontSize: 13 }}>
+                      {(post as any).commentCount} comments
+                    </Text>
+                  </View>
+                )}
+                {/* Shares hidden if 0 */}
+              </View>
+            )}
+
             {/* Interaction Bar */}
             <View style={{ flexDirection: "row", alignItems: "center", marginTop: 8, marginBottom: 8 }}>
               {/* Upvote */}
-              <TouchableOpacity onPress={() => handleVote("up") } style={{ flexDirection: "row", alignItems: "center", marginRight: 16 }} disabled={voteLoading}>
-                <Ionicons name="arrow-up-circle-outline" size={22} color={theme.colors.primary} />
+              <TouchableOpacity onPress={() => handleVote("up")} style={{ flexDirection: "row", alignItems: "center", marginRight: 16 }} disabled={voteLoading}>
+                <Ionicons
+                  name={post.votes?.upvotes?.some((v: any) => v.toString() === userId) ? "arrow-up-circle" : "arrow-up-circle-outline"}
+                  size={22}
+                  color={post.votes?.upvotes?.some((v: any) => v.toString() === userId) ? theme.colors.primary : theme.colors.text + '77'}
+                />
                 <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text, marginLeft: 4 }}>{upvoteCount}</Text>
               </TouchableOpacity>
               {/* Downvote */}
-              <TouchableOpacity onPress={() => handleVote("down") } style={{ flexDirection: "row", alignItems: "center", marginRight: 16 }} disabled={voteLoading}>
-                <Ionicons name="arrow-down-circle-outline" size={22} color={theme.colors.text + '77'} />
+              <TouchableOpacity onPress={() => handleVote("down")} style={{ flexDirection: "row", alignItems: "center", marginRight: 16 }} disabled={voteLoading}>
+                <Ionicons
+                  name={post.votes?.downvotes?.some((v: any) => v.toString() === userId) ? "arrow-down-circle" : "arrow-down-circle-outline"}
+                  size={22}
+                  color={post.votes?.downvotes?.some((v: any) => v.toString() === userId) ? theme.colors.primary : theme.colors.text + '77'}
+                />
                 <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text, marginLeft: 4 }}>{downvoteCount}</Text>
               </TouchableOpacity>
               {/* Reactions */}
-              <TouchableOpacity onPress={handleReaction} style={{ flexDirection: "row", alignItems: "center", marginRight: 16 }} disabled={reactionLoading}>
-                <MaterialCommunityIcons name="heart-outline" size={22} color={theme.colors.primary} />
-                <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text, marginLeft: 4 }}>{reactionCount}</Text>
-              </TouchableOpacity>
+              <View style={{ marginRight: 16 }}>
+                <ReactionButton
+                  userReaction={post.reactions?.find((r: any) => r.user === userId || r.user?._id === userId)?.type}
+                  reactionCount={reactionCount}
+                  onReact={handleReaction}
+                />
+              </View>
               {/* Comments */}
               <TouchableOpacity onPress={() => router.push(`/screens/post/discussion_section?postId=${post._id}` as any)} style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
                 <Ionicons name="chatbubble-outline" size={20} color={theme.colors.text + '77'} />

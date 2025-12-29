@@ -1,7 +1,6 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import { View, Text, ActivityIndicator, Alert, ScrollView, Dimensions } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "../context/ThemeContext";
 import { createOrUpdateDailyCalorieBalance, getTodayCalorieBalance } from "../api/userApi";
@@ -263,7 +262,7 @@ export default function Record() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: 10 }}
@@ -273,6 +272,7 @@ export default function Record() {
         <View style={{
           paddingHorizontal: 24,
           paddingBottom: 8,
+          marginTop: 20,
         }}>
           <Text style={{
             fontFamily: theme.fonts.heading,
@@ -510,6 +510,6 @@ export default function Record() {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

@@ -3,6 +3,7 @@ const User = require("../models/userModel");
 const GeoSession = require("../models/geoSessionModel");
 const ProgramSession = require("../models/programSessionModel");
 const FoodLog = require("../models/foodLogModel");
+const Comment = require("../models/commentModel");
 
 // @desc    Create a new post
 // @route   POST /api/posts
@@ -116,7 +117,12 @@ exports.getFeed = async (req, res) => {
             .populate("reference.item_id") // Dynamic population based on refPath
             .lean();
 
-        res.status(200).json(posts);
+        const postsWithCounts = await Promise.all(posts.map(async (post) => {
+            const commentCount = await Comment.countDocuments({ post: post._id });
+            return { ...post, commentCount };
+        }));
+
+        res.status(200).json(postsWithCounts);
     } catch (error) {
         res.status(400).json({ message: error.message });
     }
