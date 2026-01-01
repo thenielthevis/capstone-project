@@ -196,7 +196,8 @@ exports.getUserFoodLogs = async (req, res) => {
       query = {};
     } else {
       console.log('[GET USER FOOD LOGS] Regular user - filtering by userId:', userId);
-      query = { userId: userId };
+      // Convert string ID to ObjectId for proper MongoDB matching
+      query = { userId: new mongoose.Types.ObjectId(userId) };
     }
 
     // Date range filter (applied to any query type)
@@ -509,7 +510,8 @@ exports.deleteFoodLogs = async (req, res) => {
     
     // If not admin, only delete their own food logs
     if (userRole !== 'admin') {
-      query.userId = userId;
+      // Convert string ID to ObjectId for proper MongoDB matching
+      query.userId = new mongoose.Types.ObjectId(userId);
     }
 
     const result = await FoodLog.deleteMany(query);
