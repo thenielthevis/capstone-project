@@ -274,8 +274,15 @@ export default function ProgramCoach() {
       if (exercise.type === "workout") {
         const workoutId = getEntityId(exercise.workout_id);
         if (!workoutId) return;
+
+        // Get snapshot data if available (handling both populated object and direct ID case safely)
+        const wObj = typeof exercise.workout_id === 'object' ? exercise.workout_id : {};
+
         workoutSessions.push({
           workout_id: workoutId,
+          name: wObj?.name,
+          exercise_type: wObj?.type,
+          animation_url: wObj?.animation_url,
           sets: (exercise.sets || []).map((set: any) => ({
             reps: toNumber(set?.reps),
             time_seconds: toNumber(set?.time_seconds),
@@ -288,6 +295,9 @@ export default function ProgramCoach() {
       if (exercise.type === "geo") {
         const activityId = getEntityId(exercise.activity_id);
         if (!activityId) return;
+
+        const aObj = typeof exercise.activity_id === 'object' ? exercise.activity_id : {};
+
         const preferences = exercise.preferences || {};
         const distance = toNumber(preferences.distance_km);
         const avgPace = toOptionalNumber(preferences.avg_pace);
@@ -295,6 +305,8 @@ export default function ProgramCoach() {
 
         geoSessions.push({
           activity_id: activityId,
+          name: aObj?.name,
+          exercise_type: aObj?.type, // e.g., "Run", "Bike"
           distance_km: distance,
           avg_pace: avgPace,
           moving_time_sec: movingTime,
@@ -309,6 +321,7 @@ export default function ProgramCoach() {
     return {
       workouts: workoutSessions,
       geo_activities: geoSessions,
+      program_name: program?.name || "Untitled Program",
       total_duration_minutes: startTimeRef.current
         ? Math.round((Date.now() - startTimeRef.current.getTime()) / 60000)
         : 0,

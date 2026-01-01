@@ -8,6 +8,7 @@ import { postApi } from "../api/postApi";
 import { useRouter } from "expo-router";
 import { useUser } from "../context/UserContext";
 import ReactionButton, { REACTIONS } from "../components/ReactionButton";
+import SessionPreview from "../components/feed/SessionPreview";
 
 type Post = {
   _id: string;
@@ -53,6 +54,11 @@ export default function Home() {
   const fabOptionsTranslateY = useSharedValue(60);
   const fabOptionsOpacity = useSharedValue(0);
 
+  // FAB auto-hide on scroll
+  const fabTranslateY = useSharedValue(0);
+  const lastScrollY = useSharedValue(0);
+  const scrollDirection = useSharedValue<'up' | 'down'>('up');
+
   useEffect(() => {
     if (fabOpen) {
       fabOptionsTranslateY.value = withSpring(-10, { damping: 12 });
@@ -67,6 +73,31 @@ export default function Home() {
     transform: [{ translateY: fabOptionsTranslateY.value }],
     opacity: fabOptionsOpacity.value,
   }));
+
+  const animatedFabStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: fabTranslateY.value }],
+  }));
+
+  const handleScroll = (event: any) => {
+    const currentScrollY = event.nativeEvent.contentOffset.y;
+    const delta = currentScrollY - lastScrollY.value;
+
+    // Only trigger if scrolled more than 5px (to avoid jitter)
+    if (Math.abs(delta) > 5) {
+      if (delta > 0 && currentScrollY > 100) {
+        // Scrolling down - hide FAB
+        scrollDirection.value = 'down';
+        fabTranslateY.value = withTiming(120, { duration: 200 });
+        if (fabOpen) setFabOpen(false);
+      } else if (delta < 0) {
+        // Scrolling up - show FAB
+        scrollDirection.value = 'up';
+        fabTranslateY.value = withSpring(0, { damping: 15 });
+      }
+    }
+
+    lastScrollY.value = currentScrollY;
+  };
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -94,28 +125,84 @@ export default function Home() {
 
   const handleVote = async (postId: string, voteType: "up" | "down") => {
     try {
-      await postApi.votePost(postId, voteType);
-      // Optimistically update the UI
-      setPosts(posts.map(post => {
+      const userId = user?._id || user?.id;
+      if (!userId) return;
+
+      // Optimistically update the local state
+      setPosts(prevPosts => prevPosts.map(post => {
         if (post._id === postId) {
-          // Toggle logic would go here
-          return post;
+          const upvotes = [...(post.votes?.upvotes || [])];
+          const downvotes = [...(post.votes?.downvotes || [])];
+
+          // Check if user already has this vote
+          const upIndex = upvotes.findIndex((v: any) => v.toString() === userId);
+          const downIndex = downvotes.findIndex((v: any) => v.toString() === userId);
+          const wasUpvoted = upIndex > -1;
+          const wasDownvoted = downIndex > -1;
+
+          // Remove user from both arrays
+          if (upIndex > -1) upvotes.splice(upIndex, 1);
+          if (downIndex > -1) downvotes.splice(downIndex, 1);
+
+          // Toggle logic: only add if it wasn't the same vote
+          if (voteType === 'up' && !wasUpvoted) {
+            upvotes.push(userId);
+          } else if (voteType === 'down' && !wasDownvoted) {
+            downvotes.push(userId);
+          }
+          // If wasUpvoted and clicked up again, we already removed it (toggle off)
+          // If wasDownvoted and clicked down again, we already removed it (toggle off)
+
+          return { ...post, votes: { upvotes, downvotes } };
         }
         return post;
       }));
-      // Refresh to get accurate data
-      await fetchPosts();
+
+      // Make API call in background
+      await postApi.votePost(postId, voteType);
     } catch (error) {
       console.error("Error voting:", error);
+      // Revert on error
+      await fetchPosts();
     }
   };
 
   const handleReaction = async (postId: string, reactionType: string) => {
     try {
+      const userId = user?._id || user?.id;
+      if (!userId) return;
+
+      // Optimistically update the local state
+      setPosts(prevPosts => prevPosts.map(post => {
+        if (post._id === postId) {
+          const reactions = [...(post.reactions || [])];
+          const existingIndex = reactions.findIndex((r: any) =>
+            (r.user === userId || r.user?._id === userId)
+          );
+
+          if (existingIndex > -1) {
+            // Toggle: if same reaction, remove it; otherwise update it
+            if (reactions[existingIndex].type === reactionType) {
+              reactions.splice(existingIndex, 1);
+            } else {
+              reactions[existingIndex] = { user: userId, type: reactionType };
+            }
+          } else {
+            // Add new reaction
+            reactions.push({ user: userId, type: reactionType });
+          }
+
+          return { ...post, reactions };
+        }
+        return post;
+      }));
+
+      // Make API call in background
       await postApi.likePost(postId, reactionType);
-      await fetchPosts();
     } catch (error) {
       console.error("Error reacting:", error);
+      // Revert on error
+      await fetchPosts();
     }
   };
 
@@ -197,35 +284,20 @@ export default function Home() {
           </View>
         </TouchableOpacity>
 
-        {/* Activity Reference */}
-        {post.reference && (
-          <View className="mx-4 mb-3 p-3 rounded-xl flex-row items-center" style={{ backgroundColor: theme.colors.surface }}>
-            <View className="w-8 h-8 rounded-lg items-center justify-center mr-3" style={{ backgroundColor: theme.colors.primary + '20' }}>
-              <Ionicons
-                name={
-                  post.reference.item_type === "FoodLog" ? "fast-food" :
-                    post.reference.item_type === "ProgramSession" ? "barbell" : "map"
-                }
-                size={18}
-                color={theme.colors.primary}
-              />
-            </View>
-            <View className="flex-1">
-              <Text style={{ fontFamily: theme.fonts.bodyBold, color: theme.colors.text }} className="text-xs">
-                {post.reference.item_type === "FoodLog" ? "Food Log" :
-                  post.reference.item_type === "ProgramSession" ? "Program Session" : "Activity"}
-              </Text>
-              <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '77' }} className="text-xs">
-                Tap to view details
-              </Text>
-            </View>
-          </View>
-        )}
+        {/* Post Content */}
+        {/* Combined Horizontal Scroll for Reference and Images */}
+        {(post.reference || (post.images && post.images.length > 0)) && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-2">
 
-        {/* Post Images */}
-        {post.images && post.images.length > 0 && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3">
-            {post.images.map((imageUrl, index) => (
+            {/* Session Preview (First Item) */}
+            {post.reference && (
+              <View style={{ marginLeft: 16, marginBottom: 16 }}>
+                <SessionPreview reference={post.reference as any} />
+              </View>
+            )}
+
+            {/* Post Images */}
+            {post.images && post.images.map((imageUrl, index) => (
               <TouchableOpacity
                 key={index}
                 activeOpacity={0.9}
@@ -241,7 +313,13 @@ export default function Home() {
                 <Image
                   source={{ uri: imageUrl }}
                   className="h-64 rounded-xl"
-                  style={{ width: 300, marginLeft: index === 0 ? 16 : 8, marginRight: index === post.images.length - 1 ? 16 : 0 }}
+                  style={{
+                    width: 300,
+                    height: 256,
+                    // Adjust margins based on whether reference exists
+                    marginLeft: (index === 0 && !post.reference) ? 16 : 0,
+                    marginRight: index === post.images.length - 1 ? 16 : 8
+                  }}
                   resizeMode="cover"
                 />
               </TouchableOpacity>
@@ -251,7 +329,7 @@ export default function Home() {
 
         {/* Post Stats Row */}
         {(post.reactions?.length > 0 || (post.commentCount || 0) > 0 || (post.shares?.length || 0) > 0) && (
-          <View className="flex-row items-center justify-between px-4 py-2 mt-1">
+          <View className="flex-row items-center justify-between px-4 py-2">
             {/* Left: Reactions */}
             <View className="flex-row items-center">
               {post.reactions?.length > 0 && (
@@ -331,7 +409,7 @@ export default function Home() {
             onPress={() => router.push(`/screens/post/discussion_section?postId=${post._id}` as any)}
             className="flex-row items-center flex-1"
           >
-            <Ionicons name="chatbubble-outline" size={22} color={theme.colors.text + '77'} />
+            <Ionicons name="chatbubble-outline" size={20} color={theme.colors.text + '77'} />
             <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text }} className="ml-1 text-sm">
               {post.commentCount || 0}
             </Text>
@@ -362,6 +440,8 @@ export default function Home() {
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -409,7 +489,7 @@ export default function Home() {
 
       </ScrollView>
       {/* Floating Action Button */}
-      <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
+      <Animated.View pointerEvents="box-none" style={[StyleSheet.absoluteFill, animatedFabStyle]}>
         <View style={{ position: "absolute", right: 16, bottom: 16, alignItems: "flex-end", width: 64 }}>
           {/* FAB Options */}
           <Animated.View style={[{ position: "absolute", bottom: 60, right: 0, alignItems: "flex-end", width: 220 }, animatedOptionsStyle]} pointerEvents={fabOpen ? "auto" : "none"}>
@@ -456,7 +536,7 @@ export default function Home() {
             <Ionicons name={fabOpen ? "close" : "add"} size={30} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
-      </View>
+      </Animated.View>
     </View>
   );
 }

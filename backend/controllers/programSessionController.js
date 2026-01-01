@@ -83,8 +83,11 @@ exports.createProgramSession = async (req, res) => {
       end_time,
     } = req.body;
 
+    console.log("[CREATE PROGRAM SESSION] Body:", JSON.stringify(req.body, null, 2));
+
     const newProgramSession = new ProgramSession({
       user_id: userId,
+      program_name: req.body.program_name || "Untitled Program",
       workouts: workouts || [],
       geo_activities: geo_activities || [],
       total_duration_minutes: total_duration_minutes || 0,

@@ -461,10 +461,6 @@ export default function DiscussionSection() {
 
                     {/* Comments Section */}
                     <View className="px-5 pb-5">
-                        <Text style={{ fontFamily: theme.fonts.heading, color: theme.colors.text }} className="text-lg mt-4 mb-2">
-                            Comments ({comments.length})
-                        </Text>
-
                         {commentTree.length === 0 ? (
                             <View className="items-center py-10">
                                 <Ionicons name="chatbubbles-outline" size={48} color={theme.colors.text + '33'} />
@@ -476,8 +472,6 @@ export default function DiscussionSection() {
                             commentTree.map(comment => renderComment(comment as Comment & { replies: Comment[] }))
                         )}
                     </View>
-
-                    <View className="h-24" />
                 </ScrollView>
 
                 {/* Comment Input */}

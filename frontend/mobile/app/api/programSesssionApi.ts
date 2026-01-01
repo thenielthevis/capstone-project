@@ -8,6 +8,9 @@ export type ProgramSessionSetPayload = {
 
 export type ProgramSessionWorkoutPayload = {
   workout_id: string;
+  name?: string;
+  exercise_type?: string;
+  animation_url?: string;
   sets: ProgramSessionSetPayload[];
   total_calories_burned?: number;
 };
@@ -19,6 +22,8 @@ export type ProgramSessionGeoCoordinate = {
 
 export type ProgramSessionGeoActivityPayload = {
   activity_id: string;
+  name?: string;
+  exercise_type?: string;
   distance_km: number;
   avg_pace?: number;
   moving_time_sec: number;
@@ -31,6 +36,7 @@ export type ProgramSessionGeoActivityPayload = {
 export type ProgramSessionPayload = {
   workouts: ProgramSessionWorkoutPayload[];
   geo_activities: ProgramSessionGeoActivityPayload[];
+  program_name?: string;
   total_duration_minutes?: number;
   total_calories_burned?: number;
   performed_at?: string;
