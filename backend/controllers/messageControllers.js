@@ -1,6 +1,7 @@
 const Message = require('../models/messageModel');
 const User = require('../models/userModel');
 const Chat = require('../models/chatModel');
+const mongoose = require('mongoose');
 
 // @desc    Get all Messages
 // @route   GET /api/message/:chatId
@@ -30,8 +31,9 @@ exports.sendMessage = async (req, res) => {
         return res.sendStatus(400);
     }
 
+    // Convert sender ID to ObjectId for consistent storage
     var newMessage = {
-        sender: req.user.id,
+        sender: new mongoose.Types.ObjectId(req.user.id),
         content: content,
         chat: chatId,
         replyTo: replyTo || null,
@@ -78,6 +80,9 @@ exports.addReaction = async (req, res) => {
             return res.status(404).json({ message: "Message not found" });
         }
 
+        // Convert user ID to ObjectId for proper comparison
+        const userObjectId = new mongoose.Types.ObjectId(req.user.id);
+
         // Check if user already reacted with this emoji
         const existingReactionIndex = message.reactions.findIndex(
             r => r.user.toString() === req.user.id && r.emoji === emoji
@@ -87,8 +92,8 @@ exports.addReaction = async (req, res) => {
             // Remove reaction if it exists
             message.reactions.splice(existingReactionIndex, 1);
         } else {
-            // Add new reaction
-            message.reactions.push({ user: req.user.id, emoji });
+            // Add new reaction with ObjectId
+            message.reactions.push({ user: userObjectId, emoji });
         }
 
         await message.save();
@@ -118,13 +123,16 @@ exports.reportMessage = async (req, res) => {
             return res.status(404).json({ message: "Message not found" });
         }
 
-        // Check if user already reported this message
-        if (message.reportedBy.includes(req.user.id)) {
+        // Check if user already reported this message (convert to string for comparison)
+        const hasReported = message.reportedBy.some(id => id.toString() === req.user.id);
+        if (hasReported) {
             return res.status(400).json({ message: "You have already reported this message" });
         }
 
+        // Use ObjectId for reportedBy array
+        const userObjectId = new mongoose.Types.ObjectId(req.user.id);
         message.isReported = true;
-        message.reportedBy.push(req.user.id);
+        message.reportedBy.push(userObjectId);
         await message.save();
 
         res.json({ message: "Message reported successfully" });
@@ -141,13 +149,16 @@ exports.markAsRead = async (req, res) => {
     const { chatId } = req.params;
 
     try {
+        // Convert user ID to ObjectId for proper MongoDB matching
+        const userObjectId = new mongoose.Types.ObjectId(req.user.id);
+
         await Message.updateMany(
             { 
                 chat: chatId, 
-                readBy: { $ne: req.user.id } 
+                readBy: { $ne: userObjectId } 
             },
             { 
-                $addToSet: { readBy: req.user.id } 
+                $addToSet: { readBy: userObjectId } 
             }
         );
 

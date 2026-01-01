@@ -1,5 +1,6 @@
 const Chat = require("../models/chatModel");
 const User = require("../models/userModel");
+const mongoose = require("mongoose");
 
 // @desc    Access a chat (1-on-1) or create if not exists
 // @route   POST /api/chat
@@ -12,11 +13,15 @@ exports.accessChat = async (req, res) => {
         return res.sendStatus(400);
     }
 
+    // Convert string IDs to ObjectId for proper MongoDB matching
+    const currentUserId = new mongoose.Types.ObjectId(req.user.id);
+    const targetUserId = new mongoose.Types.ObjectId(userId);
+
     var isChat = await Chat.find({
         isGroupChat: false,
         $and: [
-            { users: { $elemMatch: { $eq: req.user.id } } },
-            { users: { $elemMatch: { $eq: userId } } },
+            { users: { $elemMatch: { $eq: currentUserId } } },
+            { users: { $elemMatch: { $eq: targetUserId } } },
         ],
     })
         .populate("users", "-password")
@@ -33,7 +38,7 @@ exports.accessChat = async (req, res) => {
         var chatData = {
             chatName: "sender",
             isGroupChat: false,
-            users: [req.user.id, userId],
+            users: [currentUserId, targetUserId],
         };
 
         try {
@@ -55,7 +60,10 @@ exports.accessChat = async (req, res) => {
 // @access  Protected
 exports.fetchChats = async (req, res) => {
     try {
-        Chat.find({ users: { $elemMatch: { $eq: req.user.id } } })
+        // Convert string ID to ObjectId for proper MongoDB matching
+        const userId = new mongoose.Types.ObjectId(req.user.id);
+        
+        Chat.find({ users: { $elemMatch: { $eq: userId } } })
             .populate("users", "-password")
             .populate("groupAdmin", "-password")
             .populate("latestMessage")
@@ -89,14 +97,17 @@ exports.createGroupChat = async (req, res) => {
             .send("More than 2 users are required to form a group chat");
     }
 
-    users.push(req.user.id);
+    // Convert all user IDs to ObjectId for consistent storage
+    users = users.map(id => new mongoose.Types.ObjectId(id));
+    const currentUserObjectId = new mongoose.Types.ObjectId(req.user.id);
+    users.push(currentUserObjectId);
 
     try {
         const groupChat = await Chat.create({
             chatName: req.body.name,
             users: users,
             isGroupChat: true,
-            groupAdmin: req.user.id,
+            groupAdmin: currentUserObjectId,
         });
 
         const fullGroupChat = await Chat.findOne({ _id: groupChat._id })
@@ -144,10 +155,13 @@ exports.addToGroup = async (req, res) => {
 
     // check if the requester is admin? (Simplification: anyone can add for now, or check req.user.id === chat.groupAdmin)
 
+    // Convert userId to ObjectId for consistent storage
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+
     const added = await Chat.findByIdAndUpdate(
         chatId,
         {
-            $push: { users: userId },
+            $push: { users: userObjectId },
         },
         {
             new: true,
@@ -172,10 +186,13 @@ exports.removeFromGroup = async (req, res) => {
 
     // check if the requester is admin?
 
+    // Convert userId to ObjectId for consistent storage
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+
     const removed = await Chat.findByIdAndUpdate(
         chatId,
         {
-            $pull: { users: userId },
+            $pull: { users: userObjectId },
         },
         {
             new: true,
