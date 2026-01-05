@@ -6,35 +6,55 @@ const UNITY_LIBRARY_NAME = 'unityLibrary';
 const withUnityAndroid = (config) => {
     // 1. Add unityLibrary to settings.gradle
     config = withSettingsGradle(config, (config) => {
-        // Resolve absolute path to unityLibrary relative to the project root
-        // config.modRequest.projectRoot is the root of the expo project
-        const unityBuildPath = path.resolve(config.modRequest.projectRoot, 'unity', 'builds', 'android', UNITY_LIBRARY_NAME);
+        // We use a relative path from the 'android' folder.
+        // android folder is at root, so ../unity points to frontend/mobile/unity
+        const unityProjectDir = `new File(settingsDir, '../unity/builds/android/${UNITY_LIBRARY_NAME}')`;
 
-        // Normalize path separators for Gradle (Windows backslashes can fail)
-        const unityBuildPathNormalized = unityBuildPath.replace(/\\/g, '/');
-
+        // Check if valid include exists
         if (!config.modResults.contents.includes(`include ':${UNITY_LIBRARY_NAME}'`)) {
             config.modResults.contents += `
 include ':${UNITY_LIBRARY_NAME}'
-project(':${UNITY_LIBRARY_NAME}').projectDir = new File('${unityBuildPathNormalized}')
+project(':${UNITY_LIBRARY_NAME}').projectDir = ${unityProjectDir}
 `;
+        } else {
+            // If it exists, we MUST ensure the path is correct (it might be an old absolute path)
+            // Regex to find the existing projectDir assignment
+            const pattern = new RegExp(`project\\(':${UNITY_LIBRARY_NAME}'\\)\\.projectDir\\s*=\\s*.*`, 'g');
+            if (config.modResults.contents.match(pattern)) {
+                config.modResults.contents = config.modResults.contents.replace(
+                    pattern,
+                    `project(':${UNITY_LIBRARY_NAME}').projectDir = ${unityProjectDir}`
+                );
+            } else {
+                // Include exists but projectDir assignment is missing? Add it.
+                config.modResults.contents += `
+project(':${UNITY_LIBRARY_NAME}').projectDir = ${unityProjectDir}
+`;
+            }
         }
         return config;
     });
 
     // 2. Add repository to project build.gradle
     config = withProjectBuildGradle(config, (config) => {
-        const unityBuildPath = path.resolve(config.modRequest.projectRoot, 'unity', 'builds', 'android', UNITY_LIBRARY_NAME);
-        const unityBuildPathNormalized = unityBuildPath.replace(/\\/g, '/');
-        const flatDirLine = `flatDir { dirs "${unityBuildPathNormalized}/libs" }`;
+        // Relative path to libs
+        const flatDirLine = `flatDir { dirs "\${rootProject.projectDir}/../unity/builds/android/${UNITY_LIBRARY_NAME}/libs" }`;
 
-        if (!config.modResults.contents.includes(flatDirLine)) {
+        const existingPattern = /flatDir\s*{\s*dirs\s*.*unityLibrary.*libs\s*}/;
+
+        if (config.modResults.contents.match(existingPattern)) {
+            // Replace existing flatDir if it looks related to unityLibrary to ensure correctness
+            config.modResults.contents = config.modResults.contents.replace(
+                existingPattern,
+                flatDirLine
+            );
+        } else {
             if (config.modResults.contents.includes('allprojects {')) {
                 config.modResults.contents = config.modResults.contents.replace(
                     /allprojects\s*\{/,
                     `allprojects {
     repositories {
-        flatDir { dirs "${unityBuildPathNormalized}/libs" }
+        ${flatDirLine}
     }
 `
                 );
