@@ -14,7 +14,7 @@ export default {
       resizeMode: "cover",
       backgroundColor: "#000000" // your brand color
     },
-    newArchEnabled: true,
+    newArchEnabled: false,
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.company.capstone"

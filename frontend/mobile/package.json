@@ -11,6 +11,7 @@
     "lint": "expo lint"
   },
   "dependencies": {
+    "@azesmway/react-native-unity": "^1.0.11",
     "@expo/vector-icons": "^14.1.0",
     "@google/generative-ai": "^0.24.1",
     "@gorhom/bottom-sheet": "^5.2.6",
@@ -26,6 +27,7 @@
     "expo-av": "~15.1.7",
     "expo-blur": "~14.1.5",
     "expo-camera": "~16.1.11",
+    "expo-clipboard": "~7.1.5",
     "expo-constants": "~17.1.7",
     "expo-dev-client": "~5.2.4",
     "expo-font": "~13.3.2",
@@ -68,8 +70,7 @@
     "react-native-toast-message": "^2.3.3",
     "react-native-web": "~0.20.0",
     "react-native-webview": "13.13.5",
-    "tailwindcss": "^3.4.17",
-    "expo-clipboard": "~7.1.5"
+    "tailwindcss": "^3.4.17"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

@@ -82,8 +82,8 @@ const userSchema = new mongoose.Schema({
         currentConditions: [String],
         familyHistory: [String],
         medications: [String],
-        bloodType: { 
-            type: String, 
+        bloodType: {
+            type: String,
             enum: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
         }
     },
@@ -110,7 +110,7 @@ const userSchema = new mongoose.Schema({
             probability: { type: Number, min: 0, max: 1 },
             percentage: { type: Number },
             source: { type: String },
-            factors: [[ String, Number ]], // Array of [factor_name, score] pairs
+            factors: [[String, Number]], // Array of [factor_name, score] pairs
             _id: false
         }],
         // summary fields kept for quick access
@@ -129,10 +129,22 @@ const userSchema = new mongoose.Schema({
             status: { type: String, enum: ['under', 'on_target', 'over'], default: 'on_target' }
         }
     ],
+    gamification: {
+        points: { type: Number, default: 0 },
+        coins: { type: Number, default: 0 },
+        batteries: [{
+            sleep: { type: Number, default: 0, max: 100 },
+            activity: { type: Number, default: 0, max: 100 },
+            nutrition: { type: Number, default: 0, max: 100 },
+            health: { type: Number, default: 0, max: 100 },
+            total: { type: Number, default: 0, max: 100 },
+            _id: false
+        }]
+    }
 });
 
 // Hash password before saving
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function (next) {
     if (!this.isModified('password')) {
         return next();
     }
@@ -146,25 +158,25 @@ userSchema.pre('save', async function(next) {
 });
 
 // Method to compare password
-userSchema.methods.comparePassword = function(candidatePassword) {
+userSchema.methods.comparePassword = function (candidatePassword) {
     return bcrypt.compare(candidatePassword, this.password);
 };
 
 // Token generation
-userSchema.methods.generateAuthToken = function() {
+userSchema.methods.generateAuthToken = function () {
     return jwt.sign(
-        { 
+        {
             id: this._id,
             email: this.email,
-            role: this.role 
-        }, 
+            role: this.role
+        },
         process.env.JWT_SECRET,
         { expiresIn: process.env.JWT_EXPIRES_TIME }
     );
 };
 
 // Generate Refresh Token
-userSchema.methods.generateRefreshToken = function() {
+userSchema.methods.generateRefreshToken = function () {
     return jwt.sign(
         { id: this._id },
         process.env.JWT_SECRET,

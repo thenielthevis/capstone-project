@@ -166,7 +166,7 @@ export default function HomeTabs() {
               }}
             />
             <Tabs.Screen
-              name="Avatar"
+              name="Avatars"
               listeners={{
                 tabPress: () => setRecordMenuOpen(false),
               }}
