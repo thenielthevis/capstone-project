@@ -91,3 +91,6 @@ export default {
     owner: "capstone.project"
   }
 };
+
+const withUnityAndroid = require('./plugins/withUnityAndroid');
+module.exports.default = withUnityAndroid(module.exports.default || module.exports);
