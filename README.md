@@ -29,8 +29,6 @@ Lifora is an innovative application that combines the features of Strava and Pou
 - **Image Recognition:** (e.g., OpenCV, TensorFlow, or cloud-based APIs)  
 - **Authentication & Social:** (e.g., OAuth, Firebase Auth)  
 
-> _Note: Replace technology placeholders above with your actual stack._
-
 ## Project Overview
 
 Lifora motivates users to take care of themselves by making healthy choices visible and rewarding. The more users engage in positive activities and habits, the healthier and happier their virtual character becomes.
