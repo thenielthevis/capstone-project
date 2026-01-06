@@ -8,7 +8,7 @@ const ProgramSchema = new mongoose.Schema({
   },
   group_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Group',
+    ref: 'Chat',
     required: false,
   },
   name: {
@@ -18,6 +18,24 @@ const ProgramSchema = new mongoose.Schema({
   description: {
     type: String,
   },
+  // Track members who accepted or declined the group program
+  members: [
+    {
+      user_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
+      },
+      status: {
+        type: String,
+        enum: ['pending', 'accepted', 'declined'],
+        default: 'pending',
+      },
+      responded_at: {
+        type: Date,
+      },
+    },
+  ],
   workouts: [
     {
       workout_id: {

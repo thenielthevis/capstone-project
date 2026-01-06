@@ -13,7 +13,7 @@ import {
 import { useTheme } from "../../context/ThemeContext";
 import { useUser } from "../../context/UserContext";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   fetchChats,
@@ -25,6 +25,7 @@ import {
   Chat,
   User,
 } from "../../api/chatApi";
+import { getGroupPrograms, acceptProgram, declineProgram, Program } from "../../api/programApi";
 import * as ImagePicker from "expo-image-picker";
 
 export default function ChatInfo() {
@@ -42,6 +43,8 @@ export default function ChatInfo() {
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [searching, setSearching] = useState(false);
   const [updatingPhoto, setUpdatingPhoto] = useState(false);
+  const [groupPrograms, setGroupPrograms] = useState<Program[]>([]);
+  const [loadingPrograms, setLoadingPrograms] = useState(false);
 
   const loadChatInfo = useCallback(async () => {
     if (!chatId) return;
@@ -62,6 +65,61 @@ export default function ChatInfo() {
   useEffect(() => {
     loadChatInfo();
   }, [loadChatInfo]);
+
+  // Load group programs when chat is loaded and it's a group chat
+  const loadGroupPrograms = useCallback(async () => {
+    if (!chatId || !chat?.isGroupChat) return;
+    setLoadingPrograms(true);
+    try {
+      const programs = await getGroupPrograms(chatId);
+      setGroupPrograms(programs);
+    } catch (error) {
+      console.error("Error fetching group programs:", error);
+    } finally {
+      setLoadingPrograms(false);
+    }
+  }, [chatId, chat?.isGroupChat]);
+
+  useEffect(() => {
+    if (chat?.isGroupChat) {
+      loadGroupPrograms();
+    }
+  }, [chat?.isGroupChat, loadGroupPrograms]);
+
+  const handleAcceptProgram = async (programId: string) => {
+    try {
+      await acceptProgram(programId);
+      Alert.alert("Success", "Program accepted! It will now appear in your programs.");
+      loadGroupPrograms();
+    } catch (error) {
+      console.error("Error accepting program:", error);
+      Alert.alert("Error", "Failed to accept program");
+    }
+  };
+
+  const handleDeclineProgram = async (programId: string) => {
+    Alert.alert(
+      "Decline Program",
+      "Are you sure you want to decline this program?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Decline",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await declineProgram(programId);
+              Alert.alert("Declined", "You have declined this program.");
+              loadGroupPrograms();
+            } catch (error) {
+              console.error("Error declining program:", error);
+              Alert.alert("Error", "Failed to decline program");
+            }
+          },
+        },
+      ]
+    );
+  };
 
   useEffect(() => {
     const searchTimer = setTimeout(async () => {
@@ -773,6 +831,227 @@ export default function ChatInfo() {
                 />
               )}
             />
+          </View>
+        )}
+
+        {/* Group Programs Section */}
+        {chat.isGroupChat && (
+          <View style={{ marginBottom: 12 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                backgroundColor: theme.colors.surface,
+              }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <MaterialCommunityIcons
+                  name="clipboard-list-outline"
+                  size={20}
+                  color={theme.colors.primary}
+                  style={{ marginRight: 8 }}
+                />
+                <Text
+                  style={{
+                    fontFamily: theme.fonts.bodyBold,
+                    fontSize: theme.fontSizes.base,
+                    color: theme.colors.text,
+                  }}
+                >
+                  Group Programs ({groupPrograms.length})
+                </Text>
+              </View>
+            </View>
+
+            {loadingPrograms ? (
+              <View style={{ padding: 20, alignItems: "center" }}>
+                <ActivityIndicator size="small" color={theme.colors.primary} />
+              </View>
+            ) : groupPrograms.length === 0 ? (
+              <View
+                style={{
+                  padding: 20,
+                  alignItems: "center",
+                  backgroundColor: theme.colors.surface,
+                }}
+              >
+                <Text
+                  style={{
+                    fontFamily: theme.fonts.body,
+                    fontSize: theme.fontSizes.sm,
+                    color: theme.colors.text + "60",
+                  }}
+                >
+                  No programs created for this group yet
+                </Text>
+              </View>
+            ) : (
+              <View style={{ backgroundColor: theme.colors.surface }}>
+                {groupPrograms.map((program) => {
+                  const currentUserId = user?.id || user?._id;
+                  const memberStatus = program.members?.find(
+                    (m) => m.user_id?._id === currentUserId || m.user_id === currentUserId
+                  );
+                  const isCreator = program.user_id?._id === currentUserId;
+                  const status = memberStatus?.status || (isCreator ? 'accepted' : 'pending');
+                  const acceptedCount = program.members?.filter(m => m.status === 'accepted').length || 0;
+                  const totalMembers = program.members?.length || 0;
+
+                  return (
+                    <View
+                      key={program._id}
+                      style={{
+                        paddingHorizontal: 16,
+                        paddingVertical: 12,
+                        borderBottomWidth: 1,
+                        borderBottomColor: theme.colors.background,
+                      }}
+                    >
+                      <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
+                        <View
+                          style={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: 10,
+                            backgroundColor: theme.colors.primary + "15",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            marginRight: 12,
+                          }}
+                        >
+                          <MaterialCommunityIcons
+                            name="dumbbell"
+                            size={22}
+                            color={theme.colors.primary}
+                          />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text
+                            style={{
+                              fontFamily: theme.fonts.bodyBold,
+                              fontSize: theme.fontSizes.base,
+                              color: theme.colors.text,
+                            }}
+                          >
+                            {program.name}
+                          </Text>
+                          {program.description && (
+                            <Text
+                              style={{
+                                fontFamily: theme.fonts.body,
+                                fontSize: theme.fontSizes.sm,
+                                color: theme.colors.text + "80",
+                                marginTop: 2,
+                              }}
+                              numberOfLines={2}
+                            >
+                              {program.description}
+                            </Text>
+                          )}
+                          <View style={{ flexDirection: "row", alignItems: "center", marginTop: 6 }}>
+                            <Text
+                              style={{
+                                fontFamily: theme.fonts.body,
+                                fontSize: theme.fontSizes.xs,
+                                color: theme.colors.text + "60",
+                              }}
+                            >
+                              Created by {program.user_id?.username || "Unknown"}
+                            </Text>
+                            <Text
+                              style={{
+                                fontFamily: theme.fonts.body,
+                                fontSize: theme.fontSizes.xs,
+                                color: theme.colors.text + "60",
+                                marginLeft: 8,
+                              }}
+                            >
+                              • {acceptedCount}/{totalMembers} accepted
+                            </Text>
+                          </View>
+
+                          {/* Status Badge or Action Buttons */}
+                          {status === 'pending' && !isCreator ? (
+                            <View style={{ flexDirection: "row", marginTop: 10, gap: 8 }}>
+                              <TouchableOpacity
+                                style={{
+                                  flex: 1,
+                                  backgroundColor: theme.colors.primary,
+                                  paddingVertical: 8,
+                                  borderRadius: 8,
+                                  alignItems: "center",
+                                }}
+                                onPress={() => handleAcceptProgram(program._id)}
+                              >
+                                <Text
+                                  style={{
+                                    fontFamily: theme.fonts.bodyBold,
+                                    fontSize: theme.fontSizes.sm,
+                                    color: "#fff",
+                                  }}
+                                >
+                                  Accept
+                                </Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                style={{
+                                  flex: 1,
+                                  backgroundColor: theme.colors.error + "15",
+                                  paddingVertical: 8,
+                                  borderRadius: 8,
+                                  alignItems: "center",
+                                }}
+                                onPress={() => handleDeclineProgram(program._id)}
+                              >
+                                <Text
+                                  style={{
+                                    fontFamily: theme.fonts.bodyBold,
+                                    fontSize: theme.fontSizes.sm,
+                                    color: theme.colors.error,
+                                  }}
+                                >
+                                  Decline
+                                </Text>
+                              </TouchableOpacity>
+                            </View>
+                          ) : (
+                            <View
+                              style={{
+                                alignSelf: "flex-start",
+                                backgroundColor:
+                                  status === 'accepted'
+                                    ? theme.colors.primary + "15"
+                                    : theme.colors.error + "15",
+                                paddingHorizontal: 10,
+                                paddingVertical: 4,
+                                borderRadius: 12,
+                                marginTop: 8,
+                              }}
+                            >
+                              <Text
+                                style={{
+                                  fontFamily: theme.fonts.body,
+                                  fontSize: theme.fontSizes.xs,
+                                  color:
+                                    status === 'accepted'
+                                      ? theme.colors.primary
+                                      : theme.colors.error,
+                                }}
+                              >
+                                {status === 'accepted' ? '✓ Accepted' : '✗ Declined'}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
           </View>
         )}
 

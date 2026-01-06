@@ -38,7 +38,6 @@ export default function LoginScreen() {
               console.log("User: ", response.data.user);
               console.log("Token: ", response.data.token);
               console.log("Refresh Token: ", response.data.refreshToken);
-            router.dismissAll();
               router.replace("../../(tabs)/Home");
             }
         },
@@ -69,7 +68,6 @@ export default function LoginScreen() {
         await tokenStorage.saveToken(response.data.token);
         await tokenStorage.saveUser(response.data.user);
         setUser(response.data.user);
-        router.dismissAll();
         router.replace("../../(tabs)/Home");
       } else {
         setError("Invalid email or password.");

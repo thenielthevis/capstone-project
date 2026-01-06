@@ -29,6 +29,9 @@ import {
   Message,
   Chat 
 } from "../../api/chatApi";
+import { getGroupPrograms, acceptProgram, declineProgram, Program } from "../../api/programApi";
+import { showToast } from "../../components/Toast/Toast";
+import GroupProgramModal from "../../components/Modals/GroupProgramModal";
 
 const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢"];
 
@@ -51,6 +54,8 @@ export default function ChatRoom() {
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [chat, setChat] = useState<Chat | null>(null);
+  const [groupPrograms, setGroupPrograms] = useState<Program[]>([]);
+  const [processingProgramId, setProcessingProgramId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -59,6 +64,7 @@ export default function ChatRoom() {
   const [showReactionModal, setShowReactionModal] = useState(false);
   const [showOptionsModal, setShowOptionsModal] = useState(false);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+  const [showGroupProgramModal, setShowGroupProgramModal] = useState(false);
 
   const flatListRef = useRef<FlatList>(null);
 
@@ -75,6 +81,23 @@ export default function ChatRoom() {
       setLoading(false);
     }
   }, [chatId]);
+
+  // Load group programs for accept/decline functionality
+  const loadGroupPrograms = useCallback(async () => {
+    if (!chatId || !chat?.isGroupChat) return;
+    try {
+      const programs = await getGroupPrograms(chatId);
+      setGroupPrograms(programs);
+    } catch (error) {
+      console.error("Error fetching group programs:", error);
+    }
+  }, [chatId, chat?.isGroupChat]);
+
+  useEffect(() => {
+    if (chat?.isGroupChat) {
+      loadGroupPrograms();
+    }
+  }, [chat?.isGroupChat, loadGroupPrograms]);
 
   // Load chat data for avatar
   const loadChatData = useCallback(async () => {
@@ -193,6 +216,77 @@ export default function ChatRoom() {
     setSelectedMessage(null);
   };
 
+  // Handle accept program from chat
+  const handleAcceptProgram = async (programId: string) => {
+    setProcessingProgramId(programId);
+    try {
+      await acceptProgram(programId);
+      showToast({
+        type: "success",
+        text1: "Program Accepted!",
+        text2: "This program has been added to your programs",
+      });
+      loadGroupPrograms();
+    } catch (error: any) {
+      console.error("Error accepting program:", error);
+      showToast({
+        type: "error",
+        text1: "Error",
+        text2: error?.response?.data?.message || "Failed to accept program",
+      });
+    } finally {
+      setProcessingProgramId(null);
+    }
+  };
+
+  // Handle decline program from chat
+  const handleDeclineProgram = async (programId: string) => {
+    setProcessingProgramId(programId);
+    try {
+      await declineProgram(programId);
+      showToast({
+        type: "info",
+        text1: "Program Declined",
+        text2: "You have declined this group program",
+      });
+      loadGroupPrograms();
+    } catch (error: any) {
+      console.error("Error declining program:", error);
+      showToast({
+        type: "error",
+        text1: "Error",
+        text2: error?.response?.data?.message || "Failed to decline program",
+      });
+    } finally {
+      setProcessingProgramId(null);
+    }
+  };
+
+  // Helper to check if a message is a program announcement
+  const isProgramMessage = (content: string) => {
+    return content.startsWith("📋 New Group Program Created!");
+  };
+
+  // Helper to extract program name from message
+  const extractProgramName = (content: string) => {
+    const match = content.match(/"([^"]+)"/);
+    return match ? match[1] : null;
+  };
+
+  // Helper to find program by name
+  const findProgramByName = (programName: string) => {
+    return groupPrograms.find(p => p.name === programName);
+  };
+
+  // Get user's status for a program
+  const getUserProgramStatus = (program: Program) => {
+    const currentUserId = user?.id || user?._id;
+    const member = program.members?.find(m => 
+      m.user_id?._id === currentUserId || m.user_id === currentUserId
+    );
+    return member?.status || null;
+  };
+
   const handleSuggestionPress = (suggestion: string) => {
     setNewMessage(suggestion);
     setShowSuggestions(false);
@@ -244,6 +338,13 @@ export default function ChatRoom() {
     const previousMessage = index > 0 ? messages[index - 1] : null;
     const showDateSeparator = shouldShowDateSeparator(item, previousMessage);
     const messageReactions = item.reactions || [];
+    const isProgram = isProgramMessage(item.content);
+
+    // For program messages, find the associated program
+    const programName = isProgram ? extractProgramName(item.content) : null;
+    const associatedProgram = programName ? findProgramByName(programName) : null;
+    const userStatus = associatedProgram ? getUserProgramStatus(associatedProgram) : null;
+    const isCreator = associatedProgram?.user_id?._id === currentUserId;
 
     return (
       <>
@@ -274,121 +375,413 @@ export default function ChatRoom() {
             </View>
           </View>
         )}
-        <TouchableOpacity
-          onLongPress={() => handleLongPress(item)}
-          activeOpacity={0.8}
-          style={{
-            flexDirection: "row",
-            justifyContent: isOwnMessage ? "flex-end" : "flex-start",
-            marginVertical: 4,
-            marginHorizontal: 12,
-          }}
-        >
-          {/* Avatar for other's messages */}
-          {!isOwnMessage && (
+
+        {/* Program Message - Special Styling */}
+        {isProgram ? (
+          <View
+            style={{
+              marginVertical: 8,
+              marginHorizontal: 16,
+            }}
+          >
             <View
               style={{
-                width: 32,
-                height: 32,
+                backgroundColor: theme.colors.surface,
                 borderRadius: 16,
-                backgroundColor: theme.colors.secondary + "30",
-                alignItems: "center",
-                justifyContent: "center",
-                marginRight: 8,
-                alignSelf: "flex-end",
+                borderWidth: 1,
+                borderColor: theme.colors.primary + "30",
+                overflow: "hidden",
               }}
             >
-              {item.sender?.profilePicture ? (
-                <Image
-                  source={{ uri: item.sender.profilePicture }}
-                  style={{ width: 32, height: 32, borderRadius: 16 }}
-                />
-              ) : (
-                <Ionicons name="person" size={18} color={theme.colors.secondary} />
+              {/* Program Header */}
+              <View
+                style={{
+                  backgroundColor: theme.colors.primary + "15",
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  flexDirection: "row",
+                  alignItems: "center",
+                }}
+              >
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    backgroundColor: theme.colors.primary + "30",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginRight: 12,
+                  }}
+                >
+                  <MaterialCommunityIcons
+                    name="clipboard-text"
+                    size={22}
+                    color={theme.colors.primary}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontFamily: theme.fonts.bodyBold,
+                      fontSize: theme.fontSizes.base,
+                      color: theme.colors.primary,
+                    }}
+                  >
+                    New Group Program
+                  </Text>
+                  <Text
+                    style={{
+                      fontFamily: theme.fonts.body,
+                      fontSize: theme.fontSizes.xs,
+                      color: theme.colors.text + "80",
+                    }}
+                  >
+                    by {item.sender?.username || "Unknown"}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Program Content */}
+              <View style={{ padding: 16 }}>
+                {programName && (
+                  <Text
+                    style={{
+                      fontFamily: theme.fonts.heading,
+                      fontSize: theme.fontSizes.lg,
+                      color: theme.colors.text,
+                      marginBottom: 8,
+                    }}
+                  >
+                    "{programName}"
+                  </Text>
+                )}
+                
+                {/* Parse and display program details */}
+                {item.content.split('\n').slice(2).map((line, idx) => {
+                  if (line.startsWith('💪') || line.startsWith('🗺️')) {
+                    return (
+                      <View
+                        key={idx}
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "flex-start",
+                          marginTop: 6,
+                        }}
+                      >
+                        <Text style={{ fontSize: 14, marginRight: 6 }}>
+                          {line.startsWith('💪') ? '💪' : '🗺️'}
+                        </Text>
+                        <Text
+                          style={{
+                            fontFamily: theme.fonts.body,
+                            fontSize: theme.fontSizes.sm,
+                            color: theme.colors.text + "99",
+                            flex: 1,
+                          }}
+                        >
+                          {line.replace(/^(💪|🗺️)\s*(Workouts|Activities):\s*/, '')}
+                        </Text>
+                      </View>
+                    );
+                  } else if (line.trim() && !line.startsWith('📋') && !line.startsWith('"')) {
+                    return (
+                      <Text
+                        key={idx}
+                        style={{
+                          fontFamily: theme.fonts.body,
+                          fontSize: theme.fontSizes.sm,
+                          color: theme.colors.text + "80",
+                          marginBottom: 4,
+                        }}
+                      >
+                        {line}
+                      </Text>
+                    );
+                  }
+                  return null;
+                })}
+
+                <Text
+                  style={{
+                    fontFamily: theme.fonts.body,
+                    fontSize: theme.fontSizes.xs,
+                    color: theme.colors.text + "50",
+                    marginTop: 12,
+                  }}
+                >
+                  {formatTime(item.createdAt)}
+                </Text>
+              </View>
+
+              {/* Accept/Decline Buttons - Only show for group members who are not the creator */}
+              {chat?.isGroupChat && associatedProgram && !isCreator && (
+                <View
+                  style={{
+                    borderTopWidth: 1,
+                    borderTopColor: theme.colors.background,
+                    paddingHorizontal: 16,
+                    paddingVertical: 12,
+                  }}
+                >
+                  {userStatus === 'pending' ? (
+                    <View style={{ flexDirection: "row", gap: 10 }}>
+                      <TouchableOpacity
+                        style={{
+                          flex: 1,
+                          backgroundColor: theme.colors.primary,
+                          paddingVertical: 10,
+                          borderRadius: 10,
+                          alignItems: "center",
+                          flexDirection: "row",
+                          justifyContent: "center",
+                        }}
+                        onPress={() => handleAcceptProgram(associatedProgram._id)}
+                        disabled={processingProgramId === associatedProgram._id}
+                      >
+                        {processingProgramId === associatedProgram._id ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <>
+                            <Ionicons name="checkmark" size={18} color="#fff" />
+                            <Text
+                              style={{
+                                fontFamily: theme.fonts.bodyBold,
+                                fontSize: theme.fontSizes.sm,
+                                color: "#fff",
+                                marginLeft: 6,
+                              }}
+                            >
+                              Accept
+                            </Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={{
+                          flex: 1,
+                          backgroundColor: theme.colors.background,
+                          paddingVertical: 10,
+                          borderRadius: 10,
+                          alignItems: "center",
+                          flexDirection: "row",
+                          justifyContent: "center",
+                          borderWidth: 1,
+                          borderColor: theme.colors.text + "30",
+                        }}
+                        onPress={() => handleDeclineProgram(associatedProgram._id)}
+                        disabled={processingProgramId === associatedProgram._id}
+                      >
+                        <Ionicons name="close" size={18} color={theme.colors.text + "80"} />
+                        <Text
+                          style={{
+                            fontFamily: theme.fonts.body,
+                            fontSize: theme.fontSizes.sm,
+                            color: theme.colors.text + "80",
+                            marginLeft: 6,
+                          }}
+                        >
+                          Decline
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : userStatus === 'accepted' ? (
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        backgroundColor: theme.colors.success + "15",
+                        paddingVertical: 10,
+                        borderRadius: 10,
+                      }}
+                    >
+                      <Ionicons name="checkmark-circle" size={18} color={theme.colors.success || "#22c55e"} />
+                      <Text
+                        style={{
+                          fontFamily: theme.fonts.bodyBold,
+                          fontSize: theme.fontSizes.sm,
+                          color: theme.colors.success || "#22c55e",
+                          marginLeft: 6,
+                        }}
+                      >
+                        You've joined this program
+                      </Text>
+                    </View>
+                  ) : userStatus === 'declined' ? (
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        backgroundColor: theme.colors.text + "10",
+                        paddingVertical: 10,
+                        borderRadius: 10,
+                      }}
+                    >
+                      <Ionicons name="close-circle" size={18} color={theme.colors.text + "60"} />
+                      <Text
+                        style={{
+                          fontFamily: theme.fonts.body,
+                          fontSize: theme.fontSizes.sm,
+                          color: theme.colors.text + "60",
+                          marginLeft: 6,
+                        }}
+                      >
+                        You declined this program
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+              )}
+
+              {/* Creator badge */}
+              {isCreator && (
+                <View
+                  style={{
+                    borderTopWidth: 1,
+                    borderTopColor: theme.colors.background,
+                    paddingHorizontal: 16,
+                    paddingVertical: 10,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: theme.colors.primary + "10",
+                  }}
+                >
+                  <Ionicons name="star" size={16} color={theme.colors.primary} />
+                  <Text
+                    style={{
+                      fontFamily: theme.fonts.body,
+                      fontSize: theme.fontSizes.sm,
+                      color: theme.colors.primary,
+                      marginLeft: 6,
+                    }}
+                  >
+                    You created this program
+                  </Text>
+                </View>
               )}
             </View>
-          )}
-
-          <View style={{ maxWidth: "75%" }}>
-            {/* Sender name for group chats */}
+          </View>
+        ) : (
+          /* Regular Message */
+          <TouchableOpacity
+            onLongPress={() => handleLongPress(item)}
+            activeOpacity={0.8}
+            style={{
+              flexDirection: "row",
+              justifyContent: isOwnMessage ? "flex-end" : "flex-start",
+              marginVertical: 4,
+              marginHorizontal: 12,
+            }}
+          >
+            {/* Avatar for other's messages */}
             {!isOwnMessage && (
-              <Text
+              <View
                 style={{
-                  fontFamily: theme.fonts.body,
-                  fontSize: theme.fontSizes.xs,
-                  color: theme.colors.text + "80",
-                  marginBottom: 4,
-                  marginLeft: 4,
-                }}
-              >
-                {item.sender?.username || "Unknown"}
-              </Text>
-            )}
-
-            {/* Message Bubble */}
-            <View
-              style={{
-                backgroundColor: isOwnMessage
-                  ? theme.colors.primary
-                  : theme.colors.surface,
-                borderRadius: 16,
-                borderTopRightRadius: isOwnMessage ? 4 : 16,
-                borderTopLeftRadius: isOwnMessage ? 16 : 4,
-                paddingHorizontal: 14,
-                paddingVertical: 10,
-              }}
-            >
-              <Text
-                style={{
-                  fontFamily: theme.fonts.body,
-                  fontSize: theme.fontSizes.base,
-                  color: isOwnMessage ? "#fff" : theme.colors.text,
-                }}
-              >
-                {item.content}
-              </Text>
-              <Text
-                style={{
-                  fontFamily: theme.fonts.body,
-                  fontSize: theme.fontSizes.xs,
-                  color: isOwnMessage ? "#ffffff90" : theme.colors.text + "60",
-                  marginTop: 4,
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                  backgroundColor: theme.colors.secondary + "30",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginRight: 8,
                   alignSelf: "flex-end",
                 }}
               >
-                {formatTime(item.createdAt)}
-              </Text>
-            </View>
-
-            {/* Reactions */}
-            {messageReactions.length > 0 && (
-              <View
-                style={{
-                  flexDirection: "row",
-                  backgroundColor: theme.colors.surface,
-                  borderRadius: 10,
-                  paddingHorizontal: 6,
-                  paddingVertical: 2,
-                  marginTop: 4,
-                  alignSelf: isOwnMessage ? "flex-end" : "flex-start",
-                  borderWidth: 1,
-                  borderColor: theme.colors.background,
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 2,
-                  elevation: 2,
-                }}
-              >
-                {messageReactions.map((reaction, i) => (
-                  <Text key={i} style={{ fontSize: 14 }}>
-                    {reaction.emoji}
-                  </Text>
-                ))}
+                {item.sender?.profilePicture ? (
+                  <Image
+                    source={{ uri: item.sender.profilePicture }}
+                    style={{ width: 32, height: 32, borderRadius: 16 }}
+                  />
+                ) : (
+                  <Ionicons name="person" size={18} color={theme.colors.secondary} />
+                )}
               </View>
             )}
-          </View>
-        </TouchableOpacity>
+
+            <View style={{ maxWidth: "75%" }}>
+              {/* Sender name for group chats */}
+              {!isOwnMessage && (
+                <Text
+                  style={{
+                    fontFamily: theme.fonts.body,
+                    fontSize: theme.fontSizes.xs,
+                    color: theme.colors.text + "80",
+                    marginBottom: 4,
+                    marginLeft: 4,
+                  }}
+                >
+                  {item.sender?.username || "Unknown"}
+                </Text>
+              )}
+
+              {/* Message Bubble */}
+              <View
+                style={{
+                  backgroundColor: isOwnMessage
+                    ? theme.colors.primary
+                    : theme.colors.surface,
+                  borderRadius: 16,
+                  borderTopRightRadius: isOwnMessage ? 4 : 16,
+                  borderTopLeftRadius: isOwnMessage ? 16 : 4,
+                  paddingHorizontal: 14,
+                  paddingVertical: 10,
+                }}
+              >
+                <Text
+                  style={{
+                    fontFamily: theme.fonts.body,
+                    fontSize: theme.fontSizes.base,
+                    color: isOwnMessage ? "#fff" : theme.colors.text,
+                  }}
+                >
+                  {item.content}
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: theme.fonts.body,
+                    fontSize: theme.fontSizes.xs,
+                    color: isOwnMessage ? "#ffffff90" : theme.colors.text + "60",
+                    marginTop: 4,
+                    alignSelf: "flex-end",
+                  }}
+                >
+                  {formatTime(item.createdAt)}
+                </Text>
+              </View>
+
+              {/* Reactions */}
+              {messageReactions.length > 0 && (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    backgroundColor: theme.colors.surface,
+                    borderRadius: 10,
+                    paddingHorizontal: 6,
+                    paddingVertical: 2,
+                    marginTop: 4,
+                    alignSelf: isOwnMessage ? "flex-end" : "flex-start",
+                    borderWidth: 1,
+                    borderColor: theme.colors.background,
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 2,
+                    elevation: 2,
+                  }}
+                >
+                  {messageReactions.map((reaction, i) => (
+                    <Text key={i} style={{ fontSize: 14 }}>
+                      {reaction.emoji}
+                    </Text>
+                  ))}
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
+        )}
       </>
     );
   };
@@ -497,6 +890,20 @@ export default function ChatRoom() {
             </Text>
           )}
         </TouchableOpacity>
+
+        {/* Create Group Program Button - Only for group chats */}
+        {chat?.isGroupChat && (
+          <TouchableOpacity
+            style={{ padding: 8, marginRight: 4 }}
+            onPress={() => setShowGroupProgramModal(true)}
+          >
+            <MaterialCommunityIcons
+              name="clipboard-plus-outline"
+              size={24}
+              color={theme.colors.primary}
+            />
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity
           style={{ padding: 8 }}
@@ -878,6 +1285,26 @@ export default function ChatRoom() {
           </View>
         </Pressable>
       </Modal>
+
+      {/* Group Program Modal */}
+      {chat?.isGroupChat && (
+        <GroupProgramModal
+          visible={showGroupProgramModal}
+          onClose={() => setShowGroupProgramModal(false)}
+          groupId={chatId || ""}
+          groupName={chatName || chat?.chatName || "Group"}
+          onProgramCreated={() => {
+            // Refresh messages to show the new program announcement
+            loadMessages();
+            // Refresh programs list for accept/decline functionality
+            loadGroupPrograms();
+            // Scroll to bottom after a short delay to show the new message
+            setTimeout(() => {
+              flatListRef.current?.scrollToEnd({ animated: true });
+            }, 500);
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 }

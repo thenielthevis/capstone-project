@@ -34,7 +34,6 @@ export default function RegisterScreen() {
           setUser(response.data.user); // Save user globally
           await tokenStorage.saveToken(response.data.token);
           await tokenStorage.saveUser(response.data.user);
-          router.dismissAll();
           router.replace("../../(tabs)/Home");
         }
       },

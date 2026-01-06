@@ -60,22 +60,30 @@ exports.accessChat = async (req, res) => {
 // @access  Protected
 exports.fetchChats = async (req, res) => {
     try {
-        // Convert string ID to ObjectId for proper MongoDB matching
-        const userId = new mongoose.Types.ObjectId(req.user.id);
+        // Get user ID - handle both string and ObjectId formats
+        const userIdString = req.user.id.toString();
+        const userId = new mongoose.Types.ObjectId(userIdString);
         
-        Chat.find({ users: { $elemMatch: { $eq: userId } } })
+        // Find chats where user is a member (handle both string and ObjectId stored in users array)
+        const chats = await Chat.find({
+            $or: [
+                { users: { $elemMatch: { $eq: userId } } },
+                { users: { $elemMatch: { $eq: userIdString } } }
+            ]
+        })
             .populate("users", "-password")
             .populate("groupAdmin", "-password")
             .populate("latestMessage")
-            .sort({ updatedAt: -1 })
-            .then(async (results) => {
-                results = await User.populate(results, {
-                    path: "latestMessage.sender",
-                    select: "name pic email",
-                });
-                res.status(200).send(results);
-            });
+            .sort({ updatedAt: -1 });
+        
+        const results = await User.populate(chats, {
+            path: "latestMessage.sender",
+            select: "name pic email",
+        });
+        
+        res.status(200).send(results);
     } catch (error) {
+        console.error("[fetchChats] Error:", error);
         res.status(400);
         throw new Error(error.message);
     }
@@ -90,6 +98,7 @@ exports.createGroupChat = async (req, res) => {
     }
 
     var users = JSON.parse(req.body.users);
+    console.log("[createGroupChat] Received users:", users);
 
     if (users.length < 2) {
         return res
@@ -98,9 +107,11 @@ exports.createGroupChat = async (req, res) => {
     }
 
     // Convert all user IDs to ObjectId for consistent storage
-    users = users.map(id => new mongoose.Types.ObjectId(id));
-    const currentUserObjectId = new mongoose.Types.ObjectId(req.user.id);
+    users = users.map(id => new mongoose.Types.ObjectId(id.toString()));
+    const currentUserObjectId = new mongoose.Types.ObjectId(req.user.id.toString());
     users.push(currentUserObjectId);
+    
+    console.log("[createGroupChat] Final users array (ObjectIds):", users.map(u => u.toString()));
 
     try {
         const groupChat = await Chat.create({
@@ -110,12 +121,15 @@ exports.createGroupChat = async (req, res) => {
             groupAdmin: currentUserObjectId,
         });
 
+        console.log("[createGroupChat] Created group chat:", groupChat._id, "with users:", groupChat.users);
+
         const fullGroupChat = await Chat.findOne({ _id: groupChat._id })
             .populate("users", "-password")
             .populate("groupAdmin", "-password");
 
         res.status(200).json(fullGroupChat);
     } catch (error) {
+        console.error("[createGroupChat] Error:", error);
         res.status(400);
         throw new Error(error.message);
     }

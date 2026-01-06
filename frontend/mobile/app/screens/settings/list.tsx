@@ -318,7 +318,6 @@ export default function SettingsScreen() {
                 onPress={async () => {
                   setShowLogoutModal(false);
                   await tokenStorage.removeToken();
-                  router.dismissAll();
                   router.replace("/");
                 }}
                 style={{
