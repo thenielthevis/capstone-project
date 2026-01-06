@@ -1,65 +1,81 @@
 package com.company.capstone
-import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build
 import android.os.Bundle
-
+import android.widget.FrameLayout
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnabled
 import com.facebook.react.defaults.DefaultReactActivityDelegate
-
 import expo.modules.ReactActivityDelegateWrapper
+import expo.modules.splashscreen.SplashScreenManager
+import com.unity3d.player.UnityPlayer
 
 class MainActivity : ReactActivity() {
-  override fun onCreate(savedInstanceState: Bundle?) {
-    // Set the theme to AppTheme BEFORE onCreate to support
-    // coloring the background, status bar, and navigation bar.
-    // This is required for expo-splash-screen.
-    // setTheme(R.style.AppTheme);
-    // @generated begin expo-splashscreen - expo prebuild (DO NOT MODIFY) sync-f3ff59a738c56c9a6119210cb55f0b613eb8b6af
-    SplashScreenManager.registerOnActivity(this)
-    // @generated end expo-splashscreen
-    super.onCreate(null)
-  }
 
-  /**
-   * Returns the name of the main component registered from JavaScript. This is used to schedule
-   * rendering of the component.
-   */
-  override fun getMainComponentName(): String = "main"
+    // --- Unity Player ---
+    private lateinit var unityPlayer: UnityPlayer
 
-  /**
-   * Returns the instance of the [ReactActivityDelegate]. We use [DefaultReactActivityDelegate]
-   * which allows you to enable New Architecture with a single boolean flags [fabricEnabled]
-   */
-  override fun createReactActivityDelegate(): ReactActivityDelegate {
-    return ReactActivityDelegateWrapper(
-          this,
-          BuildConfig.IS_NEW_ARCHITECTURE_ENABLED,
-          object : DefaultReactActivityDelegate(
-              this,
-              mainComponentName,
-              fabricEnabled
-          ){})
-  }
+    override fun onCreate(savedInstanceState: Bundle?) {
+        // Splash screen registration (Expo)
+        SplashScreenManager.registerOnActivity(this)
 
-  /**
-    * Align the back button behavior with Android S
-    * where moving root activities to background instead of finishing activities.
-    * @see <a href="https://developer.android.com/reference/android/app/Activity#onBackPressed()">onBackPressed</a>
-    */
-  override fun invokeDefaultOnBackPressed() {
-      if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.R) {
-          if (!moveTaskToBack(false)) {
-              // For non-root activities, use the default implementation to finish them.
-              super.invokeDefaultOnBackPressed()
-          }
-          return
-      }
+        super.onCreate(null)
 
-      // Use the default back button implementation on Android S
-      // because it's doing more than [Activity.moveTaskToBack] in fact.
-      super.invokeDefaultOnBackPressed()
-  }
+        // --- Unity Setup ---
+        unityPlayer = UnityPlayer(this)
+        unityPlayer.requestFocus()
+
+        // Full-screen Unity embedding
+        val layout = FrameLayout(this)
+        layout.addView(unityPlayer)
+        setContentView(layout)
+    }
+
+    // --- Unity Lifecycle ---
+    override fun onDestroy() {
+        unityPlayer.quit()
+        super.onDestroy()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        unityPlayer.pause()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        unityPlayer.resume()
+    }
+
+    override fun onBackPressed() {
+        // You can handle Unity back separately if needed
+        unityPlayer.quit()
+        super.onBackPressed()
+    }
+
+    // --- React Native ---
+    override fun getMainComponentName(): String = "main"
+
+    override fun createReactActivityDelegate(): ReactActivityDelegate {
+        return ReactActivityDelegateWrapper(
+            this,
+            BuildConfig.IS_NEW_ARCHITECTURE_ENABLED,
+            object : DefaultReactActivityDelegate(
+                this,
+                mainComponentName,
+                fabricEnabled
+            ) {}
+        )
+    }
+
+    override fun invokeDefaultOnBackPressed() {
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.R) {
+            if (!moveTaskToBack(false)) {
+                super.invokeDefaultOnBackPressed()
+            }
+            return
+        }
+        super.invokeDefaultOnBackPressed()
+    }
 }

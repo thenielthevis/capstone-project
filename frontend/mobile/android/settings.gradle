@@ -6,7 +6,7 @@ pluginManagement {
     }.standardOutput.asText.get().trim()
   ).getParentFile().absolutePath
   includeBuild(reactNativeGradlePlugin)
-
+  
   def expoPluginsPath = new File(
     providers.exec {
       workingDir(rootDir)
@@ -29,17 +29,15 @@ extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
     ex.autolinkLibrariesFromCommand(expoAutolinking.rnConfigCommand)
   }
 }
-
 expoAutolinking.useExpoModules()
-expoAutolinking.useExpoVersionCatalog()
 
 rootProject.name = 'Lifora'
 
+expoAutolinking.useExpoVersionCatalog()
+
 include ':app'
-includeBuild(expoAutolinking.reactNativeGradlePlugin)
-
 include ':unityLibrary'
-project(':unityLibrary').projectDir = new File(rootDir, 'unityLibrary')
-
 include ':launcher'
+
+project(':unityLibrary').projectDir = new File(rootDir, 'unityLibrary')
 project(':launcher').projectDir = new File(rootDir, 'launcher')
