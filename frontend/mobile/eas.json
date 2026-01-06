@@ -1,39 +1,26 @@
 {
-  "cli": {
-    "version": ">= 16.1.0",
-    "appVersionSource": "remote"
-  },
   "build": {
     "development": {
       "developmentClient": true,
       "distribution": "internal",
       "android": {
         "buildType": "apk",
-        "gradleCommand": ":app:assembleDebug",
-        "gradle": "8.2.2",
-        "image": "ubuntu-22.04-android-34-ndk27"
+        "image": "ubuntu-22.04-jdk-17-ndk-r27b"
       }
     },
     "preview": {
       "distribution": "internal",
       "android": {
         "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease",
-        "gradle": "8.2.2",
-        "image": "ubuntu-22.04-android-34-ndk27"
+        "image": "ubuntu-22.04-jdk-17-ndk-r27b"
       }
     },
     "production": {
       "autoIncrement": true,
       "android": {
         "buildType": "app-bundle",
-        "gradleCommand": ":app:bundleRelease",
-        "gradle": "8.2.2",
-        "image": "ubuntu-22.04-android-34-ndk27"
+        "image": "ubuntu-22.04-jdk-17-ndk-r27b"
       }
     }
-  },
-  "submit": {
-    "production": {}
   }
 }
