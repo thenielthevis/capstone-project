@@ -8,19 +8,28 @@
       "developmentClient": true,
       "distribution": "internal",
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleDebug",
+        "gradle": "8.2.2",
+        "image": "ubuntu-22.04-android-34-ndk27"
       }
     },
     "preview": {
       "distribution": "internal",
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease",
+        "gradle": "8.2.2",
+        "image": "ubuntu-22.04-android-34-ndk27"
       }
     },
     "production": {
       "autoIncrement": true,
       "android": {
-        "buildType": "app-bundle"
+        "buildType": "app-bundle",
+        "gradleCommand": ":app:bundleRelease",
+        "gradle": "8.2.2",
+        "image": "ubuntu-22.04-android-34-ndk27"
       }
     }
   },
