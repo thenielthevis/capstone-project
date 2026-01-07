@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { TextInput } from "react-native-paper";
-import { createProgram } from "../../api/programApi";
+import { createProgram, updateProgram, Program } from "../../api/programApi";
 import { getAllWorkouts } from "../../api/workoutApi";
 import { getAllGeoActivities } from "../../api/geoActivityApi";
 import { sendMessage } from "../../api/chatApi";
@@ -22,6 +22,8 @@ interface GroupProgramModalProps {
   groupId: string;
   groupName: string;
   onProgramCreated?: (programName: string) => void;
+  editingProgram?: Program | null;
+  onProgramUpdated?: () => void;
 }
 
 interface Workout {
@@ -54,12 +56,16 @@ const GroupProgramModal: React.FC<GroupProgramModalProps> = ({
   groupId,
   groupName,
   onProgramCreated,
+  editingProgram,
+  onProgramUpdated,
 }) => {
   const { theme } = useTheme();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  const isEditMode = !!editingProgram;
   
   // Activity selection
   const [step, setStep] = useState<"details" | "workouts" | "geo" | "customWorkout" | "customGeo">("details");
@@ -77,8 +83,44 @@ const GroupProgramModal: React.FC<GroupProgramModalProps> = ({
   useEffect(() => {
     if (visible) {
       loadActivities();
+      
+      // Pre-populate form when editing
+      if (editingProgram) {
+        setName(editingProgram.name || "");
+        setDescription(editingProgram.description || "");
+        
+        // Map existing workouts to selected workouts
+        if (editingProgram.workouts && editingProgram.workouts.length > 0) {
+          const mappedWorkouts: SelectedWorkout[] = editingProgram.workouts
+            .filter((w: any) => w.workout_id)
+            .map((w: any) => ({
+              workout: {
+                _id: w.workout_id._id || w.workout_id,
+                name: w.workout_id.name || "Unknown Workout",
+                category: w.workout_id.category,
+              },
+              sets: w.sets || [{ reps: "10", time_seconds: "30", weight_kg: "0" }],
+            }));
+          setSelectedWorkouts(mappedWorkouts);
+        }
+        
+        // Map existing geo activities to selected geo activities
+        if (editingProgram.geo_activities && editingProgram.geo_activities.length > 0) {
+          const mappedGeo: SelectedGeoActivity[] = editingProgram.geo_activities
+            .filter((g: any) => g.activity_id)
+            .map((g: any) => ({
+              activity: {
+                _id: g.activity_id._id || g.activity_id,
+                name: g.activity_id.name || "Unknown Activity",
+                type: g.activity_id.type,
+              },
+              preferences: g.preferences || { distance_km: "5", avg_pace: "6:00", countdown_seconds: "3" },
+            }));
+          setSelectedGeoActivities(mappedGeo);
+        }
+      }
     }
-  }, [visible]);
+  }, [visible, editingProgram]);
 
   const loadActivities = async () => {
     setLoadingActivities(true);
@@ -173,41 +215,61 @@ const GroupProgramModal: React.FC<GroupProgramModalProps> = ({
         })),
       };
       
-      await createProgram(programData);
       const programName = name;
       
-      // Build activity summary for the message
-      const workoutNames = selectedWorkouts.map(w => w.workout.name).join(", ");
-      const geoNames = selectedGeoActivities.map(g => g.activity.name).join(", ");
-      let activitiesSummary = "";
-      if (workoutNames) activitiesSummary += `\n💪 Workouts: ${workoutNames}`;
-      if (geoNames) activitiesSummary += `\n🗺️ Activities: ${geoNames}`;
-      
-      // Send a message to the group chat about the new program
-      const programMessage = `📋 New Group Program Created!\n\n"${programName}"\n${description}${activitiesSummary}`;
-      
-      try {
-        await sendMessage(programMessage, groupId);
-        console.log("[GroupProgramModal] Message sent to group chat:", groupId);
-      } catch (msgError) {
-        console.error("[GroupProgramModal] Failed to send message to chat:", msgError);
-        // Continue even if message fails - program was still created
+      if (isEditMode && editingProgram) {
+        // Update existing program
+        await updateProgram(editingProgram._id, programData);
+        
+        // Call the callback to refresh programs
+        onProgramUpdated?.();
+        
+        handleClose();
+        
+        setTimeout(() => {
+          showToast({
+            type: "success",
+            text1: "Program Updated!",
+            text2: `${programName} has been updated`,
+          });
+        }, 300);
+      } else {
+        // Create new program
+        await createProgram(programData);
+        
+        // Build activity summary for the message
+        const workoutNames = selectedWorkouts.map(w => w.workout.name).join(", ");
+        const geoNames = selectedGeoActivities.map(g => g.activity.name).join(", ");
+        let activitiesSummary = "";
+        if (workoutNames) activitiesSummary += `\n💪 Workouts: ${workoutNames}`;
+        if (geoNames) activitiesSummary += `\n🗺️ Activities: ${geoNames}`;
+        
+        // Send a message to the group chat about the new program
+        const programMessage = `📋 New Group Program Created!\n\n"${programName}"\n${description}${activitiesSummary}`;
+        
+        try {
+          await sendMessage(programMessage, groupId);
+          console.log("[GroupProgramModal] Message sent to group chat:", groupId);
+        } catch (msgError) {
+          console.error("[GroupProgramModal] Failed to send message to chat:", msgError);
+          // Continue even if message fails - program was still created
+        }
+        
+        // Call the callback to refresh messages
+        onProgramCreated?.(programName);
+        
+        handleClose();
+        
+        setTimeout(() => {
+          showToast({
+            type: "success",
+            text1: "Group Program Created!",
+            text2: `${programName} for ${groupName}`,
+          });
+        }, 300);
       }
-      
-      // Call the callback to refresh messages
-      onProgramCreated?.(programName);
-      
-      handleClose();
-      
-      setTimeout(() => {
-        showToast({
-          type: "success",
-          text1: "Group Program Created!",
-          text2: `${programName} for ${groupName}`,
-        });
-      }, 300);
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Failed to create program");
+      setError(err?.response?.data?.message || (isEditMode ? "Failed to update program" : "Failed to create program"));
     } finally {
       setLoading(false);
     }
@@ -263,7 +325,7 @@ const GroupProgramModal: React.FC<GroupProgramModalProps> = ({
             marginBottom: 12,
           }}
         >
-          <Ionicons name="people" size={28} color={theme.colors.primary} />
+          <Ionicons name={isEditMode ? "create" : "people"} size={28} color={theme.colors.primary} />
         </View>
         <Text
           style={{
@@ -272,7 +334,7 @@ const GroupProgramModal: React.FC<GroupProgramModalProps> = ({
             color: theme.colors.text,
           }}
         >
-          Create Group Program
+          {isEditMode ? "Edit Group Program" : "Create Group Program"}
         </Text>
         <Text
           style={{
@@ -1056,7 +1118,7 @@ const GroupProgramModal: React.FC<GroupProgramModalProps> = ({
                       fontFamily: theme.fonts.heading,
                     }}
                   >
-                    Create Program
+                    {isEditMode ? "Update Program" : "Create Program"}
                   </Text>
                 )}
               </TouchableOpacity>

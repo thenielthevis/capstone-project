@@ -99,6 +99,10 @@ exports.getUserPrograms = async (req, res) => {
       .populate({
         path: 'members.user_id',
         select: 'username profilePicture'
+      })
+      .populate({
+        path: 'last_edited_by',
+        select: 'username profilePicture'
       });
     
     console.log('[GET USER PROGRAMS] Found', programs.length, 'programs');
@@ -121,6 +125,18 @@ exports.getProgramById = async (req, res) => {
       .populate({
         path: 'geo_activities.activity_id',
         model: 'GeoActivity'
+      })
+      .populate({
+        path: 'user_id',
+        select: 'username profilePicture'
+      })
+      .populate({
+        path: 'members.user_id',
+        select: 'username profilePicture'
+      })
+      .populate({
+        path: 'last_edited_by',
+        select: 'username profilePicture'
       });
     if (!program) {
       return res.status(404).json({ message: 'Program not found' });
@@ -150,16 +166,59 @@ exports.updateProgram = async (req, res) => {
     if (!program) {
       return res.status(404).json({ message: 'Program not found' });
     }
-    // Only the owner can update the program
-    if (program.user_id.toString() !== userId.toString()) {
-      return res.status(403).json({ message: 'Unauthorized' });
+    
+    // For group programs, any accepted group member can edit
+    // For personal programs, only the owner can edit
+    if (program.group_id) {
+      // Check if user is an accepted member of the group program
+      const isMember = program.members.some(
+        m => m.user_id && m.user_id.toString() === userId.toString() && m.status === 'accepted'
+      );
+      if (!isMember) {
+        return res.status(403).json({ message: 'Only accepted group members can edit this program' });
+      }
+    } else {
+      // Personal program - only owner can edit
+      if (program.user_id.toString() !== userId.toString()) {
+        return res.status(403).json({ message: 'Unauthorized' });
+      }
     }
+    
     program.group_id = group_id || program.group_id;
     program.name = name || program.name;
     program.description = description || program.description;
     program.workouts = workouts || program.workouts;
     program.geo_activities = geo_activities || program.geo_activities;
-    const updatedProgram = await program.save();
+    
+    // Track who last edited the program
+    program.last_edited_by = userId;
+    program.last_edited_at = new Date();
+    
+    const savedProgram = await program.save();
+    
+    // Populate the last_edited_by field before returning
+    const updatedProgram = await Program.findById(programId)
+      .populate({
+        path: 'workouts.workout_id',
+        model: 'Workout'
+      })
+      .populate({
+        path: 'geo_activities.activity_id',
+        model: 'GeoActivity'
+      })
+      .populate({
+        path: 'user_id',
+        select: 'username profilePicture'
+      })
+      .populate({
+        path: 'members.user_id',
+        select: 'username profilePicture'
+      })
+      .populate({
+        path: 'last_edited_by',
+        select: 'username profilePicture'
+      });
+    
     console.log('[UPDATE PROGRAM] Program updated successfully');
     res.status(200).json(updatedProgram);
   } catch (error) {
@@ -216,6 +275,10 @@ exports.getGroupPrograms = async (req, res) => {
       })
       .populate({
         path: 'members.user_id',
+        select: 'username profilePicture'
+      })
+      .populate({
+        path: 'last_edited_by',
         select: 'username profilePicture'
       })
       .sort({ created_at: -1 });

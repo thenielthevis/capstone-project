@@ -26,6 +26,7 @@ import {
   User,
 } from "../../api/chatApi";
 import { getGroupPrograms, acceptProgram, declineProgram, Program } from "../../api/programApi";
+import GroupProgramModal from "../../components/Modals/GroupProgramModal";
 import * as ImagePicker from "expo-image-picker";
 
 export default function ChatInfo() {
@@ -45,6 +46,8 @@ export default function ChatInfo() {
   const [updatingPhoto, setUpdatingPhoto] = useState(false);
   const [groupPrograms, setGroupPrograms] = useState<Program[]>([]);
   const [loadingPrograms, setLoadingPrograms] = useState(false);
+  const [editingProgram, setEditingProgram] = useState<Program | null>(null);
+  const [showEditProgramModal, setShowEditProgramModal] = useState(false);
 
   const loadChatInfo = useCallback(async () => {
     if (!chatId) return;
@@ -119,6 +122,22 @@ export default function ChatInfo() {
         },
       ]
     );
+  };
+
+  // Check if user can edit a program (must be an accepted member)
+  const canEditProgram = (program: Program) => {
+    const currentUserId = user?.id || user?._id;
+    const memberStatus = program.members?.find(
+      (m) => m.user_id?._id === currentUserId || m.user_id === currentUserId
+    );
+    const isCreator = program.user_id?._id === currentUserId;
+    const status = memberStatus?.status || (isCreator ? 'accepted' : 'pending');
+    return status === 'accepted';
+  };
+
+  const handleEditProgram = (program: Program) => {
+    setEditingProgram(program);
+    setShowEditProgramModal(true);
   };
 
   useEffect(() => {
@@ -929,15 +948,36 @@ export default function ChatInfo() {
                           />
                         </View>
                         <View style={{ flex: 1 }}>
-                          <Text
-                            style={{
-                              fontFamily: theme.fonts.bodyBold,
-                              fontSize: theme.fontSizes.base,
-                              color: theme.colors.text,
-                            }}
-                          >
-                            {program.name}
-                          </Text>
+                          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                            <Text
+                              style={{
+                                fontFamily: theme.fonts.bodyBold,
+                                fontSize: theme.fontSizes.base,
+                                color: theme.colors.text,
+                                flex: 1,
+                              }}
+                            >
+                              {program.name}
+                            </Text>
+                            {/* Edit Button - visible to accepted members */}
+                            {canEditProgram(program) && (
+                              <TouchableOpacity
+                                style={{
+                                  padding: 6,
+                                  backgroundColor: theme.colors.primary + "15",
+                                  borderRadius: 6,
+                                  marginLeft: 8,
+                                }}
+                                onPress={() => handleEditProgram(program)}
+                              >
+                                <Ionicons
+                                  name="pencil"
+                                  size={16}
+                                  color={theme.colors.primary}
+                                />
+                              </TouchableOpacity>
+                            )}
+                          </View>
                           {program.description && (
                             <Text
                               style={{
@@ -951,7 +991,7 @@ export default function ChatInfo() {
                               {program.description}
                             </Text>
                           )}
-                          <View style={{ flexDirection: "row", alignItems: "center", marginTop: 6 }}>
+                          <View style={{ flexDirection: "row", alignItems: "center", marginTop: 6, flexWrap: "wrap" }}>
                             <Text
                               style={{
                                 fontFamily: theme.fonts.body,
@@ -972,6 +1012,29 @@ export default function ChatInfo() {
                               • {acceptedCount}/{totalMembers} accepted
                             </Text>
                           </View>
+                          {/* Last Edited By */}
+                          {program.last_edited_by && (
+                            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
+                              <Ionicons
+                                name="create-outline"
+                                size={12}
+                                color={theme.colors.secondary}
+                                style={{ marginRight: 4 }}
+                              />
+                              <Text
+                                style={{
+                                  fontFamily: theme.fonts.body,
+                                  fontSize: theme.fontSizes.xs,
+                                  color: theme.colors.secondary,
+                                }}
+                              >
+                                Last edited by {program.last_edited_by.username}
+                                {program.last_edited_at && (
+                                  ` • ${new Date(program.last_edited_at).toLocaleDateString()}`
+                                )}
+                              </Text>
+                            </View>
+                          )}
 
                           {/* Status Badge or Action Buttons */}
                           {status === 'pending' && !isCreator ? (
@@ -1130,6 +1193,25 @@ export default function ChatInfo() {
           )}
         </View>
       </ScrollView>
+
+      {/* Edit Group Program Modal */}
+      {chat?.isGroupChat && (
+        <GroupProgramModal
+          visible={showEditProgramModal}
+          onClose={() => {
+            setShowEditProgramModal(false);
+            setEditingProgram(null);
+          }}
+          groupId={chatId || ""}
+          groupName={chat?.chatName || "Group"}
+          editingProgram={editingProgram}
+          onProgramUpdated={() => {
+            loadGroupPrograms();
+            setShowEditProgramModal(false);
+            setEditingProgram(null);
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 }
