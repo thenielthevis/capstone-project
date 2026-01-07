@@ -50,6 +50,7 @@ export default function TestMap() {
     addSplit,
     resetMetrics,
     calculateCaloriesBurned,
+    SPLIT_DISTANCE_KM, // Get from context
   } = useActivityMetrics();
 
   const [location, setLocation] = useState<[number, number] | null>(null);
@@ -60,13 +61,16 @@ export default function TestMap() {
   const [following, setFollowing] = useState<boolean>(true); // camera follows user by default
   const [mapBearing, setMapBearing] = useState<number>(0); // 0 = north-up, -1 = compass-follow
   const [mapPitch, setMapPitch] = useState<number>(80); // default pitch
+  const currentSpeedRef = useRef<number>(0); // Track smoothed speed locally
+
+  // Constants - Removed local SPLIT_DISTANCE_KM definition as it is now in context
 
   // Track previous location and timestamp for calculations
   const prevLocationRef = useRef<[number, number] | null>(null);
   const prevTimestampRef = useRef<number | null>(null);
   const totalDistanceRef = useRef<number>(0);
-  const lastKmMarkerRef = useRef<number>(0); // Track last km milestone
-  const kmStartTimeRef = useRef<number>(0); // Track when current km started
+  const lastSplitIndexRef = useRef<number>(0); // Track last split index
+  const splitStartTimeRef = useRef<number>(0); // Track when current split started
   const timeRef = useRef<number>(0); // Track current time for timer
 
   const mapRef = useRef<any>(null);
@@ -112,6 +116,12 @@ export default function TestMap() {
           setLocation(coords);
           // Track route while recording
           if (contextRecording) {
+            // Filter out points with poor accuracy (e.g. > 20m)
+            // This prevents "jumping" when GPS signal is weak
+            if (pos.coords.accuracy && pos.coords.accuracy > 20) {
+              return;
+            }
+
             setRouteCoords((prev) => [...prev, coords]);
           }
 
@@ -121,7 +131,12 @@ export default function TestMap() {
             const currentLat = pos.coords.latitude;
             const currentLon = pos.coords.longitude;
 
-            // Check if we have a previous location to calculate from
+            // Use OS-provided speed if available and non-negative
+            // Multiply by 3.6 to convert m/s to km/h
+            let instantaneousSpeed = (pos.coords.speed ?? 0) * 3.6;
+            if (instantaneousSpeed < 0) instantaneousSpeed = 0;
+
+            // Check if we have a previous location to calculate distance
             if (prevLocationRef.current && prevTimestampRef.current) {
               const [prevLon, prevLat] = prevLocationRef.current;
 
@@ -133,48 +148,72 @@ export default function TestMap() {
                 currentLon
               );
 
-              // Only accumulate distance if movement is significant (filter out GPS noise)
-              if (segmentDistance > 0.001) { // ~100 meters threshold
+              // Only accumulate distance if movement is significant (> 1 meters)
+              // This reduces "jitter" accumulation when standing still
+              const MOVEMENT_THRESHOLD = 0.001; // 1 meter
+
+              if (segmentDistance > MOVEMENT_THRESHOLD) {
                 totalDistanceRef.current += segmentDistance;
                 const newDistance = totalDistanceRef.current;
                 setContextDistance(newDistance);
 
-                // Check if we've completed a new kilometer
-                const currentKm = Math.floor(newDistance);
-                if (currentKm > lastKmMarkerRef.current) {
-                  // Calculate split time for the completed km
-                  const kmTime = contextTime - kmStartTimeRef.current;
-                  const kmPace = kmTime; // seconds per km
+                // Update previous location and timestamp only when we accept the movement
+                prevLocationRef.current = coords;
+                prevTimestampRef.current = currentTimestamp;
+
+                // Check if we've completed a new split
+                const currentSplitIndex = Math.floor(newDistance / SPLIT_DISTANCE_KM);
+
+                if (currentSplitIndex > lastSplitIndexRef.current) {
+                  // Use timeRef.current (actual time) not contextTime (throttled)
+                  const splitTime = timeRef.current - splitStartTimeRef.current;
+
+                  // Calculate pace (seconds per km)
+                  const splitPace = splitTime / SPLIT_DISTANCE_KM;
+
+                  // Label for the split (accumulated distance)
+                  const splitLabel = currentSplitIndex * SPLIT_DISTANCE_KM;
+
+                  console.log(`[Split] Completed split ${currentSplitIndex}: ${splitLabel.toFixed(2)}km, time=${splitTime}s, pace=${splitPace.toFixed(1)}s/km`);
 
                   addSplit({
-                    km: currentKm,
-                    time: kmTime,
-                    pace: kmPace,
+                    km: Number(splitLabel.toFixed(2)),
+                    time: splitTime,
+                    pace: splitPace,
                   });
 
-                  lastKmMarkerRef.current = currentKm;
-                  kmStartTimeRef.current = contextTime;
-                }
-
-                // Calculate speed: distance (km) / time (hours) = km/h
-                const timeDiff = (currentTimestamp - prevTimestampRef.current) / 1000 / 3600; // Convert to hours
-                if (timeDiff > 0) {
-                  const calculatedSpeed = segmentDistance / timeDiff;
-                  // Filter out unrealistic speeds (e.g., > 200 km/h for running/cycling)
-                  setContextSpeed(Math.min(calculatedSpeed, 200));
+                  lastSplitIndexRef.current = currentSplitIndex;
+                  splitStartTimeRef.current = timeRef.current; // Use actual time
                 }
               }
+
+              // fallback: if OS speed is invalid/zero but we moved significantly, calc speed
+              if (instantaneousSpeed === 0 && segmentDistance > MOVEMENT_THRESHOLD) {
+                const timeDiff = (currentTimestamp - (prevTimestampRef.current || currentTimestamp)) / 1000 / 3600; // hours
+                if (timeDiff > 0) {
+                  instantaneousSpeed = segmentDistance / timeDiff;
+                }
+              }
+            } else if (!prevLocationRef.current) {
+              // First valid point initialization
+              prevLocationRef.current = coords;
+              prevTimestampRef.current = currentTimestamp;
             }
 
-            // Update previous location and timestamp
-            prevLocationRef.current = coords;
-            prevTimestampRef.current = currentTimestamp;
+            // Apply Exponential Moving Average (EMA) for smoothing
+            const alpha = 0.2;
+            currentSpeedRef.current = alpha * instantaneousSpeed + (1 - alpha) * currentSpeedRef.current;
+
+            // Update speed to context immediately (no throttling for speed)
+            // Speed changes are important for real-time feedback
+            const newSpeed = currentSpeedRef.current < 1.0 ? 0 : Math.min(currentSpeedRef.current, 120);
+            setContextSpeed(newSpeed);
 
           } else {
             // Reset when not recording
             prevLocationRef.current = null;
             prevTimestampRef.current = null;
-            // Optionally, stop adding to route but do not clear it here
+            currentSpeedRef.current = 0;
           }
 
           // only auto-center while "following" is true (user hasn't panned away)
@@ -348,14 +387,21 @@ export default function TestMap() {
     timeRef.current = contextTime;
   }, [contextTime]);
 
-  // Timer effect - continues from where it left off when paused/resumed
+  // Timer effect - runs internally at 1s, but only updates context every 2s
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | null = null;
+    let updateCounter = 0;
 
     if (contextRecording) {
       interval = setInterval(() => {
         timeRef.current += 1;
-        setContextTime(timeRef.current);
+        updateCounter += 1;
+
+        // Only update context every 2 seconds to reduce re-renders
+        if (updateCounter >= 1) {
+          setContextTime(timeRef.current);
+          updateCounter = 0;
+        }
       }, 1000);
     }
 
@@ -374,15 +420,14 @@ export default function TestMap() {
   };
 
 
-  // Handle recording state changes from ActivityDrawer
   const handleRecordingChange = (isRecording: boolean) => {
     setContextRecording(isRecording);
     // When starting recording, initialize previous location if we have current location
     if (isRecording && location) {
       prevLocationRef.current = location;
       prevTimestampRef.current = Date.now();
-      kmStartTimeRef.current = contextTime || 0;
-      lastKmMarkerRef.current = Math.floor(contextDistance || 0);
+      splitStartTimeRef.current = timeRef.current; // Use actual time
+      lastSplitIndexRef.current = Math.floor((contextDistance || 0) / SPLIT_DISTANCE_KM);
       // Start new route if not already started
       if (routeCoords.length === 0) {
         setRouteCoords([location]);
@@ -445,8 +490,8 @@ export default function TestMap() {
                 resetMetrics();
                 // Reset local refs
                 totalDistanceRef.current = 0;
-                lastKmMarkerRef.current = 0;
-                kmStartTimeRef.current = 0;
+                lastSplitIndexRef.current = 0;
+                splitStartTimeRef.current = 0;
                 prevLocationRef.current = null;
                 prevTimestampRef.current = null;
                 setRouteCoords([]); // Clear route
@@ -461,8 +506,8 @@ export default function TestMap() {
                 resetMetrics();
                 // Reset local refs
                 totalDistanceRef.current = 0;
-                lastKmMarkerRef.current = 0;
-                kmStartTimeRef.current = 0;
+                lastSplitIndexRef.current = 0;
+                splitStartTimeRef.current = 0;
                 prevLocationRef.current = null;
                 prevTimestampRef.current = null;
                 setRouteCoords([]); // Clear route
@@ -494,20 +539,12 @@ export default function TestMap() {
       }
     } catch (error) {
       console.error('[Activity] Error saving activity session:', error);
-      Alert.alert('Note', 'Activity data could not be saved, but your session has ended.');
-      // Still exit on error?
-      resetMetrics();
-      // Reset local refs
-      totalDistanceRef.current = 0;
-      lastKmMarkerRef.current = 0;
-      kmStartTimeRef.current = 0;
-      prevLocationRef.current = null;
-      prevTimestampRef.current = null;
-      setRouteCoords([]);
-      router.back();
+      Alert.alert(
+        'Offline Mode',
+        'Your activity session has ended, but we couldn\'t save it to the server. Please check your internet connection.',
+        [{ text: 'OK' }]
+      );
     }
-    // Removed direct code here since it's handled in Alert callbacks now
-
   };
 
   // Map activity type to a placeholder activity ID (you may need to adjust based on your DB)
@@ -544,8 +581,8 @@ export default function TestMap() {
 
   if (loading || !location) {
     return (
-      <View className="flex-1 items-center justify-center">
-        <ActivityIndicator size="large" color="#007AFF" />
+      <View className="flex-1 items-center justify-center" style={{ backgroundColor: theme.colors.background }}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
@@ -630,53 +667,21 @@ export default function TestMap() {
                   }}
                 />
 
-                {/* Strava-style heading beam (outer soft layer) */}
+                {/* Directional beam - triangle/cone shape */}
                 <View
                   style={{
                     position: "absolute",
-                    top: -18,
-                    width: 48,
-                    height: 60,
-                    backgroundColor: theme.colors.primary + "44",
-                    opacity: 0.35,
-                    transform: [
-                      { translateY: -10 },
-                      { scaleX: 1.2 },
-                    ],
-                    borderTopLeftRadius: 0,
-                    borderTopRightRadius: 0,
-                  }}
-                />
-
-                {/* Middle beam */}
-                <View
-                  style={{
-                    position: "absolute",
-                    top: -18,
-                    width: 34,
-                    height: 52,
-                    backgroundColor: theme.colors.primary + "66",
-                    opacity: 0.45,
-                    transform: [
-                      { translateY: -10 },
-                      { scaleX: 0.9 },
-                    ],
-                  }}
-                />
-
-                {/* Inner bright beam */}
-                <View
-                  style={{
-                    position: "absolute",
-                    top: -18,
-                    width: 20,
-                    height: 44,
-                    backgroundColor: theme.colors.primary + "77",
-                    opacity: 0.6,
-                    transform: [
-                      { translateY: -10 },
-                      { scaleX: 0.6 },
-                    ],
+                    bottom: 15,
+                    width: 0,
+                    height: 0,
+                    backgroundColor: "transparent",
+                    borderStyle: "solid",
+                    borderLeftWidth: 30,      // Left side of triangle
+                    borderRightWidth: 30,     // Right side of triangle
+                    borderTopWidth: 100,   // Height of triangle (beam length)
+                    borderLeftColor: "transparent",
+                    borderRightColor: "transparent",
+                    borderTopColor: theme.colors.primary + "66", // Beam color with transparency
                   }}
                 />
                 {/* Main puck */}
@@ -756,9 +761,6 @@ export default function TestMap() {
           </TouchableOpacity>
         </View>
         <ActivityDrawer
-          speed={contextSpeed}
-          distance={contextDistance}
-          time={contextTime}
           recording={contextRecording}
           onRecordingChange={handleRecordingChange}
           onFinish={handleFinish}

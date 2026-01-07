@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { getAllGeoActivities, GeoActivity } from "../api/geoActivityApi";
+import { saveToCache, loadFromCache, withTimeout } from "../utils/cacheStorage";
 
 type Split = {
   km: number;
@@ -6,7 +8,7 @@ type Split = {
   pace: number; // pace in seconds per km
 };
 
-type ActivityType = 'Running' | 'Walking' | 'Cycling';
+type ActivityType = string;
 
 type ActivityMetricsContextType = {
   speed: number;
@@ -15,6 +17,7 @@ type ActivityMetricsContextType = {
   recording: boolean;
   splits: Split[];
   activityType: ActivityType;
+  activities: GeoActivity[]; // Global list of activities
   setActivityType: (type: ActivityType) => void;
   setSpeed: (speed: number) => void;
   setDistance: (distance: number) => void;
@@ -23,16 +26,11 @@ type ActivityMetricsContextType = {
   addSplit: (split: Split) => void;
   resetMetrics: () => void;
   calculateCaloriesBurned: (weightKg?: number) => number;
+  refreshActivities: () => Promise<void>;
+  SPLIT_DISTANCE_KM: number;
 };
 
 const ActivityMetricsContext = createContext<ActivityMetricsContextType | undefined>(undefined);
-
-// MET values for different activities
-const MET_VALUES: Record<ActivityType, number> = {
-  Running: 9.8,    // Running at moderate pace (~8 km/h)
-  Walking: 3.5,    // Walking at moderate pace (~5 km/h)
-  Cycling: 7.5,    // Cycling at moderate pace (~16-19 km/h)
-};
 
 export const ActivityMetricsProvider = ({ children }: { children: ReactNode }) => {
   const [speed, setSpeed] = useState<number>(0);
@@ -40,7 +38,53 @@ export const ActivityMetricsProvider = ({ children }: { children: ReactNode }) =
   const [time, setTime] = useState<number>(0);
   const [recording, setRecording] = useState<boolean>(false);
   const [splits, setSplits] = useState<Split[]>([]);
-  const [activityType, setActivityType] = useState<ActivityType>("Walking");
+  const [activityType, setActivityType] = useState<ActivityType>("Running");
+  const [activities, setActivities] = useState<GeoActivity[]>([]);
+
+  // Cache key
+  const ACTIVITIES_CACHE_KEY = "offline_geo_activities";
+
+  useEffect(() => {
+    initActivities();
+  }, []);
+
+  const initActivities = async () => {
+    try {
+      // Load from cache - no automatic network refresh
+      const cached = await loadFromCache<GeoActivity[]>(ACTIVITIES_CACHE_KEY);
+      if (cached && cached.length > 0) {
+        console.log("[Context] Loaded activities from cache");
+        setActivities(cached);
+        // Ensure valid selection if not set
+        if (!activityType) setActivityType(cached[0].name);
+      } else {
+        // Only fetch if cache is empty - with timeout
+        console.log("[Context] No cache, fetching activities");
+        await refreshActivities();
+      }
+    } catch (e) {
+      console.log("[Context] Init failed", e);
+    }
+  };
+
+  const refreshActivities = async () => {
+    try {
+      // Use timeout to prevent hanging on slow/offline connections
+      const data = await withTimeout(getAllGeoActivities(), 3000);
+      if (data && data.length > 0) {
+        setActivities(data);
+        await saveToCache(ACTIVITIES_CACHE_KEY, data);
+
+        // Update default selection if needed
+        if (!activityType && data[0]?.name) {
+          setActivityType(data[0].name);
+        }
+      }
+    } catch (e) {
+      // Timeout or network error - silent fail, rely on cache
+      console.log("[Context] Failed to refresh activities:", e instanceof Error ? e.message : 'Unknown error');
+    }
+  };
 
   const addSplit = (split: Split) => {
     setSplits((prev) => [...prev, split]);
@@ -49,7 +93,19 @@ export const ActivityMetricsProvider = ({ children }: { children: ReactNode }) =
   // Calculate calories burned using MET formula
   // Calories = MET × weight(kg) × time(hours)
   const calculateCaloriesBurned = (weightKg: number = 70): number => {
-    const met = MET_VALUES[activityType];
+    // Default MET values fallback
+    let met = 9.8; // Running default
+
+    // Try to find specific MET from loaded activities
+    const activityObj = activities.find(a => a.name === activityType);
+    if (activityObj && activityObj.met) {
+      met = activityObj.met;
+    } else {
+      // Fallback logic if activities not loaded yet
+      if (activityType === 'Walking') met = 3.5;
+      else if (activityType === 'Cycling') met = 7.5;
+    }
+
     const timeInHours = time / 3600;
     const calories = Math.round(met * weightKg * timeInHours);
     return calories;
@@ -61,8 +117,10 @@ export const ActivityMetricsProvider = ({ children }: { children: ReactNode }) =
     setTime(0);
     setRecording(false);
     setSplits([]);
-    setActivityType("Walking");
   };
+
+  // Configurable split distance
+  const SPLIT_DISTANCE_KM = 0.1;
 
   return (
     <ActivityMetricsContext.Provider
@@ -73,6 +131,8 @@ export const ActivityMetricsProvider = ({ children }: { children: ReactNode }) =
         recording,
         splits,
         activityType,
+        activities,
+        SPLIT_DISTANCE_KM, // Exposed constant
         setActivityType,
         setSpeed,
         setDistance,
@@ -81,6 +141,7 @@ export const ActivityMetricsProvider = ({ children }: { children: ReactNode }) =
         addSplit,
         resetMetrics,
         calculateCaloriesBurned,
+        refreshActivities
       }}
     >
       {children}

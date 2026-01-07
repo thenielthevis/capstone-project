@@ -1,24 +1,18 @@
 import React, { useRef, useMemo, useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, LayoutAnimation, Platform, UIManager, Image, ActivityIndicator } from "react-native";
+import { View, Text, TouchableOpacity, Platform, UIManager, Image, ActivityIndicator } from "react-native";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import { useTheme } from "../context/ThemeContext";
 import { useRouter } from "expo-router";
-import { getAllGeoActivities, GeoActivity } from "../api/geoActivityApi";
 import { useActivityMetrics } from "../context/ActivityMetricsContext";
+import { GeoActivity } from "../api/geoActivityApi"; // Keep type import if needed, or remove if context provides it nicely typed
 
-// Enable LayoutAnimation on Android
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 
 type ActivityType = string;
 
 type ActivityDrawerProps = {
-  speed?: number;
-  distance?: number;
-  time?: number;
+  // Removed: speed, distance, time - now read from context
   recording?: boolean;
   onRecordingChange?: (recording: boolean) => void;
   onFinish?: () => void;
@@ -27,9 +21,6 @@ type ActivityDrawerProps = {
 };
 
 export default function ActivityDrawer({
-  speed = 0,
-  distance = 0,
-  time = 0,
   recording: externalRecording,
   onRecordingChange,
   onFinish,
@@ -37,44 +28,23 @@ export default function ActivityDrawer({
   lockedIndex = 0
 }: ActivityDrawerProps) {
   const { theme } = useTheme();
-  const { activityType: contextActivityType, setActivityType: setContextActivityType } = useActivityMetrics();
   const bottomSheetRef = useRef<BottomSheet>(null);
   const activitySheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ["15%", "25%",], []);
   const activitySnapPoints = useMemo(() => ["30%"], []);
   const router = useRouter();
-  const { activityType, setActivityType } = useActivityMetrics();
-  const [activities, setActivities] = useState<GeoActivity[]>([]);
-  const [loadingActivities, setLoadingActivities] = useState(true);
-  // Fetch activities from backend
-  useEffect(() => {
-    const fetchActivities = async () => {
-      try {
-        setLoadingActivities(true);
-        const data = await getAllGeoActivities();
-        setActivities(data);
-        // Use the name as the ActivityType for context
-        if (data.length > 0 && !activityType) {
-          // Check if name is valid ActivityType or cast if dynamic
-          setActivityType(data[0].name as any);
-        }
-      } catch (err) {
-        // Optionally handle error
-      } finally {
-        setLoadingActivities(false);
-      }
-    };
-    fetchActivities();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
+  // Read metrics from context to avoid prop updates
+  const { activityType, setActivityType, activities, speed, distance, time } = useActivityMetrics();
+
+  // No local loading state needed as context handles it
+  const loadingActivities = activities.length === 0;
   const [recording, setRecording] = useState(externalRecording || false);
   const [hasStartedRecording, setHasStartedRecording] = useState(false);
 
   // Sync with external recording state
   React.useEffect(() => {
     if (externalRecording !== undefined) {
-      // Animate layout changes smoothly
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       setRecording(externalRecording);
       if (externalRecording) {
         setHasStartedRecording(true);
@@ -141,8 +111,8 @@ export default function ActivityDrawer({
   };
 
   // Select activity and close sheet
-  const selectActivity = (id: ActivityType) => {
-    const selected = activities.find(a => a._id === id);
+  const selectActivity = (name: string) => {
+    const selected = activities.find(a => a.name === name);
     if (selected) {
       setActivityType(selected.name as any);
     }
@@ -157,6 +127,7 @@ export default function ActivityDrawer({
         snapPoints={snapPoints}
         enableContentPanningGesture={!locked}
         enableHandlePanningGesture={!locked}
+        animateOnMount={false}
         backgroundStyle={{
           backgroundColor: theme.colors.surface + "EE",
           borderTopLeftRadius: 30,
@@ -257,7 +228,7 @@ export default function ActivityDrawer({
                     <ActivityIndicator size="small" color={theme.colors.primary} />
                   ) : (
                     (() => {
-                      const selected = activities.find(a => a._id === activityType);
+                      const selected = activities.find(a => a.name === activityType);
                       if (!selected) return <Text style={{ fontFamily: theme.fonts.heading, color: theme.colors.primary }}>Select</Text>;
                       return (
                         <>
@@ -416,6 +387,7 @@ export default function ActivityDrawer({
         ref={activitySheetRef}
         index={-1}
         snapPoints={activitySnapPoints}
+        animateOnMount={false}
         backgroundStyle={{
           backgroundColor: theme.colors.surface,
           borderTopLeftRadius: 30,
@@ -444,7 +416,7 @@ export default function ActivityDrawer({
               activities.map(activity => (
                 <TouchableOpacity
                   key={activity._id}
-                  onPress={() => selectActivity(activity._id)}
+                  onPress={() => selectActivity(activity.name)}
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
@@ -455,7 +427,7 @@ export default function ActivityDrawer({
                     borderWidth: 1,
                     borderColor: theme.colors.primary,
                     backgroundColor:
-                      activityType === activity._id
+                      activityType === activity.name
                         ? theme.colors.primary + "20"
                         : theme.colors.surface,
                   }}

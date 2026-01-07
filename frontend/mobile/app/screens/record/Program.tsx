@@ -1,42 +1,28 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from "react-native";
+import React, { useEffect, useState, useCallback } from "react";
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, RefreshControl } from "react-native";
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
-import { useRouter, Href, useFocusEffect } from "expo-router";
+import { useRouter } from "expo-router";
 import { Ionicons, MaterialCommunityIcons, FontAwesome6 } from "@expo/vector-icons";
-import { getUserPrograms } from "../../api/programApi";
-import { useCallback } from "react";
+import { usePrograms } from "../../context/ProgramContext";
 
 export default function ProgramRecordScreen() {
   const { theme } = useTheme();
   const router = useRouter();
-  const [userPrograms, setUserPrograms] = useState<any[]>([]);
+  const { programs, refreshPrograms } = usePrograms();
   const [fabOpen, setFabOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Animation values
   const fabOptionsTranslateY = useSharedValue(60); // Start hidden below FAB
   const fabOptionsOpacity = useSharedValue(0);
 
-  const fetchPrograms = useCallback(async () => {
-    try {
-      const data = await getUserPrograms();
-      setUserPrograms(data);
-    } catch (err) {
-      setUserPrograms([]);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchPrograms();
-  }, []);
-
-  // Refresh when screen comes into focus
-  useFocusEffect(
-    useCallback(() => {
-      fetchPrograms();
-    }, [fetchPrograms])
-  );
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refreshPrograms();
+    setRefreshing(false);
+  }, [refreshPrograms]);
 
   useEffect(() => {
     if (fabOpen) {
@@ -78,6 +64,15 @@ export default function ProgramRecordScreen() {
           paddingTop: 40,
           paddingBottom: 120,
         }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.colors.primary}
+            colors={[theme.colors.primary]}
+            progressBackgroundColor={theme.colors.surface}
+          />
+        }
       >
         <Text
           style={{
@@ -90,14 +85,14 @@ export default function ProgramRecordScreen() {
           My Programs
         </Text>
         <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + "99", marginBottom: 24 }}>
-            Programs you've created or generated will appear here. Create one using the + button below to create more programs or record map-based activities immediately.
-          </Text>
-        {userPrograms.length === 0 ? (
+          Programs you've created or generated will appear here. Create one using the + button below to create more programs or record map-based activities immediately.
+        </Text>
+        {programs.length === 0 ? (
           <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.primary, marginBottom: 24 }}>
             You have no programs yet.
           </Text>
         ) : (
-          userPrograms.map((program) => (
+          programs.map((program) => (
             <View
               key={program._id}
               style={{
@@ -129,14 +124,14 @@ export default function ProgramRecordScreen() {
           <Animated.View style={[{ position: "absolute", bottom: 60, right: 0, alignItems: "flex-end", width: 220 }, animatedOptionsStyle]} pointerEvents={fabOpen ? "auto" : "none"}>
             <TouchableOpacity
               style={{
-                backgroundColor: "#4C6EF5",
+                backgroundColor: theme.colors.secondary,
                 flexDirection: "row",
                 alignItems: "center",
                 borderRadius: 24,
                 paddingVertical: 10,
                 paddingHorizontal: 18,
                 marginBottom: 10,
-                shadowColor: "#4C6EF5",
+                shadowColor: theme.colors.primary,
                 shadowOpacity: 0.15,
                 shadowRadius: 6,
                 elevation: 4,
@@ -146,18 +141,19 @@ export default function ProgramRecordScreen() {
                 router.push("/screens/programs/create-program");
               }}
             >
-              <FontAwesome6 name="pencil" size={20} color="#fff" />
+              <FontAwesome6 name="pencil" size={18} color="#e4a149ff" />
+              <Text style={{ color: "#fff", fontFamily: theme.fonts.body, marginLeft: 8 }}>Create</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={{
-                backgroundColor: "#00B894",
+                backgroundColor: theme.colors.secondary,
                 flexDirection: "row",
                 alignItems: "center",
                 borderRadius: 24,
                 paddingVertical: 10,
                 paddingHorizontal: 18,
                 marginBottom: 10,
-                shadowColor: "#00B894",
+                shadowColor: theme.colors.primary,
                 shadowOpacity: 0.15,
                 shadowRadius: 6,
                 elevation: 4,
@@ -167,17 +163,18 @@ export default function ProgramRecordScreen() {
                 router.push("/screens/programs/automated-program");
               }}
             >
-              <MaterialCommunityIcons name="robot-happy-outline" size={22} color="#fff"/>
+              <MaterialCommunityIcons name="robot-happy-outline" size={22} color="#00B894" />
+              <Text style={{ color: "#fff", fontFamily: theme.fonts.body, marginLeft: 8 }}>Automate</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={{
-                backgroundColor: "#9B1E2E",
+                backgroundColor: theme.colors.secondary,
                 flexDirection: "row",
                 alignItems: "center",
                 borderRadius: 24,
                 paddingVertical: 10,
                 paddingHorizontal: 18,
-                shadowColor: "#9B1E2E",
+                shadowColor: theme.colors.primary,
                 shadowOpacity: 0.15,
                 shadowRadius: 6,
                 elevation: 4,
@@ -187,7 +184,8 @@ export default function ProgramRecordScreen() {
                 router.push("/screens/record/Activity");
               }}
             >
-              <MaterialCommunityIcons name="map-marker-radius-outline" size={22} color="#fff"/>
+              <MaterialCommunityIcons name="map-marker-radius-outline" size={22} color="#f1566aff" />
+              <Text style={{ color: "#fff", fontFamily: theme.fonts.body, marginLeft: 8 }}>Map</Text>
             </TouchableOpacity>
           </Animated.View>
           {/* Main FAB */}
@@ -214,3 +212,4 @@ export default function ProgramRecordScreen() {
     </SafeAreaView>
   );
 }
+
