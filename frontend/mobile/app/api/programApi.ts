@@ -24,6 +24,12 @@ export interface Program {
   workouts: any[];
   geo_activities: any[];
   created_at: string;
+  last_edited_by?: {
+    _id: string;
+    username: string;
+    profilePicture?: string;
+  };
+  last_edited_at?: string;
 }
 
 export const createProgram = async (programData: any) => {

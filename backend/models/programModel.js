@@ -70,6 +70,15 @@ const ProgramSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  last_edited_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: false,
+  },
+  last_edited_at: {
+    type: Date,
+    required: false,
+  },
 });
 
 module.exports = mongoose.model('Program', ProgramSchema);
