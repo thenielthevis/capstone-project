@@ -61,6 +61,7 @@ export default {
           color: "#ffffff"
         }
       ],
+      "expo-background-fetch",
       [
         "expo-image-picker",
         {
