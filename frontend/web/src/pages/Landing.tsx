@@ -171,21 +171,24 @@ export default function Landing() {
         {/* Hero Section */}
         <section id="home" className="relative py-20 md:py-28 overflow-hidden" style={{ background: `linear-gradient(135deg, ${theme.colors.surface} 0%, ${theme.colors.background} 100%)` }}>
           <div className="container mx-auto px-6 lg:px-12">
-            <div className="grid md:grid-cols-2 gap-12 lg:gap-16 items-center">
-              {/* Left Content */}
+            <div className="max-w-4xl mx-auto text-center">
               <div className="space-y-8">
                 <div className="space-y-6">
+                  <div className="inline-block">
+                    <span className="text-sm font-semibold tracking-wider uppercase px-4 py-2 rounded-full" style={{ background: `linear-gradient(135deg, ${theme.colors.primary}15 0%, ${theme.colors.secondary}15 100%)`, color: theme.colors.primary }}>
+                      ✨ Your Wellness Companion
+                    </span>
+                  </div>
                   <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight" style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}>
-                    Gamifying Wellness:{' '}
-                    <span className="block mt-2">Track, Assess,</span>
-                    <span className="block mt-2">and Thrive!</span>
+                    Transform Your Health{' '}
+                    <span className="block mt-2 bg-gradient-to-r from-blue-600 to-orange-500 bg-clip-text text-transparent">Journey Today</span>
                   </h1>
-                  <p className="text-lg md:text-xl leading-relaxed max-w-lg" style={{ color: theme.colors.textSecondary }}>
-                    AI-powered insights meet community support for your perfect wellness journey. Stay ahead of potential health risks and optimize your well-being.
+                  <p className="text-lg md:text-xl leading-relaxed max-w-2xl mx-auto" style={{ color: theme.colors.textSecondary }}>
+                    Experience AI-powered health insights, gamified wellness tracking, and supportive community features—all in one intuitive platform.
                   </p>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Button 
                     size="lg" 
                     onClick={() => window.location.href = '/register'}
@@ -195,41 +198,6 @@ export default function Landing() {
                     REGISTER NOW
                   </Button>
                 </div>
-
-                {/* Contact Info */}
-                <div className="space-y-3 pt-4">
-                  <div className="flex items-center gap-3">
-                    <Phone className="w-5 h-5" style={{ color: theme.colors.text }} />
-                    <span className="text-sm font-medium" style={{ color: theme.colors.textSecondary }}>+123-456-7890</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Mail className="w-5 h-5" style={{ color: theme.colors.text }} />
-                    <span className="text-sm font-medium" style={{ color: theme.colors.textSecondary }}>hello@reallygreatsite.com</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <MapPinIcon className="w-5 h-5" style={{ color: theme.colors.text }} />
-                    <span className="text-sm font-medium" style={{ color: theme.colors.textSecondary }}>123 Anywhere St., Any City, 12345</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Content - Hero Image */}
-              <div className="relative">
-                <div className="relative rounded-[3rem] overflow-hidden shadow-2xl bg-gradient-to-br from-blue-50 to-white border-8 border-white aspect-[4/3]">
-                  {/* Placeholder for professional business image */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-100/50 to-orange-100/50 flex items-center justify-center">
-                    <div className="text-center space-y-4 p-8">
-                      <Users className="w-24 h-24 mx-auto text-blue-600/30" />
-                      <p className="text-gray-400 text-sm font-medium">Professional Business Image</p>
-                    </div>
-                  </div>
-                  {/* You can replace this with an actual image */}
-                  {/* <img src="/path-to-your-image.jpg" alt="Business collaboration" className="w-full h-full object-cover" /> */}
-                </div>
-                
-                {/* Floating decoration */}
-                <div className="absolute -top-6 -right-6 w-24 h-24 bg-orange-400 rounded-full opacity-20 blur-2xl"></div>
-                <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-blue-400 rounded-full opacity-20 blur-2xl"></div>
               </div>
             </div>
           </div>
@@ -240,11 +208,11 @@ export default function Landing() {
           <div className="container mx-auto px-6 lg:px-12">
             {/* Features Title */}
             <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-              <h2 className="text-4xl md:text-5xl font-bold" style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}>
-                Transform Your Health Journey
+              <h2 className="text-4xl md:text-5xl font-bold" style={{ color: '#1a1a1a', fontFamily: theme.fonts.heading }}>
+                Our Key Features
               </h2>
-              <p className="text-lg" style={{ color: theme.colors.textSecondary }}>
-                Experience a revolutionary approach to wellness with our cutting-edge features designed to make your health journey engaging and effective.
+              <p className="text-lg" style={{ color: '#4a4a4a' }}>
+                Discover the powerful tools that make your wellness journey effective and engaging.
               </p>
             </div>
 

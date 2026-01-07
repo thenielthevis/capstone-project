@@ -1,5 +1,20 @@
 /* Landing Page Custom Styles */
 
+/* Animated gradient for modern hero section */
+@keyframes gradient {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient 8s ease-in-out infinite;
+}
+
 /* Hero Section Gradient Background */
 #home {
   background: var(--gradient-hero);

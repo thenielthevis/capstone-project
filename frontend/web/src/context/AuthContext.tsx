@@ -2,6 +2,8 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { getUser, getToken, saveUser as saveUserStorage, saveToken, logout as logoutAuth } from '../utils/auth';
 
 interface User {
+  _id?: string;
+  id?: string;
   username: string;
   email: string;
   role?: string;

@@ -1,15 +1,39 @@
 import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { LogOut, User as UserIcon, Activity, TrendingUp, FileText, Heart, Utensils, Settings as SettingsIcon, Dumbbell } from 'lucide-react';
+import { LogOut, User as UserIcon, TrendingUp, FileText, Heart, Utensils, Settings as SettingsIcon, Dumbbell, MessageSquare, Users, Rocket } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
+import { getUserProfile } from '@/api/userApi';
 import Header from '@/components/Header';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, setUser, logout } = useAuth();
   const { theme } = useTheme();
+
+  // Fetch and update user profile picture on mount
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const response = await getUserProfile();
+        if (response.profile && user) {
+          // Update user in context with profile picture
+          setUser({ 
+            ...user, 
+            profilePicture: response.profile.profilePicture 
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      }
+    };
+
+    if (user && !user.profilePicture) {
+      fetchUserProfile();
+    }
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -18,11 +42,39 @@ export default function Dashboard() {
 
   const quickActions = [
     {
+      title: 'Community Feed',
+      description: 'Share activities and connect with others',
+      icon: Users,
+      color: '#6366f1',
+      bgColor: '#6366f120',
+      gradient: theme.gradients?.activity || ['#E8F5E9', '#C8E6C9', '#81C784'],
+      onClick: () => navigate('/feed'),
+    },
+    {
+      title: 'Messages',
+      description: 'Chat with friends and groups',
+      icon: MessageSquare,
+      color: '#8b5cf6',
+      bgColor: '#8b5cf620',
+      gradient: theme.gradients?.sleep || ['#F3E5F5', '#E1BEE7', '#CE93D8'],
+      onClick: () => navigate('/chat'),
+    },
+    {
+      title: 'Health Analysis',
+      description: 'View your comprehensive health metrics',
+      icon: TrendingUp,
+      color: '#0ea5e9',
+      bgColor: '#0ea5e920',
+      gradient: theme.gradients?.water || ['#E0F7FA', '#B2EBF2', '#80DEEA'],
+      onClick: () => navigate('/analysis'),
+    },
+    {
       title: 'Health Assessment',
       description: 'Complete your comprehensive health profile',
       icon: FileText,
       color: theme.colors.primary,
       bgColor: theme.colors.primary + '20',
+      gradient: theme.gradients?.bmi || ['#E3F2FD', '#BBDEFB', '#90CAF9'],
       onClick: () => navigate('/health-assessment'),
     },
     {
@@ -31,6 +83,7 @@ export default function Dashboard() {
       icon: Heart,
       color: theme.colors.error,
       bgColor: theme.colors.error + '20',
+      gradient: theme.gradients?.health || ['#FFEBEE', '#FFCDD2', '#EF9A9A'],
       onClick: () => navigate('/predictions'),
     },
     {
@@ -39,6 +92,7 @@ export default function Dashboard() {
       icon: Utensils,
       color: theme.colors.accent,
       bgColor: theme.colors.accent + '20',
+      gradient: theme.gradients?.dietary || ['#F1F8E9', '#DCEDC8', '#A5D6A7'],
       onClick: () => navigate('/food-tracking'),
     },
     {
@@ -47,23 +101,8 @@ export default function Dashboard() {
       icon: Dumbbell,
       color: '#10b981',
       bgColor: '#10b98120',
+      gradient: theme.gradients?.activity || ['#E8F5E9', '#C8E6C9', '#81C784'],
       onClick: () => navigate('/programs'),
-    },
-    {
-      title: 'Track Activity',
-      description: 'Monitor daily activities and progress',
-      icon: Activity,
-      color: theme.colors.success,
-      bgColor: theme.colors.success + '20',
-      onClick: () => {},
-    },
-    {
-      title: 'Analytics',
-      description: 'View wellness insights and trends',
-      icon: TrendingUp,
-      color: theme.colors.secondary,
-      bgColor: theme.colors.secondary + '20',
-      onClick: () => {},
     },
   ];
 
@@ -104,47 +143,73 @@ export default function Dashboard() {
       {/* Main Content */}
       <main className="container mx-auto px-6 py-12">
         <div className="max-w-6xl mx-auto space-y-8">
-          {/* Welcome Card */}
+          {/* Welcome Card with Gradient */}
           {user && (
             <Card 
-              className="shadow-lg border"
+              className="shadow-lg border overflow-hidden relative"
               style={{ 
                 backgroundColor: theme.colors.card,
                 borderColor: theme.colors.border
               }}
             >
+              <div 
+                className="absolute top-0 right-0 w-40 h-40 rounded-full -translate-y-1/2 translate-x-1/2"
+                style={{ backgroundColor: theme.colors.primary + '15' }}
+              />
               <CardHeader>
                 <div className="flex items-center gap-4">
                   <div 
-                    className="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold"
-                    style={{ backgroundColor: theme.colors.primary }}
+                    className="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-lg overflow-hidden"
+                    style={{ 
+                      background: user.profilePicture ? 'transparent' : `linear-gradient(135deg, ${theme.colors.primary} 0%, ${theme.colors.secondary} 100%)`
+                    }}
                   >
                     {user.profilePicture ? (
                       <img
                         src={user.profilePicture}
                         alt={user.username}
-                        className="w-full h-full rounded-full object-cover"
+                        className="w-16 h-16 object-cover"
+                        onError={(e) => {
+                          console.error('Failed to load profile picture:', user.profilePicture);
+                          e.currentTarget.style.display = 'none';
+                        }}
+                        onLoad={() => console.log('Profile picture loaded successfully:', user.profilePicture)}
                       />
                     ) : (
                       <UserIcon className="w-8 h-8" />
                     )}
                   </div>
                   <div>
-                    <CardTitle 
-                      className="text-2xl"
-                      style={{ 
-                        color: theme.colors.text,
-                        fontFamily: theme.fonts.heading
-                      }}
-                    >
-                      Welcome back, {user.username}!
-                    </CardTitle>
+                    <div className="flex items-center gap-2">
+                      <CardTitle 
+                        className="text-2xl"
+                        style={{ 
+                          color: theme.colors.text,
+                          fontFamily: theme.fonts.heading
+                        }}
+                      >
+                        Welcome back, {user.username}!
+                      </CardTitle>
+                      <Rocket className="w-6 h-6" style={{ color: theme.colors.primary }} />
+                    </div>
                     <p 
                       className="text-sm"
                       style={{ color: theme.colors.textSecondary }}
                     >
                       {user.email}
                     </p>
+                    <Button
+                      variant="outline"
+                      onClick={() => navigate('/profile')}
+                      className="mt-3 flex items-center gap-2"
+                      style={{ 
+                        borderColor: theme.colors.primary,
+                        color: theme.colors.primary
+                      }}
+                    >
+                      <UserIcon className="w-4 h-4" />
+                      View Profile
+                    </Button>
                   </div>
                 </div>
               </CardHeader>
@@ -156,28 +221,28 @@ export default function Dashboard() {
             </Card>
           )}
 
-          {/* Quick Actions */}
+          {/* Quick Actions with Gradient Cards */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {quickActions.map((action) => {
               const Icon = action.icon;
               return (
                 <Card 
                   key={action.title}
-                  className="shadow-md hover:shadow-lg transition-all cursor-pointer border hover:scale-105"
+                  className="shadow-md hover:shadow-xl transition-all cursor-pointer border hover:scale-105 overflow-hidden"
                   style={{ 
-                    backgroundColor: theme.colors.card,
-                    borderColor: theme.colors.border
+                    background: `linear-gradient(135deg, ${action.gradient[0]} 0%, ${action.gradient[1]} 50%, ${action.gradient[2]} 100%)`,
+                    borderColor: 'transparent'
                   }}
                   onClick={action.onClick}
                 >
                   <CardContent className="pt-6">
                     <div className="text-center space-y-3">
                       <div 
-                        className="w-12 h-12 rounded-full flex items-center justify-center mx-auto"
-                        style={{ backgroundColor: action.bgColor }}
+                        className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto shadow-sm"
+                        style={{ backgroundColor: 'rgba(255,255,255,0.8)' }}
                       >
                         <Icon 
-                          className="w-6 h-6" 
+                          className="w-7 h-7" 
                           style={{ color: action.color }}
                         />
                       </div>
@@ -214,8 +279,10 @@ export default function Dashboard() {
             <CardContent className="pt-6">
               <div className="flex items-start gap-4">
                 <div 
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-white flex-shrink-0 mt-1"
-                  style={{ backgroundColor: theme.colors.primary }}
+                  className="w-10 h-10 rounded-xl flex items-center justify-center text-white flex-shrink-0 mt-1 shadow-md"
+                  style={{ 
+                    background: `linear-gradient(135deg, ${theme.colors.primary} 0%, ${theme.colors.secondary} 100%)`
+                  }}
                 >
                   <span className="text-lg font-bold">✓</span>
                 </div>
@@ -236,7 +303,7 @@ export default function Dashboard() {
                     Complete your health assessment to receive personalized risk predictions and insights.
                     Our AI-powered system will analyze your health data and provide tailored recommendations.
                   </p>
-                  <div className="flex gap-3 mt-4">
+                  <div className="flex flex-wrap gap-3 mt-4">
                     <Button 
                       onClick={() => navigate('/health-assessment')}
                       style={{
@@ -256,6 +323,16 @@ export default function Dashboard() {
                       }}
                     >
                       View Predictions
+                    </Button>
+                    <Button 
+                      onClick={() => navigate('/feed')}
+                      variant="outline"
+                      style={{
+                        borderColor: theme.colors.border,
+                        color: theme.colors.text
+                      }}
+                    >
+                      Explore Community
                     </Button>
                   </div>
                 </div>
