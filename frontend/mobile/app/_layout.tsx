@@ -5,6 +5,8 @@ import { ThemeProvider } from "./context/ThemeContext"; // if you use a custom t
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { UserProvider } from './context/UserContext';
+import { ProgramProvider } from './context/ProgramContext';
+import { DailyLogProvider } from './context/DailyLogContext';
 import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
@@ -40,12 +42,16 @@ export default function App() {
         <PaperProvider>
           <ThemeProvider>
             <UserProvider>
-              <Stack
-                screenOptions={{
-                  headerShown: false,
-                }}
-              />
-              <ToastProvider />
+              <ProgramProvider>
+                <DailyLogProvider>
+                  <Stack
+                    screenOptions={{
+                      headerShown: false,
+                    }}
+                  />
+                  <ToastProvider />
+                </DailyLogProvider>
+              </ProgramProvider>
             </UserProvider>
           </ThemeProvider>
         </PaperProvider>

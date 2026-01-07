@@ -111,7 +111,6 @@ export default function Home() {
       setPosts(data);
     } catch (error) {
       console.error("Error fetching posts:", error);
-      Alert.alert("Error", "Failed to load posts");
     } finally {
       setLoading(false);
     }

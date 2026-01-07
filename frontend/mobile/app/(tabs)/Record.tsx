@@ -1,11 +1,10 @@
 
 import React, { useEffect, useState, useCallback } from "react";
-import { View, Text, ActivityIndicator, Alert, ScrollView, Dimensions } from "react-native";
+import { View, Text, ActivityIndicator, Alert, ScrollView, Dimensions, RefreshControl } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "../context/ThemeContext";
-import { createOrUpdateDailyCalorieBalance, getTodayCalorieBalance } from "../api/userApi";
-import { tokenStorage } from "../../utils/tokenStorage";
-import { useFocusEffect } from "expo-router";
+import { useDailyLog } from "../context/DailyLogContext";
+import { useRouter } from "expo-router";
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -191,48 +190,44 @@ const QuickTip = ({ theme }: { theme: any }) => {
 
 export default function Record() {
   const { theme } = useTheme();
-  const [loading, setLoading] = useState(true);
-  const [entry, setEntry] = useState<any>(null);
+  const { entry, isLoading: contextLoading, refreshDailyLog, error } = useDailyLog();
+  const router = useRouter();
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Initial fetch or create entry
+  // Handle errors from context
   useEffect(() => {
-    const fetchOrCreateEntry = async () => {
-      try {
-        const token = await tokenStorage.getToken();
-        if (!token) throw new Error("No authentication token found");
-        const res = await createOrUpdateDailyCalorieBalance(token);
-        setEntry(res.data.entry);
-      } catch (err: any) {
-        Alert.alert("Error", err?.response?.data?.message || err.message || "Failed to create daily calorie balance entry.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchOrCreateEntry();
-  }, []);
-
-  // Refresh calorie balance when screen comes into focus
-  useFocusEffect(
-    useCallback(() => {
-      const refreshCalorieBalance = async () => {
-        try {
-          const response = await getTodayCalorieBalance();
-          if (response.entry) {
-            setEntry(response.entry);
+    if (error === "Missing user metrics for calorie goal calculation.") {
+      Alert.alert(
+        "Missing Information",
+        "Please update your metrics to calculate calorie goals.",
+        [
+          {
+            text: "Update Metrics",
+            onPress: () => router.push("/screens/analysis_input/prediction_input")
+          },
+          {
+            text: "Cancel",
+            style: "cancel"
           }
-        } catch (error) {
-          console.error('[Record] Error refreshing calorie balance:', error);
-        }
-      };
+        ]
+      );
+    } else if (error) {
+      // Don't alert generic errors on every render, maybe just log or show toast
+      // But for now, let's keep silence or minimal alert, logic was Alert.alert("Error", errorMessage)
+      // We should be careful not to loop alerts.
+      // Assuming context clears error on refresh or we handle it once.
+      // For now, let's just log it to avoiding spamming user if it persists.
+      console.log("DailyLog Error:", error);
+    }
+  }, [error, router]);
 
-      // Only refresh if not in initial loading state
-      if (!loading) {
-        refreshCalorieBalance();
-      }
-    }, [loading])
-  );
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refreshDailyLog();
+    setRefreshing(false);
+  }, [refreshDailyLog]);
 
-  if (loading) {
+  if (contextLoading && !entry) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.background }}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -267,6 +262,15 @@ export default function Record() {
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: 10 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.colors.primary}
+            colors={[theme.colors.primary]}
+            progressBackgroundColor={theme.colors.surface}
+          />
+        }
       >
         {/* Header */}
         <View style={{
@@ -513,3 +517,4 @@ export default function Record() {
     </View>
   );
 }
+
