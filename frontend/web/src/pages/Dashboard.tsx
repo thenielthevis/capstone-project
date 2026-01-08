@@ -1,17 +1,73 @@
-import { useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { LogOut, User as UserIcon, TrendingUp, FileText, Heart, Utensils, Settings as SettingsIcon, Dumbbell, MessageSquare, Users, Rocket } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { 
+  LogOut, 
+  User as UserIcon, 
+  Settings as SettingsIcon, 
+  ArrowUp, 
+  ArrowDown, 
+  MessageCircle, 
+  Share2, 
+  Users,
+  Plus,
+  Loader2,
+  Newspaper,
+  TrendingUp,
+  FileText,
+  Heart,
+  Utensils,
+  Dumbbell,
+  MessageSquare,
+  Home,
+  MoreHorizontal
+} from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { getUserProfile } from '@/api/userApi';
+import { postApi, Post } from '@/api/postApi';
+import ReactionButton from '@/components/ReactionButton';
 import Header from '@/components/Header';
+import logoImg from '@/assets/logo.png';
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, setUser, logout } = useAuth();
   const { theme } = useTheme();
+  
+  // Posts state
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Navigation items
+  const navItems = [
+    { title: 'Home', icon: Home, path: '/dashboard', active: true },
+    { title: 'Community', icon: Users, path: '/feed' },
+    { title: 'Analysis', icon: TrendingUp, path: '/analysis' },
+    { title: 'Messages', icon: MessageSquare, path: '/chat' },
+    { title: 'Profile', icon: UserIcon, path: '/profile' },
+  ];
+
+  const moreItems = [
+    { title: 'Health Assessment', icon: FileText, path: '/health-assessment' },
+    { title: 'Predictions', icon: Heart, path: '/predictions' },
+    { title: 'Food Tracking', icon: Utensils, path: '/food-tracking' },
+    { title: 'Programs', icon: Dumbbell, path: '/programs' },
+    { title: 'Settings', icon: SettingsIcon, path: '/settings' },
+  ];
+
+  // Fetch posts
+  const fetchPosts = async () => {
+    try {
+      setLoading(true);
+      const data = await postApi.getFeed(1, 20);
+      setPosts(data);
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Fetch and update user profile picture on mount
   useEffect(() => {
@@ -19,7 +75,6 @@ export default function Dashboard() {
       try {
         const response = await getUserProfile();
         if (response.profile && user) {
-          // Update user in context with profile picture
           setUser({ 
             ...user, 
             profilePicture: response.profile.profilePicture 
@@ -35,312 +90,587 @@ export default function Dashboard() {
     }
   }, []);
 
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  const quickActions = [
-    {
-      title: 'Community Feed',
-      description: 'Share activities and connect with others',
-      icon: Users,
-      color: '#6366f1',
-      bgColor: '#6366f120',
-      gradient: theme.gradients?.activity || ['#E8F5E9', '#C8E6C9', '#81C784'],
-      onClick: () => navigate('/feed'),
-    },
-    {
-      title: 'Messages',
-      description: 'Chat with friends and groups',
-      icon: MessageSquare,
-      color: '#8b5cf6',
-      bgColor: '#8b5cf620',
-      gradient: theme.gradients?.sleep || ['#F3E5F5', '#E1BEE7', '#CE93D8'],
-      onClick: () => navigate('/chat'),
-    },
-    {
-      title: 'Health Analysis',
-      description: 'View your comprehensive health metrics',
-      icon: TrendingUp,
-      color: '#0ea5e9',
-      bgColor: '#0ea5e920',
-      gradient: theme.gradients?.water || ['#E0F7FA', '#B2EBF2', '#80DEEA'],
-      onClick: () => navigate('/analysis'),
-    },
-    {
-      title: 'Health Assessment',
-      description: 'Complete your comprehensive health profile',
-      icon: FileText,
-      color: theme.colors.primary,
-      bgColor: theme.colors.primary + '20',
-      gradient: theme.gradients?.bmi || ['#E3F2FD', '#BBDEFB', '#90CAF9'],
-      onClick: () => navigate('/health-assessment'),
-    },
-    {
-      title: 'Risk Predictions',
-      description: 'View your health risk analysis',
-      icon: Heart,
-      color: theme.colors.error,
-      bgColor: theme.colors.error + '20',
-      gradient: theme.gradients?.health || ['#FFEBEE', '#FFCDD2', '#EF9A9A'],
-      onClick: () => navigate('/predictions'),
-    },
-    {
-      title: 'Food Tracking',
-      description: 'Track calories with AI-powered analysis',
-      icon: Utensils,
-      color: theme.colors.accent,
-      bgColor: theme.colors.accent + '20',
-      gradient: theme.gradients?.dietary || ['#F1F8E9', '#DCEDC8', '#A5D6A7'],
-      onClick: () => navigate('/food-tracking'),
-    },
-    {
-      title: 'Workout Programs',
-      description: 'Create and manage workout routines',
-      icon: Dumbbell,
-      color: '#10b981',
-      bgColor: '#10b98120',
-      gradient: theme.gradients?.activity || ['#E8F5E9', '#C8E6C9', '#81C784'],
-      onClick: () => navigate('/programs'),
-    },
-  ];
+  const handleVote = async (postId: string, voteType: 'up' | 'down') => {
+    try {
+      const userId = user?._id || user?.id;
+      if (!userId) return;
+
+      setPosts(prevPosts => prevPosts.map(post => {
+        if (post._id === postId) {
+          const upvotes = [...(post.votes?.upvotes || [])];
+          const downvotes = [...(post.votes?.downvotes || [])];
+
+          const upIndex = upvotes.findIndex((v: any) => v.toString() === userId);
+          const downIndex = downvotes.findIndex((v: any) => v.toString() === userId);
+          const wasUpvoted = upIndex > -1;
+          const wasDownvoted = downIndex > -1;
+
+          if (upIndex > -1) upvotes.splice(upIndex, 1);
+          if (downIndex > -1) downvotes.splice(downIndex, 1);
+
+          if (voteType === 'up' && !wasUpvoted) {
+            upvotes.push(userId);
+          } else if (voteType === 'down' && !wasDownvoted) {
+            downvotes.push(userId);
+          }
+
+          return { ...post, votes: { upvotes, downvotes } };
+        }
+        return post;
+      }));
+
+      await postApi.votePost(postId, voteType);
+    } catch (error) {
+      console.error('Error voting:', error);
+      await fetchPosts();
+    }
+  };
+
+  const handleReaction = async (postId: string, reactionType: string) => {
+    try {
+      const userId = user?._id || user?.id;
+      if (!userId) return;
+
+      setPosts(prevPosts => prevPosts.map(post => {
+        if (post._id === postId) {
+          const reactions = [...(post.reactions || [])];
+          const existingIndex = reactions.findIndex((r: any) =>
+            (r.user === userId || r.user?._id === userId)
+          );
+
+          if (existingIndex > -1) {
+            if (reactions[existingIndex].type === reactionType) {
+              reactions.splice(existingIndex, 1);
+            } else {
+              reactions[existingIndex] = { user: userId, type: reactionType };
+            }
+          } else {
+            reactions.push({ user: userId, type: reactionType });
+          }
+
+          return { ...post, reactions };
+        }
+        return post;
+      }));
+
+      await postApi.likePost(postId, reactionType);
+    } catch (error) {
+      console.error('Error reacting:', error);
+      await fetchPosts();
+    }
+  };
+
+  const getTimeAgo = (date: string) => {
+    const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h`;
+    const days = Math.floor(hours / 24);
+    return `${days}d`;
+  };
+
+  const renderPost = (post: Post) => {
+    const upvoteCount = post.votes?.upvotes?.length || 0;
+    const downvoteCount = post.votes?.downvotes?.length || 0;
+    const reactionCount = post.reactions?.length || 0;
+    const commentCount = post.commentCount || 0;
+
+    const userId = user?._id || user?.id;
+    const isUpvoted = post.votes?.upvotes?.some((v: any) => v.toString() === userId);
+    const isDownvoted = post.votes?.downvotes?.some((v: any) => v.toString() === userId);
+    const userReaction = post.reactions?.find((r: any) => r.user === userId || r.user?._id === userId)?.type;
+
+    return (
+      <div
+        key={post._id}
+        className="border-b"
+        style={{
+          backgroundColor: theme.colors.background,
+          borderColor: theme.colors.border,
+        }}
+      >
+        {/* Post Header */}
+        <div className="flex items-center p-3">
+          <div 
+            className="w-10 h-10 rounded-full flex items-center justify-center mr-3 overflow-hidden cursor-pointer"
+            style={{ backgroundColor: theme.colors.primary + '20' }}
+            onClick={() => navigate('/profile')}
+          >
+            {post.user?.profilePicture ? (
+              <img src={post.user.profilePicture} alt={post.user.username} className="w-10 h-10 rounded-full object-cover" />
+            ) : (
+              <UserIcon className="w-5 h-5" style={{ color: theme.colors.primary }} />
+            )}
+          </div>
+          <div className="flex-1">
+            <span 
+              style={{ color: theme.colors.text }} 
+              className="text-sm font-semibold cursor-pointer hover:underline"
+              onClick={() => navigate('/profile')}
+            >
+              {post.user?.username || 'Unknown User'}
+            </span>
+            <p className="text-xs" style={{ color: theme.colors.textSecondary }}>
+              {getTimeAgo(post.createdAt)} ago
+            </p>
+          </div>
+          <button className="p-1 hover:opacity-70">
+            <MoreHorizontal className="w-5 h-5" style={{ color: theme.colors.text }} />
+          </button>
+        </div>
+
+        {/* Post Content - Clickable area */}
+        <div 
+          className="cursor-pointer"
+          onClick={() => navigate(`/post/${post._id}`)}
+        >
+          {/* Title & Content */}
+          {(post.title || post.content) && (
+            <div className="px-3 pb-3">
+              {post.title && post.title !== 'Untitled' && (
+                <h3 className="text-lg font-semibold mb-1" style={{ color: theme.colors.text }}>
+                  {post.title}
+                </h3>
+              )}
+              {post.content && (
+                <p style={{ color: theme.colors.text }} className="text-sm leading-relaxed">
+                  {post.content.length > 280 ? (
+                    <>
+                      {post.content.slice(0, 280)}...
+                      <span 
+                        style={{ color: theme.colors.textSecondary }}
+                        className="ml-1"
+                      >
+                        more
+                      </span>
+                    </>
+                  ) : post.content}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Post Images */}
+          {post.images && post.images.length > 0 && (
+            <div className="relative">
+              <img
+                src={post.images[0]}
+                alt="Post"
+                className="w-full object-cover"
+                style={{ maxHeight: 500 }}
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+              {post.images.length > 1 && (
+                <div 
+                  className="absolute top-3 right-3 px-2 py-1 rounded-full text-xs font-medium"
+                  style={{ backgroundColor: 'rgba(0,0,0,0.7)', color: 'white' }}
+                >
+                  1/{post.images.length}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Stats Row - Only show if there are reactions or comments */}
+        {(reactionCount > 0 || commentCount > 0) && (
+          <div className="flex items-center justify-between px-3 py-2 text-xs" style={{ color: theme.colors.textSecondary }}>
+            <div>
+              {reactionCount > 0 && `${reactionCount} reaction${reactionCount !== 1 ? 's' : ''}`}
+            </div>
+            <div>
+              {commentCount > 0 && `${commentCount} comment${commentCount !== 1 ? 's' : ''}`}
+            </div>
+          </div>
+        )}
+
+        {/* Interaction Bar */}
+        <div 
+          className="flex items-center px-3 py-2 border-t"
+          style={{ borderColor: theme.colors.border }}
+        >
+          {/* Upvote */}
+          <button
+            onClick={() => handleVote(post._id, 'up')}
+            className="flex items-center gap-1 mr-3 transition-transform hover:scale-105"
+          >
+            <ArrowUp
+              className={`w-5 h-5 ${isUpvoted ? 'fill-current' : ''}`}
+              style={{ color: isUpvoted ? theme.colors.primary : theme.colors.textSecondary }}
+            />
+            <span className="text-sm" style={{ color: theme.colors.text }}>
+              {upvoteCount}
+            </span>
+          </button>
+
+          {/* Downvote */}
+          <button
+            onClick={() => handleVote(post._id, 'down')}
+            className="flex items-center gap-1 mr-3 transition-transform hover:scale-105"
+          >
+            <ArrowDown
+              className={`w-5 h-5 ${isDownvoted ? 'fill-current' : ''}`}
+              style={{ color: isDownvoted ? theme.colors.primary : theme.colors.textSecondary }}
+            />
+            {downvoteCount > 0 && (
+              <span className="text-sm" style={{ color: theme.colors.text }}>
+                {downvoteCount}
+              </span>
+            )}
+          </button>
+
+          {/* Reactions */}
+          <div className="mr-3">
+            <ReactionButton
+              userReaction={userReaction}
+              reactionCount={reactionCount}
+              onReact={(type) => handleReaction(post._id, type)}
+            />
+          </div>
+
+          {/* Comments */}
+          <button
+            onClick={() => navigate(`/post/${post._id}`)}
+            className="flex items-center gap-1 flex-1 transition-transform hover:scale-105"
+          >
+            <MessageCircle className="w-5 h-5" style={{ color: theme.colors.textSecondary }} />
+            <span className="text-sm" style={{ color: theme.colors.text }}>
+              {commentCount}
+            </span>
+          </button>
+
+          {/* Share */}
+          <button className="transition-transform hover:scale-105">
+            <Share2 className="w-5 h-5" style={{ color: theme.colors.textSecondary }} />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div 
+        className="min-h-screen flex items-center justify-center"
+        style={{ backgroundColor: theme.colors.background }}
+      >
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: theme.colors.text }} />
+      </div>
+    );
+  }
 
   return (
     <div 
       className="min-h-screen"
-      style={{ 
-        background: `linear-gradient(135deg, ${theme.colors.surface} 0%, ${theme.colors.background} 100%)`,
-      }}
+      style={{ backgroundColor: theme.colors.background }}
     >
-      {/* Header */}
-      <Header 
-        title="Lifora"
-        rightContent={
-          <>
-            <Button
-              variant="ghost"
-              onClick={() => navigate('/settings')}
-              className="flex items-center gap-2"
-              style={{ color: theme.colors.textSecondary }}
+      {/* Header - visible on mobile/tablet */}
+      <div className="lg:hidden">
+        <Header showNav={false} />
+      </div>
+
+      <div className="flex">
+        {/* Left Sidebar - hidden on mobile */}
+        <aside 
+          className="hidden lg:flex fixed left-0 top-0 h-full w-[220px] xl:w-[245px] border-r flex-col py-6 px-3"
+          style={{ 
+            backgroundColor: theme.colors.background,
+            borderColor: theme.colors.border 
+          }}
+        >
+          {/* Logo */}
+          <div 
+            className="px-3 pt-4 pb-8 cursor-pointer"
+          onClick={() => navigate('/dashboard')}
+        >
+          <div className="flex items-center gap-2">
+            <img src={logoImg} alt="Lifora" className="w-8 h-8" />
+            <h1 
+              className="text-xl font-semibold hidden xl:block"
+              style={{ color: theme.colors.text }}
             >
-              <SettingsIcon className="w-4 h-4" />
-              <span className="hidden sm:inline">Settings</span>
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={handleLogout}
-              className="flex items-center gap-2"
-              style={{ color: theme.colors.textSecondary }}
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">Logout</span>
-            </Button>
-          </>
-        }
-      />
+              Lifora
+            </h1>
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 space-y-1">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.path;
+            return (
+              <button
+                key={item.title}
+                onClick={() => navigate(item.path)}
+                className={`w-full flex items-center gap-4 px-3 py-3 rounded-lg transition-all hover:bg-opacity-10 ${
+                  isActive ? 'font-bold' : ''
+                }`}
+                style={{ 
+                  color: theme.colors.text,
+                  backgroundColor: isActive ? theme.colors.surface : 'transparent'
+                }}
+              >
+                <div className="relative">
+                  <Icon className={`w-6 h-6 ${isActive ? 'stroke-[2.5]' : ''}`} />
+                </div>
+                <span className="hidden xl:inline">{item.title}</span>
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* More Menu */}
+        <div className="mt-auto space-y-1">
+          {moreItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.title}
+                onClick={() => navigate(item.path)}
+                className="w-full flex items-center gap-4 px-3 py-3 rounded-lg transition-all hover:bg-opacity-10"
+                style={{ 
+                  color: theme.colors.text,
+                  backgroundColor: 'transparent'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.colors.surface}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                <Icon className="w-6 h-6" />
+                <span className="hidden xl:inline">{item.title}</span>
+              </button>
+            );
+          })}
+          
+          {/* Logout */}
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-4 px-3 py-3 rounded-lg transition-all"
+            style={{ color: theme.colors.text }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.colors.surface}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+          >
+            <LogOut className="w-6 h-6" />
+            <span className="hidden xl:inline">Log out</span>
+          </button>
+        </div>
+      </aside>
 
       {/* Main Content */}
-      <main className="container mx-auto px-6 py-12">
-        <div className="max-w-6xl mx-auto space-y-8">
-          {/* Welcome Card with Gradient */}
-          {user && (
-            <Card 
-              className="shadow-lg border overflow-hidden relative"
-              style={{ 
-                backgroundColor: theme.colors.card,
-                borderColor: theme.colors.border
-              }}
+      <main className="lg:ml-[220px] xl:ml-[245px] flex-1 flex justify-center">
+        <div className="w-full max-w-[630px] lg:border-r" style={{ borderColor: theme.colors.border }}>
+          {/* Stories-like Quick Actions Row */}
+          <div 
+            className="flex gap-4 p-4 overflow-x-auto border-b"
+            style={{ borderColor: theme.colors.border }}
+          >
+            {/* User's story/action */}
+            <button 
+              className="flex flex-col items-center gap-1 min-w-[66px]"
+              onClick={() => navigate('/record')}
             >
               <div 
-                className="absolute top-0 right-0 w-40 h-40 rounded-full -translate-y-1/2 translate-x-1/2"
-                style={{ backgroundColor: theme.colors.primary + '15' }}
-              />
-              <CardHeader>
-                <div className="flex items-center gap-4">
-                  <div 
-                    className="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-lg overflow-hidden"
-                    style={{ 
-                      background: user.profilePicture ? 'transparent' : `linear-gradient(135deg, ${theme.colors.primary} 0%, ${theme.colors.secondary} 100%)`
-                    }}
-                  >
-                    {user.profilePicture ? (
-                      <img
-                        src={user.profilePicture}
-                        alt={user.username}
-                        className="w-16 h-16 object-cover"
-                        onError={(e) => {
-                          console.error('Failed to load profile picture:', user.profilePicture);
-                          e.currentTarget.style.display = 'none';
-                        }}
-                        onLoad={() => console.log('Profile picture loaded successfully:', user.profilePicture)}
-                      />
-                    ) : (
-                      <UserIcon className="w-8 h-8" />
-                    )}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <CardTitle 
-                        className="text-2xl"
-                        style={{ 
-                          color: theme.colors.text,
-                          fontFamily: theme.fonts.heading
-                        }}
-                      >
-                        Welcome back, {user.username}!
-                      </CardTitle>
-                      <Rocket className="w-6 h-6" style={{ color: theme.colors.primary }} />
+                className="w-[62px] h-[62px] rounded-full p-[2px] flex items-center justify-center"
+                style={{ 
+                  background: `linear-gradient(45deg, ${theme.colors.primary}, ${theme.colors.secondary}, ${theme.colors.accent})`
+                }}
+              >
+                <div 
+                  className="w-full h-full rounded-full flex items-center justify-center overflow-hidden"
+                  style={{ backgroundColor: theme.colors.background }}
+                >
+                  {user?.profilePicture ? (
+                    <img src={user.profilePicture} alt={user.username} className="w-14 h-14 rounded-full object-cover" />
+                  ) : (
+                    <div 
+                      className="w-14 h-14 rounded-full flex items-center justify-center"
+                      style={{ backgroundColor: theme.colors.surface }}
+                    >
+                      <Plus className="w-6 h-6" style={{ color: theme.colors.primary }} />
                     </div>
-                    <p 
-                      className="text-sm"
-                      style={{ color: theme.colors.textSecondary }}
-                    >
-                      {user.email}
-                    </p>
-                    <Button
-                      variant="outline"
-                      onClick={() => navigate('/profile')}
-                      className="mt-3 flex items-center gap-2"
-                      style={{ 
-                        borderColor: theme.colors.primary,
-                        color: theme.colors.primary
-                      }}
-                    >
-                      <UserIcon className="w-4 h-4" />
-                      View Profile
-                    </Button>
-                  </div>
+                  )}
                 </div>
-              </CardHeader>
-              <CardContent>
-                <p style={{ color: theme.colors.textSecondary }}>
-                  You're successfully logged in to your Lifora dashboard. Start tracking your wellness journey today!
-                </p>
-              </CardContent>
-            </Card>
-          )}
+              </div>
+              <span className="text-xs" style={{ color: theme.colors.text }}>
+                Record
+              </span>
+            </button>
 
-          {/* Quick Actions with Gradient Cards */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {quickActions.map((action) => {
+            {/* Quick action circles */}
+            {[
+              { title: 'Analysis', icon: TrendingUp, color: '#0ea5e9', path: '/analysis' },
+              { title: 'Assess', icon: FileText, color: '#10b981', path: '/health-assessment' },
+              { title: 'Predict', icon: Heart, color: '#ef4444', path: '/predictions' },
+              { title: 'Food', icon: Utensils, color: '#f59e0b', path: '/food-tracking' },
+              { title: 'Programs', icon: Dumbbell, color: '#14b8a6', path: '/programs' },
+            ].map((action) => {
               const Icon = action.icon;
               return (
-                <Card 
+                <button 
                   key={action.title}
-                  className="shadow-md hover:shadow-xl transition-all cursor-pointer border hover:scale-105 overflow-hidden"
-                  style={{ 
-                    background: `linear-gradient(135deg, ${action.gradient[0]} 0%, ${action.gradient[1]} 50%, ${action.gradient[2]} 100%)`,
-                    borderColor: 'transparent'
-                  }}
-                  onClick={action.onClick}
+                  className="flex flex-col items-center gap-1 min-w-[66px]"
+                  onClick={() => navigate(action.path)}
                 >
-                  <CardContent className="pt-6">
-                    <div className="text-center space-y-3">
+                  <div 
+                    className="w-[62px] h-[62px] rounded-full p-[2px] flex items-center justify-center"
+                    style={{ 
+                      background: `linear-gradient(45deg, ${action.color}aa, ${action.color})`
+                    }}
+                  >
+                    <div 
+                      className="w-full h-full rounded-full flex items-center justify-center"
+                      style={{ backgroundColor: theme.colors.background }}
+                    >
                       <div 
-                        className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto shadow-sm"
-                        style={{ backgroundColor: 'rgba(255,255,255,0.8)' }}
+                        className="w-14 h-14 rounded-full flex items-center justify-center"
+                        style={{ backgroundColor: action.color + '20' }}
                       >
-                        <Icon 
-                          className="w-7 h-7" 
-                          style={{ color: action.color }}
-                        />
+                        <Icon className="w-6 h-6" style={{ color: action.color }} />
                       </div>
-                      <h3 
-                        className="font-semibold text-lg"
-                        style={{ 
-                          color: theme.colors.text,
-                          fontFamily: theme.fonts.heading
-                        }}
-                      >
-                        {action.title}
-                      </h3>
-                      <p 
-                        className="text-sm"
-                        style={{ color: theme.colors.textSecondary }}
-                      >
-                        {action.description}
-                      </p>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                  <span className="text-xs" style={{ color: theme.colors.text }}>
+                    {action.title}
+                  </span>
+                </button>
               );
             })}
           </div>
 
-          {/* Info Card */}
-          <Card 
-            className="shadow-md border"
-            style={{ 
-              backgroundColor: theme.colors.primary + '10',
-              borderColor: theme.colors.primary + '40'
-            }}
-          >
-            <CardContent className="pt-6">
-              <div className="flex items-start gap-4">
-                <div 
-                  className="w-10 h-10 rounded-xl flex items-center justify-center text-white flex-shrink-0 mt-1 shadow-md"
-                  style={{ 
-                    background: `linear-gradient(135deg, ${theme.colors.primary} 0%, ${theme.colors.secondary} 100%)`
-                  }}
-                >
-                  <span className="text-lg font-bold">✓</span>
-                </div>
-                <div className="space-y-2">
-                  <h3 
-                    className="font-semibold text-lg"
-                    style={{ 
-                      color: theme.colors.text,
-                      fontFamily: theme.fonts.heading
-                    }}
-                  >
-                    Get Started with Your Health Journey
-                  </h3>
-                  <p 
-                    className="text-sm"
-                    style={{ color: theme.colors.textSecondary }}
-                  >
-                    Complete your health assessment to receive personalized risk predictions and insights.
-                    Our AI-powered system will analyze your health data and provide tailored recommendations.
-                  </p>
-                  <div className="flex flex-wrap gap-3 mt-4">
-                    <Button 
-                      onClick={() => navigate('/health-assessment')}
-                      style={{
-                        backgroundColor: theme.colors.primary,
-                        color: '#FFFFFF'
-                      }}
-                      className="hover:opacity-90"
-                    >
-                      Start Assessment
-                    </Button>
-                    <Button 
-                      onClick={() => navigate('/predictions')}
-                      variant="outline"
-                      style={{
-                        borderColor: theme.colors.border,
-                        color: theme.colors.text
-                      }}
-                    >
-                      View Predictions
-                    </Button>
-                    <Button 
-                      onClick={() => navigate('/feed')}
-                      variant="outline"
-                      style={{
-                        borderColor: theme.colors.border,
-                        color: theme.colors.text
-                      }}
-                    >
-                      Explore Community
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Posts Feed */}
+          {posts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <Newspaper className="w-16 h-16" style={{ color: theme.colors.textTertiary }} />
+              <h3 style={{ color: theme.colors.text }} className="text-lg mt-4 font-semibold">
+                No posts yet
+              </h3>
+              <p style={{ color: theme.colors.textSecondary }} className="text-sm mt-2 text-center px-8">
+                Be the first to share your activities!
+              </p>
+            </div>
+          ) : (
+            <div>
+              {posts.map(post => renderPost(post))}
+            </div>
+          )}
         </div>
+
+        {/* Right Sidebar */}
+        <aside className="hidden lg:block w-[320px] p-6 sticky top-0 h-screen">
+          {/* Current User */}
+          <div className="flex items-center gap-3 mb-6">
+            <div 
+              className="w-11 h-11 rounded-full overflow-hidden cursor-pointer"
+              onClick={() => navigate('/profile')}
+            >
+              {user?.profilePicture ? (
+                <img src={user.profilePicture} alt={user?.username} className="w-full h-full object-cover" />
+              ) : (
+                <div 
+                  className="w-full h-full flex items-center justify-center"
+                  style={{ backgroundColor: theme.colors.surface }}
+                >
+                  <UserIcon className="w-5 h-5" style={{ color: theme.colors.textSecondary }} />
+                </div>
+              )}
+            </div>
+            <div className="flex-1">
+              <p 
+                className="text-sm font-semibold cursor-pointer hover:underline"
+                style={{ color: theme.colors.text }}
+                onClick={() => navigate('/profile')}
+              >
+                {user?.username}
+              </p>
+              <p className="text-sm" style={{ color: theme.colors.textSecondary }}>
+                {user?.email}
+              </p>
+            </div>
+            <button 
+              className="text-xs font-semibold"
+              style={{ color: theme.colors.primary }}
+              onClick={handleLogout}
+            >
+              Switch
+            </button>
+          </div>
+
+          {/* Suggested Actions */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-semibold" style={{ color: theme.colors.textSecondary }}>
+                Quick Actions
+              </span>
+            </div>
+            
+            <div className="space-y-3">
+              {[
+                { title: 'Complete Health Assessment', desc: 'Get personalized insights', path: '/health-assessment' },
+                { title: 'View Predictions', desc: 'See your health risks', path: '/predictions' },
+                { title: 'Track Food', desc: 'Log your meals', path: '/food-tracking' },
+              ].map((action) => (
+                <button
+                  key={action.title}
+                  className="w-full flex items-center gap-3 text-left group"
+                  onClick={() => navigate(action.path)}
+                >
+                  <div 
+                    className="w-8 h-8 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: theme.colors.surface }}
+                  >
+                    <FileText className="w-4 h-4" style={{ color: theme.colors.textSecondary }} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium" style={{ color: theme.colors.text }}>
+                      {action.title}
+                    </p>
+                    <p className="text-xs" style={{ color: theme.colors.textSecondary }}>
+                      {action.desc}
+                    </p>
+                  </div>
+                  <span 
+                    className="text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity"
+                    style={{ color: theme.colors.primary }}
+                  >
+                    Go
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="mt-8 space-y-4">
+            <div className="flex flex-wrap gap-x-2 gap-y-1">
+              <button 
+                className="text-xs hover:underline"
+                style={{ color: theme.colors.textTertiary }}
+                onClick={() => navigate('/settings')}
+              >
+                Settings
+              </button>
+            </div>
+            <p className="text-xs" style={{ color: theme.colors.textTertiary }}>
+              © 2026 LIFORA HEALTH
+            </p>
+          </div>
+        </aside>
       </main>
+      </div>
     </div>
   );
 }

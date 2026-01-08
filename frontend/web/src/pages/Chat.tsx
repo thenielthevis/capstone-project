@@ -3,6 +3,8 @@ import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import Header from '@/components/Header';
 import GroupProgramModal from '@/components/GroupProgramModal';
+import ReportModal from '@/components/ReportModal';
+import { ReportType } from '@/api/reportApi';
 import {
   fetchChats,
   fetchMessages,
@@ -95,6 +97,21 @@ export default function Chat() {
   const [updatingPhoto, setUpdatingPhoto] = useState(false);
   const [leavingGroup, setLeavingGroup] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Report Modal State
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportItemId, setReportItemId] = useState<string | null>(null);
+  const [reportType, setReportType] = useState<ReportType>('message');
+  const [reportItemName, setReportItemName] = useState<string | undefined>(undefined);
+
+  const handleOpenReportModal = (type: ReportType, itemId: string, itemName?: string) => {
+    setReportType(type);
+    setReportItemId(itemId);
+    setReportItemName(itemName);
+    setShowReportModal(true);
+    setShowMessageOptions(false);
+    setSelectedMessage(null);
+  };
   
   // Group program state
   const [groupPrograms, setGroupPrograms] = useState<Program[]>([]);
@@ -334,17 +351,9 @@ export default function Chat() {
   };
 
   // Handle report message
-  const handleReportMessage = async () => {
+  const handleReportMessage = () => {
     if (!selectedMessage) return;
-    try {
-      await reportMessage(selectedMessage._id, 'Inappropriate content');
-      alert('Message reported successfully');
-    } catch (error) {
-      console.error('Error reporting message:', error);
-    } finally {
-      setShowMessageOptions(false);
-      setSelectedMessage(null);
-    }
+    handleOpenReportModal('message', selectedMessage._id);
   };
 
   // Handle create group
@@ -979,7 +988,7 @@ export default function Chat() {
                           <User className="w-4 h-4" style={{ color: theme.colors.secondary }} />
                         )}
                       </div>
-                      <div>
+                      <div className="flex-1">
                         <p className="text-sm font-medium" style={{ color: theme.colors.text }}>
                           {member.username}
                           {member._id === selectedChat.groupAdmin?._id && (
@@ -989,6 +998,17 @@ export default function Chat() {
                           )}
                         </p>
                       </div>
+                      {/* Report User Button - hidden for current user */}
+                      {member._id !== user?._id && (
+                        <button
+                          onClick={() => handleOpenReportModal('user', member._id, member.username)}
+                          className="p-1.5 rounded-full hover:opacity-70 transition"
+                          style={{ backgroundColor: theme.colors.error + '10' }}
+                          title="Report user"
+                        >
+                          <Flag className="w-3.5 h-3.5" style={{ color: theme.colors.error }} />
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1565,6 +1585,19 @@ export default function Chat() {
           </div>
         </div>
       )}
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => {
+          setShowReportModal(false);
+          setReportItemId(null);
+          setReportItemName(undefined);
+        }}
+        reportType={reportType}
+        itemId={reportItemId || ''}
+        itemName={reportItemName}
+      />
     </div>
   );
 }

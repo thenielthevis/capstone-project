@@ -8,6 +8,8 @@ import { commentApi } from "../../api/commentApi";
 import { postApi } from "../../api/postApi";
 import { useUser } from "../../context/UserContext";
 import ReactionButton, { REACTIONS } from "../../components/ReactionButton";
+import ReportModal from "../../components/Modals/ReportModal";
+import { ReportType } from "../../api/reportApi";
 
 type Comment = {
     _id: string;
@@ -59,6 +61,19 @@ export default function DiscussionSection() {
     const [newComment, setNewComment] = useState("");
     const [replyingTo, setReplyingTo] = useState<string | null>(null);
     const [posting, setPosting] = useState(false);
+
+    // Report Modal State
+    const [showReportModal, setShowReportModal] = useState(false);
+    const [reportItemId, setReportItemId] = useState<string | null>(null);
+    const [reportType, setReportType] = useState<ReportType>("post");
+    const [reportItemName, setReportItemName] = useState<string | undefined>(undefined);
+
+    const handleOpenReportModal = (type: ReportType, itemId: string, itemName?: string) => {
+        setReportType(type);
+        setReportItemId(itemId);
+        setReportItemName(itemName);
+        setShowReportModal(true);
+    };
 
     useEffect(() => {
         if (postId) {
@@ -325,13 +340,26 @@ export default function DiscussionSection() {
                     {/* Post Display */}
                     <View className="p-5 border-b" style={{ borderBottomColor: theme.colors.text + '11' }}>
                         <View className="flex-row items-center mb-3">
-                            <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.colors.primary + '20' }}>
+                            <TouchableOpacity
+                                className="w-10 h-10 rounded-full items-center justify-center mr-3"
+                                style={{ backgroundColor: theme.colors.primary + '20' }}
+                                onPress={() => {
+                                    if (post.user?._id && post.user._id !== userId) {
+                                        handleOpenReportModal("user", post.user._id, post.user.username || post.user.name);
+                                    }
+                                }}
+                                onLongPress={() => {
+                                    if (post.user?._id && post.user._id !== userId) {
+                                        handleOpenReportModal("user", post.user._id, post.user.username || post.user.name);
+                                    }
+                                }}
+                            >
                                 {post.user?.profilePicture ? (
                                     <Image source={{ uri: post.user.profilePicture }} className="w-10 h-10 rounded-full" />
                                 ) : (
                                     <Ionicons name="person" size={20} color={theme.colors.primary} />
                                 )}
-                            </View>
+                            </TouchableOpacity>
                             <View className="flex-1">
                                 <Text style={{ fontFamily: theme.fonts.heading, color: theme.colors.text }} className="text-base">
                                     {post.user?.username || post.user?.name || "Unknown User"}
@@ -340,6 +368,15 @@ export default function DiscussionSection() {
                                     {getTimeAgo(post.createdAt)}
                                 </Text>
                             </View>
+                            {/* Report Post Button */}
+                            {post.user?._id !== userId && (
+                                <TouchableOpacity
+                                    onPress={() => handleOpenReportModal("post", post._id)}
+                                    style={{ padding: 8 }}
+                                >
+                                    <Ionicons name="flag-outline" size={20} color={theme.colors.text + '77'} />
+                                </TouchableOpacity>
+                            )}
                         </View>
 
                         {post.title && post.title !== "Untitled" && (
@@ -517,6 +554,16 @@ export default function DiscussionSection() {
                     </View>
                 </View>
             </KeyboardAvoidingView>
-        </SafeAreaView>
-    );
-}
+
+            {/* Report Modal */}
+            <ReportModal
+                visible={showReportModal}
+                onClose={() => {
+                    setShowReportModal(false);
+                    setReportItemId(null);
+                    setReportItemName(undefined);
+                }}
+                reportType={reportType}
+                itemId={reportItemId || ""}
+                itemName={reportItemName}
+            />

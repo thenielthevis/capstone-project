@@ -16,6 +16,7 @@ import Settings from './pages/Settings';
 import TermsAndConditions from './pages/TermsAndConditions';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminUsers from './pages/AdminUsers';
+import AdminReports from './pages/AdminReports';
 import CreateAdmin from './pages/CreateAdmin';
 import AdminFoodLogs from './pages/AdminFoodLogs';
 import AdminGeoActivities from './pages/AdminGeoActivities';
@@ -27,6 +28,7 @@ import Chat from './pages/Chat';
 import HealthAnalysis from './pages/HealthAnalysis';
 import AnalysisDetail from './pages/AnalysisDetail';
 import Profile from './pages/Profile';
+import PostDetail from './pages/PostDetail';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -57,6 +59,14 @@ function App() {
         element={
           <ProtectedRoute>
             <Chat />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/post/:postId"
+        element={
+          <ProtectedRoute>
+            <PostDetail />
           </ProtectedRoute>
         }
       />
@@ -177,6 +187,14 @@ function App() {
         element={
           <ProtectedRoute>
             <AdminUsers />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/reports"
+        element={
+          <ProtectedRoute>
+            <AdminReports />
           </ProtectedRoute>
         }
       />

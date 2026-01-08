@@ -1,10 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
+import { flushSync } from 'react-dom';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import Header from '@/components/Header';
 import ReactionButton, { REACTIONS } from '@/components/ReactionButton';
+import ReportModal from '@/components/ReportModal';
 import { postApi, Post } from '@/api/postApi';
 import { commentApi, Comment } from '@/api/commentApi';
+import { ReportType } from '@/api/reportApi';
 import { 
   ArrowUpCircle, 
   ArrowDownCircle, 
@@ -21,7 +24,8 @@ import {
   Rocket,
   X,
   Send,
-  Reply
+  Reply,
+  Flag
 } from 'lucide-react';
 
 export default function Feed() {
@@ -41,6 +45,24 @@ export default function Feed() {
   const [newComment, setNewComment] = useState('');
   const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
   const [postingComment, setPostingComment] = useState(false);
+
+  // Report Modal State
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportItemId, setReportItemId] = useState<string | null>(null);
+  const [reportType, setReportType] = useState<ReportType>('post');
+  const [reportItemName, setReportItemName] = useState<string | undefined>(undefined);
+  const [reportKey, setReportKey] = useState(0);
+
+  const handleOpenReportModal = (type: ReportType, itemId: string, itemName?: string) => {
+    // Use flushSync to force immediate DOM update
+    flushSync(() => {
+      setReportType(type);
+      setReportItemId(itemId);
+      setReportItemName(itemName);
+      setReportKey(prev => prev + 1);
+      setShowReportModal(true);
+    });
+  };
 
   useEffect(() => {
     fetchPosts();
@@ -252,8 +274,16 @@ export default function Feed() {
         {/* Post Header */}
         <div className="flex items-center p-4 pb-3">
           <div
-            className="w-10 h-10 rounded-full flex items-center justify-center mr-3"
+            className="w-10 h-10 rounded-full flex items-center justify-center mr-3 cursor-pointer"
             style={{ backgroundColor: theme.colors.primary + '20' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              const userId = user?._id || user?.id;
+              if (post.user?._id && post.user._id !== userId) {
+                handleOpenReportModal('user', post.user._id, post.user.username);
+              }
+            }}
+            title={post.user?._id !== (user?._id || user?.id) ? 'Click to report user' : ''}
           >
             {post.user?.profilePicture ? (
               <img
@@ -280,11 +310,24 @@ export default function Feed() {
             </p>
           </div>
           {post.visibility === 'public' ? (
-            <Globe className="w-4 h-4" style={{ color: theme.colors.textTertiary }} />
+            <Globe className="w-4 h-4 mr-2" style={{ color: theme.colors.textTertiary }} />
           ) : post.visibility === 'private' ? (
-            <Lock className="w-4 h-4" style={{ color: theme.colors.textTertiary }} />
+            <Lock className="w-4 h-4 mr-2" style={{ color: theme.colors.textTertiary }} />
           ) : (
-            <Users className="w-4 h-4" style={{ color: theme.colors.textTertiary }} />
+            <Users className="w-4 h-4 mr-2" style={{ color: theme.colors.textTertiary }} />
+          )}
+          {/* Report Post Button */}
+          {post.user?._id !== (user?._id || user?.id) && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenReportModal('post', post._id);
+              }}
+              className="p-2 rounded-lg hover:opacity-80 transition"
+              title="Report post"
+            >
+              <Flag className="w-4 h-4" style={{ color: theme.colors.textTertiary }} />
+            </button>
           )}
         </div>
 
@@ -755,6 +798,20 @@ export default function Feed() {
           </div>
         </div>
       )}
+
+      {/* Report Modal */}
+      <ReportModal
+        key={reportKey}
+        isOpen={showReportModal}
+        onClose={() => {
+          setShowReportModal(false);
+          setReportItemId(null);
+          setReportItemName(undefined);
+        }}
+        reportType={reportType}
+        itemId={reportItemId || ''}
+        itemName={reportItemName}
+      />
     </div>
   );
 }

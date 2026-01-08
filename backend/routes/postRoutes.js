@@ -3,6 +3,7 @@ const router = express.Router();
 const {
     createPost,
     getFeed,
+    getPost,
     votePost,
     reactPost,
     deletePost,
@@ -14,7 +15,7 @@ const upload = require("../middleware/multer");
 const postUpload = upload.array("images", 10);
 
 router.route("/").post(auth, postUpload, createPost).get(auth, getFeed);
-router.route("/:id").delete(auth, deletePost);
+router.route("/:id").get(auth, getPost).delete(auth, deletePost);
 router.route("/:id/vote").put(auth, votePost);
 router.route("/:id/react").put(auth, reactPost);
 

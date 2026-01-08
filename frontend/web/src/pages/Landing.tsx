@@ -9,9 +9,6 @@ import {
   Camera, 
   TrendingUp, 
   Award,
-  Mail,
-  Phone,
-  MapPinIcon,
   Menu,
   X
 } from 'lucide-react';

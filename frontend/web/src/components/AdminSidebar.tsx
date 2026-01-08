@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { 
   LogOut, Users,
   Home, Utensils, MapPin, Dumbbell, BookOpen, Award,
-  ChevronRight, Sun, Moon, Waves
+  ChevronRight, Sun, Moon, Waves, Flag
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -42,6 +42,7 @@ export default function AdminSidebar({ activeNav = 'home', onSidebarToggle }: Ad
   const navigationItems: NavItem[] = [
     { id: 'home', label: 'Home', icon: <Home className="w-5 h-5" />, path: '/admin/dashboard', color: 'text-blue-600' },
     { id: 'users', label: 'Users', icon: <Users className="w-5 h-5" />, path: '/admin/users', color: 'text-green-600' },
+    { id: 'reports', label: 'Reports', icon: <Flag className="w-5 h-5" />, path: '/admin/reports', color: 'text-red-600' },
     { id: 'geo-activities', label: 'Geo Activities', icon: <MapPin className="w-5 h-5" />, path: '/admin/geo-activities', color: 'text-orange-600' },
     { id: 'workouts', label: 'Workouts', icon: <Dumbbell className="w-5 h-5" />, path: '/admin/workouts', color: 'text-red-600' },
     { id: 'programs', label: 'Programs', icon: <BookOpen className="w-5 h-5" />, path: '/admin/programs', color: 'text-purple-600' },
