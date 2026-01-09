@@ -9,8 +9,11 @@ import * as Speech from "expo-speech";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import axiosInstance from "../../api/axiosInstance";
 import { createProgramSession, ProgramSessionPayload } from "../../api/programSesssionApi";
+import { getUserProfile } from "../../api/userApi";
 import { Audio } from "expo-av";
 import ProgramRest from "./program-rest";
+import BatteryAnimate from '../../components/animation/battery';
+import GamificationLoading from '../../components/animation/gamification-loading';
 
 type ExerciseItem = {
   type: 'workout' | 'geo';
@@ -51,6 +54,16 @@ export default function ProgramCoach() {
   const clappingSound = useRef<Audio.Sound | null>(null);
   const onRestCompleteRef = useRef<(() => void) | null>(null);
   const startTimeRef = useRef<Date | null>(null);
+  const sessionResponseRef = useRef<any>(null);
+
+  // Battery animation state
+  const [showBatteryAnimation, setShowBatteryAnimation] = useState(false);
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [batteryAnimationData, setBatteryAnimationData] = useState<{
+    previousValue: number;
+    newValue: number;
+    label: string;
+  }>({ previousValue: 0, newValue: 0, label: 'Activity' });
 
   const loadSound = async (path: any) => {
     const { sound } = await Audio.Sound.createAsync(path);
@@ -857,34 +870,76 @@ export default function ProgramCoach() {
 
     try {
       setIsRecordingSession(true);
+
+      // 1. Get previous battery value
+      const profileBefore = await getUserProfile();
+      const prevActivityValue = profileBefore.profile?.gamification?.batteries?.[0]?.activity || 0;
+
+      // 2. Save session
       const response = await createProgramSession(payload);
-      Alert.alert("Session Recorded", "Great job! Your program session has been saved. Would you like to share it?", [
-        {
-          text: "No, thanks",
-          onPress: () => router.back(),
-          style: "cancel"
-        },
-        {
-          text: "Share",
-          onPress: () => {
-            router.push({
-              pathname: "/screens/post/post_session",
-              params: {
-                type: "ProgramSession",
-                id: response._id, // Ensure this exists on response
-                title: program.title,
-                subtitle: "Program Session" // Or format duration/calories
-              }
-            });
-          }
+      sessionResponseRef.current = response;
+
+      // 3. Wait for gamification update on backend
+      setIsCalculating(true);
+      setTimeout(async () => {
+        try {
+          // 4. Get new battery value
+          const profileAfter = await getUserProfile();
+          const newActivityValue = profileAfter.profile?.gamification?.batteries?.[0]?.activity || 0;
+
+          // 5. Trigger animation
+          setBatteryAnimationData({
+            previousValue: prevActivityValue,
+            newValue: newActivityValue,
+            label: 'Activity'
+          });
+          setShowBatteryAnimation(true);
+
+        } catch (err) {
+          console.warn("Failed to fetch updated profile for animation:", err);
+          // Fallback if profile fetch fails
+          showSuccessAlert();
+        } finally {
+          setIsCalculating(false);
         }
-      ]);
+      }, 2000);
+
     } catch (error) {
       console.error("Failed to record program session:", error);
       Alert.alert("Recording failed", "We couldn't save your session. Please try again.");
     } finally {
       setIsRecordingSession(false);
     }
+  };
+
+  const showSuccessAlert = () => {
+    const response = sessionResponseRef.current;
+
+    Alert.alert("Session Recorded", "Great job! Your program session has been saved. Would you like to share it?", [
+      {
+        text: "No, thanks",
+        onPress: () => router.back(),
+        style: "cancel"
+      },
+      {
+        text: "Share",
+        onPress: () => {
+          if (response?._id) {
+            router.push({
+              pathname: "/screens/post/post_session",
+              params: {
+                type: "ProgramSession",
+                id: response._id,
+                title: program.title,
+                subtitle: "Program Session"
+              }
+            });
+          } else {
+            router.back();
+          }
+        }
+      }
+    ]);
   };
 
   // Determine next exercise details for ProgramRest
@@ -1293,6 +1348,19 @@ export default function ProgramCoach() {
           </View>
         </BottomSheetView>
       </BottomSheet>
+
+      {/* Battery Animation Overlay */}
+      <GamificationLoading visible={isCalculating} message="Analyzing Performance..." />
+      <BatteryAnimate
+        visible={showBatteryAnimation}
+        previousValue={batteryAnimationData.previousValue}
+        newValue={batteryAnimationData.newValue}
+        label={batteryAnimationData.label}
+        onComplete={() => {
+          setShowBatteryAnimation(false);
+          showSuccessAlert();
+        }}
+      />
     </SafeAreaView>
   );
 }

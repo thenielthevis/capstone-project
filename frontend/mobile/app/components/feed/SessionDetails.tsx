@@ -296,14 +296,14 @@ export default function SessionDetails() {
                     {result.healthyAlternatives?.length > 0 && (
                         <View style={{ backgroundColor: theme.colors.background, borderRadius: 24, padding: 20, marginBottom: 16 }}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-                                <MaterialCommunityIcons name="lightbulb-on" size={20} color={theme.colors.primary} />
-                                <Text style={{ fontFamily: theme.fonts.heading, fontSize: 18, color: theme.colors.primary, marginLeft: 8 }}>Healthier Alternatives</Text>
+                                <MaterialCommunityIcons name="lightbulb-on" size={20} color={theme.colors.success} />
+                                <Text style={{ fontFamily: theme.fonts.heading, fontSize: 18, color: theme.colors.success, marginLeft: 8 }}>Healthier Alternatives</Text>
                             </View>
                             {result.healthyAlternatives.map((alt: any, index: number) => (
                                 <View key={index} style={{ backgroundColor: theme.colors.surface, borderRadius: 12, padding: 12, marginBottom: 8 }}>
                                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
                                         <Text style={{ fontFamily: theme.fonts.bodyBold, color: theme.colors.text }}>{alt.name}</Text>
-                                        <Text style={{ color: theme.colors.primary, fontSize: 12 }}>-{alt.caloriesSaved} kcal</Text>
+                                        <Text style={{ color: theme.colors.success, fontSize: 12 }}>-{alt.caloriesSaved} kcal</Text>
                                     </View>
                                     <Text style={{ fontFamily: theme.fonts.body, fontSize: 12, color: theme.colors.text + '99' }}>{alt.reason}</Text>
                                 </View>
@@ -316,7 +316,7 @@ export default function SessionDetails() {
                         <View style={{ backgroundColor: theme.colors.background, borderRadius: 24, padding: 20, marginBottom: 16 }}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
                                 <MaterialCommunityIcons name="chef-hat" size={20} color={theme.colors.primary} />
-                                <Text style={{ fontFamily: theme.fonts.heading, fontSize: 18, color: theme.colors.text, marginLeft: 8 }}>Recipe Ideas</Text>
+                                <Text style={{ fontFamily: theme.fonts.heading, fontSize: 18, color: theme.colors.primary, marginLeft: 8 }}>Recipe Ideas</Text>
                             </View>
                             {result.recipeLinks.map((recipe: any, index: number) => (
                                 <TouchableOpacity key={index} onPress={() => Linking.openURL(recipe.url)} style={{ flexDirection: 'row', alignItems: 'center', padding: 12, backgroundColor: theme.colors.surface, borderRadius: 12, marginBottom: 8 }}>

@@ -23,8 +23,10 @@ import { analyzeFood, analyzeIngredients, FoodAnalysisResult } from '../../servi
 import { useTheme } from '../../context/ThemeContext';
 import { foodLogApi } from '../../api/foodLogApi';
 import { useUser } from '../../context/UserContext';
-import { getUserAllergies, getTodayCalorieBalance } from '../../api/userApi';
+import { getUserAllergies, getTodayCalorieBalance, getUserProfile } from '../../api/userApi';
 import { sendCalorieReminder, configureNotifications } from '@/utils/calorieNotifications';
+import BatteryAnimate from '../../components/animation/battery';
+import GamificationLoading from '../../components/animation/gamification-loading';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -260,6 +262,7 @@ export default function Food() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<FoodAnalysisResult | null>(null);
+  const [isLogged, setIsLogged] = useState(false); // Track if current result is logged
 
   // Image mode states
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -293,6 +296,15 @@ export default function Food() {
     status: string;
   } | null>(null);
   const [allergiesLoaded, setAllergiesLoaded] = useState(false);
+
+  // Battery animation state
+  const [showBatteryAnimation, setShowBatteryAnimation] = useState(false);
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [batteryAnimationData, setBatteryAnimationData] = useState<{
+    previousValue: number;
+    newValue: number;
+    label: string;
+  }>({ previousValue: 0, newValue: 0, label: 'Nutrition' });
 
   // Configure notifications on component mount
   useEffect(() => {
@@ -383,11 +395,11 @@ export default function Food() {
       console.log('[Food] Refreshing calorie balance...');
       const response = await getTodayCalorieBalance();
       console.log('[Food] Calorie balance response:', response);
-      
+
       if (response.entry) {
         console.log('[Food] Setting calorie balance:', response.entry);
         setCalorieBalance(response.entry);
-        
+
         // Send calorie reminder notification after refreshing
         console.log('[Food] Sending calorie reminder with data:', response.entry);
         await sendCalorieReminder(response.entry);
@@ -532,6 +544,16 @@ export default function Food() {
       console.log('Attempting to save food log...');
       console.log('API Base URL:', process.env.EXPO_PUBLIC_API_URL);
 
+      // Capture BEFORE nutrition battery value
+      let previousNutritionValue = 0;
+      try {
+        const profileBefore = await getUserProfile();
+        previousNutritionValue = profileBefore.profile?.gamification?.batteries?.[0]?.nutrition || 0;
+        console.log('[Food] Previous nutrition battery:', previousNutritionValue);
+      } catch (err) {
+        console.warn('[Food] Could not fetch profile before save:', err);
+      }
+
       // Don't send base64 image if it's too large (over 10MB)
       let imageToSend = imageBase64;
       if (imageBase64) {
@@ -560,40 +582,30 @@ export default function Food() {
       // Refresh calorie balance after saving food log
       await refreshCalorieBalance();
 
-      // Prompt to share
-      Alert.alert(
-        "Food Log Saved",
-        "Would you like to share this meal to your feed?",
-        [
-          {
-            text: "No, thanks",
-            style: "cancel",
-            onPress: () => {
-              // Optional: Navigate back or just stay on results? 
-              // Existing flow seemed to stay on results or didn't specify. 
-              // We will keep existing behavior (stay on results) or maybe logic was somewhere else.
-              // Actually the user might want to see the results. So we won't navigate back automatically unless requested.
-              // But usually "save" means "done". 
-              // Looking at handleAnalyzeImage, it sets result. 
-              // Let's just close the alert.
-            }
-          },
-          {
-            text: "Share",
-            onPress: () => {
-              router.push({
-                pathname: "/screens/post/post_session",
-                params: {
-                  type: "FoodLog",
-                  id: response.foodLog._id,
-                  title: response.foodLog.dishName || "Meal", // Adjust based on data
-                  subtitle: `${response.foodLog.calories} kcal`
-                }
-              });
-            }
+      // Wait a moment for backend gamification to process, then fetch updated profile
+      setIsCalculating(true);
+      setTimeout(async () => {
+        try {
+          const profileAfter = await getUserProfile();
+          const newNutritionValue = profileAfter.profile?.gamification?.batteries?.[0]?.nutrition || 0;
+          console.log('[Food] New nutrition battery:', newNutritionValue);
+
+          // Show animation if value changed
+          if (newNutritionValue !== previousNutritionValue) {
+            setBatteryAnimationData({
+              previousValue: previousNutritionValue,
+              newValue: newNutritionValue,
+              label: 'Nutrition',
+            });
+            setShowBatteryAnimation(true);
           }
-        ]
-      );
+        } catch (err) {
+          console.warn('[Food] Could not fetch profile after save:', err);
+        } finally {
+          setIsCalculating(false);
+        }
+      }, 2000); // Wait 2 seconds for backend processing
+
     } catch (err: any) {
       console.error('Error saving food log:', err);
       console.error('Error details:', err.response?.data || err.message);
@@ -607,6 +619,41 @@ export default function Food() {
         Alert.alert('Server Error', 'Could not save to history. The analysis is still available above.');
       }
       // Don't block the user experience with save errors - they still have their analysis
+    }
+  };
+
+  // Handler for manually logging analyzed food
+  const handleLogFood = async () => {
+    if (!result || !user) {
+      Alert.alert('Error', 'No analysis result to log');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Get base64 image if available
+      let imageBase64: string | undefined;
+      if (imageUri) {
+        const response = await fetch(imageUri);
+        const blob = await response.blob();
+        const reader = new FileReader();
+
+        await new Promise<void>((resolve) => {
+          reader.onloadend = () => {
+            imageBase64 = reader.result as string;
+            resolve();
+          };
+          reader.readAsDataURL(blob);
+        });
+      }
+
+      await saveFoodLog(result, imageBase64);
+      setIsLogged(true);
+    } catch (err: any) {
+      console.error('Error logging food:', err);
+      Alert.alert('Error', 'Failed to log food. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -635,11 +682,7 @@ export default function Food() {
         try {
           const analysis = await analyzeFood(base64data, 'image/jpeg', dishName, allergyList);
           setResult(analysis);
-
-          // Save to backend
-          if (user) {
-            await saveFoodLog(analysis, base64data);
-          }
+          setIsLogged(false); // Mark as not logged yet
         } catch (err: any) {
           setError(err.message || 'Failed to analyze the image.');
         } finally {
@@ -671,11 +714,7 @@ export default function Food() {
 
       const analysis = await analyzeIngredients(ingredients, dishName, allergyList);
       setResult(analysis);
-
-      // Save to backend
-      if (user) {
-        await saveFoodLog(analysis);
-      }
+      setIsLogged(false); // Mark as not logged yet
     } catch (err: any) {
       setError(err.message || 'Failed to analyze ingredients.');
     } finally {
@@ -689,6 +728,7 @@ export default function Food() {
     setImageUri(null);
     setDishName('');
     setIngredients('');
+    setIsLogged(false);
   };
 
   const getPercentage = (value: number, max: number) => {
@@ -781,27 +821,53 @@ export default function Food() {
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={handleReset}
-              style={{
-                backgroundColor: theme.colors.primary,
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                borderRadius: 20,
-                flexDirection: 'row',
-                alignItems: 'center',
-              }}
-            >
-              <MaterialCommunityIcons name="plus" size={18} color="#FFFFFF" />
-              <Text style={{
-                fontFamily: theme.fonts.bodyBold,
-                fontSize: theme.fontSizes.sm,
-                color: '#FFFFFF',
-                marginLeft: 4,
-              }}>
-                New
-              </Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              {result && !isLogged && (
+                <TouchableOpacity
+                  onPress={handleLogFood}
+                  style={{
+                    backgroundColor: theme.colors.success,
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    borderRadius: 20,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Ionicons name="checkmark-circle-outline" size={18} color="#FFFFFF" />
+                  <Text style={{
+                    fontFamily: theme.fonts.bodyBold,
+                    fontSize: theme.fontSizes.sm,
+                    color: '#FFFFFF',
+                    marginLeft: 4,
+                  }}>
+                    Log Food
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity
+                onPress={handleReset}
+                style={{
+                  backgroundColor: theme.colors.primary,
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  borderRadius: 20,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}
+              >
+                <MaterialCommunityIcons name="plus" size={18} color="#FFFFFF" />
+                <Text style={{
+                  fontFamily: theme.fonts.bodyBold,
+                  fontSize: theme.fontSizes.sm,
+                  color: '#FFFFFF',
+                  marginLeft: 4,
+                }}>
+                  New
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           <ScrollView
@@ -1261,7 +1327,7 @@ export default function Food() {
                   <Text style={{
                     fontFamily: theme.fonts.heading,
                     fontSize: theme.fontSizes.lg,
-                    color: theme.colors.text,
+                    color: theme.colors.primary,
                     marginLeft: 8,
                   }}>
                     Recipe Ideas
@@ -1295,16 +1361,16 @@ export default function Food() {
               <View style={{
                 marginHorizontal: 20,
                 marginTop: 16,
-                backgroundColor: '#dcfce7',
+                backgroundColor: theme.colors.surface,
                 borderRadius: 24,
                 padding: 20,
               }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-                  <MaterialCommunityIcons name="lightbulb-on" size={20} color="#16a34a" />
+                  <MaterialCommunityIcons name="lightbulb-on" size={20} color={theme.colors.success} />
                   <Text style={{
                     fontFamily: theme.fonts.heading,
                     fontSize: theme.fontSizes.lg,
-                    color: '#166534',
+                    color: theme.colors.success,
                     marginLeft: 8,
                   }}>
                     Healthier Alternatives
@@ -1312,7 +1378,7 @@ export default function Food() {
                 </View>
                 {result.healthyAlternatives.map((alt, index) => (
                   <View key={index} style={{
-                    backgroundColor: '#FFFFFF',
+                    backgroundColor: theme.colors.background,
                     borderRadius: 12,
                     padding: 14,
                     marginBottom: 8,
@@ -1336,16 +1402,16 @@ export default function Food() {
               <View style={{
                 marginHorizontal: 20,
                 marginTop: 16,
-                backgroundColor: '#fef3c7',
+                backgroundColor: theme.colors.surface,
                 borderRadius: 24,
                 padding: 20,
               }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-                  <Ionicons name="alert-circle" size={20} color="#92400e" />
+                  <Ionicons name="alert-circle" size={20} color={theme.colors.error} />
                   <Text style={{
                     fontFamily: theme.fonts.heading,
                     fontSize: theme.fontSizes.lg,
-                    color: '#92400e',
+                    color: theme.colors.error,
                     marginLeft: 8,
                   }}>
                     May Contain
@@ -1354,14 +1420,14 @@ export default function Food() {
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
                   {result.allergyWarnings.mayContain.map((allergen, index) => (
                     <View key={index} style={{
-                      backgroundColor: '#fde68a',
+                      backgroundColor: theme.colors.background,
                       paddingHorizontal: 12,
                       paddingVertical: 6,
                       borderRadius: 16,
                       marginRight: 8,
                       marginBottom: 8,
                     }}>
-                      <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: '#92400e' }}>{allergen}</Text>
+                      <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, color: theme.colors.error }}>{allergen}</Text>
                     </View>
                   ))}
                 </View>
@@ -1401,6 +1467,61 @@ export default function Food() {
               </View>
             )}
 
+            {/* Log Food Button - Only show if not logged yet */}
+            {!isLogged && (
+              <View style={{ marginHorizontal: 20, marginTop: 24 }}>
+                <TouchableOpacity
+                  onPress={handleLogFood}
+                  disabled={loading}
+                  style={{
+                    backgroundColor: loading ? theme.colors.primary + '77' : '#22c55e',
+                    borderRadius: 16,
+                    paddingVertical: 16,
+                    alignItems: 'center',
+                    flexDirection: 'row',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {loading ? (
+                    <>
+                      <ActivityIndicator color="white" style={{ marginRight: 8 }} />
+                      <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base, color: '#FFFFFF' }}>
+                        Logging...
+                      </Text>
+                    </>
+                  ) : (
+                    <>
+                      <MaterialCommunityIcons name="content-save" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
+                      <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base, color: '#FFFFFF' }}>
+                        Log This Food
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Logged Badge - Show when food is logged */}
+            {isLogged && (
+              <View style={{ marginHorizontal: 20, marginTop: 24 }}>
+                <View style={{
+                  backgroundColor: '#22c55e' + '20',
+                  borderRadius: 16,
+                  paddingVertical: 16,
+                  alignItems: 'center',
+                  flexDirection: 'row',
+                  justifyContent: 'center',
+                  borderWidth: 2,
+                  borderColor: '#22c55e',
+                }}>
+                  <MaterialCommunityIcons name="check-circle" size={20} color="#22c55e" style={{ marginRight: 8 }} />
+                  <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base, color: '#22c55e' }}>
+                    Food Logged Successfully
+                  </Text>
+                </View>
+              </View>
+            )}
+
             {/* Analyze Another Button */}
             <View style={{ marginHorizontal: 20, marginTop: 24, marginBottom: 20 }}>
               <TouchableOpacity
@@ -1420,6 +1541,16 @@ export default function Food() {
                 </Text>
               </TouchableOpacity>
             </View>
+            {/* Battery Animation Overlay */}
+            <GamificationLoading visible={isCalculating} message="Calculating Nutrition Points..." />
+            <BatteryAnimate
+              visible={showBatteryAnimation}
+              previousValue={batteryAnimationData.previousValue}
+              newValue={batteryAnimationData.newValue}
+              label="Nutrition"
+              onComplete={() => setShowBatteryAnimation(false)}
+            />
+
           </ScrollView>
 
           {/* Camera Modal */}
@@ -2437,6 +2568,15 @@ export default function Food() {
             </View>
           </View>
         </Modal>
+
+        {/* Battery Animation Overlay */}
+        <BatteryAnimate
+          visible={showBatteryAnimation}
+          previousValue={batteryAnimationData.previousValue}
+          newValue={batteryAnimationData.newValue}
+          label={batteryAnimationData.label}
+          onComplete={() => setShowBatteryAnimation(false)}
+        />
       </SafeAreaView>
     </>
   );
