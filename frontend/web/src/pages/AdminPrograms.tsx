@@ -344,10 +344,10 @@ export default function AdminPrograms() {
                             </td>
                             <td className="p-4">
                               <div className="flex items-center gap-2 min-w-0">
-                                {program.user_id.profilePicture ? (
+                                {program.user_id?.profilePicture ? (
                                   <img 
                                     src={program.user_id.profilePicture} 
-                                    alt={program.user_id.username}
+                                    alt={program.user_id?.username || 'User'}
                                     className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                                   />
                                 ) : (
@@ -359,11 +359,11 @@ export default function AdminPrograms() {
                                   </div>
                                 )}
                                 <div className="min-w-0 flex-1">
-                                  <p className="text-sm font-medium truncate" style={{ color: theme.colors.text }} title={program.user_id.username}>
-                                    {program.user_id.username}
+                                  <p className="text-sm font-medium truncate" style={{ color: theme.colors.text }} title={program.user_id?.username || 'Unknown'}>
+                                    {program.user_id?.username || 'Unknown User'}
                                   </p>
-                                  <p className="text-xs truncate" style={{ color: theme.colors.textSecondary }} title={program.user_id.email}>
-                                    {program.user_id.email}
+                                  <p className="text-xs truncate" style={{ color: theme.colors.textSecondary }} title={program.user_id?.email || 'N/A'}>
+                                    {program.user_id?.email || 'N/A'}
                                   </p>
                                 </div>
                               </div>

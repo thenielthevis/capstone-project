@@ -458,10 +458,10 @@ export default function AdminGeoActivities() {
                           <div className="flex items-start justify-between">
                             <div className="flex gap-4 flex-1">
                               {/* Activity Icon */}
-                              {session.activity_type.icon && (
+                              {session.activity_type?.icon && (
                                 <img
                                   src={session.activity_type.icon}
-                                  alt={session.activity_type.name}
+                                  alt={session.activity_type?.name || 'Activity'}
                                   className="w-16 h-16 rounded-lg object-cover"
                                 />
                               )}
@@ -470,24 +470,26 @@ export default function AdminGeoActivities() {
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-2">
                                   <h3 className="font-semibold text-lg" style={{ color: theme.colors.text }}>
-                                    {session.activity_type.name}
+                                    {session.activity_type?.name || 'Unknown Activity'}
                                   </h3>
-                                  <span 
-                                    className="text-sm px-2 py-1 rounded"
-                                    style={{ 
-                                      backgroundColor: `${theme.colors.primary}20`,
-                                      color: theme.colors.primary
-                                    }}
-                                  >
-                                    MET: {session.activity_type.met}
-                                  </span>
+                                  {session.activity_type?.met && (
+                                    <span 
+                                      className="text-sm px-2 py-1 rounded"
+                                      style={{ 
+                                        backgroundColor: `${theme.colors.primary}20`,
+                                        color: theme.colors.primary
+                                      }}
+                                    >
+                                      MET: {session.activity_type.met}
+                                    </span>
+                                  )}
                                 </div>
 
                                 <div className="grid md:grid-cols-2 gap-2 text-sm mb-2" style={{ color: theme.colors.textSecondary }}>
                                   <div className="flex items-center gap-2">
                                     <Users className="w-4 h-4" />
                                     <span>
-                                      {session.user_id.username} ({session.user_id.email})
+                                      {session.user_id?.username || 'Unknown'} ({session.user_id?.email || 'N/A'})
                                     </span>
                                   </div>
                                   <div className="flex items-center gap-2">
@@ -516,7 +518,7 @@ export default function AdminGeoActivities() {
                                   )}
                                 </div>
 
-                                {session.activity_type.description && (
+                                {session.activity_type?.description && (
                                   <p className="mt-2 text-sm italic" style={{ color: theme.colors.textSecondary }}>
                                     {session.activity_type.description}
                                   </p>

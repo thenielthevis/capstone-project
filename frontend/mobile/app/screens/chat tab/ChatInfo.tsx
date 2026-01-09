@@ -27,6 +27,7 @@ import {
 } from "../../api/chatApi";
 import { getGroupPrograms, acceptProgram, declineProgram, Program } from "../../api/programApi";
 import GroupProgramModal from "../../components/Modals/GroupProgramModal";
+import ReportModal from "../../components/Modals/ReportModal";
 import * as ImagePicker from "expo-image-picker";
 
 export default function ChatInfo() {
@@ -48,6 +49,17 @@ export default function ChatInfo() {
   const [loadingPrograms, setLoadingPrograms] = useState(false);
   const [editingProgram, setEditingProgram] = useState<Program | null>(null);
   const [showEditProgramModal, setShowEditProgramModal] = useState(false);
+
+  // Report Modal State
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportUserId, setReportUserId] = useState<string | null>(null);
+  const [reportUserName, setReportUserName] = useState<string | undefined>(undefined);
+
+  const handleReportUser = (userId: string, username: string) => {
+    setReportUserId(userId);
+    setReportUserName(username);
+    setShowReportModal(true);
+  };
 
   const loadChatInfo = useCallback(async () => {
     if (!chatId) return;
@@ -402,6 +414,22 @@ export default function ChatInfo() {
                 name="chatbubble-outline"
                 size={18}
                 color={theme.colors.primary}
+              />
+            </TouchableOpacity>
+
+            {/* Report User Button */}
+            <TouchableOpacity
+              style={{
+                padding: 8,
+                backgroundColor: theme.colors.error + "15",
+                borderRadius: 8,
+              }}
+              onPress={() => handleReportUser(item._id, item.username)}
+            >
+              <Ionicons
+                name="flag-outline"
+                size={18}
+                color={theme.colors.error}
               />
             </TouchableOpacity>
 
@@ -1212,6 +1240,19 @@ export default function ChatInfo() {
           }}
         />
       )}
+
+      {/* Report User Modal */}
+      <ReportModal
+        visible={showReportModal}
+        onClose={() => {
+          setShowReportModal(false);
+          setReportUserId(null);
+          setReportUserName(undefined);
+        }}
+        reportType="user"
+        itemId={reportUserId || ""}
+        itemName={reportUserName}
+      />
     </SafeAreaView>
   );
 }

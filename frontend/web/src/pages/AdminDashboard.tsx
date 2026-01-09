@@ -3,12 +3,25 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { 
-  Users, Activity, BarChart3
+  Users, Activity, BarChart3, TrendingUp, Shield, Flag,
+  MapPin, Dumbbell, BookOpen, Award, Utensils, ArrowRight,
+  RefreshCw, Clock, UserPlus, ChevronRight
 } from 'lucide-react';
 import AdminSidebar from '@/components/AdminSidebar';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { adminApi, AdminStats } from '@/api/adminApi';
+import { getReportStats, ReportStatsResponse } from '@/api/reportApi';
+
+interface QuickLink {
+  id: string;
+  label: string;
+  description: string;
+  icon: React.ReactNode;
+  path: string;
+  color: string;
+  bgColor: string;
+}
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -18,12 +31,17 @@ export default function AdminDashboard() {
     totalUsers: 0,
     totalAdmins: 0,
   });
+  const [reportStats, setReportStats] = useState<ReportStatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
     fetchStats();
+    fetchReportStats();
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => clearInterval(timer);
   }, []);
 
   const fetchStats = async () => {
@@ -31,7 +49,6 @@ export default function AdminDashboard() {
       setLoading(true);
       setError(null);
       const data = await adminApi.getStats();
-      console.log('[AdminDashboard] Stats fetched:', data);
       setStats(data);
     } catch (err: any) {
       console.error('[AdminDashboard] Failed to fetch stats:', err);
@@ -41,192 +58,467 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchReportStats = async () => {
+    try {
+      const data = await getReportStats();
+      setReportStats(data);
+    } catch (err) {
+      console.error('[AdminDashboard] Failed to fetch report stats:', err);
+    }
+  };
+
+  const handleRefresh = () => {
+    fetchStats();
+    fetchReportStats();
+  };
+
+  const quickLinks: QuickLink[] = [
+    { id: 'users', label: 'Users', description: 'Manage accounts', icon: <Users className="w-5 h-5" />, path: '/admin/users', color: '#10b981', bgColor: '#10b98115' },
+    { id: 'reports', label: 'Reports', description: 'Review reports', icon: <Flag className="w-5 h-5" />, path: '/admin/reports', color: '#ef4444', bgColor: '#ef444415' },
+    { id: 'geo', label: 'Geo Activities', description: 'Location data', icon: <MapPin className="w-5 h-5" />, path: '/admin/geo-activities', color: '#f97316', bgColor: '#f9731615' },
+    { id: 'workouts', label: 'Workouts', description: 'Exercise data', icon: <Dumbbell className="w-5 h-5" />, path: '/admin/workouts', color: '#ef4444', bgColor: '#ef444415' },
+    { id: 'programs', label: 'Programs', description: 'User programs', icon: <BookOpen className="w-5 h-5" />, path: '/admin/programs', color: '#8b5cf6', bgColor: '#8b5cf615' },
+    { id: 'foodlogs', label: 'Food Logs', description: 'Nutrition data', icon: <Utensils className="w-5 h-5" />, path: '/admin/foodlogs', color: '#eab308', bgColor: '#eab30815' },
+    { id: 'achievements', label: 'Achievements', description: 'User rewards', icon: <Award className="w-5 h-5" />, path: '/admin/achievements', color: '#6366f1', bgColor: '#6366f115' },
+    { id: 'create-admin', label: 'Create Admin', description: 'New admin', icon: <UserPlus className="w-5 h-5" />, path: '/admin/create-admin', color: '#9333ea', bgColor: '#9333ea15' },
+  ];
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  };
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
+
   return (
-    <div className="min-h-screen flex" style={{ background: `linear-gradient(135deg, ${theme.colors.surface} 0%, ${theme.colors.background} 100%)` }}>
-      {/* Sidebar */}
+    <div className="min-h-screen flex" style={{ backgroundColor: theme.colors.background }}>
       <AdminSidebar activeNav="home" onSidebarToggle={setSidebarOpen} />
 
-      {/* Main Content */}
       <main className={`${sidebarOpen ? 'ml-64' : 'ml-20'} flex-1 transition-all duration-300`}>
-        {/* Top Header */}
-        <header className="shadow-sm sticky top-0 z-40" style={{ backgroundColor: theme.colors.surface }}>
-          <div className="px-8 py-4 flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold" style={{ color: theme.colors.text }}>Admin Dashboard</h1>
-              <p className="text-sm" style={{ color: theme.colors.textSecondary }}>Welcome back, {user?.username}</p>
+        {/* Modern Header */}
+        <header 
+          className="sticky top-0 z-40 backdrop-blur-md border-b"
+          style={{ 
+            backgroundColor: `${theme.colors.surface}ee`,
+            borderColor: theme.colors.border 
+          }}
+        >
+          <div className="px-8 py-5 flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <div>
+                <div className="flex items-center gap-3">
+                  <div 
+                    className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg"
+                    style={{ 
+                      background: `linear-gradient(135deg, ${theme.colors.primary} 0%, ${theme.colors.secondary} 100%)` 
+                    }}
+                  >
+                    {user?.username?.charAt(0).toUpperCase() || 'A'}
+                  </div>
+                  <div>
+                    <h1 className="text-xl font-bold" style={{ color: theme.colors.text }}>
+                      {getGreeting()}, {user?.username}
+                    </h1>
+                    <div className="flex items-center gap-2 text-sm" style={{ color: theme.colors.textSecondary }}>
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>{formatDate(currentTime)} • {formatTime(currentTime)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <Button
-                variant="outline"
+                variant="ghost"
+                size="sm"
+                onClick={handleRefresh}
+                className="gap-2"
+                style={{ color: theme.colors.textSecondary }}
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+              <Button
                 onClick={() => navigate('/admin/users')}
+                className="gap-2 text-white"
                 style={{
-                  borderColor: theme.colors.primary,
-                  color: theme.colors.primary,
-                  backgroundColor: 'transparent'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = `${theme.colors.primary}15`;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
+                  background: `linear-gradient(135deg, ${theme.colors.primary} 0%, ${theme.colors.secondary} 100%)`
                 }}
               >
-                <Users className="w-4 h-4 mr-2" />
+                <Users className="w-4 h-4" />
                 Manage Users
               </Button>
             </div>
           </div>
         </header>
 
-        {/* Content Area */}
         <div className="p-8">
-          <div className="max-w-7xl mx-auto space-y-8">
+          <div className="max-w-7xl mx-auto space-y-6">
             {/* Error Message */}
             {error && (
-              <Card 
-                className="border"
+              <div 
+                className="rounded-xl p-4 flex items-center justify-between border"
                 style={{
-                  backgroundColor: `${theme.colors.error}15`,
-                  borderColor: theme.colors.error
+                  backgroundColor: `${theme.colors.error}10`,
+                  borderColor: `${theme.colors.error}30`
                 }}
               >
-                <CardContent className="pt-6">
-                  <p style={{ color: theme.colors.error }}>{error}</p>
-                  <Button
-                    size="sm"
-                    onClick={fetchStats}
-                    className="mt-2"
-                    style={{
-                      backgroundColor: theme.colors.primary,
-                      color: '#fff'
-                    }}
-                  >
-                    Retry
-                  </Button>
-                </CardContent>
-              </Card>
+                <p className="text-sm" style={{ color: theme.colors.error }}>{error}</p>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={fetchStats}
+                  style={{ color: theme.colors.error }}
+                >
+                  <RefreshCw className="w-4 h-4 mr-1" />
+                  Retry
+                </Button>
+              </div>
             )}
 
-            {/* Welcome Section */}
-            <div 
-              className="rounded-xl shadow-sm p-8 border-l-4"
-              style={{ 
-                backgroundColor: theme.colors.card,
-                borderLeftColor: theme.colors.primary
-              }}
+            {/* Stats Cards - Modern Glassmorphism Style */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+              {/* Total Users */}
+              <div 
+                className="relative overflow-hidden rounded-2xl p-6 border transition-all duration-300 hover:scale-[1.02] hover:shadow-xl cursor-pointer group"
+                style={{ 
+                  backgroundColor: theme.colors.card,
+                  borderColor: theme.colors.border
+                }}
+                onClick={() => navigate('/admin/users')}
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 transform translate-x-8 -translate-y-8">
+                  <div 
+                    className="w-full h-full rounded-full opacity-20"
+                    style={{ backgroundColor: theme.colors.primary }}
+                  />
+                </div>
+                <div className="relative">
+                  <div 
+                    className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
+                    style={{ backgroundColor: `${theme.colors.primary}20` }}
+                  >
+                    <Users className="w-6 h-6" style={{ color: theme.colors.primary }} />
+                  </div>
+                  <p className="text-sm font-medium mb-1" style={{ color: theme.colors.textSecondary }}>
+                    Total Users
+                  </p>
+                  {loading ? (
+                    <div className="h-10 w-20 rounded animate-pulse" style={{ backgroundColor: theme.colors.border }} />
+                  ) : (
+                    <p className="text-4xl font-bold" style={{ color: theme.colors.primary }}>
+                      {stats.totalUsers.toLocaleString()}
+                    </p>
+                  )}
+                  <div className="flex items-center gap-1 mt-3 text-xs" style={{ color: theme.colors.textSecondary }}>
+                    <TrendingUp className="w-3 h-3 text-green-500" />
+                    <span>Registered on platform</span>
+                  </div>
+                </div>
+                <ChevronRight 
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity" 
+                  style={{ color: theme.colors.textSecondary }}
+                />
+              </div>
+
+              {/* Admin Accounts */}
+              <div 
+                className="relative overflow-hidden rounded-2xl p-6 border transition-all duration-300 hover:scale-[1.02] hover:shadow-xl cursor-pointer group"
+                style={{ 
+                  backgroundColor: theme.colors.card,
+                  borderColor: theme.colors.border
+                }}
+                onClick={() => navigate('/admin/create-admin')}
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 transform translate-x-8 -translate-y-8">
+                  <div className="w-full h-full rounded-full opacity-20 bg-purple-500" />
+                </div>
+                <div className="relative">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-purple-500/20">
+                    <Shield className="w-6 h-6 text-purple-500" />
+                  </div>
+                  <p className="text-sm font-medium mb-1" style={{ color: theme.colors.textSecondary }}>
+                    Admin Accounts
+                  </p>
+                  {loading ? (
+                    <div className="h-10 w-20 rounded animate-pulse" style={{ backgroundColor: theme.colors.border }} />
+                  ) : (
+                    <p className="text-4xl font-bold text-purple-500">
+                      {stats.totalAdmins.toLocaleString()}
+                    </p>
+                  )}
+                  <div className="flex items-center gap-1 mt-3 text-xs" style={{ color: theme.colors.textSecondary }}>
+                    <Activity className="w-3 h-3 text-purple-500" />
+                    <span>Active administrators</span>
+                  </div>
+                </div>
+                <ChevronRight 
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity" 
+                  style={{ color: theme.colors.textSecondary }}
+                />
+              </div>
+
+              {/* Pending Reports */}
+              <div 
+                className="relative overflow-hidden rounded-2xl p-6 border transition-all duration-300 hover:scale-[1.02] hover:shadow-xl cursor-pointer group"
+                style={{ 
+                  backgroundColor: theme.colors.card,
+                  borderColor: theme.colors.border
+                }}
+                onClick={() => navigate('/admin/reports')}
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 transform translate-x-8 -translate-y-8">
+                  <div className="w-full h-full rounded-full opacity-20 bg-amber-500" />
+                </div>
+                <div className="relative">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-amber-500/20">
+                    <Flag className="w-6 h-6 text-amber-500" />
+                  </div>
+                  <p className="text-sm font-medium mb-1" style={{ color: theme.colors.textSecondary }}>
+                    Pending Reports
+                  </p>
+                  {loading ? (
+                    <div className="h-10 w-20 rounded animate-pulse" style={{ backgroundColor: theme.colors.border }} />
+                  ) : (
+                    <p className="text-4xl font-bold text-amber-500">
+                      {reportStats?.pendingReports || 0}
+                    </p>
+                  )}
+                  <div className="flex items-center gap-1 mt-3 text-xs" style={{ color: theme.colors.textSecondary }}>
+                    <Clock className="w-3 h-3 text-amber-500" />
+                    <span>Awaiting review</span>
+                  </div>
+                </div>
+                <ChevronRight 
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity" 
+                  style={{ color: theme.colors.textSecondary }}
+                />
+              </div>
+
+              {/* Total Reports */}
+              <div 
+                className="relative overflow-hidden rounded-2xl p-6 border transition-all duration-300 hover:scale-[1.02] hover:shadow-xl cursor-pointer group"
+                style={{ 
+                  backgroundColor: theme.colors.card,
+                  borderColor: theme.colors.border
+                }}
+                onClick={() => navigate('/admin/reports')}
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 transform translate-x-8 -translate-y-8">
+                  <div className="w-full h-full rounded-full opacity-20 bg-red-500" />
+                </div>
+                <div className="relative">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-red-500/20">
+                    <BarChart3 className="w-6 h-6 text-red-500" />
+                  </div>
+                  <p className="text-sm font-medium mb-1" style={{ color: theme.colors.textSecondary }}>
+                    Total Reports
+                  </p>
+                  {loading ? (
+                    <div className="h-10 w-20 rounded animate-pulse" style={{ backgroundColor: theme.colors.border }} />
+                  ) : (
+                    <p className="text-4xl font-bold text-red-500">
+                      {reportStats?.totalReports || 0}
+                    </p>
+                  )}
+                  <div className="flex items-center gap-1 mt-3 text-xs" style={{ color: theme.colors.textSecondary }}>
+                    <Activity className="w-3 h-3 text-red-500" />
+                    <span>All time reports</span>
+                  </div>
+                </div>
+                <ChevronRight 
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity" 
+                  style={{ color: theme.colors.textSecondary }}
+                />
+              </div>
+            </div>
+
+            {/* Quick Navigation Grid */}
+            <Card 
+              className="border-0 shadow-lg overflow-hidden"
+              style={{ backgroundColor: theme.colors.card }}
             >
-              <h2 className="text-3xl font-bold mb-2" style={{ color: theme.colors.text }}>Welcome to Lifora Admin</h2>
-              <p style={{ color: theme.colors.textSecondary }}>Monitor your platform, manage users, and track analytics in real-time</p>
-            </div>
-
-            {/* Stats Grid */}
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Total Users Card */}
-              <Card className="hover:shadow-lg transition-shadow" style={{ backgroundColor: theme.colors.card, borderColor: theme.colors.border }}>
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <div className="p-2 rounded-lg" style={{ backgroundColor: `${theme.colors.primary}20` }}>
-                      <Users className="w-5 h-5" style={{ color: theme.colors.primary }} />
-                    </div>
-                    <span style={{ color: theme.colors.text }}>Total Users</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {loading ? (
-                    <p className="animate-pulse" style={{ color: theme.colors.textSecondary }}>Loading...</p>
-                  ) : (
-                    <div>
-                      <p className="text-4xl font-bold" style={{ color: theme.colors.primary }}>{stats.totalUsers}</p>
-                      <p className="text-sm mt-2" style={{ color: theme.colors.textSecondary }}>Registered on platform</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Total Admins Card */}
-              <Card className="hover:shadow-lg transition-shadow" style={{ backgroundColor: theme.colors.card, borderColor: theme.colors.border }}>
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <div className="p-2 rounded-lg" style={{ backgroundColor: '#9333ea20' }}>
-                      <Activity className="w-5 h-5 text-purple-600" />
-                    </div>
-                    <span style={{ color: theme.colors.text }}>Admin Accounts</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {loading ? (
-                    <p className="animate-pulse" style={{ color: theme.colors.textSecondary }}>Loading...</p>
-                  ) : (
-                    <div>
-                      <p className="text-4xl font-bold text-purple-600">{stats.totalAdmins}</p>
-                      <p className="text-sm mt-2" style={{ color: theme.colors.textSecondary }}>Active administrators</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-            </div>
-
-            {/* Quick Actions */}
-            <Card className="hover:shadow-lg transition-shadow" style={{ backgroundColor: theme.colors.card, borderColor: theme.colors.border }}>
-              <CardHeader>
+              <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex items-center gap-2" style={{ color: theme.colors.text }}>
-                  <BarChart3 className="w-5 h-5" style={{ color: theme.colors.primary }} />
-                  Quick Actions
+                  <div 
+                    className="w-8 h-8 rounded-lg flex items-center justify-center"
+                    style={{ backgroundColor: `${theme.colors.primary}20` }}
+                  >
+                    <BarChart3 className="w-4 h-4" style={{ color: theme.colors.primary }} />
+                  </div>
+                  Quick Navigation
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <Button
-                    className="justify-start h-auto py-4 px-6 border"
-                    style={{
-                      backgroundColor: `${theme.colors.primary}15`,
-                      color: theme.colors.text,
-                      borderColor: theme.colors.border,
-                    }}
-                    onClick={() => navigate('/admin/users')}
-                  >
-                    <Users className="w-5 h-5 mr-3" style={{ color: theme.colors.primary }} />
-                    <div className="text-left">
-                      <p className="font-semibold">List of Users</p>
-                      <p className="text-sm" style={{ color: theme.colors.textSecondary }}>View and manage all users</p>
-                    </div>
-                  </Button>
-                  <Button
-                    className="justify-start h-auto py-4 px-6 border"
-                    style={{
-                      backgroundColor: '#9333ea15',
-                      color: theme.colors.text,
-                      borderColor: theme.colors.border,
-                    }}
-                    onClick={() => navigate('/admin/create-admin')}
-                  >
-                    <Activity className="w-5 h-5 mr-3 text-purple-600" />
-                    <div className="text-left">
-                      <p className="font-semibold">Create Admin</p>
-                      <p className="text-sm" style={{ color: theme.colors.textSecondary }}>Add new admin account</p>
-                    </div>
-                  </Button>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {quickLinks.map((link) => (
+                    <button
+                      key={link.id}
+                      onClick={() => navigate(link.path)}
+                      className="group relative p-4 rounded-xl border transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 text-left"
+                      style={{ 
+                        backgroundColor: theme.colors.surface,
+                        borderColor: theme.colors.border
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = link.color;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = theme.colors.border;
+                      }}
+                    >
+                      <div 
+                        className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 transition-transform group-hover:scale-110"
+                        style={{ backgroundColor: link.bgColor }}
+                      >
+                        <span style={{ color: link.color }}>{link.icon}</span>
+                      </div>
+                      <p className="font-semibold text-sm mb-0.5" style={{ color: theme.colors.text }}>
+                        {link.label}
+                      </p>
+                      <p className="text-xs" style={{ color: theme.colors.textSecondary }}>
+                        {link.description}
+                      </p>
+                      <ArrowRight 
+                        className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1" 
+                        style={{ color: link.color }}
+                      />
+                    </button>
+                  ))}
                 </div>
               </CardContent>
             </Card>
 
-            {/* Info Section */}
-            <Card 
-              className="border hover:shadow-lg transition-shadow"
+            {/* Report Summary Section */}
+            {reportStats && (
+              <div className="grid md:grid-cols-2 gap-5">
+                {/* Reports by Type */}
+                <Card 
+                  className="border shadow-lg"
+                  style={{ backgroundColor: theme.colors.card, borderColor: theme.colors.border }}
+                >
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2" style={{ color: theme.colors.text }}>
+                      <Flag className="w-4 h-4" style={{ color: theme.colors.primary }} />
+                      Reports by Type
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {[
+                      { label: 'Posts', value: reportStats.byType?.post || 0, color: '#3b82f6' },
+                      { label: 'Messages', value: reportStats.byType?.message || 0, color: '#10b981' },
+                      { label: 'Users', value: reportStats.byType?.user || 0, color: '#f97316' },
+                    ].map((item) => (
+                      <div key={item.label} className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+                          <span className="text-sm" style={{ color: theme.colors.text }}>{item.label}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div 
+                            className="h-2 rounded-full"
+                            style={{ 
+                              width: `${Math.max((item.value / (reportStats.totalReports || 1)) * 100, 8)}px`,
+                              backgroundColor: item.color,
+                              minWidth: '40px',
+                              maxWidth: '100px'
+                            }}
+                          />
+                          <span className="text-sm font-semibold w-8 text-right" style={{ color: theme.colors.text }}>
+                            {item.value}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+
+                {/* Reports by Status */}
+                <Card 
+                  className="border shadow-lg"
+                  style={{ backgroundColor: theme.colors.card, borderColor: theme.colors.border }}
+                >
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2" style={{ color: theme.colors.text }}>
+                      <Activity className="w-4 h-4" style={{ color: theme.colors.primary }} />
+                      Reports by Status
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {[
+                      { label: 'Pending', value: reportStats.pendingReports || 0, color: '#f59e0b' },
+                      { label: 'Resolved', value: reportStats.resolvedReports || 0, color: '#10b981' },
+                      { label: 'Dismissed', value: reportStats.dismissedReports || 0, color: '#6b7280' },
+                    ].map((item) => (
+                      <div key={item.label} className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+                          <span className="text-sm" style={{ color: theme.colors.text }}>{item.label}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div 
+                            className="h-2 rounded-full"
+                            style={{ 
+                              width: `${Math.max((item.value / (reportStats.totalReports || 1)) * 100, 8)}px`,
+                              backgroundColor: item.color,
+                              minWidth: '40px',
+                              maxWidth: '100px'
+                            }}
+                          />
+                          <span className="text-sm font-semibold w-8 text-right" style={{ color: theme.colors.text }}>
+                            {item.value}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Footer Info */}
+            <div 
+              className="rounded-xl p-5 border flex items-center justify-between"
               style={{ 
-                backgroundColor: `${theme.colors.primary}15`,
-                borderColor: theme.colors.border
+                backgroundColor: `${theme.colors.primary}08`,
+                borderColor: `${theme.colors.primary}20`
               }}
             >
-              <CardContent className="pt-6">
-                <p className="text-sm" style={{ color: theme.colors.text }}>
-                  🔒 This is a restricted admin area. Only users with admin role can access this page.
-                  <br />
-                  <span className="inline-block mt-2">📊 New features and analytics coming soon!</span>
-                </p>
-              </CardContent>
-            </Card>
+              <div className="flex items-center gap-3">
+                <div 
+                  className="w-10 h-10 rounded-lg flex items-center justify-center"
+                  style={{ backgroundColor: `${theme.colors.primary}20` }}
+                >
+                  <Shield className="w-5 h-5" style={{ color: theme.colors.primary }} />
+                </div>
+                <div>
+                  <p className="text-sm font-medium" style={{ color: theme.colors.text }}>
+                    Admin Control Panel
+                  </p>
+                  <p className="text-xs" style={{ color: theme.colors.textSecondary }}>
+                    Secure access • Role-based permissions • Activity logging
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/admin/reports')}
+                className="gap-1"
+                style={{ color: theme.colors.primary }}
+              >
+                View Reports
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </main>

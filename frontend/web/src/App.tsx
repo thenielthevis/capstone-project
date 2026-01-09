@@ -16,12 +16,20 @@ import Settings from './pages/Settings';
 import TermsAndConditions from './pages/TermsAndConditions';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminUsers from './pages/AdminUsers';
+import AdminReports from './pages/AdminReports';
 import CreateAdmin from './pages/CreateAdmin';
 import AdminFoodLogs from './pages/AdminFoodLogs';
 import AdminGeoActivities from './pages/AdminGeoActivities';
 import AdminWorkouts from './pages/AdminWorkouts';
 import AdminPrograms from './pages/AdminPrograms';
 import AdminAchievements from './pages/AdminAchievements';
+import Feed from './pages/Feed';
+import Chat from './pages/Chat';
+import Report from './pages/Report';
+import HealthAnalysis from './pages/HealthAnalysis';
+import AnalysisDetail from './pages/AnalysisDetail';
+import Profile from './pages/Profile';
+import PostDetail from './pages/PostDetail';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -40,6 +48,38 @@ function App() {
         }
       />
       <Route
+        path="/feed"
+        element={
+          <ProtectedRoute>
+            <Feed />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/chat"
+        element={
+          <ProtectedRoute>
+            <Chat />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/post/:postId"
+        element={
+          <ProtectedRoute>
+            <PostDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/report"
+        element={
+          <ProtectedRoute>
+            <Report />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/health-assessment"
         element={
           <ProtectedRoute>
@@ -52,6 +92,22 @@ function App() {
         element={
           <ProtectedRoute>
             <Predictions />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/analysis"
+        element={
+          <ProtectedRoute>
+            <HealthAnalysis />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/analysis/:metricId"
+        element={
+          <ProtectedRoute>
+            <AnalysisDetail />
           </ProtectedRoute>
         }
       />
@@ -120,6 +176,14 @@ function App() {
         }
       />
       <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/admin/dashboard"
         element={
           <ProtectedRoute>
@@ -132,6 +196,14 @@ function App() {
         element={
           <ProtectedRoute>
             <AdminUsers />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/reports"
+        element={
+          <ProtectedRoute>
+            <AdminReports />
           </ProtectedRoute>
         }
       />

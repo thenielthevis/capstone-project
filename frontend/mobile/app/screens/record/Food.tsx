@@ -24,6 +24,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { foodLogApi } from '../../api/foodLogApi';
 import { useUser } from '../../context/UserContext';
 import { getUserAllergies, getTodayCalorieBalance } from '../../api/userApi';
+import { sendCalorieReminder, configureNotifications } from '@/utils/calorieNotifications';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -293,6 +294,11 @@ export default function Food() {
   } | null>(null);
   const [allergiesLoaded, setAllergiesLoaded] = useState(false);
 
+  // Configure notifications on component mount
+  useEffect(() => {
+    configureNotifications();
+  }, []);
+
   // Load user allergies from profile on mount
   useEffect(() => {
     const loadUserAllergies = async () => {
@@ -374,9 +380,19 @@ export default function Food() {
   // Refresh calorie balance after food log is saved
   const refreshCalorieBalance = async () => {
     try {
+      console.log('[Food] Refreshing calorie balance...');
       const response = await getTodayCalorieBalance();
+      console.log('[Food] Calorie balance response:', response);
+      
       if (response.entry) {
+        console.log('[Food] Setting calorie balance:', response.entry);
         setCalorieBalance(response.entry);
+        
+        // Send calorie reminder notification after refreshing
+        console.log('[Food] Sending calorie reminder with data:', response.entry);
+        await sendCalorieReminder(response.entry);
+      } else {
+        console.log('[Food] No entry in calorie balance response');
       }
     } catch (error) {
       console.error('[Food] Error refreshing calorie balance:', error);

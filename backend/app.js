@@ -33,6 +33,7 @@ const chatRoutes = require('./routes/chatRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const postRoutes = require('./routes/postRoutes');
 const commentRoutes = require('./routes/commentRoutes');
+const reportRoutes = require('./routes/reportRoutes');
 
 // During development allow all origins so phones/emulators can reach the server.
 // In production restrict this to a known list.
@@ -65,8 +66,10 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/message', messageRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/comments', commentRoutes);
+app.use('/api/reports', reportRoutes);
 console.log('[APP] Registered /api/admin routes');
 console.log('[APP] Registered /api/gemini routes');
+console.log('[APP] Registered /api/reports routes');
 
 // Health check endpoint
 app.get('/', (req, res) => {

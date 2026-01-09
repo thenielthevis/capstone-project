@@ -18,7 +18,7 @@ import Toast from "react-native-toast-message";
 import { LinearGradient } from "expo-linear-gradient";
 import { fetchChecklistForMetric } from "../../utils/geminiService";
 import { getPredictionUpdateFlag, setPredictionUpdateFlag } from "../screens/analysis_input/prediction_input";
-import { formatDiseaseName } from "../utils/formatDisease";
+import { formatDiseaseName } from "@/utils/formatDisease";
 
 // API Configuration - use environment variable or fallback to localhost
 const getApiUrl = (): string => {

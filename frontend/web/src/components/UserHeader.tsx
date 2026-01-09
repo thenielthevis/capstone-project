@@ -63,7 +63,13 @@ export default function UserHeader() {
                 <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden z-50">
                   {/* User Info Section */}
                   <div className="px-4 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
-                    <div className="flex items-center gap-3">
+                    <button 
+                      onClick={() => {
+                        navigate('/profile');
+                        setSettingsOpen(false);
+                      }}
+                      className="flex items-center gap-3 w-full hover:opacity-80 transition-opacity"
+                    >
                       <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white text-lg font-bold">
                         {user?.profilePicture ? (
                           <img
@@ -75,11 +81,12 @@ export default function UserHeader() {
                           (user?.username || 'U').substring(0, 1).toUpperCase()
                         )}
                       </div>
-                      <div>
+                      <div className="text-left">
                         <p className="font-semibold text-gray-900">{user?.username}</p>
                         <p className="text-sm text-gray-600">{user?.email}</p>
+                        <p className="text-xs text-blue-600 font-medium mt-0.5">View Profile</p>
                       </div>
-                    </div>
+                    </button>
                   </div>
 
                   {/* Theme Section */}
@@ -135,11 +142,25 @@ export default function UserHeader() {
                   {/* Action Buttons */}
                   <div className="px-4 py-3 space-y-2">
                     <button
-                      onClick={() => navigate('/health-assessment')}
+                      onClick={() => {
+                        navigate('/profile');
+                        setSettingsOpen(false);
+                      }}
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                     >
                       <UserIcon className="w-4 h-4" />
-                      <span>Edit Profile</span>
+                      <span>View Profile</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        navigate('/health-assessment');
+                        setSettingsOpen(false);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      <Settings className="w-4 h-4" />
+                      <span>Edit Health Info</span>
                     </button>
                     
                     <button

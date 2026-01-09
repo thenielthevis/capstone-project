@@ -128,6 +128,37 @@ exports.getFeed = async (req, res) => {
     }
 };
 
+// @desc    Get a single post by ID
+// @route   GET /api/posts/:id
+// @access  Protected
+exports.getPost = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const post = await Post.findById(id)
+            .populate("user", "username name profilePicture email")
+            .populate("reference.item_id")
+            .lean();
+
+        if (!post) {
+            return res.status(404).json({ message: "Post not found" });
+        }
+
+        // Check visibility permissions
+        const isOwner = post.user._id.toString() === req.user.id;
+        if (post.visibility === "private" && !isOwner) {
+            return res.status(403).json({ message: "You don't have permission to view this post" });
+        }
+
+        // Get comment count
+        const commentCount = await Comment.countDocuments({ post: post._id });
+
+        res.status(200).json({ ...post, commentCount });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+};
+
 // @desc    Vote on a post (Reddit style)
 // @route   PUT /api/posts/:id/vote
 // @access  Protected

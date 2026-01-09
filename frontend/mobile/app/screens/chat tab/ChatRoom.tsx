@@ -32,6 +32,8 @@ import {
 import { getGroupPrograms, acceptProgram, declineProgram, Program } from "../../api/programApi";
 import { showToast } from "../../components/Toast/Toast";
 import GroupProgramModal from "../../components/Modals/GroupProgramModal";
+import ReportModal from "../../components/Modals/ReportModal";
+import { ReportType } from "../../api/reportApi";
 
 const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢"];
 
@@ -65,6 +67,21 @@ export default function ChatRoom() {
   const [showOptionsModal, setShowOptionsModal] = useState(false);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [showGroupProgramModal, setShowGroupProgramModal] = useState(false);
+
+  // Report Modal State
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportItemId, setReportItemId] = useState<string | null>(null);
+  const [reportType, setReportType] = useState<ReportType>("message");
+  const [reportItemName, setReportItemName] = useState<string | undefined>(undefined);
+
+  const handleOpenReportModal = (type: ReportType, itemId: string, itemName?: string) => {
+    setReportType(type);
+    setReportItemId(itemId);
+    setReportItemName(itemName);
+    setShowReportModal(true);
+    setShowOptionsModal(false);
+    setSelectedMessage(null);
+  };
 
   const flatListRef = useRef<FlatList>(null);
 
@@ -193,27 +210,7 @@ export default function ChatRoom() {
 
   const handleReport = () => {
     if (!selectedMessage) return;
-    Alert.alert(
-      "Report Message",
-      "Are you sure you want to report this message for inappropriate content?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Report",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await reportMessage(selectedMessage._id);
-              Alert.alert("Reported", "Thank you for your report. We will review this message.");
-            } catch (error) {
-              Alert.alert("Error", "Failed to report message. Please try again.");
-            }
-          },
-        },
-      ]
-    );
-    setShowOptionsModal(false);
-    setSelectedMessage(null);
+    handleOpenReportModal("message", selectedMessage._id);
   };
 
   // Handle accept program from chat
@@ -1305,6 +1302,19 @@ export default function ChatRoom() {
           }}
         />
       )}
+
+      {/* Report Modal */}
+      <ReportModal
+        visible={showReportModal}
+        onClose={() => {
+          setShowReportModal(false);
+          setReportItemId(null);
+          setReportItemName(undefined);
+        }}
+        reportType={reportType}
+        itemId={reportItemId || ""}
+        itemName={reportItemName}
+      />
     </SafeAreaView>
   );
 }

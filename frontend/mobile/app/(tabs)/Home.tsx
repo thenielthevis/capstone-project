@@ -9,6 +9,7 @@ import { useRouter } from "expo-router";
 import { useUser } from "../context/UserContext";
 import ReactionButton, { REACTIONS } from "../components/ReactionButton";
 import SessionPreview from "../components/feed/SessionPreview";
+import ReportModal from "../components/Modals/ReportModal";
 
 type Post = {
   _id: string;
@@ -48,6 +49,10 @@ export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Report Modal State
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportPostId, setReportPostId] = useState<string | null>(null);
 
   // FAB Animation
   const [fabOpen, setFabOpen] = useState(false);
@@ -267,6 +272,18 @@ export default function Home() {
                 size={16}
                 color={theme.colors.text + '77'}
               />
+            )}
+            {/* Report Button */}
+            {post.user?._id !== userId && (
+              <TouchableOpacity
+                onPress={() => {
+                  setReportPostId(post._id);
+                  setShowReportModal(true);
+                }}
+                style={{ marginLeft: 12, padding: 4 }}
+              >
+                <Ionicons name="flag-outline" size={18} color={theme.colors.text + '77'} />
+              </TouchableOpacity>
             )}
           </View>
 
@@ -545,6 +562,17 @@ export default function Home() {
           </TouchableOpacity>
         </View>
       </Animated.View>
+
+      {/* Report Modal */}
+      <ReportModal
+        visible={showReportModal}
+        onClose={() => {
+          setShowReportModal(false);
+          setReportPostId(null);
+        }}
+        reportType="post"
+        itemId={reportPostId || ""}
+      />
     </View>
   );
 }
