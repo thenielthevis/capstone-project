@@ -1,10 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { flushSync } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import Header from '@/components/Header';
 import ReactionButton, { REACTIONS } from '@/components/ReactionButton';
-import ReportModal from '@/components/ReportModal';
 import { postApi, Post } from '@/api/postApi';
 import { commentApi, Comment } from '@/api/commentApi';
 import { ReportType } from '@/api/reportApi';
@@ -31,6 +30,7 @@ import {
 export default function Feed() {
   const { theme } = useTheme();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -46,22 +46,10 @@ export default function Feed() {
   const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
   const [postingComment, setPostingComment] = useState(false);
 
-  // Report Modal State
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [reportItemId, setReportItemId] = useState<string | null>(null);
-  const [reportType, setReportType] = useState<ReportType>('post');
-  const [reportItemName, setReportItemName] = useState<string | undefined>(undefined);
-  const [reportKey, setReportKey] = useState(0);
-
-  const handleOpenReportModal = (type: ReportType, itemId: string, itemName?: string) => {
-    // Use flushSync to force immediate DOM update
-    flushSync(() => {
-      setReportType(type);
-      setReportItemId(itemId);
-      setReportItemName(itemName);
-      setReportKey(prev => prev + 1);
-      setShowReportModal(true);
-    });
+  const handleReport = (type: ReportType, itemId: string, itemName?: string) => {
+    const params = new URLSearchParams({ type, id: itemId });
+    if (itemName) params.append('name', itemName);
+    navigate(`/report?${params.toString()}`);
   };
 
   useEffect(() => {
@@ -280,7 +268,7 @@ export default function Feed() {
               e.stopPropagation();
               const userId = user?._id || user?.id;
               if (post.user?._id && post.user._id !== userId) {
-                handleOpenReportModal('user', post.user._id, post.user.username);
+                handleReport('user', post.user._id, post.user.username);
               }
             }}
             title={post.user?._id !== (user?._id || user?.id) ? 'Click to report user' : ''}
@@ -321,7 +309,7 @@ export default function Feed() {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                handleOpenReportModal('post', post._id);
+                handleReport('post', post._id);
               }}
               className="p-2 rounded-lg hover:opacity-80 transition"
               title="Report post"
@@ -798,20 +786,6 @@ export default function Feed() {
           </div>
         </div>
       )}
-
-      {/* Report Modal */}
-      <ReportModal
-        key={reportKey}
-        isOpen={showReportModal}
-        onClose={() => {
-          setShowReportModal(false);
-          setReportItemId(null);
-          setReportItemName(undefined);
-        }}
-        reportType={reportType}
-        itemId={reportItemId || ''}
-        itemName={reportItemName}
-      />
     </div>
   );
 }

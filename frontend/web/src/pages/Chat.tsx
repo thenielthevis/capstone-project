@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import Header from '@/components/Header';
 import GroupProgramModal from '@/components/GroupProgramModal';
-import ReportModal from '@/components/ReportModal';
 import { ReportType } from '@/api/reportApi';
 import {
   fetchChats,
@@ -15,7 +15,6 @@ import {
   accessChat,
   createGroupChat,
   addReaction,
-  reportMessage,
   markMessagesAsRead,
   User as UserType,
   removeUserFromGroup,
@@ -97,20 +96,14 @@ export default function Chat() {
   const [updatingPhoto, setUpdatingPhoto] = useState(false);
   const [leavingGroup, setLeavingGroup] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
 
-  // Report Modal State
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [reportItemId, setReportItemId] = useState<string | null>(null);
-  const [reportType, setReportType] = useState<ReportType>('message');
-  const [reportItemName, setReportItemName] = useState<string | undefined>(undefined);
-
-  const handleOpenReportModal = (type: ReportType, itemId: string, itemName?: string) => {
-    setReportType(type);
-    setReportItemId(itemId);
-    setReportItemName(itemName);
-    setShowReportModal(true);
+  const handleReport = (type: ReportType, itemId: string, itemName?: string) => {
+    const params = new URLSearchParams({ type, id: itemId });
+    if (itemName) params.append('name', itemName);
     setShowMessageOptions(false);
     setSelectedMessage(null);
+    navigate(`/report?${params.toString()}`);
   };
   
   // Group program state
@@ -353,7 +346,7 @@ export default function Chat() {
   // Handle report message
   const handleReportMessage = () => {
     if (!selectedMessage) return;
-    handleOpenReportModal('message', selectedMessage._id);
+    handleReport('message', selectedMessage._id);
   };
 
   // Handle create group
@@ -1001,7 +994,7 @@ export default function Chat() {
                       {/* Report User Button - hidden for current user */}
                       {member._id !== user?._id && (
                         <button
-                          onClick={() => handleOpenReportModal('user', member._id, member.username)}
+                          onClick={() => handleReport('user', member._id, member.username)}
                           className="p-1.5 rounded-full hover:opacity-70 transition"
                           style={{ backgroundColor: theme.colors.error + '10' }}
                           title="Report user"
@@ -1585,19 +1578,6 @@ export default function Chat() {
           </div>
         </div>
       )}
-
-      {/* Report Modal */}
-      <ReportModal
-        isOpen={showReportModal}
-        onClose={() => {
-          setShowReportModal(false);
-          setReportItemId(null);
-          setReportItemName(undefined);
-        }}
-        reportType={reportType}
-        itemId={reportItemId || ''}
-        itemName={reportItemName}
-      />
     </div>
   );
 }

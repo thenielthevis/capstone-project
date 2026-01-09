@@ -25,6 +25,7 @@ import AdminPrograms from './pages/AdminPrograms';
 import AdminAchievements from './pages/AdminAchievements';
 import Feed from './pages/Feed';
 import Chat from './pages/Chat';
+import Report from './pages/Report';
 import HealthAnalysis from './pages/HealthAnalysis';
 import AnalysisDetail from './pages/AnalysisDetail';
 import Profile from './pages/Profile';
@@ -67,6 +68,14 @@ function App() {
         element={
           <ProtectedRoute>
             <PostDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/report"
+        element={
+          <ProtectedRoute>
+            <Report />
           </ProtectedRoute>
         }
       />
