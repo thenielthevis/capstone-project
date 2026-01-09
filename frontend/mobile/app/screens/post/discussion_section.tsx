@@ -567,3 +567,6 @@ export default function DiscussionSection() {
                 itemId={reportItemId || ""}
                 itemName={reportItemName}
             />
+        </SafeAreaView>
+    );
+}

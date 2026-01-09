@@ -421,7 +421,7 @@ export default function ChatInfo() {
             <TouchableOpacity
               style={{
                 padding: 8,
-                backgroundColor: theme.colors.warning + "15",
+                backgroundColor: theme.colors.error + "15",
                 borderRadius: 8,
               }}
               onPress={() => handleReportUser(item._id, item.username)}
@@ -429,7 +429,7 @@ export default function ChatInfo() {
               <Ionicons
                 name="flag-outline"
                 size={18}
-                color={theme.colors.warning || theme.colors.error}
+                color={theme.colors.error}
               />
             </TouchableOpacity>
 
@@ -1253,3 +1253,6 @@ export default function ChatInfo() {
         itemId={reportUserId || ""}
         itemName={reportUserName}
       />
+    </SafeAreaView>
+  );
+}

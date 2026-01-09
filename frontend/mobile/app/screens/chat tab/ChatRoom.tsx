@@ -1315,3 +1315,6 @@ export default function ChatRoom() {
         itemId={reportItemId || ""}
         itemName={reportItemName}
       />
+    </SafeAreaView>
+  );
+}
