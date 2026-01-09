@@ -102,6 +102,14 @@ exports.createGeoSession = async (req, res) => {
       await updateUserDailyBurnedCalories(user_id, calories_burned);
     }
 
+    // Trigger Gamification Calculation (Activity Battery)
+    try {
+      const { updateUserGamificationStats } = require('./gamificationController');
+      updateUserGamificationStats(user_id).catch(err => console.error('Background Gamification Update Error:', err.message));
+    } catch (gErr) {
+      console.error('Failed to trigger gamification update:', gErr);
+    }
+
     res.status(201).json(savedGeoSession);
   } catch (error) {
     console.error("Error creating geo session:", error);

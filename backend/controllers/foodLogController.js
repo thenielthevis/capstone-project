@@ -26,7 +26,7 @@ async function updateUserDailyCalories(userId, calories) {
       const height = physicalMetrics?.height?.value;
       const targetWeight = physicalMetrics?.targetWeight?.value;
       const activityLevel = lifestyle?.activityLevel;
-      
+
       let goal_kcal = 2000; // Default
       if (weight && height && age && gender) {
         // Mifflin-St Jeor Equation for BMR
@@ -63,7 +63,7 @@ async function updateUserDailyCalories(userId, calories) {
       // Update existing entry
       entry.consumed_kcal = (entry.consumed_kcal || 0) + calories;
       entry.net_kcal = entry.consumed_kcal - (entry.burned_kcal || 0);
-      
+
       // Update status
       if (entry.net_kcal < entry.goal_kcal - 100) {
         entry.status = 'under';
@@ -154,6 +154,14 @@ exports.createFoodLog = async (req, res) => {
     // Automatically update user's daily calorie balance
     await updateUserDailyCalories(userId, foodData.calories);
 
+    // Trigger Gamification Calculation (Nutrition Battery)
+    try {
+      const { updateUserGamificationStats } = require('./gamificationController');
+      updateUserGamificationStats(userId).catch(err => console.error('Background Gamification Update Error:', err.message));
+    } catch (gErr) {
+      console.error('Failed to trigger gamification update:', gErr);
+    }
+
     res.status(201).json({
       message: 'Food log created successfully',
       foodLog: savedLog
@@ -172,10 +180,10 @@ exports.getUserFoodLogs = async (req, res) => {
   try {
     const userId = req.user.id || req.user._id;
     const userRole = req.user.role;
-    const { 
-      page = 1, 
-      limit = 20, 
-      startDate, 
+    const {
+      page = 1,
+      limit = 20,
+      startDate,
       endDate,
       searchQuery,
       sortBy = 'analyzedAt',
@@ -187,7 +195,7 @@ exports.getUserFoodLogs = async (req, res) => {
     console.log('[GET USER FOOD LOGS] Full user object:', JSON.stringify(req.user));
 
     let query = {};
-    
+
     // Build the base query
     // If admin, return all food logs; if regular user, filter by userId
     if (userRole === 'admin') {
@@ -317,7 +325,7 @@ exports.getUserNutritionStats = async (req, res) => {
     } else {
       const now = new Date();
       const periodStart = new Date();
-      
+
       switch (period) {
         case 'day':
           periodStart.setDate(now.getDate() - 1);
@@ -334,7 +342,7 @@ exports.getUserNutritionStats = async (req, res) => {
         default:
           periodStart.setDate(now.getDate() - 7);
       }
-      
+
       dateFilter = {
         analyzedAt: { $gte: periodStart, $lte: now }
       };
@@ -507,7 +515,7 @@ exports.deleteFoodLogs = async (req, res) => {
     }
 
     let query = { _id: { $in: ids } };
-    
+
     // If not admin, only delete their own food logs
     if (userRole !== 'admin') {
       // Convert string ID to ObjectId for proper MongoDB matching

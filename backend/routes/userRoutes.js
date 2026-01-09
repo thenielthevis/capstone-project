@@ -3,7 +3,7 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const userMiddleware = require('../middleware/user');
 
-const { registerUser, 
+const { registerUser,
         loginUser,
         googleUserController,
         listUsers,
@@ -23,6 +23,8 @@ const { registerUser,
         getAllUsersForChat
 } = require('../controllers/userControllers');
 
+const { refreshGamificationStats } = require('../controllers/gamificationController');
+
 router.get('/me', userMiddleware, currentlyLoggedInUser);
 router.post('/register', registerUser);
 router.post('/login', loginUser);
@@ -41,6 +43,9 @@ router.patch('/daily-calorie-balance', auth, updateDailyCalories);
 router.get('/allergies', auth, getUserAllergies);
 // Get today's calorie balance
 router.get('/daily-calorie-balance/today', auth, getTodayCalorieBalance);
+
+// Gamification Route
+router.post('/gamification/refresh', auth, refreshGamificationStats);
 
 // User Profile Routes
 router.get('/profile', auth, getUserProfile);

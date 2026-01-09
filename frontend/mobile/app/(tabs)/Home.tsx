@@ -351,11 +351,20 @@ export default function Home() {
 
             {/* Right: Comments & Shares */}
             <View className="flex-row items-center">
-              {(post.commentCount || 0) > 0 && (
-                <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '99', fontSize: 13 }}>
-                  {post.commentCount} comments
-                </Text>
-              )}
+              <TouchableOpacity
+                onPress={() => router.push({
+                  pathname: '/screens/post/discussion_section',
+                  params: {
+                    postId: post._id
+                  }
+                })}
+              >
+                {(post.commentCount || 0) > 0 && (
+                  <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '99', fontSize: 13 }}>
+                    {post.commentCount} comments
+                  </Text>
+                )}
+              </TouchableOpacity>
               {(post.shares?.length || 0) > 0 && (
                 <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '99', fontSize: 13, marginLeft: 6 }}>
                   • {post.shares?.length} shares

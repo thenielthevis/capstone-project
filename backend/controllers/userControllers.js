@@ -501,15 +501,15 @@ exports.getUserProfile = async (req, res) => {
     try {
         const userId = req.user.id;
         const user = await User.findById(userId).select('-password -__v').lean();
-        
+
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
 
         // Calculate additional profile stats
         const memberSince = user.registeredDate ? new Date(user.registeredDate) : null;
-        const daysSinceRegistration = memberSince 
-            ? Math.floor((new Date() - memberSince) / (1000 * 60 * 60 * 24)) 
+        const daysSinceRegistration = memberSince
+            ? Math.floor((new Date() - memberSince) / (1000 * 60 * 60 * 24))
             : 0;
 
         // Calculate BMI if height and weight are available
@@ -548,12 +548,12 @@ exports.getUserProfile = async (req, res) => {
                 verified: user.verified,
                 registeredDate: user.registeredDate,
                 daysSinceRegistration,
-                
+
                 // Personal Info
                 birthdate: user.birthdate,
                 age: user.age,
                 gender: user.gender,
-                
+
                 // Physical Metrics
                 physicalMetrics: {
                     height: user.physicalMetrics?.height?.value || null,
@@ -562,13 +562,13 @@ exports.getUserProfile = async (req, res) => {
                     bmi: calculatedBMI || user.physicalMetrics?.bmi || null,
                     waistCircumference: user.physicalMetrics?.waistCircumference || null,
                 },
-                
+
                 // Lifestyle
                 lifestyle: {
                     activityLevel: user.lifestyle?.activityLevel || null,
                     sleepHours: user.lifestyle?.sleepHours || null,
                 },
-                
+
                 // Dietary Profile
                 dietaryProfile: {
                     preferences: user.dietaryProfile?.preferences || [],
@@ -576,7 +576,7 @@ exports.getUserProfile = async (req, res) => {
                     dailyWaterIntake: user.dietaryProfile?.dailyWaterIntake || null,
                     mealFrequency: user.dietaryProfile?.mealFrequency || null,
                 },
-                
+
                 // Health Profile
                 healthProfile: {
                     currentConditions: user.healthProfile?.currentConditions || [],
@@ -584,19 +584,19 @@ exports.getUserProfile = async (req, res) => {
                     medications: user.healthProfile?.medications || [],
                     bloodType: user.healthProfile?.bloodType || null,
                 },
-                
+
                 // Environmental Factors
                 environmentalFactors: {
                     pollutionExposure: user.environmentalFactors?.pollutionExposure || null,
                     occupationType: user.environmentalFactors?.occupationType || null,
                 },
-                
+
                 // Risk Factors
                 riskFactors: {
                     addictions: user.riskFactors?.addictions || [],
                     stressLevel: user.riskFactors?.stressLevel || null,
                 },
-                
+
                 // Last Prediction Summary
                 lastPrediction: user.lastPrediction ? {
                     disease: user.lastPrediction.disease,
@@ -604,7 +604,10 @@ exports.getUserProfile = async (req, res) => {
                     predictedAt: user.lastPrediction.predictedAt,
                     source: user.lastPrediction.source,
                 } : null,
-                
+
+                // Gamification
+                gamification: user.gamification,
+
                 // Profile Stats
                 profileCompletion,
             }
@@ -620,7 +623,7 @@ exports.updateUserProfile = async (req, res) => {
     try {
         const userId = req.user.id;
         const updates = req.body;
-        
+
         // Fields that can be updated
         const allowedUpdates = [
             'username',
@@ -704,7 +707,7 @@ exports.updateUserProfile = async (req, res) => {
 
         // Return updated profile
         const updatedUser = await User.findById(userId).select('-password -__v').lean();
-        
+
         res.status(200).json({
             message: 'Profile updated successfully',
             profile: updatedUser,
@@ -720,7 +723,7 @@ exports.updateProfilePicture = async (req, res) => {
     try {
         const userId = req.user.id;
         const { profilePicture } = req.body;
-        
+
         if (!profilePicture) {
             return res.status(400).json({ message: 'Profile picture URL or base64 required' });
         }

@@ -8,14 +8,16 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
+  Dimensions, // Added Dimensions
 } from "react-native";
+import { BarChart } from "react-native-gifted-charts"; // Import BarChart
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { FontAwesome6, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useFocusEffect } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { useTheme } from "../../context/ThemeContext";
 import { useUser } from "../../context/UserContext";
-import { getUserProfile, updateProfilePicture, UserProfile } from "../../api/userApi";
+import { getUserProfile, updateProfilePicture, refreshGamification, UserProfile } from "../../api/userApi";
 import { tokenStorage } from "../../../utils/tokenStorage";
 
 // Profile Section Component
@@ -138,6 +140,63 @@ const Tag = ({ text, color, theme }: { text: string; color: string; theme: any }
   </View>
 );
 
+// Custom Battery Component
+// Custom Battery Component
+const BatteryIcon = ({ value, label, theme }: { value: number, label: string, theme: any }) => {
+  const color = getBatteryColor(value);
+
+  return (
+    <View style={{ alignItems: 'center', marginHorizontal: 8 }}>
+      {/* Battery Nub (Top) */}
+      <View
+        style={{
+          width: 12,
+          height: 4,
+          backgroundColor: theme.colors.text + '30',
+          borderTopLeftRadius: 2,
+          borderTopRightRadius: 2,
+          marginBottom: 1
+        }}
+      />
+
+      {/* Main Battery Body */}
+      <View
+        style={{
+          width: 32,
+          height: 80,
+          borderWidth: 2,
+          borderColor: theme.colors.text + '30',
+          borderRadius: 6,
+          padding: 2,
+          justifyContent: 'flex-end',
+          marginBottom: 8
+        }}
+      >
+        {/* Fill */}
+        <View
+          style={{
+            width: '100%',
+            height: `${Math.max(5, Math.min(value, 100))}%`,
+            backgroundColor: color,
+            borderRadius: 3
+          }}
+        />
+      </View>
+
+      <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text, fontSize: 11, marginBottom: 2 }}>{label}</Text>
+      <Text style={{ fontFamily: theme.fonts.bodyBold, color: color, fontSize: 13 }}>{value}%</Text>
+    </View>
+  );
+};
+
+// Helper to get color based on value
+const getBatteryColor = (value: number) => {
+  if (value <= 25) return "#ef4444"; // Red
+  if (value <= 50) return "#f97316"; // Orange
+  if (value <= 75) return "#eab308"; // Yellow (using a darker yellow for visibility)
+  return "#22c55e"; // Green
+};
+
 // Stat Card Component
 const StatCard = ({
   icon,
@@ -228,9 +287,10 @@ export default function ProfileScreen() {
     }, [loading])
   );
 
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    fetchProfile();
+    // Gamification stats are now auto-updated on backend
+    await fetchProfile();
   };
 
   const handleChangeProfilePicture = async () => {
@@ -252,21 +312,21 @@ export default function ProfileScreen() {
       if (!result.canceled && result.assets[0]) {
         setUploadingImage(true);
         const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
-        
+
         const response = await updateProfilePicture(base64Image);
-        
+
         // Update local profile and user context
         setProfile((prev) =>
           prev ? { ...prev, profilePicture: response.profilePicture } : null
         );
-        
+
         // Update user context
         if (user) {
           const updatedUser = { ...user, profilePicture: response.profilePicture };
           setUser(updatedUser);
           await tokenStorage.saveUser(updatedUser);
         }
-        
+
         Alert.alert("Success", "Profile picture updated!");
       }
     } catch (error: any) {
@@ -336,6 +396,8 @@ export default function ProfileScreen() {
             refreshing={refreshing}
             onRefresh={onRefresh}
             tintColor={theme.colors.primary}
+            colors={[theme.colors.primary]}
+            progressBackgroundColor={theme.colors.surface}
           />
         }
       >
@@ -512,8 +574,8 @@ export default function ProfileScreen() {
                     (profile?.profileCompletion || 0) >= 80
                       ? "#22c55e"
                       : (profile?.profileCompletion || 0) >= 50
-                      ? "#f97316"
-                      : "#ef4444",
+                        ? "#f97316"
+                        : "#ef4444",
                   borderRadius: 3,
                 }}
               />
@@ -542,8 +604,115 @@ export default function ProfileScreen() {
           </Text>
         </View>
 
-        {/* Physical Stats */}
+        {/* Gamification Stats */}
         <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
+          <ProfileSection
+            title="Overview"
+            icon="medal" // changed from trophy to medal or star
+            iconColor="#FBBC05"
+            theme={theme}
+          >
+            {/* Points & Coins */}
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-around",
+                marginBottom: 20,
+                backgroundColor: theme.colors.background,
+                padding: 16,
+                borderRadius: 16,
+              }}
+            >
+              <View style={{ alignItems: "center" }}>
+                <MaterialCommunityIcons name="trophy" size={32} color="#FBBF24" />
+                <Text
+                  style={{
+                    fontFamily: theme.fonts.heading,
+                    fontSize: 24,
+                    color: theme.colors.text,
+                    marginTop: 4,
+                  }}
+                >
+                  {/* @ts-ignore */}
+                  {profile?.gamification?.points || 0}
+                </Text>
+                <Text style={{ fontFamily: theme.fonts.body, fontSize: 12, color: theme.colors.text + "77" }}>
+                  Points
+                </Text>
+              </View>
+
+              <View style={{ width: 1, backgroundColor: theme.colors.text + "20" }} />
+
+              <View style={{ alignItems: "center" }}>
+                <FontAwesome6 name="coins" size={32} color="#F59E0B" />
+                <Text
+                  style={{
+                    fontFamily: theme.fonts.heading,
+                    fontSize: 24,
+                    color: theme.colors.text,
+                    marginTop: 4,
+                  }}
+                >
+                  {/* @ts-ignore */}
+                  {profile?.gamification?.coins || 0}
+                </Text>
+                <Text style={{ fontFamily: theme.fonts.body, fontSize: 12, color: theme.colors.text + "77" }}>
+                  Coins
+                </Text>
+              </View>
+            </View>
+
+            {/* Batteries */}
+            {/* @ts-ignore */}
+            {/* Batteries Chart */}
+            <View>
+              <Text
+                style={{
+                  fontFamily: theme.fonts.bodyBold,
+                  fontSize: 14,
+                  color: theme.colors.text + "99",
+                  marginBottom: 16,
+                }}
+              >
+                Today's Battery Status
+              </Text>
+
+              <View
+                style={{
+                  backgroundColor: theme.colors.background,
+                  borderRadius: 16,
+                  padding: 16,
+                  flexDirection: 'row',
+                  justifyContent: 'space-around'
+                }}
+              >
+                <BatteryIcon
+                  label="Sleep"
+                  value={profile?.gamification?.batteries?.[0]?.sleep || 0}
+                  theme={theme}
+                />
+                <BatteryIcon
+                  label="Activity"
+                  value={profile?.gamification?.batteries?.[0]?.activity || 0}
+                  theme={theme}
+                />
+                <BatteryIcon
+                  label="Nutrition"
+                  value={profile?.gamification?.batteries?.[0]?.nutrition || 0}
+                  theme={theme}
+                />
+                <BatteryIcon
+                  label="Health"
+                  value={profile?.gamification?.batteries?.[0]?.health || 0}
+                  theme={theme}
+                />
+              </View>
+            </View>
+          </ProfileSection>
+        </View>
+
+        {/* Physical Stats */}
+        <View style={{ paddingHorizontal: 20 }}>
           <ProfileSection
             title="Physical Stats"
             icon="human"
@@ -689,7 +858,7 @@ export default function ProfileScreen() {
               value={
                 profile?.riskFactors.stressLevel
                   ? profile.riskFactors.stressLevel.charAt(0).toUpperCase() +
-                    profile.riskFactors.stressLevel.slice(1)
+                  profile.riskFactors.stressLevel.slice(1)
                   : null
               }
               theme={theme}
@@ -932,7 +1101,7 @@ export default function ProfileScreen() {
               value={
                 profile?.environmentalFactors.occupationType
                   ? profile.environmentalFactors.occupationType.charAt(0).toUpperCase() +
-                    profile.environmentalFactors.occupationType.slice(1)
+                  profile.environmentalFactors.occupationType.slice(1)
                   : null
               }
               theme={theme}
@@ -942,7 +1111,7 @@ export default function ProfileScreen() {
               value={
                 profile?.environmentalFactors.pollutionExposure
                   ? profile.environmentalFactors.pollutionExposure.charAt(0).toUpperCase() +
-                    profile.environmentalFactors.pollutionExposure.slice(1)
+                  profile.environmentalFactors.pollutionExposure.slice(1)
                   : null
               }
               theme={theme}

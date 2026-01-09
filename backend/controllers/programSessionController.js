@@ -154,6 +154,14 @@ exports.createProgramSession = async (req, res) => {
       await updateUserDailyBurnedCalories(userId, calculatedCalories);
     }
 
+    // Trigger Gamification Calculation (Activity Battery)
+    try {
+      const { updateUserGamificationStats } = require('./gamificationController');
+      updateUserGamificationStats(userId).catch(err => console.error('Background Gamification Update Error:', err.message));
+    } catch (gErr) {
+      console.error('Failed to trigger gamification update:', gErr);
+    }
+
     res.status(201).json(savedProgramSession);
   } catch (error) {
     res.status(500).json({ message: "Server Error", error: error.message });

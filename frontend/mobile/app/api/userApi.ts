@@ -100,9 +100,24 @@ export interface UserProfile {
     predictedAt: string;
     source: string;
   } | null;
+  gamification?: {
+    points: number;
+    coins: number;
+    batteries: Array<{
+      sleep: number;
+      activity: number;
+      nutrition: number;
+      health: number;
+      total: number;
+    }>;
+  };
   profileCompletion: number;
 }
 
-export default submitHealthAssessment;
+// Refresh/Update Gamification Stats (batteries & points)
+export const refreshGamification = async () => {
+  const response = await axiosInstance.post("/users/gamification/refresh");
+  return response.data;
+};
 
-// Add more user-related API functions here...
+export default submitHealthAssessment;

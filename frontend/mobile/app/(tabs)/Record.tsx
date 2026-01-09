@@ -242,7 +242,7 @@ export default function Record() {
     switch (status) {
       case 'under': return 'On Track';
       case 'over': return 'Over Goal';
-      case 'on_target': return 'Perfect!';
+      case 'on_target': return 'On Target';
       default: return status.replace('_', ' ');
     }
   };
