@@ -8,7 +8,7 @@ export default function Avatar() {
   const [error, setError] = useState<string | null>(null);
 
   // Deep-link configuration matching your Unity manifest
-  const deepLink = "lifora://liforagame?scene=Main";
+  const deepLink = "liforacc://liforagamecc?scene=Main";
   const androidPackage = "com.UnityTechnologies.UniversalMobile3DTemplate";
 
   useEffect(() => {
@@ -56,9 +56,9 @@ export default function Avatar() {
 
         // Strategy 3: Try Intent URI with different formats
         const intentUriVariants = [
-          `intent://liforagame/#Intent;scheme=lifora;package=${androidPackage};end`,
-          `intent://liforagame?scene=Main#Intent;scheme=lifora;package=${androidPackage};end`,
-          `intent://liforagame?scene=Main#Intent;action=android.intent.action.VIEW;scheme=lifora;package=${androidPackage};end`
+          `intent://liforagamecc/#Intent;scheme=liforacc;package=${androidPackage};end`,
+          `intent://liforagamecc?scene=Main#Intent;scheme=liforacc;package=${androidPackage};end`,
+          `intent://liforagamecc?scene=Main#Intent;action=android.intent.action.VIEW;scheme=liforacc;package=${androidPackage};end`
         ];
 
         for (let i = 0; i < intentUriVariants.length; i++) {
