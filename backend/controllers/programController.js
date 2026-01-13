@@ -501,3 +501,127 @@ exports.getPendingPrograms = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// Get progress for a group program - shows each member's progress
+exports.getGroupProgramProgress = async (req, res) => {
+  try {
+    const { programId } = req.params;
+    const userId = req.user._id || req.user.id;
+    console.log('[GET GROUP PROGRAM PROGRESS] Program ID:', programId);
+
+    const program = await Program.findById(programId)
+      .populate({
+        path: 'members.user_id',
+        select: 'username profilePicture'
+      })
+      .populate({
+        path: 'workouts.workout_id',
+        model: 'Workout'
+      })
+      .populate({
+        path: 'geo_activities.activity_id',
+        model: 'GeoActivity'
+      });
+
+    if (!program) {
+      return res.status(404).json({ message: 'Program not found' });
+    }
+
+    if (!program.group_id) {
+      return res.status(400).json({ message: 'This is not a group program' });
+    }
+
+    // Get all sessions for this program from accepted members
+    const ProgramSession = require('../models/programSessionModel');
+    const acceptedMemberIds = program.members
+      .filter(m => m.status === 'accepted')
+      .map(m => m.user_id?._id || m.user_id);
+
+    // Get sessions that match this program (by program_id or program_name for backwards compatibility)
+    const sessions = await ProgramSession.find({
+      $or: [
+        { program_id: programId },
+        { 
+          user_id: { $in: acceptedMemberIds },
+          program_name: program.name
+        }
+      ]
+    })
+      .populate('user_id', 'username profilePicture')
+      .sort({ performed_at: -1 });
+
+    // Calculate progress for each member
+    const memberProgress = program.members
+      .filter(m => m.status === 'accepted')
+      .map(member => {
+        const memberId = member.user_id?._id?.toString() || member.user_id?.toString();
+        const memberSessions = sessions.filter(s => 
+          (s.user_id?._id?.toString() || s.user_id?.toString()) === memberId
+        );
+
+        // Calculate total stats from member's sessions
+        const totalSessions = memberSessions.length;
+        const totalCalories = memberSessions.reduce((sum, s) => sum + (s.total_calories_burned || 0), 0);
+        const totalDuration = memberSessions.reduce((sum, s) => sum + (s.total_duration_minutes || 0), 0);
+        const totalDistance = memberSessions.reduce((sum, s) => {
+          const geoDistance = (s.geo_activities || []).reduce((d, g) => d + (g.distance_km || 0), 0);
+          return sum + geoDistance;
+        }, 0);
+
+        // Get the latest session's progress
+        const latestSession = memberSessions[0];
+        const latestProgress = latestSession?.progress || {
+          overall_percentage: 0,
+          status: 'not_started'
+        };
+
+        return {
+          user: member.user_id,
+          status: member.status,
+          responded_at: member.responded_at,
+          stats: {
+            totalSessions,
+            totalCalories: Math.round(totalCalories),
+            totalDuration: Math.round(totalDuration),
+            totalDistance: Math.round(totalDistance * 100) / 100,
+          },
+          latestSession: latestSession ? {
+            _id: latestSession._id,
+            performed_at: latestSession.performed_at,
+            total_calories_burned: latestSession.total_calories_burned,
+            total_duration_minutes: latestSession.total_duration_minutes,
+            progress: latestProgress,
+          } : null,
+          sessions: memberSessions.slice(0, 5), // Return last 5 sessions per member
+        };
+      });
+
+    // Calculate overall group stats
+    const groupStats = {
+      totalMembers: program.members.length,
+      acceptedMembers: program.members.filter(m => m.status === 'accepted').length,
+      pendingMembers: program.members.filter(m => m.status === 'pending').length,
+      declinedMembers: program.members.filter(m => m.status === 'declined').length,
+      totalGroupSessions: sessions.length,
+      totalGroupCalories: Math.round(sessions.reduce((sum, s) => sum + (s.total_calories_burned || 0), 0)),
+      totalGroupDuration: Math.round(sessions.reduce((sum, s) => sum + (s.total_duration_minutes || 0), 0)),
+    };
+
+    console.log('[GET GROUP PROGRAM PROGRESS] Found progress for', memberProgress.length, 'members');
+    res.status(200).json({
+      program: {
+        _id: program._id,
+        name: program.name,
+        description: program.description,
+        workouts: program.workouts,
+        geo_activities: program.geo_activities,
+        created_at: program.created_at,
+      },
+      groupStats,
+      memberProgress,
+    });
+  } catch (error) {
+    console.error('[GET GROUP PROGRAM PROGRESS] Error:', error.message);
+    res.status(500).json({ message: error.message });
+  }
+};

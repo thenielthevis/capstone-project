@@ -246,9 +246,31 @@ export async function analyzeFood(
     const imagePart = await imageToGenerativePart(base64Image, mimeType);
 
     const dishContext = dishName ? `\nThe user indicated this is: "${dishName}". Use this as context to help with identification.` : '';
-    const allergyContext = allergyInfo.length > 0 ? `\nUser has the following allergies/dietary restrictions: ${allergyInfo.join(', ')}. Check if the food contains any of these allergens.` : '';
+    const allergyContext = allergyInfo.length > 0 ? `\nUser has the following allergies/dietary restrictions: ${allergyInfo.join(', ')}. Check if the food contains any of these allergens, especially Filipino/Asian-specific allergens like fish sauce (patis), shrimp paste (bagoong), coconut, MSG, oyster sauce.` : '';
     
-    const prompt = `Analyze this food image and provide the following information in JSON format:${dishContext}${allergyContext}
+    const filipinoAsianContext = `
+FILIPINO CUISINE FOCUS (PRIMARY):
+Prioritize Filipino dish identification. Common Filipino dishes include:
+- Viands: Adobo, Sinigang, Kare-Kare, Lechon, Sisig, Crispy Pata, Bulalo, Tinola, Bicol Express, Laing, Pinakbet, Dinuguan, Kaldereta, Menudo, Mechado, Afritada, Bistek Tagalog, Pork Binagoongan, Paksiw na Isda
+- Noodles: Pancit Canton, Pancit Bihon, Palabok, Lomi, Mami, Sotanghon
+- Breakfast: Longganisa, Tapa, Tocino, Tapsilog, Longsilog, Bangsilog, Sinangag
+- Seafood: Bangus, Tilapia, Inihaw na Liempo, Ginataang Hipon, Kinilaw, Kilawin
+- Soups: Arroz Caldo, Lugaw, Goto, Nilagang Baka, Batchoy
+- Desserts: Halo-Halo, Leche Flan, Bibingka, Puto, Kakanin, Turon, Champorado
+
+Filipino ingredients to watch (allergen concerns): 
+- Bagoong (shrimp paste) - shellfish allergen, high sodium
+- Patis (fish sauce) - fish allergen, high sodium  
+- Coconut milk (gata) - tree nut concern, high saturated fat
+- Calamansi, Tamarind, Achuete (annatto)
+
+For Filipino/Asian food, reference: Philippine Food Composition Tables (FNRI), Asian Food Composition Database
+
+If the dish is not Filipino, auto-detect the cuisine type (Japanese, Korean, Chinese, Thai, Vietnamese, etc.)`;
+
+    const prompt = `${filipinoAsianContext}
+
+Analyze this food image and provide the following information in JSON format:${dishContext}${allergyContext}
     
     CRITICAL NUTRITION DATA REQUIREMENTS:
     1. DO NOT GUESS nutritional values - use publicly available databases as primary sources
@@ -769,5 +791,285 @@ Return ONLY valid JSON, no additional text or markdown.`;
   }
 }
 
+// Multi-dish entry interface
+export interface DishEntry {
+  id: string;
+  uri: string | null;
+  base64: string | null;
+  dishName: string;
+  servingSize: string;
+  additionalImages: { uri: string; base64: string }[];
+}
+
+// Multi-dish analysis result interface
+export interface DishAnalysisResult {
+  dishId: string;
+  foodName: string;
+  userProvidedName?: string;
+  servingSize: string;
+  calories: number;
+  nutrients: Partial<NutritionData>;
+  allergyWarnings: AllergyWarning;
+  confidence: 'high' | 'medium' | 'low';
+  cuisineType: string;
+  isFilipino?: boolean;
+  isAsian?: boolean;
+  filipinoIngredients?: string[];
+  asianIngredients?: string[];
+  healthyAlternatives?: HealthyAlternative[];
+  recipeLinks?: RecipeLink[];
+  notes?: string;
+}
+
+export interface MultiDishAnalysisResult {
+  dishes: DishAnalysisResult[];
+  totalCalories: number;
+  totalNutrients: Partial<NutritionData>;
+  mealSummary: string;
+  allergyWarnings: AllergyWarning;
+}
+
+// Filipino/Asian cuisine context for multi-dish analysis
+const FILIPINO_ASIAN_CUISINE_CONTEXT = `
+FILIPINO CUISINE REFERENCE:
+Common Filipino dishes: Adobo, Sinigang, Kare-Kare, Lechon, Lumpia, Pancit Canton, Pancit Bihon, Sisig, Bulalo, Tinola, Bicol Express, Laing, Pinakbet, Dinuguan, Kaldereta, Menudo, Mechado, Afritada, Bistek Tagalog, Longganisa, Tapa, Tocino, Bangus, Inihaw na Liempo, Arroz Caldo, Lugaw, Champorado, Halo-Halo, Leche Flan, Bibingka, Puto, Turon, Tokwa't Baboy, Kinilaw, Batchoy, Goto, Tapsilog, Longsilog
+
+Common Filipino ingredients: Bagoong (shrimp/fish paste), Patis (fish sauce), Calamansi, Suka (vinegar), Atsuete/Annatto, Coconut milk/cream, Tamarind, Siling labuyo, Banana leaves, Saba banana
+
+ASIAN CUISINE REFERENCE:
+Japanese: Sushi, Ramen, Tempura, Tonkatsu, Teriyaki, Miso soup, Gyudon
+Korean: Bibimbap, Bulgogi, Kimchi, Japchae, Samgyeopsal, Tteokbokki
+Chinese: Dim Sum, Fried Rice, Chow Mein, Kung Pao, Sweet and Sour, Mapo Tofu
+Thai: Pad Thai, Green/Red Curry, Tom Yum, Som Tam, Pad Kra Pao
+Vietnamese: Pho, Banh Mi, Spring Rolls, Bun Cha
+
+Common Asian allergens:
+- Fish sauce
+- Shrimp paste
+- Soy sauce
+- Oyster sauce
+- Sesame
+- Peanuts
+- MSG
+`;
+
+/**
+ * Analyze multiple dishes from multiple images with Filipino cuisine focus
+ */
+export async function analyzeMultipleDishes(
+  dishes: DishEntry[],
+  allergyInfo: string[] = []
+): Promise<MultiDishAnalysisResult> {
+  if (!API_KEY) {
+    throw new Error('Gemini API key is not configured. Please add your API key to .env file');
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+    
+    // Analyze each dish
+    const dishResults: DishAnalysisResult[] = [];
+    
+    for (const dish of dishes) {
+      if (!dish.base64) continue;
+      
+      // Prepare all images for this dish (main + additional)
+      const imageParts: any[] = [];
+      
+      // Add main image
+      const mainBase64 = dish.base64.includes(',') ? dish.base64.split(',')[1] : dish.base64;
+      imageParts.push({
+        inlineData: {
+          data: mainBase64,
+          mimeType: 'image/jpeg'
+        }
+      });
+      
+      // Add additional images for better accuracy
+      for (const additionalImg of dish.additionalImages) {
+        const additionalBase64 = additionalImg.base64.includes(',') 
+          ? additionalImg.base64.split(',')[1] 
+          : additionalImg.base64;
+        imageParts.push({
+          inlineData: {
+            data: additionalBase64,
+            mimeType: 'image/jpeg'
+          }
+        });
+      }
+      
+      const imageCountNote = imageParts.length > 1 
+        ? `\nNOTE: ${imageParts.length} images provided of the same dish from different angles. Analyze all images together for more accurate identification and portion estimation.`
+        : '';
+      
+      const dishContext = dish.dishName 
+        ? `\nUser indicated this dish is: "${dish.dishName}". Use this as primary context.`
+        : '';
+      
+      const servingSizeContext = `\nEstimated serving size: ${dish.servingSize}`;
+      
+      const allergyContext = allergyInfo.length > 0 
+        ? `\nUser has these allergies/dietary restrictions: ${allergyInfo.join(', ')}. Check for these allergens.`
+        : '';
+      
+      const cuisineContext = `\nPrioritize Filipino dish identification. If not Filipino, auto-detect the cuisine type.`;
+      
+      const prompt = `${FILIPINO_ASIAN_CUISINE_CONTEXT}
+
+Analyze this food image(s) and provide detailed nutritional information in JSON format.${imageCountNote}${dishContext}${servingSizeContext}${allergyContext}${cuisineContext}
+
+IMPORTANT INSTRUCTIONS:
+1. Focus on Filipino and Asian cuisine identification
+2. If multiple images are provided, use all of them to improve accuracy
+3. Consider typical Filipino/Asian portion sizes
+4. Account for common Filipino/Asian cooking methods (frying, coconut milk, etc.)
+5. Identify specific Filipino/Asian ingredients
+
+Provide the response in this exact JSON format:
+{
+  "foodName": "identified dish name (use Filipino/Asian name if applicable)",
+  "cuisineType": "filipino/japanese/korean/chinese/thai/vietnamese/indian/other",
+  "isFilipino": boolean,
+  "isAsian": boolean,
+  "filipinoIngredients": ["list of Filipino ingredients detected, e.g., bagoong, patis, calamansi"],
+  "asianIngredients": ["list of Asian ingredients detected, e.g., fish sauce, soy sauce, miso"],
+  "calories": estimated total calories for the serving size (number only),
+  "servingSize": "confirmed or adjusted serving size",
+  "nutrients": {
+    "protein": protein in grams (number only),
+    "carbs": carbohydrates in grams (number only),
+    "fat": fat in grams (number only),
+    "fiber": fiber in grams (number only),
+    "sugar": sugar in grams (number only),
+    "saturatedFat": saturated fat in grams (number only),
+    "sodium": sodium in milligrams (number only - important for Filipino food with bagoong/patis),
+    "cholesterol": cholesterol in milligrams (number only),
+    "potassium": potassium in milligrams (number only),
+    "vitaminA": vitamin A percentage (number only),
+    "vitaminC": vitamin C percentage (number only),
+    "calcium": calcium percentage (number only),
+    "iron": iron percentage (number only)
+  },
+  "allergyWarnings": {
+    "detected": [allergens from user's list found in this dish],
+    "mayContain": [common allergens that might be present - especially Asian-specific like fish sauce, shrimp paste],
+    "warning": "specific warning message or null"
+  },
+  "healthyAlternatives": [
+    {
+      "name": "healthier Filipino/Asian alternative",
+      "reason": "why this is healthier (specific to the cuisine)",
+      "caloriesSaved": estimated calorie reduction (number)
+    }
+  ],
+  "recipeLinks": [
+    {
+      "title": "recipe search query",
+      "source": "Google",
+      "url": "https://www.google.com/search?q=authentic+dish+name+recipe"
+    }
+  ],
+  "confidence": "high/medium/low",
+  "notes": "additional notes about the dish, cooking method, or nutritional considerations"
+}
+
+Return ONLY valid JSON, no additional text or markdown.`;
+
+      const result = await model.generateContent([prompt, ...imageParts]);
+      const response = await result.response;
+      const text = response.text();
+      
+      try {
+        const cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        const parsedResult = JSON.parse(cleanedText);
+        
+        dishResults.push({
+          dishId: dish.id,
+          foodName: parsedResult.foodName || 'Unknown Dish',
+          userProvidedName: dish.dishName,
+          servingSize: parsedResult.servingSize || dish.servingSize,
+          calories: parsedResult.calories || 0,
+          nutrients: {
+            protein: parsedResult.nutrients?.protein || 0,
+            carbs: parsedResult.nutrients?.carbs || 0,
+            fat: parsedResult.nutrients?.fat || 0,
+            fiber: parsedResult.nutrients?.fiber || 0,
+            sugar: parsedResult.nutrients?.sugar || 0,
+            saturatedFat: parsedResult.nutrients?.saturatedFat || 0,
+            sodium: parsedResult.nutrients?.sodium || 0,
+            cholesterol: parsedResult.nutrients?.cholesterol || 0,
+            ...parsedResult.nutrients
+          },
+          allergyWarnings: parsedResult.allergyWarnings || { detected: [], mayContain: [], warning: null },
+          confidence: parsedResult.confidence || 'medium',
+          cuisineType: parsedResult.cuisineType || 'other',
+          isFilipino: parsedResult.isFilipino || false,
+          isAsian: parsedResult.isAsian || false,
+          filipinoIngredients: parsedResult.filipinoIngredients || [],
+          asianIngredients: parsedResult.asianIngredients || [],
+          healthyAlternatives: parsedResult.healthyAlternatives || [],
+          recipeLinks: parsedResult.recipeLinks || [],
+          notes: parsedResult.notes || ''
+        });
+      } catch (parseError) {
+        console.error('Failed to parse dish response:', text);
+        dishResults.push({
+          dishId: dish.id,
+          foodName: dish.dishName || 'Unknown Dish',
+          userProvidedName: dish.dishName,
+          servingSize: dish.servingSize,
+          calories: 0,
+          nutrients: {},
+          allergyWarnings: { detected: [], mayContain: [], warning: 'Failed to analyze this dish' },
+          confidence: 'low',
+          cuisineType: 'unknown',
+          notes: 'Analysis failed - please try again'
+        });
+      }
+    }
+    
+    // Calculate totals
+    const totalCalories = dishResults.reduce((sum, dish) => sum + dish.calories, 0);
+    const totalNutrients: Partial<NutritionData> = {
+      protein: dishResults.reduce((sum, dish) => sum + (dish.nutrients.protein || 0), 0),
+      carbs: dishResults.reduce((sum, dish) => sum + (dish.nutrients.carbs || 0), 0),
+      fat: dishResults.reduce((sum, dish) => sum + (dish.nutrients.fat || 0), 0),
+      fiber: dishResults.reduce((sum, dish) => sum + (dish.nutrients.fiber || 0), 0),
+      sugar: dishResults.reduce((sum, dish) => sum + (dish.nutrients.sugar || 0), 0),
+      sodium: dishResults.reduce((sum, dish) => sum + (dish.nutrients.sodium || 0), 0),
+    };
+    
+    // Combine allergy warnings
+    const allDetected = [...new Set(dishResults.flatMap(d => d.allergyWarnings.detected))];
+    const allMayContain = [...new Set(dishResults.flatMap(d => d.allergyWarnings.mayContain))];
+    
+    // Generate meal summary
+    const dishNames = dishResults.map(d => d.foodName).join(', ');
+    const mealSummary = `Meal with ${dishResults.length} dish${dishResults.length > 1 ? 'es' : ''}: ${dishNames}. Total: ${totalCalories} kcal.`;
+    
+    return {
+      dishes: dishResults,
+      totalCalories,
+      totalNutrients,
+      mealSummary,
+      allergyWarnings: {
+        detected: allDetected,
+        mayContain: allMayContain,
+        warning: allDetected.length > 0 ? `Contains allergens: ${allDetected.join(', ')}` : null
+      }
+    };
+  } catch (error: any) {
+    console.error('Error calling Gemini API for multi-dish analysis:', error);
+    
+    if (error.message?.includes('API key')) {
+      throw new Error('Invalid API key. Please check your Gemini API key.');
+    } else if (error.message?.includes('quota')) {
+      throw new Error('API quota exceeded. Please try again later.');
+    } else {
+      throw new Error(error.message || 'Failed to analyze dishes. Please try again.');
+    }
+  }
+}
+
 // Dummy default export to satisfy Expo Router (this is a service file, not a route)
-export default { analyzeFood, analyzeIngredients, generateProgram };
+export default { analyzeFood, analyzeIngredients, generateProgram, analyzeMultipleDishes };

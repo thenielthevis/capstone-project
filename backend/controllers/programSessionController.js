@@ -2,6 +2,74 @@ const ProgramSession = require("../models/programSessionModel");
 const Workout = require("../models/workoutModel");
 const GeoActivity = require("../models/geoActivityModel");
 const User = require("../models/userModel");
+const Program = require("../models/programModel");
+
+// Helper function to calculate session progress
+function calculateSessionProgress(session, programTemplate = null) {
+  let geoProgress = { target_distance_km: 0, completed_distance_km: 0, percentage: 0 };
+  let workoutProgress = { target_sets: 0, completed_sets: 0, percentage: 0 };
+
+  // Calculate geo activity progress
+  if (session.geo_activities && session.geo_activities.length > 0) {
+    const completedDistance = session.geo_activities.reduce((sum, g) => sum + (g.distance_km || 0), 0);
+    geoProgress.completed_distance_km = completedDistance;
+
+    // If we have a program template, use its target distance
+    if (programTemplate && programTemplate.geo_activities) {
+      const targetDistance = programTemplate.geo_activities.reduce((sum, g) => {
+        const distStr = g.preferences?.distance_km || '0';
+        return sum + parseFloat(distStr) || 0;
+      }, 0);
+      geoProgress.target_distance_km = targetDistance;
+      geoProgress.percentage = targetDistance > 0 ? Math.min(100, Math.round((completedDistance / targetDistance) * 100)) : 100;
+    } else {
+      geoProgress.percentage = 100; // If no target, consider completed
+    }
+  }
+
+  // Calculate workout progress
+  if (session.workouts && session.workouts.length > 0) {
+    const completedSets = session.workouts.reduce((sum, w) => sum + (w.sets?.length || 0), 0);
+    workoutProgress.completed_sets = completedSets;
+
+    // If we have a program template, use its target sets
+    if (programTemplate && programTemplate.workouts) {
+      const targetSets = programTemplate.workouts.reduce((sum, w) => sum + (w.sets?.length || 0), 0);
+      workoutProgress.target_sets = targetSets;
+      workoutProgress.percentage = targetSets > 0 ? Math.min(100, Math.round((completedSets / targetSets) * 100)) : 100;
+    } else {
+      workoutProgress.percentage = 100; // If no target, consider completed
+    }
+  }
+
+  // Calculate overall percentage
+  const hasGeo = session.geo_activities && session.geo_activities.length > 0;
+  const hasWorkout = session.workouts && session.workouts.length > 0;
+  
+  let overallPercentage = 0;
+  if (hasGeo && hasWorkout) {
+    overallPercentage = Math.round((geoProgress.percentage + workoutProgress.percentage) / 2);
+  } else if (hasGeo) {
+    overallPercentage = geoProgress.percentage;
+  } else if (hasWorkout) {
+    overallPercentage = workoutProgress.percentage;
+  }
+
+  // Determine status
+  let status = 'not_started';
+  if (overallPercentage >= 100) {
+    status = 'completed';
+  } else if (overallPercentage > 0) {
+    status = overallPercentage >= 50 ? 'in_progress' : 'partial';
+  }
+
+  return {
+    geo_progress: geoProgress,
+    workout_progress: workoutProgress,
+    overall_percentage: overallPercentage,
+    status,
+  };
+}
 
 // Helper function to update user's daily burned calories
 async function updateUserDailyBurnedCalories(userId, caloriesBurned) {
@@ -75,6 +143,8 @@ exports.createProgramSession = async (req, res) => {
   try {
     const {
       userId = req.user.id,
+      program_id,
+      group_id,
       workouts,
       geo_activities,
       total_duration_minutes,
@@ -85,9 +155,17 @@ exports.createProgramSession = async (req, res) => {
 
     console.log("[CREATE PROGRAM SESSION] Body:", JSON.stringify(req.body, null, 2));
 
+    // If program_id is provided, fetch the program template for progress calculation
+    let programTemplate = null;
+    if (program_id) {
+      programTemplate = await Program.findById(program_id);
+    }
+
     const newProgramSession = new ProgramSession({
       user_id: userId,
-      program_name: req.body.program_name || "Untitled Program",
+      program_id: program_id || null,
+      group_id: group_id || (programTemplate?.group_id || null),
+      program_name: req.body.program_name || (programTemplate?.name || "Untitled Program"),
       workouts: workouts || [],
       geo_activities: geo_activities || [],
       total_duration_minutes: total_duration_minutes || 0,
@@ -95,6 +173,10 @@ exports.createProgramSession = async (req, res) => {
       performed_at: performed_at || Date.now(),
       end_time: end_time || null,
     });
+
+    // Calculate progress
+    const progress = calculateSessionProgress(newProgramSession, programTemplate);
+    newProgramSession.progress = progress;
 
     const savedProgramSession = await newProgramSession.save();
 
@@ -281,6 +363,44 @@ exports.getProgramSessionsByDateRange = async (req, res) => {
 
     res.status(200).json(programSessions);
   } catch (error) {
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
+};
+
+// Get program sessions by group ID
+exports.getGroupProgramSessions = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    console.log('[GET GROUP PROGRAM SESSIONS] Group ID:', groupId);
+
+    const programSessions = await ProgramSession.find({ group_id: groupId })
+      .populate("user_id", "username profilePicture")
+      .populate("workouts.workout_id")
+      .populate("geo_activities.activity_id")
+      .sort({ performed_at: -1 });
+
+    res.status(200).json(programSessions);
+  } catch (error) {
+    console.error('[GET GROUP PROGRAM SESSIONS] Error:', error.message);
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
+};
+
+// Get sessions for a specific program
+exports.getProgramSessionsByProgramId = async (req, res) => {
+  try {
+    const { programId } = req.params;
+    console.log('[GET SESSIONS BY PROGRAM ID] Program ID:', programId);
+
+    const programSessions = await ProgramSession.find({ program_id: programId })
+      .populate("user_id", "username profilePicture")
+      .populate("workouts.workout_id")
+      .populate("geo_activities.activity_id")
+      .sort({ performed_at: -1 });
+
+    res.status(200).json(programSessions);
+  } catch (error) {
+    console.error('[GET SESSIONS BY PROGRAM ID] Error:', error.message);
     res.status(500).json({ message: "Server Error", error: error.message });
   }
 };

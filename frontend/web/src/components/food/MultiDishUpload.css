@@ -1,0 +1,452 @@
+.multi-dish-container {
+  width: 100%;
+  max-width: var(--max-width-container);
+  margin: 0 auto;
+}
+
+.multi-dish-card {
+  border-radius: var(--radius-lg);
+  padding: var(--card-padding-lg);
+  box-shadow: var(--shadow-card);
+  border: var(--card-border-width) solid var(--color-border-primary);
+}
+
+.card-header {
+  text-align: center;
+  margin-bottom: var(--space-8);
+}
+
+.card-header h2 {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-2);
+}
+
+.card-header p {
+  font-size: var(--font-size-sm);
+}
+
+/* Cuisine Section */
+.cuisine-section {
+  margin-bottom: var(--space-8);
+}
+
+.cuisine-section label {
+  display: block;
+  font-size: var(--font-size-md);
+  margin-bottom: var(--space-3);
+}
+
+.cuisine-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--space-2);
+}
+
+.cuisine-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-2);
+  border-radius: var(--radius-base);
+  border: 2px solid;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: var(--transition-all);
+}
+
+.cuisine-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-button);
+}
+
+.cuisine-btn.selected {
+  transform: scale(1.02);
+}
+
+.cuisine-icon {
+  font-size: 24px;
+}
+
+/* Dishes Section */
+.dishes-section {
+  margin-bottom: var(--space-8);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+
+.section-header label {
+  font-size: var(--font-size-md);
+}
+
+.add-dish-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border: none;
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: var(--transition-all);
+}
+
+.add-dish-btn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.add-dish-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dishes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-4);
+}
+
+/* Dish Entry */
+.dish-entry {
+  border-radius: var(--radius-md);
+  border: 2px solid;
+  padding: var(--space-4);
+  transition: var(--transition-all);
+}
+
+.dish-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-3);
+  font-weight: var(--font-weight-semibold);
+}
+
+.remove-dish-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  cursor: pointer;
+  transition: var(--transition-all);
+}
+
+.remove-dish-btn:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+/* Image Upload Area */
+.image-upload-area {
+  margin-bottom: var(--space-3);
+}
+
+.preview-area {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.main-preview {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  border-radius: var(--radius-base);
+  margin-bottom: var(--space-2);
+}
+
+.change-image-btn {
+  padding: var(--space-1) var(--space-3);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  color: white;
+  cursor: pointer;
+}
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: 120px;
+  border: 2px dashed;
+  border-radius: var(--radius-base);
+  cursor: pointer;
+  transition: var(--transition-all);
+}
+
+.upload-placeholder:hover {
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.upload-placeholder span {
+  font-size: var(--font-size-sm);
+}
+
+/* Additional Images */
+.additional-images {
+  margin-bottom: var(--space-3);
+}
+
+.additional-images label {
+  display: block;
+  margin-bottom: var(--space-2);
+}
+
+.additional-grid {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.additional-preview {
+  position: relative;
+  width: 50px;
+  height: 50px;
+}
+
+.additional-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
+
+.remove-img-btn {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-full);
+  background: #ef4444;
+  color: white;
+  cursor: pointer;
+  padding: 0;
+}
+
+.add-image-btn {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+  transition: var(--transition-all);
+}
+
+.add-image-btn:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.05);
+}
+
+/* Dish Name Input */
+.dish-name-input {
+  position: relative;
+  margin-bottom: var(--space-3);
+}
+
+.dish-name-input input {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+}
+
+.suggestions-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid;
+  border-radius: var(--radius-sm);
+  z-index: 10;
+  box-shadow: var(--shadow-card);
+}
+
+.suggestion-item {
+  display: block;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  background: transparent;
+  text-align: left;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.suggestion-item:hover {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.close-suggestions {
+  display: block;
+  width: 100%;
+  padding: var(--space-2);
+  border: none;
+  border-top: 1px solid;
+  background: transparent;
+  text-align: center;
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+}
+
+/* Serving Select */
+.serving-select {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+/* Allergies Section */
+.allergies-section {
+  margin-bottom: var(--space-8);
+}
+
+.allergies-section > label {
+  display: block;
+  font-size: var(--font-size-md);
+  margin-bottom: var(--space-1);
+}
+
+.allergies-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.allergy-tag {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: var(--transition-all);
+}
+
+.allergy-tag:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.allergy-tag.selected {
+  transform: scale(1.02);
+}
+
+.custom-allergies-input {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.reset-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-6);
+  border: 1px solid;
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: var(--transition-all);
+}
+
+.reset-btn:hover:not(:disabled) {
+  opacity: 0.8;
+}
+
+.analyze-btn {
+  flex: 1;
+  padding: var(--space-3) var(--space-6);
+  border: none;
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: var(--transition-all);
+}
+
+.analyze-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-button);
+}
+
+.analyze-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .multi-dish-card {
+    padding: var(--space-6) var(--space-4);
+  }
+
+  .card-header h2 {
+    font-size: var(--font-size-2xl);
+  }
+
+  .cuisine-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .cuisine-btn {
+    padding: var(--space-2);
+    font-size: var(--font-size-xs);
+  }
+
+  .cuisine-icon {
+    font-size: 20px;
+  }
+
+  .dishes-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+  }
+
+  .reset-btn {
+    justify-content: center;
+  }
+}

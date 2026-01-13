@@ -16,7 +16,7 @@ const foodLogSchema = new mongoose.Schema({
   // Input method
   inputMethod: {
     type: String,
-    enum: ['image', 'manual'],
+    enum: ['image', 'manual', 'multi-dish'],
     required: true
   },
   // Image data (if uploaded)

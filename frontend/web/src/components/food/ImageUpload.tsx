@@ -1,8 +1,15 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { useTheme } from '@/context/ThemeContext'
 import './ImageUpload.css'
 
-function ImageUpload({ onImageUpload, loading }: { onImageUpload: (file: File, dishName: string, allergies: string[]) => void; loading: boolean }) {
+interface ImageUploadProps {
+  onImageUpload: (file: File, dishName: string, allergies: string[]) => void
+  loading: boolean
+  userAllergies?: string[]
+  userDietaryPreferences?: string[]
+}
+
+function ImageUpload({ onImageUpload, loading, userAllergies = [], userDietaryPreferences = [] }: ImageUploadProps) {
   const { theme } = useTheme()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [dragActive, setDragActive] = useState(false)
@@ -11,11 +18,56 @@ function ImageUpload({ onImageUpload, loading }: { onImageUpload: (file: File, d
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [allergies, setAllergies] = useState('')
   const [commonAllergies, setCommonAllergies] = useState<string[]>([])
+  const [allergiesInitialized, setAllergiesInitialized] = useState(false)
 
   const commonAllergensList = [
     'Peanuts', 'Tree Nuts', 'Milk', 'Eggs', 'Wheat', 'Soy', 
-    'Fish', 'Shellfish', 'Sesame', 'Gluten'
+    'Fish', 'Shellfish', 'Sesame', 'Gluten',
+    'Shrimp Paste (Bagoong)', 'Fish Sauce (Patis)', 'Coconut'
   ]
+
+  // Auto-select allergies from user profile on mount
+  useEffect(() => {
+    if (allergiesInitialized || (userAllergies.length === 0 && userDietaryPreferences.length === 0)) return
+
+    // Map user allergies to common allergens format
+    const mappedAllergies = userAllergies.map((allergy: string) => 
+      allergy.charAt(0).toUpperCase() + allergy.slice(1).toLowerCase()
+    )
+
+    // Set common allergens that match user's allergies
+    const commonMatches = commonAllergensList.filter(a =>
+      mappedAllergies.some((ua: string) => ua.toLowerCase() === a.toLowerCase())
+    )
+
+    // Set custom allergies (ones not in commonAllergensList)
+    const customMatches = mappedAllergies.filter((ua: string) =>
+      !commonAllergensList.some(a => a.toLowerCase() === ua.toLowerCase())
+    )
+
+    // Also check dietary preferences for allergy-related ones
+    const allergyPreferences = userDietaryPreferences.filter(p => 
+      ['gluten-free', 'dairy-free'].includes(p)
+    )
+    allergyPreferences.forEach(pref => {
+      if (pref === 'gluten-free' && !commonMatches.includes('Gluten')) {
+        commonMatches.push('Gluten')
+      }
+      if (pref === 'dairy-free' && !commonMatches.includes('Milk')) {
+        commonMatches.push('Milk')
+      }
+    })
+
+    if (commonMatches.length > 0) {
+      setCommonAllergies(commonMatches)
+    }
+    if (customMatches.length > 0) {
+      setAllergies(customMatches.join(', '))
+    }
+
+    setAllergiesInitialized(true)
+    console.log('[ImageUpload] Auto-selected allergies:', commonMatches, customMatches)
+  }, [userAllergies, userDietaryPreferences, allergiesInitialized])
 
   const handleDrag = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
@@ -117,7 +169,23 @@ function ImageUpload({ onImageUpload, loading }: { onImageUpload: (file: File, d
         </div>
 
         <div className="form-group">
-          <label style={{ color: theme.colors.text, fontWeight: theme.fontWeights.medium }}>Allergies & Dietary Restrictions (Optional)</label>
+          <div className="allergies-header" style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+            <label style={{ color: theme.colors.text, fontWeight: theme.fontWeights.medium }}>Allergies & Dietary Restrictions (Optional)</label>
+            {allergiesInitialized && commonAllergies.length > 0 && (
+              <span 
+                style={{ 
+                  backgroundColor: '#22c55e20', 
+                  color: '#22c55e',
+                  fontSize: '11px',
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  marginLeft: '8px'
+                }}
+              >
+                Auto-loaded from profile
+              </span>
+            )}
+          </div>
           <div className="allergies-selector">
             {commonAllergensList.map(allergen => (
               <button

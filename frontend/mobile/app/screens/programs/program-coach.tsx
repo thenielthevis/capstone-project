@@ -335,6 +335,8 @@ export default function ProgramCoach() {
       workouts: workoutSessions,
       geo_activities: geoSessions,
       program_name: program?.name || "Untitled Program",
+      program_id: program?._id || undefined,
+      group_id: program?.group_id || undefined,
       total_duration_minutes: startTimeRef.current
         ? Math.round((Date.now() - startTimeRef.current.getTime()) / 60000)
         : 0,

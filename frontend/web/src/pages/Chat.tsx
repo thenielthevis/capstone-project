@@ -4,6 +4,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import Header from '@/components/Header';
 import GroupProgramModal from '@/components/GroupProgramModal';
+import GroupProgramProgressModal from '@/components/GroupProgramProgressModal';
 import { ReportType } from '@/api/reportApi';
 import {
   fetchChats,
@@ -45,6 +46,7 @@ import {
   LogOut,
   Camera,
   Dumbbell,
+  BarChart3,
 } from 'lucide-react';
 
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡'];
@@ -110,6 +112,8 @@ export default function Chat() {
   const [groupPrograms, setGroupPrograms] = useState<Program[]>([]);
   const [processingProgramId, setProcessingProgramId] = useState<string | null>(null);
   const [showGroupProgramModal, setShowGroupProgramModal] = useState(false);
+  const [showGroupProgramProgressModal, setShowGroupProgramProgressModal] = useState(false);
+  const [selectedProgramForProgress, setSelectedProgramForProgress] = useState<Program | null>(null);
 
   // Dismiss suggestions when user starts typing
   useEffect(() => {
@@ -526,6 +530,25 @@ export default function Chat() {
       return memberId === currentUserId;
     });
     return member?.status || null;
+  };
+
+  // Handle view progress for a program
+  const handleViewProgress = (program: Program) => {
+    setSelectedProgramForProgress(program);
+    setShowGroupProgramProgressModal(true);
+  };
+
+  // Check if user can view progress (accepted member)
+  const canViewProgress = (program: Program) => {
+    const currentUserId = user?.id || user?._id;
+    const isCreator = program.user_id?._id === currentUserId;
+    if (isCreator) return true;
+    
+    const member = program.members?.find(m => {
+      const memberId = typeof m.user_id === 'string' ? m.user_id : m.user_id?._id;
+      return memberId === currentUserId;
+    });
+    return member?.status === 'accepted';
   };
 
   const TabButton = ({
@@ -1006,6 +1029,99 @@ export default function Chat() {
                   ))}
                 </div>
               </div>
+
+              {/* Group Programs Section */}
+              {selectedChat.isGroupChat && groupPrograms.length > 0 && (
+                <div className="mb-6">
+                  <h5 
+                    className="text-sm font-semibold mb-2"
+                    style={{ color: theme.colors.textSecondary }}
+                  >
+                    Group Programs ({groupPrograms.length})
+                  </h5>
+                  <div className="space-y-2">
+                    {groupPrograms.map((program) => {
+                      const userStatus = getUserProgramStatus(program);
+                      const acceptedCount = program.members?.filter(m => m.status === 'accepted').length || 0;
+                      const totalMembers = program.members?.length || 0;
+                      const isCreator = program.user_id?._id === (user?.id || user?._id);
+
+                      return (
+                        <div
+                          key={program._id}
+                          className="p-3 rounded-lg"
+                          style={{ backgroundColor: theme.colors.background }}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div
+                              className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                              style={{ backgroundColor: theme.colors.primary + '15' }}
+                            >
+                              <Dumbbell className="w-5 h-5" style={{ color: theme.colors.primary }} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium truncate" style={{ color: theme.colors.text }}>
+                                  {program.name}
+                                </p>
+                                {canViewProgress(program) && (
+                                  <button
+                                    onClick={() => handleViewProgress(program)}
+                                    className="p-1.5 rounded-lg hover:opacity-80 transition flex-shrink-0"
+                                    style={{ backgroundColor: theme.colors.secondary + '15' }}
+                                    title="View Progress"
+                                  >
+                                    <BarChart3 className="w-4 h-4" style={{ color: theme.colors.secondary }} />
+                                  </button>
+                                )}
+                              </div>
+                              <p className="text-xs mt-0.5" style={{ color: theme.colors.textSecondary }}>
+                                {acceptedCount}/{totalMembers} accepted
+                              </p>
+                              
+                              {/* Status Badge or Action Buttons */}
+                              {userStatus === 'pending' && !isCreator ? (
+                                <div className="flex gap-2 mt-2">
+                                  <button
+                                    onClick={() => handleAcceptProgram(program._id)}
+                                    disabled={processingProgramId === program._id}
+                                    className="flex-1 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50"
+                                    style={{ backgroundColor: theme.colors.primary, color: '#fff' }}
+                                  >
+                                    {processingProgramId === program._id ? '...' : 'Accept'}
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeclineProgram(program._id)}
+                                    disabled={processingProgramId === program._id}
+                                    className="flex-1 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50"
+                                    style={{ backgroundColor: theme.colors.error + '15', color: theme.colors.error }}
+                                  >
+                                    Decline
+                                  </button>
+                                </div>
+                              ) : (
+                                <span
+                                  className="inline-block text-xs px-2 py-0.5 rounded-full mt-2"
+                                  style={{
+                                    backgroundColor: userStatus === 'accepted' 
+                                      ? theme.colors.primary + '15' 
+                                      : theme.colors.error + '15',
+                                    color: userStatus === 'accepted' 
+                                      ? theme.colors.primary 
+                                      : theme.colors.error,
+                                  }}
+                                >
+                                  {userStatus === 'accepted' ? '✓ Accepted' : userStatus === 'declined' ? '✗ Declined' : '⏳ Pending'}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Action Buttons */}
@@ -1156,6 +1272,19 @@ export default function Chat() {
             loadGroupPrograms();
           }}
         />
+
+        {/* Group Program Progress Modal */}
+        {selectedProgramForProgress && (
+          <GroupProgramProgressModal
+            visible={showGroupProgramProgressModal}
+            onClose={() => {
+              setShowGroupProgramProgressModal(false);
+              setSelectedProgramForProgress(null);
+            }}
+            programId={selectedProgramForProgress._id}
+            programName={selectedProgramForProgress.name}
+          />
+        )}
       </div>
     );
   }

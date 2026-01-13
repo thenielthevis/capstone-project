@@ -23,6 +23,12 @@ axiosInstance.interceptors.request.use(
       // Axios v1+ always provides AxiosHeaders instance
       (config.headers as any)["Authorization"] = `Bearer ${token}`;
     }
+    
+    // Remove Content-Type for FormData requests to let the browser/RN set it with boundary
+    if (config.data instanceof FormData) {
+      delete (config.headers as any)["Content-Type"];
+    }
+    
     console.log(`[axios] ${config.method?.toUpperCase()} ${config.url}`);
     return config;
   },

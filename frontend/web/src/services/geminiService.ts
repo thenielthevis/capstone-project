@@ -51,6 +51,8 @@ export async function analyzeFood(imageFile: File, dishName: string = '', allerg
     
     const prompt = `Analyze this food image and provide the following information in JSON format:${dishContext}${allergyContext}
     
+    CUISINE FOCUS: Prioritize Filipino dish identification. Common Filipino dishes include: Adobo, Sinigang, Kare-Kare, Lechon, Lumpia, Pancit, Sisig, Bulalo, Tinola, Bicol Express, Laing, Pinakbet, Dinuguan, Kaldereta, Menudo, Mechado, Afritada, Bistek Tagalog, Longganisa, Tapa, Tocino, Bangus, Inihaw na Liempo, Arroz Caldo, Lugaw, Champorado, Halo-Halo, Leche Flan, Bibingka, Puto, Turon, and more. Consider Filipino cooking methods (frying with coconut oil, using bagoong, patis, calamansi, etc.) when estimating nutrition values. If the dish is not Filipino, auto-detect the cuisine type.
+    
     IMPORTANT: Focus on accurate nutrition identification. The system will automatically cross-reference your data with verified databases (FatSecret API, USDA FoodData Central, scientific studies).
     1. If visible nutrition label, extract exact values
     2. For branded products, identify the brand and product name accurately
@@ -617,6 +619,435 @@ Return ONLY valid JSON, no additional text or markdown.`;
       throw new Error('API quota exceeded. Please try again later.')
     } else {
       throw new Error(error.message || 'Failed to generate program. Please try again.')
+    }
+  }
+}
+
+/**
+ * Interface for multi-dish analysis input
+ */
+export interface DishEntry {
+  id: string
+  file: File | null
+  previewUrl: string | null
+  dishName: string
+  servingSize: string
+  additionalImages: { file: File; previewUrl: string }[]
+}
+
+/**
+ * Interface for individual dish analysis result
+ */
+export interface DishAnalysisResult {
+  dishId: string
+  foodName: string
+  userProvidedName: string
+  servingSize: string
+  calories: number
+  nutrients: {
+    protein: number
+    carbs: number
+    fat: number
+    fiber: number
+    sugar: number
+    saturatedFat: number
+    sodium: number
+    cholesterol: number
+    [key: string]: number
+  }
+  allergyWarnings: {
+    detected: string[]
+    mayContain: string[]
+    warning: string | null
+  }
+  confidence: string
+  cuisineType: string
+  isFilipino: boolean
+  isAsian: boolean
+  filipinoIngredients: string[]
+  asianIngredients: string[]
+  healthyAlternatives: Array<{
+    name: string
+    reason: string
+    caloriesSaved: number
+  }>
+  recipeLinks: Array<{
+    title: string
+    source: string
+    url: string
+  }>
+  notes: string
+}
+
+/**
+ * Interface for multi-dish analysis result
+ */
+export interface MultiDishAnalysisResult {
+  dishes: DishAnalysisResult[]
+  totalCalories: number
+  totalNutrients: {
+    protein: number
+    carbs: number
+    fat: number
+    fiber: number
+    sugar: number
+    saturatedFat: number
+    sodium: number
+    cholesterol: number
+  }
+  combinedAllergyWarnings: {
+    detected: string[]
+    mayContain: string[]
+    warnings: string[]
+  }
+  mealSummary: string
+  cuisineBreakdown: { [key: string]: number }
+  healthScore: number
+  overallRecommendations: string[]
+  nutritionSources: Array<{
+    source: string
+    url: string
+    reliability: string
+    verified: boolean
+  }>
+}
+
+/**
+ * Filipino and Asian cuisine knowledge for better identification
+ */
+const FILIPINO_ASIAN_CUISINE_CONTEXT = `
+FILIPINO CUISINE KNOWLEDGE:
+Common Filipino dishes and their typical ingredients:
+- Adobo: Meat (chicken/pork), soy sauce, vinegar, garlic, bay leaves, peppercorns
+- Sinigang: Tamarind-based sour soup with pork/fish, vegetables (kangkong, tomatoes, radish)
+- Kare-Kare: Oxtail, tripe, peanut sauce, banana blossom, string beans, bagoong
+- Lechon: Roasted whole pig, high in fat and protein
+- Lumpia: Spring rolls with meat/vegetables, can be fresh or fried
+- Pancit: Various noodle dishes (Canton, Bihon, Palabok)
+- Sisig: Chopped pig face/ears, chili, calamansi, egg
+- Bulalo: Beef bone marrow soup with cabbage, corn
+- Tinola: Ginger-based chicken soup with papaya, chili leaves
+- Bicol Express: Pork in coconut milk with shrimp paste, chili
+- Laing: Taro leaves in coconut milk
+- Pinakbet: Mixed vegetables with bagoong
+- Kaldereta: Meat stew with liver spread, tomatoes
+- Bistek Tagalog: Beef with onions, soy sauce, calamansi
+
+Filipino cooking methods and common ingredients:
+- Bagoong (fermented fish/shrimp paste) - high sodium
+- Patis (fish sauce) - high sodium
+- Calamansi - vitamin C source
+- Coconut milk (gata) - high in saturated fat
+- Palm vinegar, cane vinegar
+- Annatto (achuete) for color
+
+ASIAN CUISINE KNOWLEDGE:
+Japanese: Soy-based seasonings, miso, dashi, rice, seafood, minimal oil
+Korean: Fermented foods (kimchi), gochujang, sesame oil, lots of vegetables
+Chinese: Wok cooking, variety of sauces, rice/noodles, balanced protein
+Thai: Fish sauce, coconut milk, lemongrass, galangal, chilies, palm sugar
+Vietnamese: Fresh herbs, fish sauce, rice noodles, light preparations
+Indian: Spices (turmeric, cumin, coriander), ghee, legumes, yogurt
+
+Common Asian allergens to watch:
+- Fish sauce (patis, nuoc mam)
+- Shrimp paste (bagoong, belacan)
+- Soy products (toyo, tofu, miso)
+- Sesame
+- Shellfish
+- Peanuts
+- Coconut
+- MSG
+`;
+
+/**
+ * Analyze multiple dishes from multiple images with Filipino cuisine focus
+ */
+export async function analyzeMultipleDishes(
+  dishes: DishEntry[],
+  allergyInfo: string[] = []
+): Promise<MultiDishAnalysisResult> {
+  if (!API_KEY) {
+    throw new Error('Gemini API key is not configured. Please add your API key to .env file')
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' })
+    
+    // Analyze each dish
+    const dishResults: DishAnalysisResult[] = []
+    
+    for (const dish of dishes) {
+      if (!dish.file) continue
+      
+      // Prepare all images for this dish (main + additional)
+      const imageParts = []
+      
+      // Add main image
+      const mainImagePart = await fileToGenerativePart(dish.file)
+      imageParts.push(mainImagePart)
+      
+      // Add additional images for better accuracy
+      for (const additionalImg of dish.additionalImages) {
+        const additionalPart = await fileToGenerativePart(additionalImg.file)
+        imageParts.push(additionalPart)
+      }
+      
+      const imageCountNote = imageParts.length > 1 
+        ? `\nNOTE: ${imageParts.length} images provided of the same dish from different angles. Analyze all images together for more accurate identification and portion estimation.`
+        : ''
+      
+      const dishContext = dish.dishName 
+        ? `\nUser indicated this dish is: "${dish.dishName}". Use this as primary context.`
+        : ''
+      
+      const servingSizeContext = `\nEstimated serving size: ${dish.servingSize}`
+      
+      const allergyContext = allergyInfo.length > 0 
+        ? `\nUser has these allergies/dietary restrictions: ${allergyInfo.join(', ')}. Check for these allergens.`
+        : ''
+      
+      const cuisineContext = `\nPrioritize Filipino dish identification. If not Filipino, auto-detect the cuisine type.`
+      
+      const prompt = `${FILIPINO_ASIAN_CUISINE_CONTEXT}
+
+Analyze this food image(s) and provide detailed nutritional information in JSON format.${imageCountNote}${dishContext}${servingSizeContext}${allergyContext}${cuisineContext}
+
+IMPORTANT INSTRUCTIONS:
+1. Focus on Filipino and Asian cuisine identification
+2. If multiple images are provided, use all of them to improve accuracy
+3. Consider typical Filipino/Asian portion sizes
+4. Account for common Filipino/Asian cooking methods (frying, coconut milk, etc.)
+5. Identify specific Filipino/Asian ingredients
+
+Provide the response in this exact JSON format:
+{
+  "foodName": "identified dish name (use Filipino/Asian name if applicable)",
+  "cuisineType": "filipino/japanese/korean/chinese/thai/vietnamese/indian/other",
+  "isFilipino": boolean,
+  "isAsian": boolean,
+  "filipinoIngredients": ["list of Filipino ingredients detected, e.g., bagoong, patis, calamansi"],
+  "asianIngredients": ["list of Asian ingredients detected, e.g., fish sauce, soy sauce, miso"],
+  "calories": estimated total calories for the serving size (number only),
+  "servingSize": "confirmed or adjusted serving size",
+  "nutrients": {
+    "protein": protein in grams (number only),
+    "carbs": carbohydrates in grams (number only),
+    "fat": fat in grams (number only),
+    "fiber": fiber in grams (number only),
+    "sugar": sugar in grams (number only),
+    "saturatedFat": saturated fat in grams (number only),
+    "sodium": sodium in milligrams (number only - important for Filipino food with bagoong/patis),
+    "cholesterol": cholesterol in milligrams (number only),
+    "potassium": potassium in milligrams (number only),
+    "vitaminA": vitamin A percentage (number only),
+    "vitaminC": vitamin C percentage (number only),
+    "calcium": calcium percentage (number only),
+    "iron": iron percentage (number only)
+  },
+  "allergyWarnings": {
+    "detected": [allergens from user's list found in this dish],
+    "mayContain": [common allergens that might be present - especially Asian-specific like fish sauce, shrimp paste],
+    "warning": "specific warning message or null"
+  },
+  "healthyAlternatives": [
+    {
+      "name": "healthier Filipino/Asian alternative",
+      "reason": "why this is healthier (specific to the cuisine)",
+      "caloriesSaved": estimated calorie reduction (number)
+    }
+  ],
+  "recipeLinks": [
+    {
+      "title": "recipe search query",
+      "source": "Google",
+      "url": "https://www.google.com/search?q=authentic+dish+name+recipe"
+    }
+  ],
+  "confidence": "high/medium/low",
+  "notes": "additional notes about the dish, cooking method, or nutritional considerations"
+}
+
+Return ONLY valid JSON, no additional text or markdown.`
+
+      const result = await model.generateContent([prompt, ...imageParts as any[]])
+      const response = await result.response
+      const text = response.text()
+      
+      try {
+        const cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+        const parsedResult = JSON.parse(cleanedText)
+        
+        dishResults.push({
+          dishId: dish.id,
+          foodName: parsedResult.foodName || 'Unknown Dish',
+          userProvidedName: dish.dishName,
+          servingSize: parsedResult.servingSize || dish.servingSize,
+          calories: parsedResult.calories || 0,
+          nutrients: {
+            protein: parsedResult.nutrients?.protein || 0,
+            carbs: parsedResult.nutrients?.carbs || 0,
+            fat: parsedResult.nutrients?.fat || 0,
+            fiber: parsedResult.nutrients?.fiber || 0,
+            sugar: parsedResult.nutrients?.sugar || 0,
+            saturatedFat: parsedResult.nutrients?.saturatedFat || 0,
+            sodium: parsedResult.nutrients?.sodium || 0,
+            cholesterol: parsedResult.nutrients?.cholesterol || 0,
+            ...parsedResult.nutrients
+          },
+          allergyWarnings: parsedResult.allergyWarnings || { detected: [], mayContain: [], warning: null },
+          confidence: parsedResult.confidence || 'medium',
+          cuisineType: parsedResult.cuisineType || 'other',
+          isFilipino: parsedResult.isFilipino || false,
+          isAsian: parsedResult.isAsian || false,
+          filipinoIngredients: parsedResult.filipinoIngredients || [],
+          asianIngredients: parsedResult.asianIngredients || [],
+          healthyAlternatives: parsedResult.healthyAlternatives || [],
+          recipeLinks: parsedResult.recipeLinks || [],
+          notes: parsedResult.notes || ''
+        })
+      } catch (parseError) {
+        console.error('Failed to parse dish analysis:', text)
+        dishResults.push({
+          dishId: dish.id,
+          foodName: dish.dishName || 'Unknown Dish',
+          userProvidedName: dish.dishName,
+          servingSize: dish.servingSize,
+          calories: 0,
+          nutrients: {
+            protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0,
+            saturatedFat: 0, sodium: 0, cholesterol: 0
+          },
+          allergyWarnings: { detected: [], mayContain: [], warning: null },
+          confidence: 'low',
+          cuisineType: 'unknown',
+          isFilipino: false,
+          isAsian: false,
+          filipinoIngredients: [],
+          asianIngredients: [],
+          healthyAlternatives: [],
+          recipeLinks: [],
+          notes: 'Could not analyze this dish. Please try with a clearer image.'
+        })
+      }
+    }
+    
+    // Calculate totals
+    const totalCalories = dishResults.reduce((sum, d) => sum + d.calories, 0)
+    const totalNutrients = {
+      protein: dishResults.reduce((sum, d) => sum + (d.nutrients.protein || 0), 0),
+      carbs: dishResults.reduce((sum, d) => sum + (d.nutrients.carbs || 0), 0),
+      fat: dishResults.reduce((sum, d) => sum + (d.nutrients.fat || 0), 0),
+      fiber: dishResults.reduce((sum, d) => sum + (d.nutrients.fiber || 0), 0),
+      sugar: dishResults.reduce((sum, d) => sum + (d.nutrients.sugar || 0), 0),
+      saturatedFat: dishResults.reduce((sum, d) => sum + (d.nutrients.saturatedFat || 0), 0),
+      sodium: dishResults.reduce((sum, d) => sum + (d.nutrients.sodium || 0), 0),
+      cholesterol: dishResults.reduce((sum, d) => sum + (d.nutrients.cholesterol || 0), 0)
+    }
+    
+    // Combine allergy warnings
+    const allDetected = [...new Set(dishResults.flatMap(d => d.allergyWarnings.detected))]
+    const allMayContain = [...new Set(dishResults.flatMap(d => d.allergyWarnings.mayContain))]
+    const allWarnings = dishResults
+      .map(d => d.allergyWarnings.warning)
+      .filter(w => w !== null) as string[]
+    
+    // Cuisine breakdown
+    const cuisineBreakdown: { [key: string]: number } = {}
+    dishResults.forEach(d => {
+      cuisineBreakdown[d.cuisineType] = (cuisineBreakdown[d.cuisineType] || 0) + 1
+    })
+    
+    // Calculate health score (0-100)
+    let healthScore = 70 // Base score
+    
+    // Adjust based on nutrients
+    if (totalNutrients.fiber > 10) healthScore += 5
+    if (totalNutrients.protein > 30) healthScore += 5
+    if (totalNutrients.saturatedFat < 15) healthScore += 5
+    if (totalNutrients.sodium > 2000) healthScore -= 10 // High sodium penalty
+    if (totalNutrients.sugar > 30) healthScore -= 5
+    if (totalCalories > 1500) healthScore -= 10
+    
+    healthScore = Math.max(0, Math.min(100, healthScore))
+    
+    // Generate meal summary
+    const dishNames = dishResults.map(d => d.foodName).join(', ')
+    const filipinoCount = dishResults.filter(d => d.isFilipino).length
+    const mealSummary = `Analyzed ${dishResults.length} dish${dishResults.length > 1 ? 'es' : ''}: ${dishNames}. ` +
+      `${filipinoCount > 0 ? `${filipinoCount} Filipino dish${filipinoCount > 1 ? 'es' : ''} identified. ` : ''}` +
+      `Total: ${totalCalories} kcal, ${totalNutrients.protein}g protein, ${totalNutrients.carbs}g carbs, ${totalNutrients.fat}g fat.`
+    
+    // Generate recommendations
+    const recommendations: string[] = []
+    if (totalNutrients.sodium > 1500) {
+      recommendations.push('High sodium content detected. Consider reducing fish sauce (patis) or shrimp paste (bagoong) in future meals.')
+    }
+    if (totalNutrients.saturatedFat > 20) {
+      recommendations.push('High saturated fat. Consider grilling instead of frying, or using less coconut milk.')
+    }
+    if (totalNutrients.fiber < 10) {
+      recommendations.push('Low fiber content. Add more vegetables like kangkong, sitaw, or salads to your meal.')
+    }
+    if (totalCalories > 800) {
+      recommendations.push('High calorie meal. Consider smaller portions or balance with lighter meals throughout the day.')
+    }
+    if (recommendations.length === 0) {
+      recommendations.push('Good nutritional balance! Keep up the healthy eating habits.')
+    }
+    
+    // Build nutrition sources
+    const nutritionSources = [
+      {
+        source: 'USDA FoodData Central',
+        url: 'https://fdc.nal.usda.gov/',
+        reliability: 'high',
+        verified: true
+      },
+      {
+        source: 'Philippine Food Composition Tables (FNRI)',
+        url: 'https://www.fnri.dost.gov.ph/index.php/tools-and-standard/philippine-food-composition-tables',
+        reliability: 'high',
+        verified: true
+      },
+      {
+        source: 'Asian Food Composition Database',
+        url: 'http://www.fao.org/infoods/infoods/tables-and-databases/asia/en/',
+        reliability: 'high',
+        verified: true
+      },
+      {
+        source: 'FatSecret Philippines',
+        url: 'https://www.fatsecret.com.ph/',
+        reliability: 'high',
+        verified: true
+      }
+    ]
+    
+    return {
+      dishes: dishResults,
+      totalCalories,
+      totalNutrients,
+      combinedAllergyWarnings: {
+        detected: allDetected,
+        mayContain: allMayContain,
+        warnings: allWarnings
+      },
+      mealSummary,
+      cuisineBreakdown,
+      healthScore,
+      overallRecommendations: recommendations,
+      nutritionSources
+    }
+  } catch (error: any) {
+    console.error('Error in multi-dish analysis:', error)
+    
+    if (error.message?.includes('API key')) {
+      throw new Error('Invalid API key. Please check your Gemini API key.')
+    } else if (error.message?.includes('quota')) {
+      throw new Error('API quota exceeded. Please try again later.')
+    } else {
+      throw new Error('Failed to analyze dishes. Please try again.')
     }
   }
 }

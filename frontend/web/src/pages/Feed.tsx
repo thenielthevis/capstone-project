@@ -4,6 +4,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import Header from '@/components/Header';
 import ReactionButton, { REACTIONS } from '@/components/ReactionButton';
+import SessionPreview from '@/components/feed/SessionPreview';
 import { postApi, Post } from '@/api/postApi';
 import { commentApi, Comment } from '@/api/commentApi';
 import { ReportType } from '@/api/reportApi';
@@ -336,6 +337,13 @@ export default function Feed() {
             {post.content}
           </p>
         </div>
+
+        {/* Session Reference Preview */}
+        {post.reference?.item_id && (
+          <div className="px-4 pb-4">
+            <SessionPreview reference={post.reference as { item_id: any; item_type: 'GeoSession' | 'ProgramSession' | 'FoodLog' | 'Post' }} />
+          </div>
+        )}
 
         {/* Post Images */}
         {post.images && post.images.length > 0 && (
