@@ -19,6 +19,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { postApi, Post } from '@/api/postApi';
 import { commentApi, Comment } from '@/api/commentApi';
 import ReactionButton from '@/components/ReactionButton';
+import SessionPreview from '@/components/feed/SessionPreview';
 import Header from '@/components/Header';
 
 interface CommentWithReplies extends Comment {
@@ -450,6 +451,13 @@ export default function PostDetail() {
               {post.content}
             </p>
           </div>
+
+          {/* Session Reference Preview */}
+          {post.reference?.item_id && (
+            <div className="px-4 pb-4">
+              <SessionPreview reference={post.reference as { item_id: any; item_type: 'GeoSession' | 'ProgramSession' | 'FoodLog' | 'Post' }} />
+            </div>
+          )}
 
           {/* Post Images */}
           {post.images && post.images.length > 0 && (

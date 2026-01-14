@@ -27,6 +27,7 @@ import {
 } from "../../api/chatApi";
 import { getGroupPrograms, acceptProgram, declineProgram, Program } from "../../api/programApi";
 import GroupProgramModal from "../../components/Modals/GroupProgramModal";
+import GroupProgramProgressModal from "../../components/Modals/GroupProgramProgressModal";
 import ReportModal from "../../components/Modals/ReportModal";
 import * as ImagePicker from "expo-image-picker";
 
@@ -49,6 +50,8 @@ export default function ChatInfo() {
   const [loadingPrograms, setLoadingPrograms] = useState(false);
   const [editingProgram, setEditingProgram] = useState<Program | null>(null);
   const [showEditProgramModal, setShowEditProgramModal] = useState(false);
+  const [showProgressModal, setShowProgressModal] = useState(false);
+  const [selectedProgramForProgress, setSelectedProgramForProgress] = useState<Program | null>(null);
 
   // Report Modal State
   const [showReportModal, setShowReportModal] = useState(false);
@@ -150,6 +153,11 @@ export default function ChatInfo() {
   const handleEditProgram = (program: Program) => {
     setEditingProgram(program);
     setShowEditProgramModal(true);
+  };
+
+  const handleViewProgress = (program: Program) => {
+    setSelectedProgramForProgress(program);
+    setShowProgressModal(true);
   };
 
   useEffect(() => {
@@ -987,24 +995,42 @@ export default function ChatInfo() {
                             >
                               {program.name}
                             </Text>
-                            {/* Edit Button - visible to accepted members */}
-                            {canEditProgram(program) && (
-                              <TouchableOpacity
-                                style={{
-                                  padding: 6,
-                                  backgroundColor: theme.colors.primary + "15",
-                                  borderRadius: 6,
-                                  marginLeft: 8,
-                                }}
-                                onPress={() => handleEditProgram(program)}
-                              >
-                                <Ionicons
-                                  name="pencil"
-                                  size={16}
-                                  color={theme.colors.primary}
-                                />
-                              </TouchableOpacity>
-                            )}
+                            <View style={{ flexDirection: "row", gap: 6 }}>
+                              {/* Progress Button - visible to accepted members */}
+                              {canEditProgram(program) && (
+                                <TouchableOpacity
+                                  style={{
+                                    padding: 6,
+                                    backgroundColor: theme.colors.secondary + "15",
+                                    borderRadius: 6,
+                                  }}
+                                  onPress={() => handleViewProgress(program)}
+                                >
+                                  <Ionicons
+                                    name="stats-chart"
+                                    size={16}
+                                    color={theme.colors.secondary}
+                                  />
+                                </TouchableOpacity>
+                              )}
+                              {/* Edit Button - visible to accepted members */}
+                              {canEditProgram(program) && (
+                                <TouchableOpacity
+                                  style={{
+                                    padding: 6,
+                                    backgroundColor: theme.colors.primary + "15",
+                                    borderRadius: 6,
+                                  }}
+                                  onPress={() => handleEditProgram(program)}
+                                >
+                                  <Ionicons
+                                    name="pencil"
+                                    size={16}
+                                    color={theme.colors.primary}
+                                  />
+                                </TouchableOpacity>
+                              )}
+                            </View>
                           </View>
                           {program.description && (
                             <Text
@@ -1238,6 +1264,19 @@ export default function ChatInfo() {
             setShowEditProgramModal(false);
             setEditingProgram(null);
           }}
+        />
+      )}
+
+      {/* Group Program Progress Modal */}
+      {selectedProgramForProgress && (
+        <GroupProgramProgressModal
+          visible={showProgressModal}
+          onClose={() => {
+            setShowProgressModal(false);
+            setSelectedProgramForProgress(null);
+          }}
+          programId={selectedProgramForProgress._id}
+          programName={selectedProgramForProgress.name}
         />
       )}
 

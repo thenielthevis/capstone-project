@@ -1,20 +1,24 @@
 import { useState, useEffect } from 'react';
-import { Camera, Edit3, History, BarChart3, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Camera, Edit3, History, BarChart3, Search, ChevronLeft, ChevronRight, Utensils } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import ImageUpload from '@/components/food/ImageUpload';
 import ManualInput from '@/components/food/ManualInput';
 import CalorieResult from '@/components/food/CalorieResult';
-import { analyzeFood, analyzeIngredients } from '@/services/geminiService';
+import MultiDishUpload, { DishEntry } from '@/components/food/MultiDishUpload';
+import MultiDishResult from '@/components/food/MultiDishResult';
+import { analyzeFood, analyzeIngredients, analyzeMultipleDishes, MultiDishAnalysisResult } from '@/services/geminiService';
 import foodLogApi from '@/api/foodLogApi';
+import { getUserAllergies } from '@/api/userApi';
 import Header from '@/components/Header';
 
 export default function FoodTracking() {
   const { theme } = useTheme();
   const { user } = useAuth();
   const [viewMode, setViewMode] = useState<'analyze' | 'history'>('analyze');
-  const [activeTab, setActiveTab] = useState<'image' | 'manual'>('image');
+  const [activeTab, setActiveTab] = useState<'image' | 'manual' | 'multi'>('image');
   const [result, setResult] = useState<any>(null);
+  const [multiDishResult, setMultiDishResult] = useState<MultiDishAnalysisResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
@@ -27,6 +31,26 @@ export default function FoodTracking() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentDishName, setCurrentDishName] = useState('');
   const [currentAllergies, setCurrentAllergies] = useState<string[]>([]);
+
+  // User allergies states (auto-populated from profile)
+  const [userAllergies, setUserAllergies] = useState<string[]>([]);
+  const [userDietaryPreferences, setUserDietaryPreferences] = useState<string[]>([]);
+
+  // Fetch user allergies on mount
+  useEffect(() => {
+    const loadUserAllergies = async () => {
+      if (!user) return;
+      try {
+        const response = await getUserAllergies();
+        setUserAllergies(response.allergies || []);
+        setUserDietaryPreferences(response.dietaryPreferences || []);
+        console.log('[FoodTracking] Loaded user allergies:', response.allergies);
+      } catch (error) {
+        console.error('[FoodTracking] Error loading user allergies:', error);
+      }
+    };
+    loadUserAllergies();
+  }, [user]);
 
   // Save food log to backend
   const saveFoodLog = async (analysisResult: any, imageBase64?: string, ingredientsList?: string) => {
@@ -131,6 +155,48 @@ export default function FoodTracking() {
     }
   };
 
+  // Handle multi-dish analysis
+  const handleMultiDishAnalyze = async (dishes: DishEntry[], allergies: string[]) => {
+    setIsLoading(true);
+    setError(null);
+    setMultiDishResult(null);
+    setResult(null);
+
+    try {
+      const analysisResult = await analyzeMultipleDishes(dishes, allergies);
+      setMultiDishResult(analysisResult);
+      
+      // Save each dish to backend
+      if (user) {
+        for (const dish of analysisResult.dishes) {
+          try {
+            await foodLogApi.createFoodLog({
+              foodName: dish.foodName,
+              calories: dish.calories,
+              servingSize: dish.servingSize,
+              nutrients: dish.nutrients,
+              allergyWarnings: dish.allergyWarnings,
+              confidence: dish.confidence,
+              inputMethod: 'multi-dish',
+              dishName: dish.userProvidedName || undefined,
+              userAllergies: allergies,
+              notes: `${dish.cuisineType} cuisine. ${dish.notes}`,
+              healthyAlternatives: dish.healthyAlternatives,
+              recipeLinks: dish.recipeLinks
+            });
+          } catch (saveErr) {
+            console.error('Error saving dish to log:', saveErr);
+          }
+        }
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to analyze dishes');
+      console.error('Multi-dish analysis error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Load food history
   const loadFoodHistory = async (page: number = 1, search: string = '') => {
     if (!user) return;
@@ -165,6 +231,7 @@ export default function FoodTracking() {
 
   const handleReset = () => {
     setResult(null);
+    setMultiDishResult(null);
     setError(null);
     setUploadedImage(null);
   };
@@ -317,7 +384,12 @@ export default function FoodTracking() {
                       {foodHistory.map((log) => (
                         <div
                           key={log._id}
-                          className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                          onClick={() => {
+                            setResult(log);
+                            setUploadedImage(log.imageUrl || null);
+                            setViewMode('analyze');
+                          }}
+                          className="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
                           style={{
                             backgroundColor: theme.colors.surface,
                             borderColor: theme.colors.border,
@@ -325,12 +397,22 @@ export default function FoodTracking() {
                         >
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
-                              <h3 
-                                className="text-lg font-bold mb-1"
-                                style={{ color: theme.colors.text }}
-                              >
-                                {log.foodName}
-                              </h3>
+                              <div className="flex items-center gap-2 mb-1">
+                                <h3 
+                                  className="text-lg font-bold"
+                                  style={{ color: theme.colors.text }}
+                                >
+                                  {log.foodName}
+                                </h3>
+                                {log.inputMethod === 'multi-dish' && (
+                                  <span 
+                                    className="text-xs px-2 py-0.5 rounded-full"
+                                    style={{ backgroundColor: '#f59e0b20', color: '#f59e0b' }}
+                                  >
+                                    Multi-Dish
+                                  </span>
+                                )}
+                              </div>
                               {log.dishName && (
                                 <p 
                                   className="text-sm mb-2"
@@ -339,7 +421,7 @@ export default function FoodTracking() {
                                   {log.dishName}
                                 </p>
                               )}
-                              <div className="flex gap-4 text-sm">
+                              <div className="flex flex-wrap gap-4 text-sm">
                                 <span style={{ color: theme.colors.primary }}>
                                   <strong>{log.calories}</strong> kcal
                                 </span>
@@ -359,6 +441,15 @@ export default function FoodTracking() {
                                   </span>
                                 )}
                               </div>
+                              {/* Allergy Warnings */}
+                              {log.allergyWarnings?.detected?.length > 0 && (
+                                <div 
+                                  className="flex items-center gap-2 mt-2 px-2 py-1 rounded-md text-xs"
+                                  style={{ backgroundColor: '#fee2e2', color: '#991b1b' }}
+                                >
+                                  <span>⚠️ Contains: {log.allergyWarnings.detected.join(', ')}</span>
+                                </div>
+                              )}
                               <p 
                                 className="text-xs mt-2"
                                 style={{ color: theme.colors.textSecondary }}
@@ -376,9 +467,17 @@ export default function FoodTracking() {
                               <img
                                 src={log.imageUrl}
                                 alt={log.foodName}
-                                className="w-20 h-20 object-cover rounded-lg ml-4"
+                                className="w-24 h-24 object-cover rounded-lg ml-4"
                               />
                             )}
+                          </div>
+                          <div className="flex items-center justify-end mt-2">
+                            <span 
+                              className="text-xs flex items-center gap-1"
+                              style={{ color: theme.colors.primary }}
+                            >
+                              View Details →
+                            </span>
                           </div>
                         </div>
                       ))}
@@ -483,19 +582,69 @@ export default function FoodTracking() {
                 <Edit3 className="w-5 h-5" />
                 <span className="hidden sm:inline">Manual Entry</span>
               </button>
+              <button
+                onClick={() => setActiveTab('multi')}
+                className="flex-1 px-6 py-4 font-semibold transition-all flex items-center justify-center gap-2"
+                style={{
+                  backgroundColor: activeTab === 'multi' ? theme.colors.card : 'transparent',
+                  color: activeTab === 'multi' ? '#f59e0b' : theme.colors.textSecondary,
+                  borderBottom: activeTab === 'multi' ? `2px solid #f59e0b` : 'none',
+                  fontFamily: theme.fonts.heading
+                }}
+                onMouseEnter={(e) => {
+                  if (activeTab !== 'multi') {
+                    e.currentTarget.style.backgroundColor = theme.colors.cardHover;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (activeTab !== 'multi') {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }
+                }}
+              >
+                <Utensils className="w-5 h-5" />
+                <span className="hidden sm:inline">Multi-Dish</span>
+              </button>
             </div>
 
             {/* Tab Content */}
             <div className="p-8">
               {activeTab === 'image' ? (
-                <ImageUpload onImageUpload={handleImageUpload} loading={isLoading} />
-              ) : (
+                <ImageUpload 
+                  onImageUpload={handleImageUpload} 
+                  loading={isLoading}
+                  userAllergies={userAllergies}
+                  userDietaryPreferences={userDietaryPreferences}
+                />
+              ) : activeTab === 'manual' ? (
                 <ManualInput onAnalyze={handleManualAnalyze} loading={isLoading} />
+              ) : (
+                <MultiDishUpload 
+                  onAnalyze={handleMultiDishAnalyze} 
+                  loading={isLoading}
+                  userAllergies={userAllergies}
+                  userDietaryPreferences={userDietaryPreferences}
+                />
               )}
             </div>
           </div>
           )}
           </>
+        ) : multiDishResult ? (
+          <div>
+            <button
+              onClick={handleReset}
+              className="mb-6 px-6 py-3 rounded-lg font-semibold transition-all"
+              style={{
+                backgroundColor: theme.colors.surface,
+                color: theme.colors.text,
+                border: `1px solid ${theme.colors.border}`
+              }}
+            >
+              ← Analyze More Food
+            </button>
+            <MultiDishResult result={multiDishResult} />
+          </div>
         ) : (
           <CalorieResult 
             result={result} 
@@ -505,7 +654,7 @@ export default function FoodTracking() {
         )}
 
         {/* Info Card */}
-        {!result && viewMode === 'analyze' && (
+        {!result && !multiDishResult && viewMode === 'analyze' && (
           <div 
             className="mt-8 rounded-xl shadow-lg p-6 border-t-4"
             style={{ 
@@ -623,6 +772,40 @@ export default function FoodTracking() {
                     style={{ color: theme.colors.textSecondary }}
                   >
                     Cross-referenced with FatSecret API and USDA
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <span className="text-2xl">🇵🇭</span>
+                <div>
+                  <h4 
+                    className="font-semibold"
+                    style={{ color: theme.colors.text }}
+                  >
+                    Filipino & Asian Cuisine
+                  </h4>
+                  <p 
+                    className="text-sm"
+                    style={{ color: theme.colors.textSecondary }}
+                  >
+                    Optimized for Adobo, Sinigang, Kare-Kare & more
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <span className="text-2xl">📸</span>
+                <div>
+                  <h4 
+                    className="font-semibold"
+                    style={{ color: theme.colors.text }}
+                  >
+                    Multi-Dish Analysis
+                  </h4>
+                  <p 
+                    className="text-sm"
+                    style={{ color: theme.colors.textSecondary }}
+                  >
+                    Upload multiple dishes with multiple angles for accuracy
                   </p>
                 </div>
               </div>

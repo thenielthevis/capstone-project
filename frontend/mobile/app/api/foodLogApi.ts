@@ -2,7 +2,7 @@ import axiosInstance from './axiosInstance';
 import { FoodAnalysisResult } from '../services/geminiService';
 
 interface FoodLogData extends FoodAnalysisResult {
-  inputMethod: 'image' | 'manual';
+  inputMethod: 'image' | 'manual' | 'multi-dish';
   imageBase64?: string;
   dishName?: string;
   userAllergies?: string[];

@@ -8,6 +8,20 @@ const ProgramSessionSchema = new mongoose.Schema(
       required: true,
     },
 
+    // Reference to the program template (if this session is from a group/saved program)
+    program_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Program",
+      default: null,
+    },
+
+    // Reference to the group chat (if this is a group program session)
+    group_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Chat",
+      default: null,
+    },
+
     program_name: {
       type: String,
       default: "Untitled Program",
@@ -99,6 +113,29 @@ const ProgramSessionSchema = new mongoose.Schema(
     end_time: {
       type: Date,
       default: null,
+    },
+
+    // Progress tracking for activities within the session
+    progress: {
+      // For geo activities - distance completed vs target
+      geo_progress: {
+        target_distance_km: { type: Number, default: 0 },
+        completed_distance_km: { type: Number, default: 0 },
+        percentage: { type: Number, default: 0 },
+      },
+      // For workouts - sets completed vs target
+      workout_progress: {
+        target_sets: { type: Number, default: 0 },
+        completed_sets: { type: Number, default: 0 },
+        percentage: { type: Number, default: 0 },
+      },
+      // Overall session completion percentage
+      overall_percentage: { type: Number, default: 0 },
+      status: {
+        type: String,
+        enum: ["not_started", "in_progress", "completed", "partial"],
+        default: "not_started",
+      },
     },
   },
   { timestamps: true }

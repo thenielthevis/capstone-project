@@ -40,11 +40,11 @@ export const postApi = {
             }
 
             console.log('[postApi] Sending request...');
+            // In React Native, we should NOT set Content-Type manually for FormData
+            // Axios will automatically set it with the correct boundary
             const { data } = await axiosInstance.post("/posts", formData, {
-                headers: {
-                    "Content-Type": "multipart/form-data",
-                },
                 timeout: 30000, // 30 second timeout
+                transformRequest: (data) => data, // Prevent axios from transforming FormData
             });
             console.log('[postApi] Post created successfully:', data);
             return data;

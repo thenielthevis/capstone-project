@@ -26,6 +26,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { getUserProfile } from '@/api/userApi';
 import { postApi, Post } from '@/api/postApi';
 import ReactionButton from '@/components/ReactionButton';
+import SessionPreview from '@/components/feed/SessionPreview';
 import Header from '@/components/Header';
 import logoImg from '@/assets/logo.png';
 
@@ -258,6 +259,13 @@ export default function Dashboard() {
                   ) : post.content}
                 </p>
               )}
+            </div>
+          )}
+
+          {/* Session Reference Preview */}
+          {post.reference?.item_id && (
+            <div className="px-3 pb-3">
+              <SessionPreview reference={post.reference as { item_id: any; item_type: 'GeoSession' | 'ProgramSession' | 'FoodLog' | 'Post' }} />
             </div>
           )}
 

@@ -12,6 +12,7 @@ import {
   Modal,
   RefreshControl,
   Dimensions,
+  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -19,7 +20,7 @@ import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import * as ImageManipulator from 'expo-image-manipulator';
-import { analyzeFood, analyzeIngredients, FoodAnalysisResult } from '../../services/geminiService';
+import { analyzeFood, analyzeIngredients, analyzeMultipleDishes, FoodAnalysisResult, DishEntry, MultiDishAnalysisResult } from '../../services/geminiService';
 import { useTheme } from '../../context/ThemeContext';
 import { foodLogApi } from '../../api/foodLogApi';
 import { useUser } from '../../context/UserContext';
@@ -30,9 +31,37 @@ import GamificationLoading from '../../components/animation/gamification-loading
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+// Enhanced allergens list including Filipino and Asian cuisine-specific allergens
 const COMMON_ALLERGENS = [
+  // Standard allergens
   'Peanuts', 'Tree Nuts', 'Milk', 'Eggs', 'Wheat', 'Soy',
-  'Fish', 'Shellfish', 'Sesame', 'Gluten'
+  'Fish', 'Shellfish', 'Sesame', 'Gluten',
+  // Filipino/Asian specific
+  'Shrimp Paste (Bagoong)', 'Fish Sauce (Patis)', 'Coconut',
+  'Crab', 'Squid', 'MSG', 'Oyster Sauce', 'Fermented Soy'
+];
+
+// Popular Filipino and Asian dishes for suggestions
+const FILIPINO_DISHES = [
+  'Adobo', 'Sinigang', 'Kare-Kare', 'Lechon', 'Lumpia', 'Pancit',
+  'Sisig', 'Bulalo', 'Tinola', 'Bicol Express', 'Laing', 'Pinakbet',
+  'Kaldereta', 'Bistek Tagalog', 'Palabok', 'Arroz Caldo', 'Halo-Halo'
+];
+
+const ASIAN_DISHES = [
+  'Ramen', 'Sushi', 'Tempura', 'Bibimbap', 'Bulgogi', 'Kimchi',
+  'Dim Sum', 'Fried Rice', 'Pad Thai', 'Tom Yum', 'Pho', 'Banh Mi'
+];
+
+// Serving sizes for multi-dish upload
+const SERVING_SIZES = [
+  'Small (1/2 cup / 100g)',
+  'Regular (1 cup / 200g)',
+  'Large (1.5 cups / 300g)',
+  'Extra Large (2 cups / 400g)',
+  'Sharing Size (3+ cups)',
+  'Individual Pack',
+  'Family Size'
 ];
 
 // Mini Calorie Progress Component (Simplified)
@@ -258,7 +287,7 @@ export default function Food() {
   const { user } = useUser();
   const router = useRouter();
   const [viewMode, setViewMode] = useState<'analyze' | 'history'>('analyze');
-  const [inputMode, setInputMode] = useState<'image' | 'manual'>('image');
+  const [inputMode, setInputMode] = useState<'image' | 'manual' | 'multi'>('image');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<FoodAnalysisResult | null>(null);
@@ -267,11 +296,20 @@ export default function Food() {
   // Image mode states
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [dishName, setDishName] = useState('');
+  const [showDishSuggestions, setShowDishSuggestions] = useState(false);
   const [selectedAllergies, setSelectedAllergies] = useState<string[]>([]);
   const [customAllergies, setCustomAllergies] = useState('');
 
   // Manual mode states
   const [ingredients, setIngredients] = useState('');
+
+  // Multi-dish mode states
+  const [multiDishes, setMultiDishes] = useState<DishEntry[]>([
+    { id: '1', uri: null, base64: null, dishName: '', servingSize: 'Regular (1 cup / 200g)', additionalImages: [] }
+  ]);
+  const [multiDishResult, setMultiDishResult] = useState<MultiDishAnalysisResult | null>(null);
+  const [currentMultiDishId, setCurrentMultiDishId] = useState<string | null>(null);
+  const [addingAdditionalImage, setAddingAdditionalImage] = useState(false);
 
   // Camera states
   const [showCamera, setShowCamera] = useState(false);
@@ -455,6 +493,7 @@ export default function Food() {
     try {
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.8,
+        base64: true,
       });
 
       if (photo) {
@@ -462,10 +501,43 @@ export default function Food() {
         const manipulatedImage = await ImageManipulator.manipulateAsync(
           photo.uri,
           [{ resize: { width: 1024 } }], // Resize to max width of 1024px
-          { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+          { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG, base64: true }
         );
 
-        setImageUri(manipulatedImage.uri);
+        // Check if this is for multi-dish mode
+        if (currentMultiDishId) {
+          const dishId = currentMultiDishId;
+          const isAdditional = addingAdditionalImage;
+          
+          if (isAdditional) {
+            // Add as additional image
+            const dish = multiDishes.find(d => d.id === dishId);
+            if (dish && dish.additionalImages.length >= 4) {
+              Alert.alert('Maximum Limit', 'Maximum 5 images per dish (1 main + 4 additional)');
+            } else {
+              setMultiDishes(multiDishes.map(d =>
+                d.id === dishId
+                  ? { ...d, additionalImages: [...d.additionalImages, { uri: manipulatedImage.uri, base64: manipulatedImage.base64 || '' }] }
+                  : d
+              ));
+            }
+          } else {
+            // Set as main image
+            setMultiDishes(multiDishes.map(d =>
+              d.id === dishId
+                ? { ...d, uri: manipulatedImage.uri, base64: manipulatedImage.base64 || '' }
+                : d
+            ));
+          }
+          
+          // Reset multi-dish camera state
+          setCurrentMultiDishId(null);
+          setAddingAdditionalImage(false);
+        } else {
+          // Regular single image mode
+          setImageUri(manipulatedImage.uri);
+        }
+        
         setShowCamera(false);
       }
     } catch (err) {
@@ -480,6 +552,9 @@ export default function Food() {
 
   const closeCamera = () => {
     setShowCamera(false);
+    // Reset multi-dish camera state if closing without capturing
+    setCurrentMultiDishId(null);
+    setAddingAdditionalImage(false);
   };
 
   const toggleAllergy = (allergen: string) => {
@@ -488,6 +563,179 @@ export default function Food() {
         ? prev.filter(a => a !== allergen)
         : [...prev, allergen]
     );
+  };
+
+  // Multi-dish helper functions
+  const generateId = () => Math.random().toString(36).substr(2, 9);
+
+  const addDish = () => {
+    if (multiDishes.length >= 10) {
+      Alert.alert('Maximum Limit', 'Maximum 10 dishes allowed per analysis');
+      return;
+    }
+    setMultiDishes([...multiDishes, {
+      id: generateId(),
+      uri: null,
+      base64: null,
+      dishName: '',
+      servingSize: 'Regular (1 cup / 200g)',
+      additionalImages: []
+    }]);
+  };
+
+  const removeDish = (id: string) => {
+    if (multiDishes.length <= 1) return;
+    setMultiDishes(multiDishes.filter(d => d.id !== id));
+  };
+
+  const updateMultiDishName = (id: string, name: string) => {
+    setMultiDishes(multiDishes.map(d => d.id === id ? { ...d, dishName: name } : d));
+  };
+
+  const updateMultiDishServingSize = (id: string, size: string) => {
+    setMultiDishes(multiDishes.map(d => d.id === id ? { ...d, servingSize: size } : d));
+  };
+
+  const takeMultiDishPhoto = async (dishId: string, isAdditional: boolean = false) => {
+    if (!permission) {
+      return;
+    }
+
+    if (!permission.granted) {
+      const { granted } = await requestPermission();
+      if (!granted) {
+        Alert.alert('Permission needed', 'Please grant camera permissions to take photos.');
+        return;
+      }
+    }
+
+    // Store which dish we're capturing for
+    setCurrentMultiDishId(dishId);
+    setAddingAdditionalImage(isAdditional);
+    setShowCamera(true);
+  };
+
+  const pickMultiDishImage = async (dishId: string, isAdditional: boolean = false) => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Please grant camera roll permissions to upload images.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      quality: 0.8,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const { uri, base64 } = result.assets[0];
+      
+      if (isAdditional) {
+        // Add as additional image
+        const dish = multiDishes.find(d => d.id === dishId);
+        if (dish && dish.additionalImages.length >= 4) {
+          Alert.alert('Maximum Limit', 'Maximum 5 images per dish (1 main + 4 additional)');
+          return;
+        }
+        setMultiDishes(multiDishes.map(d =>
+          d.id === dishId
+            ? { ...d, additionalImages: [...d.additionalImages, { uri, base64: base64 || '' }] }
+            : d
+        ));
+      } else {
+        // Set as main image
+        setMultiDishes(multiDishes.map(d =>
+          d.id === dishId
+            ? { ...d, uri, base64: base64 || '' }
+            : d
+        ));
+      }
+    }
+  };
+
+  const removeMultiDishImage = (dishId: string, imageIndex?: number) => {
+    if (imageIndex !== undefined) {
+      // Remove additional image
+      setMultiDishes(multiDishes.map(d =>
+        d.id === dishId
+          ? { ...d, additionalImages: d.additionalImages.filter((_, i) => i !== imageIndex) }
+          : d
+      ));
+    } else {
+      // Remove main image
+      setMultiDishes(multiDishes.map(d =>
+        d.id === dishId
+          ? { ...d, uri: null, base64: null }
+          : d
+      ));
+    }
+  };
+
+  const handleAnalyzeMultipleDishes = async () => {
+    const dishesWithImages = multiDishes.filter(d => d.base64 !== null);
+    if (dishesWithImages.length === 0) {
+      Alert.alert('No Images', 'Please upload at least one food image');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const allergyList = [...selectedAllergies];
+      if (customAllergies.trim()) {
+        allergyList.push(...customAllergies.split(',').map(a => a.trim()).filter(a => a));
+      }
+
+      const analysisResult = await analyzeMultipleDishes(dishesWithImages, allergyList);
+      setMultiDishResult(analysisResult);
+
+      // Save each dish to backend
+      if (user) {
+        for (const dish of analysisResult.dishes) {
+          try {
+            await foodLogApi.createFoodLog({
+              foodName: dish.foodName,
+              calories: dish.calories,
+              servingSize: dish.servingSize,
+              nutrients: dish.nutrients,
+              allergyWarnings: dish.allergyWarnings,
+              confidence: dish.confidence,
+              inputMethod: 'multi-dish',
+              dishName: dish.userProvidedName || undefined,
+              userAllergies: allergyList,
+              notes: `${dish.cuisineType} cuisine. ${dish.notes || ''}`,
+              healthyAlternatives: dish.healthyAlternatives || [],
+              recipeLinks: dish.recipeLinks || [],
+              brandedProduct: { 
+                isBranded: false, 
+                brandName: null, 
+                productName: null, 
+                ingredients: null, 
+                purchaseLinks: { lazada: null, shopee: null, puregold: null } 
+              },
+              nutritionSources: []
+            });
+          } catch (saveErr) {
+            console.error('Error saving dish to log:', saveErr);
+          }
+        }
+        await refreshCalorieBalance();
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to analyze dishes');
+      console.error('Multi-dish analysis error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetMultiDish = () => {
+    setMultiDishes([{ id: '1', uri: null, base64: null, dishName: '', servingSize: 'Regular (1 cup / 200g)', additionalImages: [] }]);
+    setMultiDishResult(null);
+    setError(null);
   };
 
   // Load food history
@@ -570,7 +818,7 @@ export default function Food() {
 
       const response = await foodLogApi.createFoodLog({
         ...analysisResult,
-        inputMethod: inputMode,
+        inputMethod: inputMode === 'multi' ? 'multi-dish' : inputMode,
         imageBase64: imageToSend,
         dishName: dishName || undefined,
         userAllergies: allergyList,
@@ -724,11 +972,13 @@ export default function Food() {
 
   const handleReset = () => {
     setResult(null);
+    setMultiDishResult(null);
     setError(null);
     setImageUri(null);
     setDishName('');
     setIngredients('');
     setIsLogged(false);
+    resetMultiDish();
   };
 
   const getPercentage = (value: number, max: number) => {
@@ -787,6 +1037,412 @@ export default function Food() {
       </View>
     );
   };
+
+  // Multi-dish result view
+  if (multiDishResult) {
+    return (
+      <>
+        <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+          {/* Header */}
+          <View style={{
+            paddingHorizontal: 20,
+            paddingTop: 12,
+            paddingBottom: 8,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}>
+            <TouchableOpacity
+              onPress={handleReset}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                padding: 8,
+                marginLeft: -8,
+              }}
+            >
+              <Ionicons name="chevron-back" size={24} color={theme.colors.text} />
+              <Text style={{
+                color: theme.colors.text,
+                fontFamily: theme.fonts.heading,
+                fontSize: theme.fontSizes.xl,
+                marginLeft: 4,
+              }}>
+                Multi-Dish Results
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={handleReset}
+              style={{
+                backgroundColor: '#f59e0b',
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderRadius: 20,
+                flexDirection: 'row',
+                alignItems: 'center',
+              }}
+            >
+              <MaterialCommunityIcons name="plus" size={18} color="#FFFFFF" />
+              <Text style={{
+                fontFamily: theme.fonts.bodyBold,
+                fontSize: theme.fontSizes.sm,
+                color: '#FFFFFF',
+                marginLeft: 4,
+              }}>
+                New
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ paddingBottom: 100 }}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Meal Summary Card */}
+            <View style={{
+              marginHorizontal: 20,
+              marginTop: 8,
+              backgroundColor: '#f59e0b15',
+              borderRadius: 24,
+              padding: 20,
+              borderWidth: 2,
+              borderColor: '#f59e0b',
+            }}>
+              <Text style={{
+                fontFamily: theme.fonts.heading,
+                fontSize: 22,
+                color: theme.colors.text,
+                marginBottom: 8,
+              }}>
+                Meal Analysis Complete
+              </Text>
+              <Text style={{
+                fontFamily: theme.fonts.body,
+                fontSize: theme.fontSizes.sm,
+                color: theme.colors.text + '99',
+              }}>
+                {multiDishResult.mealSummary}
+              </Text>
+            </View>
+
+            {/* Total Calories */}
+            <View style={{
+              marginHorizontal: 20,
+              marginTop: 16,
+              backgroundColor: theme.colors.surface,
+              borderRadius: 24,
+              padding: 24,
+              alignItems: 'center',
+            }}>
+              <View style={{
+                width: 120,
+                height: 120,
+                borderRadius: 60,
+                backgroundColor: '#f59e0b15',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderWidth: 6,
+                borderColor: '#f59e0b',
+              }}>
+                <Text style={{
+                  fontFamily: theme.fonts.heading,
+                  fontSize: 36,
+                  color: '#f59e0b'
+                }}>
+                  {multiDishResult.totalCalories}
+                </Text>
+                <Text style={{
+                  fontFamily: theme.fonts.body,
+                  fontSize: theme.fontSizes.sm,
+                  color: theme.colors.text + '77'
+                }}>
+                  total kcal
+                </Text>
+              </View>
+            </View>
+
+            {/* Total Macros */}
+            <View style={{
+              marginHorizontal: 20,
+              marginTop: 16,
+              flexDirection: 'row',
+            }}>
+              <StatCard
+                icon="arm-flex"
+                label="Protein"
+                value={multiDishResult.totalNutrients.protein || 0}
+                suffix="g"
+                color="#3b82f6"
+                theme={theme}
+              />
+              <StatCard
+                icon="bread-slice"
+                label="Carbs"
+                value={multiDishResult.totalNutrients.carbs || 0}
+                suffix="g"
+                color="#8b5cf6"
+                theme={theme}
+              />
+              <StatCard
+                icon="water"
+                label="Fat"
+                value={multiDishResult.totalNutrients.fat || 0}
+                suffix="g"
+                color="#ec4899"
+                theme={theme}
+              />
+            </View>
+
+            {/* Allergy Warnings */}
+            {multiDishResult.allergyWarnings?.detected?.length > 0 && (
+              <View style={{
+                marginHorizontal: 20,
+                marginTop: 16,
+                backgroundColor: '#fee2e2',
+                borderRadius: 20,
+                padding: 16,
+                flexDirection: 'row',
+              }}>
+                <View style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  backgroundColor: '#ef444420',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: 12,
+                }}>
+                  <Ionicons name="warning" size={24} color="#ef4444" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{
+                    fontFamily: theme.fonts.heading,
+                    fontSize: theme.fontSizes.base,
+                    color: '#991b1b',
+                    marginBottom: 4,
+                  }}>
+                    Allergy Warning
+                  </Text>
+                  <Text style={{
+                    fontFamily: theme.fonts.body,
+                    fontSize: theme.fontSizes.sm,
+                    color: '#b91c1c'
+                  }}>
+                    Contains: {multiDishResult.allergyWarnings.detected.join(', ')}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {/* Individual Dishes */}
+            <View style={{ marginHorizontal: 20, marginTop: 24 }}>
+              <Text style={{
+                fontFamily: theme.fonts.heading,
+                fontSize: theme.fontSizes.lg,
+                color: theme.colors.text,
+                marginBottom: 12,
+              }}>
+                Dish Breakdown
+              </Text>
+
+              {multiDishResult.dishes.map((dish, index) => (
+                <View
+                  key={dish.dishId}
+                  style={{
+                    backgroundColor: theme.colors.surface,
+                    borderRadius: 20,
+                    padding: 16,
+                    marginBottom: 12,
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{
+                        fontFamily: theme.fonts.heading,
+                        fontSize: theme.fontSizes.base,
+                        color: theme.colors.text,
+                        marginBottom: 4,
+                      }}>
+                        {dish.foodName}
+                      </Text>
+                      {dish.userProvidedName && dish.userProvidedName !== dish.foodName && (
+                        <Text style={{
+                          fontFamily: theme.fonts.body,
+                          fontSize: theme.fontSizes.xs,
+                          color: theme.colors.text + '77',
+                        }}>
+                          (Named: {dish.userProvidedName})
+                        </Text>
+                      )}
+                    </View>
+                    <View style={{
+                      backgroundColor: '#f59e0b15',
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderRadius: 12,
+                    }}>
+                      <Text style={{
+                        fontFamily: theme.fonts.heading,
+                        fontSize: theme.fontSizes.base,
+                        color: '#f59e0b',
+                      }}>
+                        {dish.calories} kcal
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={{ flexDirection: 'row', marginTop: 8, flexWrap: 'wrap' }}>
+                    {dish.cuisineType && (
+                      <View style={{
+                        backgroundColor: theme.colors.primary + '15',
+                        paddingHorizontal: 8,
+                        paddingVertical: 4,
+                        borderRadius: 8,
+                        marginRight: 8,
+                        marginBottom: 4,
+                      }}>
+                        <Text style={{
+                          fontFamily: theme.fonts.body,
+                          fontSize: theme.fontSizes.xs,
+                          color: theme.colors.primary,
+                        }}>
+                          {dish.cuisineType}
+                        </Text>
+                      </View>
+                    )}
+                    <View style={{
+                      backgroundColor: theme.colors.secondary + '15',
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      borderRadius: 8,
+                      marginRight: 8,
+                      marginBottom: 4,
+                    }}>
+                      <Text style={{
+                        fontFamily: theme.fonts.body,
+                        fontSize: theme.fontSizes.xs,
+                        color: theme.colors.text + '77',
+                      }}>
+                        {dish.servingSize}
+                      </Text>
+                    </View>
+                    <View style={{
+                      backgroundColor: dish.confidence === 'high' ? '#22c55e15' : dish.confidence === 'medium' ? '#f59e0b15' : '#ef444415',
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      borderRadius: 8,
+                      marginBottom: 4,
+                    }}>
+                      <Text style={{
+                        fontFamily: theme.fonts.body,
+                        fontSize: theme.fontSizes.xs,
+                        color: dish.confidence === 'high' ? '#22c55e' : dish.confidence === 'medium' ? '#f59e0b' : '#ef4444',
+                      }}>
+                        {dish.confidence} confidence
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Macros for this dish */}
+                  <View style={{ flexDirection: 'row', marginTop: 12 }}>
+                    <View style={{ flex: 1, alignItems: 'center' }}>
+                      <Text style={{ fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.sm, color: '#3b82f6' }}>
+                        {dish.nutrients.protein || 0}g
+                      </Text>
+                      <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, color: theme.colors.text + '77' }}>
+                        Protein
+                      </Text>
+                    </View>
+                    <View style={{ flex: 1, alignItems: 'center' }}>
+                      <Text style={{ fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.sm, color: '#8b5cf6' }}>
+                        {dish.nutrients.carbs || 0}g
+                      </Text>
+                      <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, color: theme.colors.text + '77' }}>
+                        Carbs
+                      </Text>
+                    </View>
+                    <View style={{ flex: 1, alignItems: 'center' }}>
+                      <Text style={{ fontFamily: theme.fonts.heading, fontSize: theme.fontSizes.sm, color: '#ec4899' }}>
+                        {dish.nutrients.fat || 0}g
+                      </Text>
+                      <Text style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, color: theme.colors.text + '77' }}>
+                        Fat
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Allergy warning for this dish */}
+                  {dish.allergyWarnings?.detected?.length > 0 && (
+                    <View style={{
+                      backgroundColor: '#fee2e2',
+                      borderRadius: 8,
+                      padding: 8,
+                      marginTop: 8,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                    }}>
+                      <Ionicons name="warning" size={14} color="#ef4444" />
+                      <Text style={{
+                        fontFamily: theme.fonts.body,
+                        fontSize: theme.fontSizes.xs,
+                        color: '#991b1b',
+                        marginLeft: 6,
+                      }}>
+                        Contains: {dish.allergyWarnings.detected.join(', ')}
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Notes */}
+                  {dish.notes && (
+                    <Text style={{
+                      fontFamily: theme.fonts.body,
+                      fontSize: theme.fontSizes.xs,
+                      color: theme.colors.text + '77',
+                      marginTop: 8,
+                      fontStyle: 'italic',
+                    }}>
+                      {dish.notes}
+                    </Text>
+                  )}
+                </View>
+              ))}
+            </View>
+
+            {/* Logged Success Badge */}
+            <View style={{ marginHorizontal: 20, marginTop: 16, marginBottom: 32 }}>
+              <View style={{
+                backgroundColor: '#22c55e20',
+                borderRadius: 16,
+                paddingVertical: 16,
+                alignItems: 'center',
+                flexDirection: 'row',
+                justifyContent: 'center',
+                borderWidth: 2,
+                borderColor: '#22c55e',
+              }}>
+                <MaterialCommunityIcons name="check-circle" size={20} color="#22c55e" style={{ marginRight: 8 }} />
+                <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base, color: '#22c55e' }}>
+                  All dishes logged to your history!
+                </Text>
+              </View>
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+
+        {/* Battery Animation Overlay */}
+        <BatteryAnimate
+          visible={showBatteryAnimation}
+          previousValue={batteryAnimationData.previousValue}
+          newValue={batteryAnimationData.newValue}
+          label={batteryAnimationData.label}
+          onComplete={() => setShowBatteryAnimation(false)}
+        />
+      </>
+    );
+  }
 
   if (result) {
     return (
@@ -1844,14 +2500,14 @@ export default function Food() {
                   >
                     <MaterialCommunityIcons
                       name="camera"
-                      size={18}
+                      size={16}
                       color={inputMode === 'image' ? '#FFFFFF' : theme.colors.text + '77'}
                     />
                     <Text style={{
                       fontFamily: theme.fonts.bodyBold,
-                      fontSize: theme.fontSizes.sm,
+                      fontSize: theme.fontSizes.xs,
                       color: inputMode === 'image' ? '#FFFFFF' : theme.colors.text + '77',
-                      marginLeft: 6,
+                      marginLeft: 4,
                     }}>
                       Image
                     </Text>
@@ -1870,21 +2526,47 @@ export default function Food() {
                   >
                     <MaterialCommunityIcons
                       name="text-box-outline"
-                      size={18}
+                      size={16}
                       color={inputMode === 'manual' ? '#FFFFFF' : theme.colors.text + '77'}
                     />
                     <Text style={{
                       fontFamily: theme.fonts.bodyBold,
-                      fontSize: theme.fontSizes.sm,
+                      fontSize: theme.fontSizes.xs,
                       color: inputMode === 'manual' ? '#FFFFFF' : theme.colors.text + '77',
-                      marginLeft: 6,
+                      marginLeft: 4,
                     }}>
                       Manual
                     </Text>
                   </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => setInputMode('multi')}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 10,
+                      borderRadius: 10,
+                      backgroundColor: inputMode === 'multi' ? '#f59e0b' : 'transparent',
+                      alignItems: 'center',
+                      flexDirection: 'row',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <MaterialCommunityIcons
+                      name="food-variant"
+                      size={16}
+                      color={inputMode === 'multi' ? '#FFFFFF' : theme.colors.text + '77'}
+                    />
+                    <Text style={{
+                      fontFamily: theme.fonts.bodyBold,
+                      fontSize: theme.fontSizes.xs,
+                      color: inputMode === 'multi' ? '#FFFFFF' : theme.colors.text + '77',
+                      marginLeft: 4,
+                    }}>
+                      Multi
+                    </Text>
+                  </TouchableOpacity>
                 </View>
 
-                {/* Dish Name Input */}
+                {/* Dish Name Input with Filipino/Asian Suggestions */}
                 <View style={{ marginBottom: 16 }}>
                   <Text style={{
                     fontFamily: theme.fonts.bodyBold,
@@ -1893,7 +2575,7 @@ export default function Food() {
                     marginBottom: 8,
                   }}>
                     Dish Name
-                    <Text style={{ color: theme.colors.text + '55' }}> (Optional)</Text>
+                    <Text style={{ color: theme.colors.text + '55' }}> (Optional - helps AI identify)</Text>
                   </Text>
                   <View style={{
                     flexDirection: 'row',
@@ -1908,8 +2590,12 @@ export default function Food() {
                     </View>
                     <TextInput
                       value={dishName}
-                      onChangeText={setDishName}
-                      placeholder="e.g., Grilled Chicken Salad"
+                      onChangeText={(text) => {
+                        setDishName(text);
+                        setShowDishSuggestions(text.length > 0);
+                      }}
+                      onFocus={() => setShowDishSuggestions(true)}
+                      placeholder="e.g., Adobo, Sinigang, Ramen"
                       placeholderTextColor={theme.colors.text + '55'}
                       style={{
                         flex: 1,
@@ -1922,18 +2608,89 @@ export default function Food() {
                       editable={!loading}
                     />
                   </View>
+                  
+                  {/* Dish Suggestions */}
+                  {showDishSuggestions && (
+                    <View style={{ marginTop: 8 }}>
+                      <Text style={{
+                        fontFamily: theme.fonts.body,
+                        fontSize: theme.fontSizes.xs,
+                        color: theme.colors.text + '77',
+                        marginBottom: 6,
+                      }}>
+                        Quick picks (Filipino & Asian):
+                      </Text>
+                      <ScrollView 
+                        horizontal 
+                        showsHorizontalScrollIndicator={false}
+                        style={{ marginBottom: 8 }}
+                      >
+                        {[...FILIPINO_DISHES, ...ASIAN_DISHES]
+                          .filter(d => !dishName || d.toLowerCase().includes(dishName.toLowerCase()))
+                          .slice(0, 15)
+                          .map((dish, index) => (
+                          <TouchableOpacity
+                            key={index}
+                            onPress={() => {
+                              setDishName(dish);
+                              setShowDishSuggestions(false);
+                            }}
+                            style={{
+                              paddingHorizontal: 12,
+                              paddingVertical: 6,
+                              borderRadius: 16,
+                              backgroundColor: theme.colors.primary + '15',
+                              marginRight: 8,
+                              borderWidth: 1,
+                              borderColor: theme.colors.primary + '30',
+                            }}
+                          >
+                            <Text style={{
+                              fontFamily: theme.fonts.body,
+                              fontSize: theme.fontSizes.sm,
+                              color: theme.colors.primary,
+                            }}>
+                              {dish}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                      <TouchableOpacity
+                        onPress={() => setShowDishSuggestions(false)}
+                        style={{ alignSelf: 'flex-end' }}
+                      >
+                        <Text style={{
+                          fontFamily: theme.fonts.body,
+                          fontSize: theme.fontSizes.xs,
+                          color: theme.colors.text + '55',
+                        }}>
+                          Hide suggestions
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </View>
 
                 {/* Allergies Section */}
                 <View style={{ marginBottom: 20 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                    <Text style={{
-                      fontFamily: theme.fonts.bodyBold,
-                      fontSize: theme.fontSizes.sm,
-                      color: theme.colors.text
-                    }}>
-                      Allergies
-                    </Text>
+                    <View>
+                      <Text style={{
+                        fontFamily: theme.fonts.bodyBold,
+                        fontSize: theme.fontSizes.sm,
+                        color: theme.colors.text
+                      }}>
+                        Allergies & Dietary Restrictions
+                      </Text>
+                      <Text style={{
+                        fontFamily: theme.fonts.body,
+                        fontSize: theme.fontSizes.xs,
+                        color: theme.colors.text + '66',
+                        marginTop: 2,
+                      }}>
+                        Includes Filipino/Asian ingredients (bagoong, patis, etc.)
+                      </Text>
+                    </View>
                     {allergiesLoaded && selectedAllergies.length > 0 && (
                       <View style={{
                         backgroundColor: theme.colors.primary + '15',
@@ -2002,7 +2759,7 @@ export default function Food() {
                   />
                 </View>
 
-                {/* Image Upload / Ingredients Input */}
+                {/* Image Upload / Ingredients Input / Multi-Dish Input */}
                 {inputMode === 'image' ? (
                   <>
                     {imageUri ? (
@@ -2103,7 +2860,7 @@ export default function Food() {
                       </TouchableOpacity>
                     )}
                   </>
-                ) : (
+                ) : inputMode === 'manual' ? (
                   <View>
                     <Text style={{
                       fontFamily: theme.fonts.bodyBold,
@@ -2163,6 +2920,339 @@ export default function Food() {
                         </>
                       )}
                     </TouchableOpacity>
+                  </View>
+                ) : (
+                  /* Multi-Dish Mode */
+                  <View>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                      <Text style={{
+                        fontFamily: theme.fonts.bodyBold,
+                        fontSize: theme.fontSizes.sm,
+                        color: theme.colors.text,
+                      }}>
+                        Dishes ({multiDishes.filter(d => d.base64).length}/{multiDishes.length})
+                      </Text>
+                      <TouchableOpacity
+                        onPress={addDish}
+                        disabled={loading || multiDishes.length >= 10}
+                        style={{
+                          backgroundColor: '#f59e0b',
+                          paddingHorizontal: 12,
+                          paddingVertical: 6,
+                          borderRadius: 12,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          opacity: loading || multiDishes.length >= 10 ? 0.5 : 1,
+                        }}
+                      >
+                        <MaterialCommunityIcons name="plus" size={16} color="#FFFFFF" />
+                        <Text style={{
+                          fontFamily: theme.fonts.bodyBold,
+                          fontSize: theme.fontSizes.xs,
+                          color: '#FFFFFF',
+                          marginLeft: 4,
+                        }}>
+                          Add Dish
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    <Text style={{
+                      fontFamily: theme.fonts.body,
+                      fontSize: theme.fontSizes.xs,
+                      color: theme.colors.text + '77',
+                      marginBottom: 12,
+                    }}>
+                      Upload multiple dishes for comprehensive nutrition analysis. Add multiple photos per dish for better accuracy.
+                    </Text>
+
+                    {/* Dishes List */}
+                    {multiDishes.map((dish, index) => (
+                      <View
+                        key={dish.id}
+                        style={{
+                          backgroundColor: theme.colors.background,
+                          borderRadius: 16,
+                          padding: 12,
+                          marginBottom: 12,
+                          borderWidth: 2,
+                          borderColor: dish.base64 ? '#f59e0b' : theme.colors.secondary + '22',
+                        }}
+                      >
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                          <Text style={{
+                            fontFamily: theme.fonts.bodyBold,
+                            fontSize: theme.fontSizes.sm,
+                            color: theme.colors.text,
+                          }}>
+                            Dish {index + 1}
+                          </Text>
+                          {multiDishes.length > 1 && (
+                            <TouchableOpacity
+                              onPress={() => removeDish(dish.id)}
+                              disabled={loading}
+                              style={{ padding: 4 }}
+                            >
+                              <Ionicons name="close-circle" size={20} color={theme.colors.error} />
+                            </TouchableOpacity>
+                          )}
+                        </View>
+
+                        {/* Main Image Upload */}
+                        {dish.uri ? (
+                          <View style={{ marginBottom: 8 }}>
+                            <View style={{ borderRadius: 12, overflow: 'hidden', marginBottom: 8 }}>
+                              <Image
+                                source={{ uri: dish.uri }}
+                                style={{ width: '100%', height: 120 }}
+                                resizeMode="cover"
+                              />
+                              <TouchableOpacity
+                                onPress={() => removeMultiDishImage(dish.id)}
+                                style={{
+                                  position: 'absolute',
+                                  top: 6,
+                                  right: 6,
+                                  backgroundColor: 'rgba(0,0,0,0.5)',
+                                  borderRadius: 12,
+                                  padding: 4,
+                                }}
+                              >
+                                <Ionicons name="close" size={14} color="#FFFFFF" />
+                              </TouchableOpacity>
+                            </View>
+
+                            {/* Additional Images */}
+                            <Text style={{
+                              fontFamily: theme.fonts.body,
+                              fontSize: theme.fontSizes.xs,
+                              color: theme.colors.text + '77',
+                              marginBottom: 4,
+                            }}>
+                              Add more angles (optional - improves accuracy)
+                            </Text>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                              <View style={{ flexDirection: 'row' }}>
+                                {dish.additionalImages.map((img, imgIndex) => (
+                                  <View key={imgIndex} style={{ marginRight: 8, position: 'relative' }}>
+                                    <Image
+                                      source={{ uri: img.uri }}
+                                      style={{ width: 60, height: 60, borderRadius: 8 }}
+                                      resizeMode="cover"
+                                    />
+                                    <TouchableOpacity
+                                      onPress={() => removeMultiDishImage(dish.id, imgIndex)}
+                                      style={{
+                                        position: 'absolute',
+                                        top: -4,
+                                        right: -4,
+                                        backgroundColor: theme.colors.error,
+                                        borderRadius: 10,
+                                        width: 18,
+                                        height: 18,
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                      }}
+                                    >
+                                      <Ionicons name="close" size={12} color="#FFFFFF" />
+                                    </TouchableOpacity>
+                                  </View>
+                                ))}
+                                {dish.additionalImages.length < 4 && (
+                                  <TouchableOpacity
+                                    onPress={() => pickMultiDishImage(dish.id, true)}
+                                    disabled={loading}
+                                    style={{
+                                      width: 60,
+                                      height: 60,
+                                      borderRadius: 8,
+                                      borderWidth: 1,
+                                      borderStyle: 'dashed',
+                                      borderColor: theme.colors.secondary + '44',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      backgroundColor: theme.colors.surface,
+                                    }}
+                                  >
+                                    <MaterialCommunityIcons name="plus" size={20} color={theme.colors.primary} />
+                                  </TouchableOpacity>
+                                )}
+                              </View>
+                            </ScrollView>
+                          </View>
+                        ) : (
+                          <View style={{
+                            flexDirection: 'row',
+                            gap: 12,
+                            marginBottom: 8,
+                          }}>
+                            <TouchableOpacity
+                              onPress={() => takeMultiDishPhoto(dish.id, false)}
+                              disabled={loading}
+                              style={{
+                                flex: 1,
+                                borderWidth: 1,
+                                borderStyle: 'dashed',
+                                borderColor: '#f59e0b44',
+                                borderRadius: 12,
+                                padding: 16,
+                                alignItems: 'center',
+                                backgroundColor: '#f59e0b08',
+                              }}
+                            >
+                              <MaterialCommunityIcons name="camera" size={24} color="#f59e0b" />
+                              <Text style={{
+                                fontFamily: theme.fonts.body,
+                                fontSize: theme.fontSizes.xs,
+                                color: '#f59e0b',
+                                marginTop: 4,
+                              }}>
+                                Camera
+                              </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              onPress={() => pickMultiDishImage(dish.id, false)}
+                              disabled={loading}
+                              style={{
+                                flex: 1,
+                                borderWidth: 1,
+                                borderStyle: 'dashed',
+                                borderColor: '#f59e0b44',
+                                borderRadius: 12,
+                                padding: 16,
+                                alignItems: 'center',
+                                backgroundColor: '#f59e0b08',
+                              }}
+                            >
+                              <MaterialCommunityIcons name="image" size={24} color="#f59e0b" />
+                              <Text style={{
+                                fontFamily: theme.fonts.body,
+                                fontSize: theme.fontSizes.xs,
+                                color: '#f59e0b',
+                                marginTop: 4,
+                              }}>
+                                Gallery
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+
+                        {/* Dish Name */}
+                        <TextInput
+                          value={dish.dishName}
+                          onChangeText={(text) => updateMultiDishName(dish.id, text)}
+                          placeholder="Dish name (e.g., Adobo, Sinigang)"
+                          placeholderTextColor={theme.colors.text + '55'}
+                          style={{
+                            backgroundColor: theme.colors.surface,
+                            borderRadius: 8,
+                            paddingVertical: 8,
+                            paddingHorizontal: 12,
+                            color: theme.colors.text,
+                            fontFamily: theme.fonts.body,
+                            fontSize: theme.fontSizes.sm,
+                            borderWidth: 1,
+                            borderColor: theme.colors.secondary + '22',
+                            marginBottom: 8,
+                          }}
+                          editable={!loading}
+                        />
+
+                        {/* Serving Size */}
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <Text style={{
+                            fontFamily: theme.fonts.body,
+                            fontSize: theme.fontSizes.xs,
+                            color: theme.colors.text + '77',
+                            marginRight: 8,
+                          }}>
+                            Serving:
+                          </Text>
+                          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                            {SERVING_SIZES.slice(0, 4).map((size) => (
+                              <TouchableOpacity
+                                key={size}
+                                onPress={() => updateMultiDishServingSize(dish.id, size)}
+                                style={{
+                                  paddingHorizontal: 10,
+                                  paddingVertical: 4,
+                                  borderRadius: 12,
+                                  backgroundColor: dish.servingSize === size ? '#f59e0b' : theme.colors.surface,
+                                  marginRight: 6,
+                                }}
+                              >
+                                <Text style={{
+                                  fontFamily: theme.fonts.body,
+                                  fontSize: theme.fontSizes.xs,
+                                  color: dish.servingSize === size ? '#FFFFFF' : theme.colors.text + '77',
+                                }}>
+                                  {size.split(' (')[0]}
+                                </Text>
+                              </TouchableOpacity>
+                            ))}
+                          </ScrollView>
+                        </View>
+                      </View>
+                    ))}
+
+                    {/* Analyze Button */}
+                    <View style={{ flexDirection: 'row', marginTop: 8 }}>
+                      <TouchableOpacity
+                        onPress={resetMultiDish}
+                        disabled={loading}
+                        style={{
+                          flex: 1,
+                          backgroundColor: theme.colors.surface,
+                          borderRadius: 12,
+                          paddingVertical: 14,
+                          alignItems: 'center',
+                          marginRight: 8,
+                          borderWidth: 1,
+                          borderColor: theme.colors.secondary + '22',
+                        }}
+                      >
+                        <MaterialCommunityIcons name="refresh" size={18} color={theme.colors.text} />
+                        <Text style={{
+                          fontFamily: theme.fonts.body,
+                          fontSize: theme.fontSizes.xs,
+                          color: theme.colors.text,
+                          marginTop: 4,
+                        }}>
+                          Reset
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={handleAnalyzeMultipleDishes}
+                        disabled={loading || multiDishes.filter(d => d.base64).length === 0}
+                        style={{
+                          flex: 3,
+                          backgroundColor: (loading || multiDishes.filter(d => d.base64).length === 0) 
+                            ? '#f59e0b44' 
+                            : '#f59e0b',
+                          borderRadius: 12,
+                          paddingVertical: 14,
+                          alignItems: 'center',
+                          flexDirection: 'row',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        {loading ? (
+                          <>
+                            <ActivityIndicator color="white" style={{ marginRight: 8 }} />
+                            <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base, color: '#FFFFFF' }}>
+                              Analyzing {multiDishes.filter(d => d.base64).length} dish{multiDishes.filter(d => d.base64).length > 1 ? 'es' : ''}...
+                            </Text>
+                          </>
+                        ) : (
+                          <>
+                            <MaterialCommunityIcons name="food-variant" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
+                            <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: theme.fontSizes.base, color: '#FFFFFF' }}>
+                              Analyze {multiDishes.filter(d => d.base64).length || 0} Dish{multiDishes.filter(d => d.base64).length !== 1 ? 'es' : ''}
+                            </Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 )}
               </View>
@@ -2339,17 +3429,36 @@ export default function Food() {
                           </View>
                         )}
                         <View style={{ flex: 1, padding: 14 }}>
-                          <Text
-                            style={{
-                              fontFamily: theme.fonts.heading,
-                              fontSize: theme.fontSizes.base,
-                              color: theme.colors.text,
-                              marginBottom: 4,
-                            }}
-                            numberOfLines={1}
-                          >
-                            {log.dishName || log.foodName}
-                          </Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                            <Text
+                              style={{
+                                fontFamily: theme.fonts.heading,
+                                fontSize: theme.fontSizes.base,
+                                color: theme.colors.text,
+                                flex: 1,
+                              }}
+                              numberOfLines={1}
+                            >
+                              {log.dishName || log.foodName}
+                            </Text>
+                            {log.inputMethod === 'multi-dish' && (
+                              <View style={{
+                                backgroundColor: '#f59e0b',
+                                paddingHorizontal: 6,
+                                paddingVertical: 2,
+                                borderRadius: 6,
+                                marginLeft: 8,
+                              }}>
+                                <Text style={{
+                                  fontFamily: theme.fonts.bodyBold,
+                                  fontSize: 10,
+                                  color: '#FFFFFF',
+                                }}>
+                                  Multi
+                                </Text>
+                              </View>
+                            )}
+                          </View>
 
                           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
                             <View style={{

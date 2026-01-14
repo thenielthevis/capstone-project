@@ -66,6 +66,12 @@ export const updateProfilePicture = async (profilePicture: string) => {
   return response.data;
 };
 
+// Get user's allergies and dietary preferences for food tracker auto-population
+export const getUserAllergies = async () => {
+  const response = await axiosInstance.get('/users/allergies');
+  return response.data;
+};
+
 // Profile Types
 export interface UserProfile {
   id: string;
@@ -131,4 +137,5 @@ export default {
   updateUserHealthData,
   getUserProfile,
   updateProfilePicture,
+  getUserAllergies,
 };
