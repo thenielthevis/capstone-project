@@ -41,7 +41,14 @@ export default function ProgramRecordScreen() {
 
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: theme.colors.background }}>
-      <View className="px-6 pt-3">
+      <View style={{
+        paddingHorizontal: 20,
+        paddingTop: 12,
+        paddingBottom: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      }}>
         <TouchableOpacity onPress={() => router.back()} className="flex-row items-center">
           <Ionicons name="chevron-back" size={theme.fontSizes.xl + 4} color={theme.colors.text} />
           <Text
@@ -56,12 +63,36 @@ export default function ProgramRecordScreen() {
             Back
           </Text>
         </TouchableOpacity>
+
+        {/* History */}
+        <TouchableOpacity onPress={() => router.push("/screens/programs/program-history")} className="flex-row items-center"
+          style={{
+            backgroundColor: theme.colors.surface,
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            borderRadius: 20,
+            flexDirection: 'row',
+            alignItems: 'center',
+          }}>
+          <MaterialCommunityIcons name="history" size={18} color={theme.colors.primary} />
+          <Text
+            className="ml-2"
+            style={{
+              fontFamily: theme.fonts.body,
+              fontSize: theme.fontSizes.sm,
+              color: theme.colors.primary,
+              marginLeft: 4,
+            }}
+          >
+            History
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: 24,
-          paddingTop: 40,
+          paddingTop: 12,
           paddingBottom: 120,
         }}
         refreshControl={

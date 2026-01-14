@@ -140,6 +140,28 @@ const userSchema = new mongoose.Schema({
             total: { type: Number, default: 0, max: 100 },
             _id: false
         }]
+    },
+    avatarConfig: {
+        race: { type: String, default: 'HumanMale' },
+        skinColor: {
+            r: { type: Number, default: 1 },
+            g: { type: Number, default: 1 },
+            b: { type: Number, default: 1 },
+            a: { type: Number, default: 1 }
+        },
+        dna: {
+            height: { type: Number, default: 0.5 },
+            upperBodyWeight: { type: Number, default: 0.5 },
+            lowerBodyWeight: { type: Number, default: 0.5 },
+            upperBodyMuscle: { type: Number, default: 0.5 },
+            lowerBodyMuscle: { type: Number, default: 0.5 }
+        },
+        equipment: {
+            hair: { type: String, default: "" },
+            top: { type: String, default: "" },
+            bottom: { type: String, default: "" },
+            shoes: { type: String, default: "" }
+        }
     }
 });
 

@@ -4,23 +4,24 @@ const auth = require('../middleware/auth');
 const userMiddleware = require('../middleware/user');
 
 const { registerUser,
-        loginUser,
-        googleUserController,
-        listUsers,
-        devCreateFullUser,
-        devUpdateUser,
-        currentlyLoggedInUser,
-        refreshToken,
-        submitHealthAssessment,
-        createOrUpdateDailyCalorieBalance,
-        updateDailyCalories,
-        getUserAllergies,
-        getTodayCalorieBalance,
-        getUserProfile,
-        updateUserProfile,
-        updateProfilePicture,
-        searchUsers,
-        getAllUsersForChat
+    loginUser,
+    googleUserController,
+    listUsers,
+    devCreateFullUser,
+    devUpdateUser,
+    currentlyLoggedInUser,
+    refreshToken,
+    submitHealthAssessment,
+    createOrUpdateDailyCalorieBalance,
+    updateDailyCalories,
+    getUserAllergies,
+    getTodayCalorieBalance,
+    getUserProfile,
+    updateUserProfile,
+    updateProfilePicture,
+    searchUsers,
+    getAllUsersForChat,
+    updateAvatarConfig
 } = require('../controllers/userControllers');
 
 const { refreshGamificationStats } = require('../controllers/gamificationController');
@@ -51,6 +52,7 @@ router.post('/gamification/refresh', auth, refreshGamificationStats);
 router.get('/profile', auth, getUserProfile);
 router.patch('/profile', auth, updateUserProfile);
 router.post('/profile/picture', auth, updateProfilePicture);
+router.patch('/avatar', auth, updateAvatarConfig);
 
 // Chat-related user routes
 router.get('/search', auth, searchUsers);
