@@ -20,6 +20,7 @@ exports.currentlyLoggedInUser = async (req, res) => {
             });
         }
 
+        console.log(`[BACKEND] Sending data for user: ${user.username}. Has AvatarConfig: ${!!user.avatarConfig}`);
         res.status(200).json({
             message: "Current logged-in user data fetched successfully",
             user
@@ -793,5 +794,68 @@ exports.getAllUsersForChat = async (req, res) => {
     } catch (error) {
         console.error('getAllUsersForChat error:', error);
         res.status(500).json({ message: 'Error fetching users', error: error.message });
+    }
+};
+
+// PATCH: Update avatar configuration
+exports.updateAvatarConfig = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { race, skinColor, dna, equipment } = req.body;
+
+        console.log(`[BACKEND] --- AVATAR SAVE START ---`);
+        console.log(`[BACKEND] User ID: ${userId}`);
+
+        const user = await User.findById(userId);
+        if (!user) {
+            console.error(`[BACKEND] User not found: ${userId}`);
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Ensure avatarConfig exists
+        if (!user.avatarConfig) {
+            user.avatarConfig = {};
+        }
+
+        // Update race
+        if (race) user.avatarConfig.race = race;
+
+        // Update skinColor
+        if (skinColor) {
+            user.avatarConfig.skinColor = {
+                ...(user.avatarConfig.skinColor || {}),
+                ...skinColor
+            };
+        }
+
+        // Update DNA
+        if (dna) {
+            user.avatarConfig.dna = {
+                ...(user.avatarConfig.dna || {}),
+                ...dna
+            };
+        }
+
+        // Update Equipment
+        if (equipment) {
+            user.avatarConfig.equipment = {
+                ...(user.avatarConfig.equipment || {}),
+                ...equipment
+            };
+        }
+
+        // Mark as modified to ensure Mongoose detects nested changes
+        user.markModified('avatarConfig');
+
+        const savedUser = await user.save();
+        console.log(`[BACKEND] Save successful. Fields in DB: ${JSON.stringify(savedUser.avatarConfig)}`);
+
+        res.status(200).json({
+            message: 'Avatar configuration updated successfully',
+            avatarConfig: savedUser.avatarConfig
+        });
+    } catch (error) {
+        console.error('[BACKEND] updateAvatarConfig error:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
