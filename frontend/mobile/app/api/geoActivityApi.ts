@@ -3,6 +3,7 @@ import axiosInstance from "./axiosInstance";
 export type GeoActivity = {
   _id: string;
   name: string;
+  type?: 'Foot Sports' | 'Cycle Sports' | 'Water Sports' | 'Other Sports';
   description?: string;
   icon?: string;
   animation?: string;

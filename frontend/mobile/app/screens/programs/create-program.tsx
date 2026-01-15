@@ -16,6 +16,7 @@ import { useRouter } from "expo-router";
 import { Ionicons, Feather, Entypo } from "@expo/vector-icons";
 import { getAllWorkouts, Workout } from "../../api/workoutApi";
 import { getAllGeoActivities, GeoActivity } from "../../api/geoActivityApi";
+import { ActivityIcon } from "../../components/ActivityIcon";
 import LottieView from "lottie-react-native";
 import { EntryExitTransition } from "react-native-reanimated";
 
@@ -184,7 +185,7 @@ export default function MyProgramScreen() {
   const categoryOptions = useMemo(() => {
     const values = new Set(workouts.map((workout) => workout.category).filter(Boolean));
     if (geoActivities.length > 0) {
-      values.add("map-based");
+      values.add("outdoor");
     }
     return Array.from(values).sort();
   }, [workouts, geoActivities]);
@@ -207,11 +208,11 @@ export default function MyProgramScreen() {
 
   const filteredWorkouts = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    const workoutCategoryFilters = selectedCategories.filter((category) => category !== "map-based");
+    const workoutCategoryFilters = selectedCategories.filter((category) => category !== "outdoor");
     const mapBasedOnly =
       selectedCategories.length > 0 &&
       workoutCategoryFilters.length === 0 &&
-      selectedCategories.includes("map-based");
+      selectedCategories.includes("outdoor");
     return workouts.filter((workout) => {
       if (mapBasedOnly) {
         return false;
@@ -242,7 +243,7 @@ export default function MyProgramScreen() {
   const filteredGeoActivities = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     const allowGeoByCategory =
-      selectedCategories.length === 0 || selectedCategories.includes("map-based");
+      selectedCategories.length === 0 || selectedCategories.includes("outdoor");
 
     if (!allowGeoByCategory) {
       return [];
@@ -255,7 +256,7 @@ export default function MyProgramScreen() {
     return geoActivities.filter((activity) =>
       activity.name.toLowerCase().includes(query) ||
       (activity.description?.toLowerCase().includes(query) ?? false) ||
-      "map-based".includes(query)
+      "outdoor".includes(query)
     );
   }, [searchQuery, geoActivities, selectedCategories]);
 
@@ -422,7 +423,7 @@ export default function MyProgramScreen() {
           >
             <Feather name="search" size={18} color={theme.colors.text + "99"} />
             <TextInput
-              placeholder="Search workouts or map-based runs"
+              placeholder="Search workouts or outdoor activities"
               placeholderTextColor={theme.colors.text + "66"}
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -552,7 +553,7 @@ export default function MyProgramScreen() {
 
         <SectionHeading
           theme={theme}
-          title="Map-based activities"
+          title="Outdoor activities"
           loading={geoLoading}
           error={geoError}
           errorColor={errorColor}
@@ -770,7 +771,7 @@ export default function MyProgramScreen() {
                 padding: 16,
                 borderRadius: 12,
                 alignItems: 'center',
-                
+
               }}
               onPress={() => setModalVisible(true)}
             >
@@ -994,7 +995,7 @@ function WorkoutCard({
                 color: theme.colors.text + "AA",
                 fontSize: 13,
               }}
-              
+
             >
               {workout.description}
             </Text>
@@ -1013,7 +1014,7 @@ type GeoActivityCardProps = {
 };
 
 function GeoActivityCard({ activity, theme, selected, onToggle }: GeoActivityCardProps) {
-  const tags = ["map-based", activity.met ? `MET ${activity.met}` : null].filter(Boolean) as string[];
+  const tags = ["outdoor", activity.type, activity.met ? `MET ${activity.met}` : null].filter(Boolean) as string[];
 
   return (
     <View
@@ -1071,15 +1072,13 @@ function GeoActivityCard({ activity, theme, selected, onToggle }: GeoActivityCar
             marginRight: 12,
           }}
         >
-          {activity.icon ? (
-            <Image
-              source={{ uri: activity.icon }}
-              style={{ width: "100%", height: "100%", backgroundColor: "#F5F5F5" }}
-              resizeMode="cover"
-            />
-          ) : (
-            <Feather name="map" size={28} color={theme.colors.primary} />
-          )}
+          {/* Use ActivityIcon for consistent local SVGs */}
+          <ActivityIcon
+            activityName={activity.name}
+            activityType={activity.type}
+            size={40}
+            color={theme.colors.primary}
+          />
         </View>
         <View style={{ flex: 1 }}>
           <View className="flex-row flex-wrap gap-2">

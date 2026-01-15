@@ -6,6 +6,11 @@ const GeoActivitySchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    type: {
+      type: String,
+      enum: ['Foot Sports', 'Cycle Sports', 'Water Sports', 'Other Sports'],
+      default: 'Other Sports',
+    },
     description: {
       type: String,
       default: "",

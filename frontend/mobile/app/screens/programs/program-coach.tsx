@@ -14,6 +14,7 @@ import { Audio } from "expo-av";
 import ProgramRest from "./program-rest";
 import BatteryAnimate from '../../components/animation/battery';
 import GamificationLoading from '../../components/animation/gamification-loading';
+import { ActivityIcon } from "../../components/ActivityIcon";
 
 type ExerciseItem = {
   type: 'workout' | 'geo';
@@ -1079,17 +1080,16 @@ export default function ProgramCoach() {
                 </View>
               )
             ) : (
-              activity?.icon ? (
-                <Image
-                  source={{ uri: activity.icon }}
-                  style={{ width: 400, height: 400, backgroundColor: "#FFFFFF" }}
-                  resizeMode="cover"
+
+              /* Use ActivityIcon for consistent local SVGs */
+              <View style={{ width: 400, height: 400, justifyContent: "center", alignItems: "center", backgroundColor: "#FFFFFF" }}>
+                <ActivityIcon
+                  activityName={activity?.name || ""}
+                  activityType={activity?.type}
+                  size={240} // Scaled up for the large view (was 400 box, icon should slightly smaller to fit well or match previous large size)
+                  color={theme.colors.primary}
                 />
-              ) : (
-                <View style={{ width: 400, height: 400, justifyContent: "center", alignItems: "center", backgroundColor: "#FFFFFF" }}>
-                  <Ionicons name="walk" size={120} color={theme.colors.primary} />
-                </View>
-              )
+              </View>
             )}
             {countdown > 0 && (
               <Animated.View
@@ -1363,6 +1363,6 @@ export default function ProgramCoach() {
           showSuccessAlert();
         }}
       />
-    </SafeAreaView>
+    </SafeAreaView >
   );
 }

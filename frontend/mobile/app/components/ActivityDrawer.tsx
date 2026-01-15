@@ -1,15 +1,27 @@
-import React, { useRef, useMemo, useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, Platform, UIManager, Image, ActivityIndicator } from "react-native";
-import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
+import React, { useRef, useMemo, useState, useEffect, useCallback } from "react";
+import { View, Text, TouchableOpacity, Platform, UIManager, ActivityIndicator, LayoutAnimation } from "react-native";
+import BottomSheet, { BottomSheetView, BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import { useTheme } from "../context/ThemeContext";
 import { useRouter } from "expo-router";
 import { useActivityMetrics } from "../context/ActivityMetricsContext";
-import { GeoActivity } from "../api/geoActivityApi"; // Keep type import if needed, or remove if context provides it nicely typed
+import { useUser } from "../context/UserContext"; // Import User Context
+import { GeoActivity } from "../api/geoActivityApi";
+import { ActivityIcon } from "./ActivityIcon";
 
+// Enable LayoutAnimation on Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
-
-type ActivityType = string;
+// Activity type order for consistent display
+const ACTIVITY_TYPE_ORDER = ['Foot Sports', 'Cycle Sports', 'Water Sports', 'Other Sports'];
+const ACTIVITY_TYPE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  'Foot Sports': 'footsteps',
+  'Cycle Sports': 'bicycle',
+  'Water Sports': 'water',
+  'Other Sports': 'fitness',
+};
 
 type ActivityDrawerProps = {
   // Removed: speed, distance, time - now read from context
@@ -30,17 +42,59 @@ export default function ActivityDrawer({
   const { theme } = useTheme();
   const bottomSheetRef = useRef<BottomSheet>(null);
   const activitySheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ["15%", "25%",], []);
-  const activitySnapPoints = useMemo(() => ["30%"], []);
+  const snapPoints = useMemo(() => ["20%", "30%",], []);
+  const activitySnapPoints = useMemo(() => ["60%"], []);
   const router = useRouter();
 
   // Read metrics from context to avoid prop updates
-  const { activityType, setActivityType, activities, speed, distance, time } = useActivityMetrics();
+  const { activityType, setActivityType, activities, speed, distance, time, isDistanceBased, calculateCaloriesBurned } = useActivityMetrics();
+  const { user } = useUser(); // Get user for calories
+
+  // Calculate calories for drawer display
+  const calories = useMemo(() => {
+    const weight = user?.physicalMetrics?.weight?.value || 70;
+    return calculateCaloriesBurned(weight);
+  }, [time, user]); // Recalculate when time updates
+
+  // Track expanded sections
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    'Foot Sports': true,
+    'Cycle Sports': false,
+    'Water Sports': false,
+    'Other Sports': false,
+  });
 
   // No local loading state needed as context handles it
   const loadingActivities = activities.length === 0;
   const [recording, setRecording] = useState(externalRecording || false);
   const [hasStartedRecording, setHasStartedRecording] = useState(false);
+
+  // Group activities by type
+  const groupedActivities = useMemo(() => {
+    const groups: Record<string, GeoActivity[]> = {};
+    ACTIVITY_TYPE_ORDER.forEach(type => {
+      groups[type] = [];
+    });
+    activities.forEach(activity => {
+      const type = activity.type || 'Other Sports';
+      if (groups[type]) {
+        groups[type].push(activity);
+      } else {
+        groups['Other Sports'].push(activity);
+      }
+    });
+    return groups;
+  }, [activities]);
+
+  // Toggle section expansion with smooth animation
+  const toggleSection = useCallback((type: string) => {
+    // Configure smooth layout animation
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpandedSections(prev => ({
+      ...prev,
+      [type]: !prev[type],
+    }));
+  }, []);
 
   // Sync with external recording state
   React.useEffect(() => {
@@ -129,7 +183,7 @@ export default function ActivityDrawer({
         enableHandlePanningGesture={!locked}
         animateOnMount={false}
         backgroundStyle={{
-          backgroundColor: theme.colors.surface + "EE",
+          backgroundColor: theme.colors.surface,
           borderTopLeftRadius: 30,
           borderTopRightRadius: 30,
         }}
@@ -139,67 +193,58 @@ export default function ActivityDrawer({
       >
         <BottomSheetView>
           {!recording && hasStartedRecording ? (
-            // Paused state - Show Continue and Finish buttons
+            // Paused state - Show Continue and Finish buttons (Circular Style)
             <View style={{ flexDirection: "row", justifyContent: "space-around", alignItems: "center", paddingVertical: 20, paddingHorizontal: 20 }}>
               <TouchableOpacity
                 onPress={handleContinuePress}
-                style={{
-                  flex: 1,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  paddingHorizontal: 24,
-                  paddingVertical: 14,
-                  marginHorizontal: 8,
-                  borderRadius: 999,
+                style={{ alignItems: "center", flex: 1 }}
+              >
+                <View style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: 32,
                   borderWidth: 1,
                   borderColor: theme.colors.primary,
                   backgroundColor: theme.colors.surface,
-                }}
-              >
-                <Ionicons
-                  name="play"
-                  size={20}
-                  color={theme.colors.primary}
-                />
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 8
+                }}>
+                  <Ionicons name="play" size={28} color={theme.colors.primary} style={{ marginLeft: 4 }} />
+                </View>
                 <Text
                   style={{
                     fontFamily: theme.fonts.heading,
                     color: theme.colors.primary,
-                    marginLeft: 8,
-                    fontSize: 16,
+                    fontSize: 14,
                   }}
                 >
                   Continue
                 </Text>
               </TouchableOpacity>
+
               <TouchableOpacity
                 onPress={handleFinishPress}
-                style={{
-                  flex: 1,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  paddingHorizontal: 24,
-                  paddingVertical: 14,
-                  marginHorizontal: 8,
-                  borderRadius: 999,
+                style={{ alignItems: "center", flex: 1 }}
+              >
+                <View style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: 32,
                   borderWidth: 1,
                   borderColor: theme.colors.primary,
                   backgroundColor: theme.colors.primary,
-                }}
-              >
-                <Ionicons
-                  name="stop"
-                  size={20}
-                  color="#FFFFFF"
-                />
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 8
+                }}>
+                  <Ionicons name="stop" size={28} color="#FFFFFF" />
+                </View>
                 <Text
                   style={{
                     fontFamily: theme.fonts.heading,
-                    color: "#FFFFFF",
-                    marginLeft: 8,
-                    fontSize: 16,
+                    color: "#FFF", // Use error color or fallback
+                    fontSize: 14,
                   }}
                 >
                   Finish
@@ -207,175 +252,247 @@ export default function ActivityDrawer({
               </TouchableOpacity>
             </View>
           ) : (
-            // Recording or not started - Show original 3 buttons
-            <View style={{ flexDirection: "row", justifyContent: "space-around", alignItems: "flex-start", paddingVertical: 16 }}>
-              {/* Activity */}
-              <View style={{ alignItems: "center", flex: 1 }}>
-                <TouchableOpacity
-                  onPress={handleActivityPress}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    paddingHorizontal: 16,
-                    paddingVertical: 8,
-                    borderRadius: 999,
-                    borderWidth: 1,
-                    borderColor: theme.colors.primary,
-                    backgroundColor: theme.colors.surface,
-                  }}
-                >
-                  {loadingActivities ? (
-                    <ActivityIndicator size="small" color={theme.colors.primary} />
-                  ) : (
-                    (() => {
-                      const selected = activities.find(a => a.name === activityType);
-                      if (!selected) return <Text style={{ fontFamily: theme.fonts.heading, color: theme.colors.primary }}>Select</Text>;
-                      return (
-                        <>
-                          {selected.icon ? (
-                            <Image source={{ uri: selected.icon }} style={{ width: 20, height: 20, marginRight: 6, borderRadius: 4, backgroundColor: "#F8FAFC" }} />
-                          ) : null}
-                          <Text
-                            style={{
-                              fontFamily: theme.fonts.heading,
-                              color: theme.colors.primary,
-                              marginLeft: selected.icon ? 0 : 6,
-                            }}
-                          >
-                            {selected.name}
-                          </Text>
-                        </>
-                      );
-                    })()
-                  )}
-                </TouchableOpacity>
-                <Text
-                  style={{
-                    fontSize: 20,
-                    marginTop: 30,
-                    color: theme.colors.primary,
-                    fontFamily: theme.fonts.heading,
-                  }}
-                >
-                  {formatTime(time)}
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 14,
-                    color: theme.colors.text,
-                    fontFamily: theme.fonts.subheading,
-                  }}
-                >
-                  Time
-                </Text>
+            // Recording or not started - Circular Buttons Layout
+            <View style={{ paddingVertical: 20 }}>
+              {/* Buttons Row */}
+              <View style={{ flexDirection: "row", justifyContent: "space-around", alignItems: "flex-start" }}>
+                {/* Activity Selector */}
+                <View style={{ alignItems: "center", flex: 1 }}>
+                  <TouchableOpacity
+                    onPress={hasStartedRecording ? undefined : handleActivityPress}
+                    activeOpacity={hasStartedRecording ? 1 : 0.7}
+                    style={{ alignItems: "center", opacity: hasStartedRecording ? 0.5 : 1 }}
+                  >
+                    <View style={{
+                      width: 60,
+                      height: 60,
+                      borderRadius: 30,
+                      borderWidth: 1,
+                      borderColor: theme.colors.primary,
+                      backgroundColor: theme.colors.surface,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginBottom: 8
+                    }}>
+                      {loadingActivities ? (
+                        <ActivityIndicator size="small" color={theme.colors.primary} />
+                      ) : (
+                        (() => {
+                          const selected = activities.find(a => a.name === activityType);
+                          return (
+                            <ActivityIcon
+                              activityName={activityType}
+                              activityType={selected?.type}
+                              size={28}
+                              color={theme.colors.primary}
+                            />
+                          );
+                        })()
+                      )}
+                    </View>
+                    <Text
+                      numberOfLines={1}
+                      style={{
+                        fontFamily: theme.fonts.heading,
+                        color: theme.colors.primary,
+                        fontSize: 14,
+                        maxWidth: 100,
+                        textAlign: 'center'
+                      }}
+                    >
+                      {activityType}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Record/Pause Button */}
+                <View style={{ alignItems: "center", flex: 1 }}>
+                  <TouchableOpacity
+                    onPress={handleRecordPress}
+                    style={{ alignItems: "center" }}
+                  >
+                    <View style={{
+                      width: 60,
+                      height: 60,
+                      borderRadius: 30,
+                      borderWidth: 1,
+                      borderColor: theme.colors.primary,
+                      backgroundColor: recording ? theme.colors.primary : theme.colors.surface,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginBottom: 8
+                    }}>
+                      <Ionicons
+                        name={recording ? "pause" : "play"}
+                        size={28}
+                        color={recording ? theme.colors.background : theme.colors.primary}
+                        style={{ marginLeft: recording ? 0 : 3 }} // Visual center fix for play icon
+                      />
+                    </View>
+                    <Text
+                      style={{
+                        fontFamily: theme.fonts.heading,
+                        color: recording ? theme.colors.primary : theme.colors.primary,
+                        fontSize: 14,
+                      }}
+                    >
+                      {recording ? "Pause" : "Record"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Expand Button */}
+                <View style={{ alignItems: "center", flex: 1 }}>
+                  <TouchableOpacity
+                    onPress={handleExpandPress}
+                    style={{ alignItems: "center" }}
+                  >
+                    <View style={{
+                      width: 60,
+                      height: 60,
+                      borderRadius: 30,
+                      borderWidth: 1,
+                      borderColor: theme.colors.primary,
+                      backgroundColor: theme.colors.surface,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginBottom: 8
+                    }}>
+                      <Feather
+                        name={locked ? "minimize-2" : "maximize-2"}
+                        size={24}
+                        color={theme.colors.primary}
+                      />
+                    </View>
+                    <Text
+                      style={{
+                        fontFamily: theme.fonts.heading,
+                        color: theme.colors.primary,
+                        fontSize: 14,
+                      }}
+                    >
+                      {locked ? "Minimize" : "Expand"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
 
-              {/* Record */}
-              <View style={{ alignItems: "center", flex: 1 }}>
-                <TouchableOpacity
-                  onPress={handleRecordPress}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    paddingHorizontal: 16,
-                    paddingVertical: 8,
-                    borderRadius: 999,
-                    borderWidth: 1,
-                    borderColor: theme.colors.primary,
-                    backgroundColor: recording
-                      ? theme.colors.primary
-                      : theme.colors.surface,
-                  }}
-                >
-                  <Ionicons
-                    name={recording ? "pause" : "play"}
-                    size={20}
-                    color={
-                      recording ? theme.colors.background : theme.colors.primary
-                    }
-                  />
-                  <Text
-                    style={{
-                      fontFamily: theme.fonts.heading,
-                      color: recording
-                        ? theme.colors.background
-                        : theme.colors.primary,
-                      marginLeft: 6,
-                    }}
-                  >
-                    {recording ? "Pause" : "Record"}
-                  </Text>
-                </TouchableOpacity>
-                <Text
-                  style={{
-                    fontSize: 20,
-                    marginTop: 30,
-                    color: theme.colors.primary,
-                    fontFamily: theme.fonts.heading,
-                  }}
-                >
-                  {formatSpeed(speed)} km/h
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 14,
-                    color: theme.colors.text,
-                    fontFamily: theme.fonts.subheading,
-                  }}
-                >
-                  Speed
-                </Text>
-              </View>
-
-              {/* Actions */}
-              <View style={{ alignItems: "center", flex: 1 }}>
-                <TouchableOpacity
-                  onPress={handleExpandPress}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    paddingHorizontal: 16,
-                    paddingVertical: 8,
-                    borderRadius: 999,
-                    borderWidth: 1,
-                    borderColor: theme.colors.primary,
-                    backgroundColor: theme.colors.surface,
-                  }}
-                >
-                  <Feather
-                    name={locked ? "minimize-2" : "maximize-2"}
-                    size={20}
-                    color={theme.colors.primary}
-                  />
-                  <Text
-                    style={{
-                      fontFamily: theme.fonts.heading,
-                      color: theme.colors.primary,
-                      marginLeft: 6,
-                    }}
-                  >
-                    {locked ? "Minimize" : "Expand"}
-                  </Text>
-                </TouchableOpacity>
-                <Text
-                  style={{
-                    fontSize: 20,
-                    marginTop: 30,
-                    color: theme.colors.primary,
-                    fontFamily: theme.fonts.heading,
-                  }}
-                >
-                  {formatDistance(distance)} km
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 14,
-                    color: theme.colors.text,
-                    fontFamily: theme.fonts.subheading,
-                  }}
-                >
-                  Distance
-                </Text>
+              {/* Metrics Row - Independent of Buttons */}
+              <View style={{ marginTop: 24 }}>
+                {isDistanceBased ? (
+                  // Distance Sports: 3 Columns matched to buttons
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
+                    <View style={{ alignItems: 'center', flex: 1 }}>
+                      <Text
+                        style={{
+                          fontSize: 18,
+                          color: theme.colors.primary,
+                          fontFamily: theme.fonts.heading,
+                        }}
+                      >
+                        {formatTime(time)}
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          color: theme.colors.text,
+                          fontFamily: theme.fonts.subheading,
+                          opacity: 0.7
+                        }}
+                      >
+                        Time
+                      </Text>
+                    </View>
+                    <View style={{ alignItems: 'center', flex: 1 }}>
+                      <Text
+                        style={{
+                          fontSize: 18,
+                          color: theme.colors.primary,
+                          fontFamily: theme.fonts.heading,
+                        }}
+                      >
+                        {formatSpeed(speed)} km/h
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          color: theme.colors.text,
+                          fontFamily: theme.fonts.subheading,
+                          opacity: 0.7
+                        }}
+                      >
+                        Speed
+                      </Text>
+                    </View>
+                    <View style={{ alignItems: 'center', flex: 1 }}>
+                      <Text
+                        style={{
+                          fontSize: 18,
+                          color: theme.colors.primary,
+                          fontFamily: theme.fonts.heading,
+                        }}
+                      >
+                        {formatDistance(distance)} km
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          color: theme.colors.text,
+                          fontFamily: theme.fonts.subheading,
+                          opacity: 0.7
+                        }}
+                      >
+                        Distance
+                      </Text>
+                    </View>
+                  </View>
+                ) : (
+                  // Non-Distance Sports: 2 Centered Metrics (Time, Calories)
+                  <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
+                    <View style={{ alignItems: 'center', marginHorizontal: 30 }}>
+                      <Text
+                        style={{
+                          fontSize: 24,
+                          color: theme.colors.primary,
+                          fontFamily: theme.fonts.heading,
+                        }}
+                      >
+                        {formatTime(time)}
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          color: theme.colors.text,
+                          fontFamily: theme.fonts.subheading,
+                          opacity: 0.7
+                        }}
+                      >
+                        Time
+                      </Text>
+                    </View>
+                    <View style={{ alignItems: 'center', marginHorizontal: 30 }}>
+                      <Text
+                        style={{
+                          fontSize: 24,
+                          color: theme.colors.primary,
+                          fontFamily: theme.fonts.heading,
+                        }}
+                      >
+                        {calories}
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          color: theme.colors.text,
+                          fontFamily: theme.fonts.subheading,
+                          opacity: 0.7
+                        }}
+                      >
+                        Steps/Kcal
+                      </Text>
+                    </View>
+                  </View>
+                )}
               </View>
             </View>
           )}
@@ -397,8 +514,8 @@ export default function ActivityDrawer({
           backgroundColor: theme.colors.primary,
         }}
       >
-        <BottomSheetView>
-          <View style={{ padding: 24 }}>
+        <BottomSheetScrollView>
+          <View style={{ padding: 24, paddingBottom: 40 }}>
             <Text
               style={{
                 fontFamily: theme.fonts.subheading,
@@ -413,42 +530,113 @@ export default function ActivityDrawer({
             {loadingActivities ? (
               <ActivityIndicator size="small" color={theme.colors.primary} style={{ marginTop: 16 }} />
             ) : (
-              activities.map(activity => (
-                <TouchableOpacity
-                  key={activity._id}
-                  onPress={() => selectActivity(activity.name)}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    padding: 12,
-                    marginVertical: 6,
-                    borderRadius: 999,
-                    borderWidth: 1,
-                    borderColor: theme.colors.primary,
-                    backgroundColor:
-                      activityType === activity.name
-                        ? theme.colors.primary + "20"
-                        : theme.colors.surface,
-                  }}
-                >
-                  {activity.icon ? (
-                    <Image source={{ uri: activity.icon }} style={{ width: 20, height: 20, marginRight: 8, borderRadius: 4, backgroundColor: "#F8FAFC" }} />
-                  ) : null}
-                  <Text
-                    style={{
-                      fontFamily: theme.fonts.subheading,
-                      color: theme.colors.primary,
-                      marginLeft: activity.icon ? 0 : 8,
-                    }}
-                  >
-                    {activity.name}
-                  </Text>
-                </TouchableOpacity>
-              ))
+              ACTIVITY_TYPE_ORDER.map(type => {
+                const typeActivities = groupedActivities[type];
+                if (typeActivities.length === 0) return null;
+
+                const isExpanded = expandedSections[type];
+                const iconName = ACTIVITY_TYPE_ICONS[type] || 'fitness';
+
+                return (
+                  <View key={type} style={{ marginBottom: 12 }}>
+                    {/* Section Header */}
+                    <TouchableOpacity
+                      onPress={() => toggleSection(type)}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        paddingVertical: 12,
+                        paddingHorizontal: 16,
+                        backgroundColor: theme.colors.background,
+                        borderRadius: 12,
+                      }}
+                    >
+                      <View style={{ flexDirection: "row", alignItems: "center" }}>
+                        <Ionicons
+                          name={iconName}
+                          size={20}
+                          color={theme.colors.primary}
+                          style={{ marginRight: 10 }}
+                        />
+                        <Text
+                          style={{
+                            fontFamily: theme.fonts.heading,
+                            fontSize: 16,
+                            color: theme.colors.text,
+                          }}
+                        >
+                          {type}
+                        </Text>
+                        <Text
+                          style={{
+                            fontFamily: theme.fonts.body,
+                            fontSize: 14,
+                            color: theme.colors.text + '80',
+                            marginLeft: 8,
+                          }}
+                        >
+                          ({typeActivities.length})
+                        </Text>
+                      </View>
+                      <Ionicons
+                        name={isExpanded ? "chevron-up" : "chevron-down"}
+                        size={20}
+                        color={theme.colors.text}
+                      />
+                    </TouchableOpacity>
+
+                    {/* Section Content - Only render when expanded */}
+                    {isExpanded && (
+                      <View style={{ marginTop: 8, paddingLeft: 8 }}>
+                        {typeActivities.map(activity => (
+                          <TouchableOpacity
+                            key={activity._id}
+                            onPress={() => selectActivity(activity.name)}
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              padding: 12,
+                              marginVertical: 4,
+                              borderRadius: 12,
+                              borderWidth: 1,
+                              borderColor: activityType === activity.name
+                                ? theme.colors.primary
+                                : theme.colors.text + '20',
+                              backgroundColor:
+                                activityType === activity.name
+                                  ? theme.colors.primary + "20"
+                                  : theme.colors.surface,
+                            }}
+                          >
+                            <ActivityIcon
+                              activityName={activity.name}
+                              activityType={activity.type}
+                              size={24}
+                              color={theme.colors.primary}
+                              style={{ marginRight: 12 }}
+                            />
+                            <Text
+                              style={{
+                                fontFamily: theme.fonts.subheading,
+                                fontSize: 15,
+                                color: activityType === activity.name
+                                  ? theme.colors.primary
+                                  : theme.colors.text,
+                              }}
+                            >
+                              {activity.name}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                );
+              })
             )}
           </View>
-        </BottomSheetView>
+        </BottomSheetScrollView>
       </BottomSheet>
     </>
   );

@@ -83,7 +83,7 @@ export default function ProgramOverview() {
 
   const handleSave = async () => {
     if (!program) return;
-    
+
     try {
       setSaving(true);
       await updateProgram(id!, {
@@ -198,7 +198,7 @@ export default function ProgramOverview() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: theme.colors.background }}>
       {/* Header */}
-      <Header 
+      <Header
         title={program.name}
         showBackButton
         backTo="/programs"
@@ -227,7 +227,7 @@ export default function ProgramOverview() {
             <Button
               onClick={handleDelete}
               variant="outline"
-              style={{ 
+              style={{
                 color: theme.colors.error,
                 borderColor: theme.colors.error
               }}
@@ -335,7 +335,7 @@ export default function ProgramOverview() {
         <Card className="mb-6">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Map-based Activities ({geoActivities.length})</CardTitle>
+              <CardTitle>Outdoor Activities ({geoActivities.length})</CardTitle>
               <Button onClick={() => setShowAddGeoModal(true)} size="sm">
                 <Plus className="w-4 h-4 mr-2" />
                 Add Activity

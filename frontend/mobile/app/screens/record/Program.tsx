@@ -116,7 +116,7 @@ export default function ProgramRecordScreen() {
           My Programs
         </Text>
         <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + "99", marginBottom: 24 }}>
-          Programs you've created or generated will appear here. Create one using the + button below to create more programs or record map-based activities immediately.
+          Programs you've created or generated will appear here. Create one using the + button below to create more programs or record outdoor activities immediately.
         </Text>
         {programs.length === 0 ? (
           <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.primary, marginBottom: 24 }}>
@@ -173,7 +173,7 @@ export default function ProgramRecordScreen() {
               }}
             >
               <FontAwesome6 name="pencil" size={18} color="#e4a149ff" />
-              <Text style={{ color: "#fff", fontFamily: theme.fonts.body, marginLeft: 8 }}>Create</Text>
+              <Text style={{ color: "#fff", fontFamily: theme.fonts.subheading, marginLeft: 8 }}>Create</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={{
@@ -195,7 +195,7 @@ export default function ProgramRecordScreen() {
               }}
             >
               <MaterialCommunityIcons name="robot-happy-outline" size={22} color="#00B894" />
-              <Text style={{ color: "#fff", fontFamily: theme.fonts.body, marginLeft: 8 }}>Automate</Text>
+              <Text style={{ color: "#fff", fontFamily: theme.fonts.subheading, marginLeft: 8 }}>Automate</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={{
@@ -216,7 +216,7 @@ export default function ProgramRecordScreen() {
               }}
             >
               <MaterialCommunityIcons name="map-marker-radius-outline" size={22} color="#f1566aff" />
-              <Text style={{ color: "#fff", fontFamily: theme.fonts.body, marginLeft: 8 }}>Map</Text>
+              <Text style={{ color: "#fff", fontFamily: theme.fonts.subheading, marginLeft: 8 }}>Map</Text>
             </TouchableOpacity>
           </Animated.View>
           {/* Main FAB */}

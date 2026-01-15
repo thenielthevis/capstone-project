@@ -5,7 +5,8 @@ import { useTheme } from "../../context/ThemeContext";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons, Entypo, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import LottieView from "lottie-react-native";
-import { updateProgram } from "../../api/programApi";
+import { getProgramById, updateProgram } from "../../api/programApi";
+import { ActivityIcon } from "../../components/ActivityIcon";
 import { getAllWorkouts, Workout } from "../../api/workoutApi";
 import { getAllGeoActivities, GeoActivity } from "../../api/geoActivityApi";
 import Toast from "react-native-toast-message";
@@ -225,7 +226,7 @@ export default function ProgramInterface() {
               <Ionicons name="chevron-down" size={20} color={theme.colors.text + "66"} />
             </TouchableOpacity>
           </View>
-          
+
           {/* Animation (Lottie) or Icon with border */}
           <View
             className="mr-4"
@@ -260,7 +261,7 @@ export default function ProgramInterface() {
               {item.workout_id?.type}
             </Text>
           </View>
-          
+
           {/* Edit/Delete Buttons */}
           {!isEditing ? (
             <View className="flex-row">
@@ -293,7 +294,7 @@ export default function ProgramInterface() {
             </TouchableOpacity>
           )}
         </View>
-        
+
         {/* Sets info - Editable when editing */}
         {isEditing ? (
           <View className="mt-2">
@@ -483,7 +484,7 @@ export default function ProgramInterface() {
               <Ionicons name="chevron-down" size={20} color={theme.colors.text + "66"} />
             </TouchableOpacity>
           </View>
-          
+
           {/* Animation (Lottie) or Icon with border */}
           <View
             className="mr-4"
@@ -499,23 +500,30 @@ export default function ProgramInterface() {
               justifyContent: "center",
             }}
           >
-            {item.activity_id?.icon ? (
-              <Image source={{ uri: item.activity_id.icon }} style={{ width: "100%", height: "100%" }} />
-            ) : (
-              <Ionicons name="walk" size={40} color={theme.colors.primary} />
-            )}
+            {/* <ActivityIcon> handles local SVG lookup by name or falls back to Ionicons by type */}
+            <ActivityIcon
+              activityName={item.activity_id?.name || ""}
+              activityType={item.activity_id?.type}
+              size={40}
+              color={theme.colors.primary}
+            />
           </View>
           <View className="flex-1">
             <Text style={{ fontFamily: theme.fonts.heading, fontSize: 18, color: theme.colors.primary }}>
               {item.activity_id?.name || "Activity"}
             </Text>
-            {item.activity_id?.met ? (
-              <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + "99", marginTop: 4 }}>
-                MET: {item.activity_id.met}
+            <View className="flex-row items-center mt-1">
+              <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + "99" }}>
+                {item.activity_id?.type}
               </Text>
-            ) : null}
+              {item.activity_id?.met ? (
+                <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + "99" }}>
+                  {" • MET " + item.activity_id.met}
+                </Text>
+              ) : null}
+            </View>
           </View>
-          
+
           {/* Edit/Delete Buttons */}
           {!isEditing ? (
             <View className="flex-row">
@@ -548,7 +556,7 @@ export default function ProgramInterface() {
             </TouchableOpacity>
           )}
         </View>
-        
+
         {/* Preferences info - Editable when editing */}
         {isEditing ? (
           <View className="mt-2">
@@ -746,7 +754,7 @@ export default function ProgramInterface() {
         <View style={{ paddingHorizontal: 24 }}>
           <View className="flex-row items-center justify-between mb-3">
             <Text style={{ fontFamily: theme.fonts.heading, color: theme.colors.primary, fontSize: 18 }}>
-              Map-based Activities
+              Outdoor Activities
             </Text>
             <TouchableOpacity
               onPress={() => openAddModal('geo')}
@@ -770,89 +778,89 @@ export default function ProgramInterface() {
             </View>
           ) : (
             <Text style={{ color: theme.colors.text + "99", fontFamily: theme.fonts.body, marginBottom: 24 }}>
-              No map-based activities in this program.
+              No outdoor activities in this program.
             </Text>
           )}
         </View>
       </ScrollView>
 
       {/* Add Modal */}
-            {/* Delete Confirmation Modal */}
-            <Modal visible={!!showDeleteModal} transparent animationType="fade">
-              <View
-                className="flex-1 justify-center items-center"
-                style={{ backgroundColor: theme.colors.overlay }}
-              >
-                <View
-                  className="rounded-xl p-7 mx-4 w-10/12"
-                  style={{ backgroundColor: theme.colors.surface }}
+      {/* Delete Confirmation Modal */}
+      <Modal visible={!!showDeleteModal} transparent animationType="fade">
+        <View
+          className="flex-1 justify-center items-center"
+          style={{ backgroundColor: theme.colors.overlay }}
+        >
+          <View
+            className="rounded-xl p-7 mx-4 w-10/12"
+            style={{ backgroundColor: theme.colors.surface }}
+          >
+            <Text
+              className="mb-2"
+              style={{
+                color: theme.colors.text,
+                fontFamily: theme.fonts.heading,
+                fontSize: theme.fontSizes.lg,
+              }}
+            >
+              {showDeleteModal?.type === 'workout' ? 'Remove Workout' : 'Remove Activity'}
+            </Text>
+
+            <Text
+              className="mb-10"
+              style={{
+                color: theme.colors.text,
+                fontFamily: theme.fonts.body,
+                fontSize: theme.fontSizes.m,
+              }}
+            >
+              Are you sure you want to remove this {showDeleteModal?.type === 'workout' ? 'workout' : 'activity'} from the program?
+            </Text>
+
+            <View className="flex-row justify-end">
+              <TouchableOpacity onPress={() => setShowDeleteModal(null)}>
+                <Text
+                  style={{
+                    color: theme.colors.text + "88",
+                    fontFamily: theme.fonts.body,
+                    fontSize: theme.fontSizes.m,
+                    marginRight: 16,
+                  }}
                 >
-                  <Text
-                    className="mb-2"
-                    style={{
-                      color: theme.colors.text,
-                      fontFamily: theme.fonts.heading,
-                      fontSize: theme.fontSizes.lg,
-                    }}
-                  >
-                    {showDeleteModal?.type === 'workout' ? 'Remove Workout' : 'Remove Activity'}
-                  </Text>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
 
-                  <Text
-                    className="mb-10"
-                    style={{
-                      color: theme.colors.text,
-                      fontFamily: theme.fonts.body,
-                      fontSize: theme.fontSizes.m,
-                    }}
-                  >
-                    Are you sure you want to remove this {showDeleteModal?.type === 'workout' ? 'workout' : 'activity'} from the program?
-                  </Text>
-
-                  <View className="flex-row justify-end">
-                    <TouchableOpacity onPress={() => setShowDeleteModal(null)}>
-                      <Text
-                        style={{
-                          color: theme.colors.text + "88",
-                          fontFamily: theme.fonts.body,
-                          fontSize: theme.fontSizes.m,
-                          marginRight: 16,
-                        }}
-                      >
-                        Cancel
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      onPress={() => {
-                        if (showDeleteModal?.type === 'workout') {
-                          const newWorkouts = workouts.filter((_, i) => i !== showDeleteModal.index);
-                          setWorkouts(newWorkouts);
-                          setEditingWorkoutIndex(null);
-                          saveProgram(newWorkouts, undefined);
-                        } else if (showDeleteModal?.type === 'geo') {
-                          const newGeoActivities = geoActivities.filter((_, i) => i !== showDeleteModal.index);
-                          setGeoActivities(newGeoActivities);
-                          setEditingGeoIndex(null);
-                          saveProgram(undefined, newGeoActivities);
-                        }
-                        setShowDeleteModal(null);
-                      }}
-                    >
-                      <Text
-                        style={{
-                          color: theme.colors.error,
-                          fontFamily: theme.fonts.body,
-                          fontSize: theme.fontSizes.m,
-                        }}
-                      >
-                        Delete
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            </Modal>
+              <TouchableOpacity
+                onPress={() => {
+                  if (showDeleteModal?.type === 'workout') {
+                    const newWorkouts = workouts.filter((_, i) => i !== showDeleteModal.index);
+                    setWorkouts(newWorkouts);
+                    setEditingWorkoutIndex(null);
+                    saveProgram(newWorkouts, undefined);
+                  } else if (showDeleteModal?.type === 'geo') {
+                    const newGeoActivities = geoActivities.filter((_, i) => i !== showDeleteModal.index);
+                    setGeoActivities(newGeoActivities);
+                    setEditingGeoIndex(null);
+                    saveProgram(undefined, newGeoActivities);
+                  }
+                  setShowDeleteModal(null);
+                }}
+              >
+                <Text
+                  style={{
+                    color: theme.colors.error,
+                    fontFamily: theme.fonts.body,
+                    fontSize: theme.fontSizes.m,
+                  }}
+                >
+                  Delete
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
       <Modal
         visible={addModalVisible}
         animationType="slide"
@@ -919,6 +927,16 @@ export default function ProgramInterface() {
                     <Text style={{ fontFamily: theme.fonts.heading, fontSize: 16, color: theme.colors.text }}>
                       {activity.name}
                     </Text>
+                    <View className="flex-row items-center mt-1">
+                      <Text style={{ fontFamily: theme.fonts.body, fontSize: 12, color: theme.colors.text + "99" }}>
+                        {activity.type}
+                      </Text>
+                      {activity.met ? (
+                        <Text style={{ fontFamily: theme.fonts.body, fontSize: 12, color: theme.colors.text + "99" }}>
+                          • MET {activity.met}
+                        </Text>
+                      ) : null}
+                    </View>
                     {activity.description ? (
                       <Text style={{ fontFamily: theme.fonts.body, fontSize: 12, color: theme.colors.text + "99", marginTop: 4 }}>
                         {activity.description}
@@ -931,7 +949,7 @@ export default function ProgramInterface() {
           </View>
         </View>
       </Modal>
-      
+
       {saving && (
         <View style={{ position: "absolute", top: 80, alignSelf: "center", backgroundColor: theme.colors.surface, padding: 12, borderRadius: 8, flexDirection: "row", alignItems: "center" }}>
           <ActivityIndicator size="small" color={theme.colors.primary} style={{ marginRight: 8 }} />

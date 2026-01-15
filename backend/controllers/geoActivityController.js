@@ -4,14 +4,14 @@ const { uploadGeoActivityIcon, uploadGeoActivityAnimation } = require('../utils/
 // Create a new geo activity
 exports.createGeoActivity = async (req, res) => {
   try {
-    const { name, description, met } = req.body;
+    const { name, description, met, type } = req.body;
     const iconFile = req.files?.icon?.[0];
     const animationFile = req.files?.animation?.[0];
 
-    console.log('[CREATE GEO ACTIVITY] Request body:', { name, description, met });
-    console.log('[CREATE GEO ACTIVITY] Files:', { 
-      hasIcon: !!iconFile, 
-      hasAnimation: !!animationFile 
+    console.log('[CREATE GEO ACTIVITY] Request body:', { name, description, met, type });
+    console.log('[CREATE GEO ACTIVITY] Files:', {
+      hasIcon: !!iconFile,
+      hasAnimation: !!animationFile
     });
 
     let iconUploadResult = null;
@@ -31,6 +31,7 @@ exports.createGeoActivity = async (req, res) => {
 
     const newGeoActivity = new GeoActivity({
       name,
+      type: type || 'Other Sports',
       description: description || '',
       icon: iconUploadResult ? iconUploadResult.secure_url : '',
       animation: animationUploadResult ? animationUploadResult.secure_url : '',
@@ -64,7 +65,7 @@ exports.getGeoActivityById = async (req, res) => {
       return res.status(404).json({ message: "Geo Activity not found" });
     }
     res.status(200).json(geoActivity);
-    } catch (error) {
+  } catch (error) {
     res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
@@ -76,10 +77,10 @@ exports.updateGeoActivity = async (req, res) => {
     console.log('[UPDATE GEO ACTIVITY] Request user:', req.user);
     console.log('[UPDATE GEO ACTIVITY] Request body fields:', Object.keys(req.body));
     console.log('[UPDATE GEO ACTIVITY] Request files:', Object.keys(req.files || {}));
-    
-    const { name, description, met } = req.body;
-    
-    console.log('[UPDATE GEO ACTIVITY] Parsed fields:', { name, description, met });
+
+    const { name, description, met, type } = req.body;
+
+    console.log('[UPDATE GEO ACTIVITY] Parsed fields:', { name, description, met, type });
 
     const geoActivity = await GeoActivity.findById(req.params.id);
     if (!geoActivity) {
@@ -92,9 +93,9 @@ exports.updateGeoActivity = async (req, res) => {
     const iconFile = req.files?.icon?.[0];
     const animationFile = req.files?.animation?.[0];
 
-    console.log('[UPDATE GEO ACTIVITY] Files received:', { 
-      hasIcon: !!iconFile, 
-      hasAnimation: !!animationFile 
+    console.log('[UPDATE GEO ACTIVITY] Files received:', {
+      hasIcon: !!iconFile,
+      hasAnimation: !!animationFile
     });
 
     // Only update icon if new file is provided
@@ -126,11 +127,15 @@ exports.updateGeoActivity = async (req, res) => {
       geoActivity.met = met;
       console.log('[UPDATE GEO ACTIVITY] Updated met to:', geoActivity.met);
     }
+    if (type) {
+      geoActivity.type = type;
+      console.log('[UPDATE GEO ACTIVITY] Updated type to:', geoActivity.type);
+    }
 
     console.log('[UPDATE GEO ACTIVITY] Saving to database...');
     const updatedGeoActivity = await geoActivity.save();
     console.log('[UPDATE GEO ACTIVITY] Successfully saved:', updatedGeoActivity);
-    
+
     res.status(200).json(updatedGeoActivity);
   } catch (error) {
     console.error('[UPDATE GEO ACTIVITY] Error occurred:', error.message);
@@ -144,10 +149,10 @@ exports.deleteGeoActivity = async (req, res) => {
   try {
     const geoActivity = await GeoActivity.findByIdAndDelete(req.params.id);
     if (!geoActivity) {
-        return res.status(404).json({ message: "Geo Activity not found" });
+      return res.status(404).json({ message: "Geo Activity not found" });
     }
     res.status(200).json({ message: "Geo Activity deleted successfully" });
-    } catch (error) {
+  } catch (error) {
     res.status(500).json({ message: "Server Error", error: error.message });
   }
 };

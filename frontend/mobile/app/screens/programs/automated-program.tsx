@@ -24,25 +24,25 @@ export default function AutomatedProgramScreen() {
   const [geoActivities, setGeoActivities] = useState<GeoActivity[]>(cachedGeoActivities || []);
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
-  
+
   // Filter states
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedEquipment, setSelectedEquipment] = useState<string[]>([]);
-  
+  const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
+
   // Additional preferences
   const [goals, setGoals] = useState("");
   const [frequency, setFrequency] = useState("");
   const [duration, setDuration] = useState("");
   const [experienceLevel, setExperienceLevel] = useState("");
-  const [includeMapBased, setIncludeMapBased] = useState(false);
-  
+
   // Generation state
   const [generating, setGenerating] = useState(false);
   const [generatedProgram, setGeneratedProgram] = useState<GeneratedProgramResult | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [creatingProgram, setCreatingProgram] = useState(false);
-  
+
   const errorColor = (theme.colors as any)?.error || "#E45858";
   const [filtersVisible, setFiltersVisible] = useState(false);
   const [preferencesVisible, setPreferencesVisible] = useState(false);
@@ -105,11 +105,8 @@ export default function AutomatedProgramScreen() {
 
   const categoryOptions = useMemo(() => {
     const values = new Set(workouts.map((workout) => workout.category).filter(Boolean));
-    if (geoActivities.length > 0) {
-      values.add("map-based");
-    }
     return Array.from(values).sort();
-  }, [workouts, geoActivities]);
+  }, [workouts]);
 
   const typeOptions = useMemo(() => {
     const values = Array.from(new Set(workouts.map((workout) => workout.type).filter(Boolean)));
@@ -127,6 +124,10 @@ export default function AutomatedProgramScreen() {
     return values.sort();
   }, [workouts]);
 
+  const activityOptions = useMemo(() => {
+    return geoActivities.map(a => a.name).sort();
+  }, [geoActivities]);
+
   const handleGenerateProgram = async () => {
     if (workouts.length === 0) {
       setGenerationError("No workouts available. Please wait for workouts to load.");
@@ -142,17 +143,17 @@ export default function AutomatedProgramScreen() {
         selectedCategories,
         selectedTypes,
         selectedEquipment,
+        selectedActivities, // Added selectedActivities
         goals: goals.trim() || undefined,
         frequency: frequency.trim() || undefined,
         duration: duration.trim() || undefined,
         experienceLevel: experienceLevel.trim() || undefined,
-        includeMapBased,
       };
 
       const result = await generateProgram(
         preferences,
         workouts,
-        includeMapBased ? geoActivities : []
+        geoActivities // Pass geoActivities directly
       );
 
       setGeneratedProgram(result);
@@ -263,39 +264,62 @@ export default function AutomatedProgramScreen() {
             />
           </TouchableOpacity>
 
-          {filtersVisible &&
-            (categoryOptions.length > 0 || typeOptions.length > 0 || equipmentOptions.length > 0) && (
-              <View style={{ marginBottom: 12 }}>
-                {categoryOptions.length > 0 && (
+          {filtersVisible && (
+            <View style={{ marginBottom: 12 }}>
+              {/* Workout Filters */}
+              {(categoryOptions.length > 0 || typeOptions.length > 0 || equipmentOptions.length > 0) && (
+                <View className="mb-4">
+                  <Text style={{ fontFamily: theme.fonts.heading, fontSize: 16, color: theme.colors.text, marginBottom: 8 }}>
+                    Workout Filters
+                  </Text>
+                  {categoryOptions.length > 0 && (
+                    <FilterGroup
+                      label="Category"
+                      options={categoryOptions}
+                      selected={selectedCategories}
+                      onToggle={(value) => toggleSelection(value, setSelectedCategories)}
+                      theme={theme}
+                    />
+                  )}
+                  {typeOptions.length > 0 && (
+                    <FilterGroup
+                      label="Type"
+                      options={typeOptions}
+                      selected={selectedTypes}
+                      onToggle={(value) => toggleSelection(value, setSelectedTypes)}
+                      theme={theme}
+                    />
+                  )}
+                  {equipmentOptions.length > 0 && (
+                    <FilterGroup
+                      label="Equipment"
+                      options={equipmentOptions}
+                      selected={selectedEquipment}
+                      onToggle={(value) => toggleSelection(value, setSelectedEquipment)}
+                      theme={theme}
+                      formatLabel={(value) => value}
+                    />
+                  )}
+                </View>
+              )}
+
+              {/* Activity Filters */}
+              {activityOptions.length > 0 && (
+                <View>
+                  <Text style={{ fontFamily: theme.fonts.heading, fontSize: 16, color: theme.colors.text, marginBottom: 8 }}>
+                    Activity Filters
+                  </Text>
                   <FilterGroup
-                    label="Category"
-                    options={categoryOptions}
-                    selected={selectedCategories}
-                    onToggle={(value) => toggleSelection(value, setSelectedCategories)}
+                    label="Outdoor Activities"
+                    options={activityOptions}
+                    selected={selectedActivities}
+                    onToggle={(value) => toggleSelection(value, setSelectedActivities)}
                     theme={theme}
                   />
-                )}
-                {typeOptions.length > 0 && (
-                  <FilterGroup
-                    label="Type"
-                    options={typeOptions}
-                    selected={selectedTypes}
-                    onToggle={(value) => toggleSelection(value, setSelectedTypes)}
-                    theme={theme}
-                  />
-                )}
-                {equipmentOptions.length > 0 && (
-                  <FilterGroup
-                    label="Equipment"
-                    options={equipmentOptions}
-                    selected={selectedEquipment}
-                    onToggle={(value) => toggleSelection(value, setSelectedEquipment)}
-                    theme={theme}
-                    formatLabel={(value) => value}
-                  />
-                )}
-              </View>
-            )}
+                </View>
+              )}
+            </View>
+          )}
 
           <TouchableOpacity
             onPress={() => setPreferencesVisible((prev) => !prev)}
@@ -334,55 +358,35 @@ export default function AutomatedProgramScreen() {
               <LabeledInput
                 label="Goals (optional)"
                 value={goals}
-                placeholder="e.g., Build muscle, lose weight, improve endurance"
+                placeholder="e.g., Build muscle, lose weight"
                 onChangeText={setGoals}
                 theme={theme}
+                quickOptions={["Build Muscle", "Lose Weight", "Endurance", "Flexibility", "Strength"]}
               />
               <LabeledInput
                 label="Frequency (optional)"
                 value={frequency}
-                placeholder="e.g., 3 times per week, daily"
+                placeholder="e.g., 3 times per week"
                 onChangeText={setFrequency}
                 theme={theme}
+                quickOptions={["Daily", "3x/Week", "5x/Week", "Weekends"]}
               />
               <LabeledInput
                 label="Duration per session (optional)"
                 value={duration}
-                placeholder="e.g., 30 minutes, 1 hour"
+                placeholder="e.g., 45 minutes"
                 onChangeText={setDuration}
                 theme={theme}
+                quickOptions={["30 mins", "45 mins", "1 hour", "90 mins"]}
               />
               <LabeledInput
                 label="Experience level (optional)"
                 value={experienceLevel}
-                placeholder="e.g., beginner, intermediate, advanced"
+                placeholder="e.g., Intermediate"
                 onChangeText={setExperienceLevel}
                 theme={theme}
+                quickOptions={["Beginner", "Intermediate", "Advanced"]}
               />
-              <TouchableOpacity
-                onPress={() => setIncludeMapBased((prev) => !prev)}
-                className="flex-row items-center mt-3 p-3 rounded-xl"
-                style={{
-                  borderWidth: 1,
-                  borderColor: includeMapBased ? theme.colors.primary : theme.colors.text + "22",
-                  backgroundColor: includeMapBased ? theme.colors.primary + "1A" : "transparent",
-                }}
-              >
-                <Ionicons
-                  name={includeMapBased ? "checkbox" : "square-outline"}
-                  size={20}
-                  color={includeMapBased ? theme.colors.primary : theme.colors.text}
-                  style={{ marginRight: 8 }}
-                />
-                <Text
-                  style={{
-                    fontFamily: theme.fonts.body,
-                    color: includeMapBased ? theme.colors.primary : theme.colors.text,
-                  }}
-                >
-                  Include map-based activities (running, cycling, etc.)
-                </Text>
-              </TouchableOpacity>
             </View>
           )}
 
@@ -546,7 +550,7 @@ export default function AutomatedProgramScreen() {
                     marginBottom: 8,
                   }}
                 >
-                  Map-based Activities ({generatedProgram.geo_activities.length})
+                  Outdoor Activities ({generatedProgram.geo_activities.length})
                 </Text>
                 {generatedProgram.geo_activities.map((geoItem, idx) => {
                   const activity = geoActivities.find((a) => a._id === geoItem.activity_id);
@@ -572,20 +576,20 @@ export default function AutomatedProgramScreen() {
                       {(geoItem.preferences.distance_km ||
                         geoItem.preferences.avg_pace ||
                         geoItem.preferences.countdown_seconds) && (
-                        <Text
-                          style={{
-                            fontFamily: theme.fonts.body,
-                            color: theme.colors.text + "99",
-                            fontSize: 12,
-                            marginLeft: 12,
-                          }}
-                        >
-                          {geoItem.preferences.distance_km && `Distance: ${geoItem.preferences.distance_km}km `}
-                          {geoItem.preferences.avg_pace && `Pace: ${geoItem.preferences.avg_pace} `}
-                          {geoItem.preferences.countdown_seconds &&
-                            `Countdown: ${geoItem.preferences.countdown_seconds}s`}
-                        </Text>
-                      )}
+                          <Text
+                            style={{
+                              fontFamily: theme.fonts.body,
+                              color: theme.colors.text + "99",
+                              fontSize: 12,
+                              marginLeft: 12,
+                            }}
+                          >
+                            {geoItem.preferences.distance_km && `Distance: ${geoItem.preferences.distance_km}km `}
+                            {geoItem.preferences.avg_pace && `Pace: ${geoItem.preferences.avg_pace} `}
+                            {geoItem.preferences.countdown_seconds &&
+                              `Countdown: ${geoItem.preferences.countdown_seconds}s`}
+                          </Text>
+                        )}
                     </View>
                   );
                 })}
@@ -742,11 +746,12 @@ type LabeledInputProps = {
   placeholder?: string;
   onChangeText: (text: string) => void;
   theme: any;
+  quickOptions?: string[];
 };
 
-function LabeledInput({ label, value, placeholder, onChangeText, theme }: LabeledInputProps) {
+function LabeledInput({ label, value, placeholder, onChangeText, theme, quickOptions }: LabeledInputProps) {
   return (
-    <View className="mb-3">
+    <View className="mb-4">
       <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + "99", marginBottom: 4 }}>
         {label}
       </Text>
@@ -763,8 +768,35 @@ function LabeledInput({ label, value, placeholder, onChangeText, theme }: Labele
           paddingVertical: 8,
           color: theme.colors.text,
           fontFamily: theme.fonts.body,
+          marginBottom: quickOptions ? 8 : 0,
         }}
       />
+      {quickOptions && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
+          {quickOptions.map((opt) => (
+            <TouchableOpacity
+              key={opt}
+              onPress={() => onChangeText(opt)}
+              className="mr-2 px-3 py-1.5 rounded-lg"
+              style={{
+                backgroundColor: value === opt ? theme.colors.primary + "22" : theme.colors.surface,
+                borderWidth: 1,
+                borderColor: value === opt ? theme.colors.primary : theme.colors.text + "11",
+              }}
+            >
+              <Text
+                style={{
+                  color: value === opt ? theme.colors.primary : theme.colors.text + "CC",
+                  fontFamily: theme.fonts.body,
+                  fontSize: 12,
+                }}
+              >
+                {opt}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
     </View>
   );
 }

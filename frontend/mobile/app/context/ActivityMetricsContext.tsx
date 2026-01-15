@@ -28,6 +28,7 @@ type ActivityMetricsContextType = {
   calculateCaloriesBurned: (weightKg?: number) => number;
   refreshActivities: () => Promise<void>;
   SPLIT_DISTANCE_KM: number;
+  isDistanceBased: boolean;
 };
 
 const ActivityMetricsContext = createContext<ActivityMetricsContextType | undefined>(undefined);
@@ -38,7 +39,7 @@ export const ActivityMetricsProvider = ({ children }: { children: ReactNode }) =
   const [time, setTime] = useState<number>(0);
   const [recording, setRecording] = useState<boolean>(false);
   const [splits, setSplits] = useState<Split[]>([]);
-  const [activityType, setActivityType] = useState<ActivityType>("Running");
+  const [activityType, setActivityType] = useState<ActivityType>("Select");
   const [activities, setActivities] = useState<GeoActivity[]>([]);
 
   // Cache key
@@ -50,18 +51,18 @@ export const ActivityMetricsProvider = ({ children }: { children: ReactNode }) =
 
   const initActivities = async () => {
     try {
-      // Load from cache - no automatic network refresh
+      // Load from cache first for immediate display
       const cached = await loadFromCache<GeoActivity[]>(ACTIVITIES_CACHE_KEY);
       if (cached && cached.length > 0) {
-        console.log("[Context] Loaded activities from cache");
+        console.log("[Context] Loaded activities from cache:", cached.length);
         setActivities(cached);
         // Ensure valid selection if not set
         if (!activityType) setActivityType(cached[0].name);
-      } else {
-        // Only fetch if cache is empty - with timeout
-        console.log("[Context] No cache, fetching activities");
-        await refreshActivities();
       }
+
+      // Always try to refresh from API to get latest activities
+      console.log("[Context] Refreshing activities from API");
+      await refreshActivities();
     } catch (e) {
       console.log("[Context] Init failed", e);
     }
@@ -70,7 +71,7 @@ export const ActivityMetricsProvider = ({ children }: { children: ReactNode }) =
   const refreshActivities = async () => {
     try {
       // Use timeout to prevent hanging on slow/offline connections
-      const data = await withTimeout(getAllGeoActivities(), 3000);
+      const data = await withTimeout(getAllGeoActivities(), 8000);
       if (data && data.length > 0) {
         setActivities(data);
         await saveToCache(ACTIVITIES_CACHE_KEY, data);
@@ -133,6 +134,13 @@ export const ActivityMetricsProvider = ({ children }: { children: ReactNode }) =
         activityType,
         activities,
         SPLIT_DISTANCE_KM, // Exposed constant
+        // Helper to check if current activity is distance-based
+        isDistanceBased: (() => {
+          const activity = activities.find(a => a.name === activityType);
+          const type = activity?.type || 'Other Sports';
+          // Only these types record distance/speed/splits
+          return ['Foot Sports', 'Cycle Sports', 'Water Sports'].includes(type);
+        })(),
         setActivityType,
         setSpeed,
         setDistance,

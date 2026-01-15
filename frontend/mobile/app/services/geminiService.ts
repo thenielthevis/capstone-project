@@ -247,7 +247,7 @@ export async function analyzeFood(
 
     const dishContext = dishName ? `\nThe user indicated this is: "${dishName}". Use this as context to help with identification.` : '';
     const allergyContext = allergyInfo.length > 0 ? `\nUser has the following allergies/dietary restrictions: ${allergyInfo.join(', ')}. Check if the food contains any of these allergens, especially Filipino/Asian-specific allergens like fish sauce (patis), shrimp paste (bagoong), coconut, MSG, oyster sauce.` : '';
-    
+
     const filipinoAsianContext = `
 FILIPINO CUISINE FOCUS (PRIMARY):
 Prioritize Filipino dish identification. Common Filipino dishes include:
@@ -377,13 +377,13 @@ Analyze this food image and provide the following information in JSON format:${d
     try {
       const cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       const parsedResult = JSON.parse(cleanedText);
-      
+
       return {
         foodName: parsedResult.foodName || 'Unknown Food',
-        brandedProduct: parsedResult.brandedProduct || { 
-          isBranded: false, 
-          brandName: null, 
-          productName: null, 
+        brandedProduct: parsedResult.brandedProduct || {
+          isBranded: false,
+          brandName: null,
+          productName: null,
           ingredients: null,
           purchaseLinks: { lazada: null, shopee: null, puregold: null }
         },
@@ -399,16 +399,16 @@ Analyze this food image and provide the following information in JSON format:${d
       };
     } catch (parseError) {
       console.error('Failed to parse Gemini response:', text);
-      
+
       const calorieMatch = text.match(/(\d+)\s*(calories|kcal)/i);
       const calories = calorieMatch ? parseInt(calorieMatch[1]) : 0;
-      
+
       return {
         foodName: 'Food Item',
-        brandedProduct: { 
-          isBranded: false, 
-          brandName: null, 
-          productName: null, 
+        brandedProduct: {
+          isBranded: false,
+          brandName: null,
+          productName: null,
           ingredients: null,
           purchaseLinks: { lazada: null, shopee: null, puregold: null }
         },
@@ -425,7 +425,7 @@ Analyze this food image and provide the following information in JSON format:${d
     }
   } catch (error: any) {
     console.error('Error calling Gemini API:', error);
-    
+
     if (error.message?.includes('API key')) {
       throw new Error('Invalid API key. Please check your Gemini API key.');
     } else if (error.message?.includes('quota')) {
@@ -453,7 +453,7 @@ export async function analyzeIngredients(
 
     const dishContext = dishName ? `\nDish Name: ${dishName}` : '';
     const allergyContext = allergyInfo.length > 0 ? `\nUser has the following allergies/dietary restrictions: ${allergyInfo.join(', ')}. Check if any ingredients contain these allergens.` : '';
-    
+
     const prompt = `Analyze these ingredients and their quantities, then provide nutritional information in JSON format:${dishContext}${allergyContext}
 
 Ingredients:
@@ -547,7 +547,7 @@ Calculate the total nutritional values for all listed ingredients combined.
     try {
       const cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       const parsedResult = JSON.parse(cleanedText);
-      
+
       return {
         foodName: parsedResult.foodName || 'Custom Ingredients',
         nutritionSources: parsedResult.nutritionSources || [],
@@ -559,20 +559,20 @@ Calculate the total nutritional values for all listed ingredients combined.
         healthyAlternatives: parsedResult.healthyAlternatives || [],
         confidence: parsedResult.confidence || 'medium',
         notes: parsedResult.notes || '',
-        brandedProduct: { 
-          isBranded: false, 
-          brandName: null, 
-          productName: null, 
+        brandedProduct: {
+          isBranded: false,
+          brandName: null,
+          productName: null,
           ingredients: null,
           purchaseLinks: { lazada: null, shopee: null, puregold: null }
         },
       };
     } catch (parseError) {
       console.error('Failed to parse Gemini response:', text);
-      
+
       const calorieMatch = text.match(/(\d+)\s*(calories|kcal)/i);
       const calories = calorieMatch ? parseInt(calorieMatch[1]) : 0;
-      
+
       return {
         foodName: 'Custom Ingredients',
         nutritionSources: [],
@@ -584,10 +584,10 @@ Calculate the total nutritional values for all listed ingredients combined.
         healthyAlternatives: [],
         confidence: 'low',
         notes: 'Could not fully analyze the ingredients. Please check your input.',
-        brandedProduct: { 
-          isBranded: false, 
-          brandName: null, 
-          productName: null, 
+        brandedProduct: {
+          isBranded: false,
+          brandName: null,
+          productName: null,
           ingredients: null,
           purchaseLinks: { lazada: null, shopee: null, puregold: null }
         },
@@ -595,7 +595,7 @@ Calculate the total nutritional values for all listed ingredients combined.
     }
   } catch (error: any) {
     console.error('Error calling Gemini API:', error);
-    
+
     if (error.message?.includes('API key')) {
       throw new Error('Invalid API key. Please check your Gemini API key.');
     } else if (error.message?.includes('quota')) {
@@ -610,11 +610,11 @@ export interface ProgramPreferences {
   selectedCategories: string[];
   selectedTypes: string[];
   selectedEquipment: string[];
+  selectedActivities: string[]; // GeoActivity names
   goals?: string;
   frequency?: string; // e.g., "3 times per week", "daily"
   duration?: string; // e.g., "30 minutes", "1 hour"
   experienceLevel?: string; // e.g., "beginner", "intermediate", "advanced"
-  includeMapBased?: boolean;
 }
 
 export interface GeneratedProgramWorkout {
@@ -659,32 +659,41 @@ export async function generateProgram(
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
-    const categoriesContext = preferences.selectedCategories.length > 0 
+    const categoriesContext = preferences.selectedCategories.length > 0
       ? `Categories: ${preferences.selectedCategories.join(', ')}`
       : 'Any category';
-    
+
     const typesContext = preferences.selectedTypes.length > 0
       ? `Types: ${preferences.selectedTypes.join(', ')}`
       : 'Any type';
-    
+
     const equipmentContext = preferences.selectedEquipment.length > 0
       ? `Equipment available: ${preferences.selectedEquipment.join(', ')}`
       : 'No equipment preference';
-    
+
+    const activitiesContext = preferences.selectedActivities.length > 0
+      ? `Preferred Outdoor Activities: ${preferences.selectedActivities.join(', ')}`
+      : 'No specific outdoor activity preference';
+
     const goalsContext = preferences.goals ? `Goals: ${preferences.goals}` : '';
     const frequencyContext = preferences.frequency ? `Frequency: ${preferences.frequency}` : '';
     const durationContext = preferences.duration ? `Duration per session: ${preferences.duration}` : '';
     const experienceContext = preferences.experienceLevel ? `Experience level: ${preferences.experienceLevel}` : '';
-    const mapBasedContext = preferences.includeMapBased ? 'Include map-based activities (running, cycling, etc.)' : 'Focus on strength/indoor workouts';
 
-    const availableWorkoutsList = availableWorkouts.map(w => 
+    const availableWorkoutsList = availableWorkouts.map(w =>
       `- ID: ${w._id}, Name: ${w.name}, Category: ${w.category}, Type: ${w.type}, Equipment: ${w.equipment_needed || 'none'}, Description: ${w.description || 'N/A'}`
     ).join('\n');
 
-    const availableGeoActivitiesList = availableGeoActivities.length > 0
-      ? availableGeoActivities.map(a => 
-          `- ID: ${a._id}, Name: ${a.name}, Description: ${a.description || 'N/A'}, MET: ${a.met || 'N/A'}`
-        ).join('\n')
+    // Filter available geo activities if specific ones are selected
+    let filteredGeoActivities = availableGeoActivities;
+    if (preferences.selectedActivities.length > 0) {
+      filteredGeoActivities = availableGeoActivities.filter(a => preferences.selectedActivities.includes(a.name));
+    }
+
+    const availableGeoActivitiesList = filteredGeoActivities.length > 0
+      ? filteredGeoActivities.map(a =>
+        `- ID: ${a._id}, Name: ${a.name}, Description: ${a.description || 'N/A'}, MET: ${a.met || 'N/A'}`
+      ).join('\n')
       : 'None available';
 
     const prompt = `You are a fitness program generator. Create a personalized workout program based on the user's preferences.
@@ -693,16 +702,16 @@ USER PREFERENCES:
 ${categoriesContext}
 ${typesContext}
 ${equipmentContext}
+${activitiesContext}
 ${goalsContext}
 ${frequencyContext}
 ${durationContext}
 ${experienceContext}
-${mapBasedContext}
 
 AVAILABLE WORKOUTS:
 ${availableWorkoutsList}
 
-AVAILABLE GEO ACTIVITIES (map-based):
+AVAILABLE GEO ACTIVITIES:
 ${availableGeoActivitiesList}
 
 IMPORTANT CONSTRAINTS:
@@ -713,6 +722,7 @@ IMPORTANT CONSTRAINTS:
 5. For workouts, provide realistic set configurations (reps, time, or weight) based on experience level
 6. For geo activities, suggest appropriate distance/pace/countdown based on experience level
 7. Program should be progressive and achievable
+8. If the user selected specific Outdoor Activities, include at least one of them if relevant to their goal.
 
 Return the response in this JSON format:
 {
@@ -732,7 +742,7 @@ Return the response in this JSON format:
   ],
   "geo_activities": [
     {
-      "activity_id": "exact activity ID from available activities (only if includeMapBased is true)",
+      "activity_id": "exact activity ID from available activities",
       "preferences": {
         "distance_km": "number as string (e.g., '5') if applicable, otherwise empty string",
         "avg_pace": "pace as string (e.g., '6:00') if applicable, otherwise empty string",
@@ -765,7 +775,7 @@ Return ONLY valid JSON, no additional text or markdown.`;
     try {
       const cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       const parsedResult = JSON.parse(cleanedText);
-      
+
       return {
         name: parsedResult.name || 'Generated Program',
         description: parsedResult.description || 'A personalized workout program',
@@ -780,7 +790,7 @@ Return ONLY valid JSON, no additional text or markdown.`;
     }
   } catch (error: any) {
     console.error('Error calling Gemini API:', error);
-    
+
     if (error.message?.includes('API key')) {
       throw new Error('Invalid API key. Please check your Gemini API key.');
     } else if (error.message?.includes('quota')) {
@@ -866,16 +876,16 @@ export async function analyzeMultipleDishes(
 
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
-    
+
     // Analyze each dish
     const dishResults: DishAnalysisResult[] = [];
-    
+
     for (const dish of dishes) {
       if (!dish.base64) continue;
-      
+
       // Prepare all images for this dish (main + additional)
       const imageParts: any[] = [];
-      
+
       // Add main image
       const mainBase64 = dish.base64.includes(',') ? dish.base64.split(',')[1] : dish.base64;
       imageParts.push({
@@ -884,11 +894,11 @@ export async function analyzeMultipleDishes(
           mimeType: 'image/jpeg'
         }
       });
-      
+
       // Add additional images for better accuracy
       for (const additionalImg of dish.additionalImages) {
-        const additionalBase64 = additionalImg.base64.includes(',') 
-          ? additionalImg.base64.split(',')[1] 
+        const additionalBase64 = additionalImg.base64.includes(',')
+          ? additionalImg.base64.split(',')[1]
           : additionalImg.base64;
         imageParts.push({
           inlineData: {
@@ -897,23 +907,23 @@ export async function analyzeMultipleDishes(
           }
         });
       }
-      
-      const imageCountNote = imageParts.length > 1 
+
+      const imageCountNote = imageParts.length > 1
         ? `\nNOTE: ${imageParts.length} images provided of the same dish from different angles. Analyze all images together for more accurate identification and portion estimation.`
         : '';
-      
-      const dishContext = dish.dishName 
+
+      const dishContext = dish.dishName
         ? `\nUser indicated this dish is: "${dish.dishName}". Use this as primary context.`
         : '';
-      
+
       const servingSizeContext = `\nEstimated serving size: ${dish.servingSize}`;
-      
-      const allergyContext = allergyInfo.length > 0 
+
+      const allergyContext = allergyInfo.length > 0
         ? `\nUser has these allergies/dietary restrictions: ${allergyInfo.join(', ')}. Check for these allergens.`
         : '';
-      
+
       const cuisineContext = `\nPrioritize Filipino dish identification. If not Filipino, auto-detect the cuisine type.`;
-      
+
       const prompt = `${FILIPINO_ASIAN_CUISINE_CONTEXT}
 
 Analyze this food image(s) and provide detailed nutritional information in JSON format.${imageCountNote}${dishContext}${servingSizeContext}${allergyContext}${cuisineContext}
@@ -978,11 +988,11 @@ Return ONLY valid JSON, no additional text or markdown.`;
       const result = await model.generateContent([prompt, ...imageParts]);
       const response = await result.response;
       const text = response.text();
-      
+
       try {
         const cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
         const parsedResult = JSON.parse(cleanedText);
-        
+
         dishResults.push({
           dishId: dish.id,
           foodName: parsedResult.foodName || 'Unknown Dish',
@@ -1027,7 +1037,7 @@ Return ONLY valid JSON, no additional text or markdown.`;
         });
       }
     }
-    
+
     // Calculate totals
     const totalCalories = dishResults.reduce((sum, dish) => sum + dish.calories, 0);
     const totalNutrients: Partial<NutritionData> = {
@@ -1038,15 +1048,15 @@ Return ONLY valid JSON, no additional text or markdown.`;
       sugar: dishResults.reduce((sum, dish) => sum + (dish.nutrients.sugar || 0), 0),
       sodium: dishResults.reduce((sum, dish) => sum + (dish.nutrients.sodium || 0), 0),
     };
-    
+
     // Combine allergy warnings
     const allDetected = [...new Set(dishResults.flatMap(d => d.allergyWarnings.detected))];
     const allMayContain = [...new Set(dishResults.flatMap(d => d.allergyWarnings.mayContain))];
-    
+
     // Generate meal summary
     const dishNames = dishResults.map(d => d.foodName).join(', ');
     const mealSummary = `Meal with ${dishResults.length} dish${dishResults.length > 1 ? 'es' : ''}: ${dishNames}. Total: ${totalCalories} kcal.`;
-    
+
     return {
       dishes: dishResults,
       totalCalories,
@@ -1060,7 +1070,7 @@ Return ONLY valid JSON, no additional text or markdown.`;
     };
   } catch (error: any) {
     console.error('Error calling Gemini API for multi-dish analysis:', error);
-    
+
     if (error.message?.includes('API key')) {
       throw new Error('Invalid API key. Please check your Gemini API key.');
     } else if (error.message?.includes('quota')) {

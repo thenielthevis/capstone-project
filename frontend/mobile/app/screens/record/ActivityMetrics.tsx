@@ -16,20 +16,24 @@ export default function ActivityMetrics() {
   const { theme } = useTheme();
   const router = useRouter();
   const { user } = useUser();
-  const { speed, distance, time, splits, recording, activityType, setRecording, calculateCaloriesBurned, resetMetrics, SPLIT_DISTANCE_KM } = useActivityMetrics();
+  const { speed, distance, time, splits, recording, activityType, activities, setRecording, calculateCaloriesBurned, resetMetrics, SPLIT_DISTANCE_KM, isDistanceBased } = useActivityMetrics();
 
   const handleRecordingChange = (isRecording: boolean) => {
     setRecording(isRecording);
   };
 
-  // Map activity type to a placeholder activity ID
+  // Map activity type name to actual activity ID from the loaded activities
   const getActivityId = (type: string): string => {
-    const activityIds: Record<string, string> = {
-      Running: '000000000000000000000001',
-      Walking: '000000000000000000000002',
-      Cycling: '000000000000000000000003',
-    };
-    return activityIds[type] || activityIds.Running;
+    const activity = activities.find(a => a.name === type);
+    if (activity?._id) {
+      return activity._id;
+    }
+    // Fallback to first activity if available
+    if (activities.length > 0 && activities[0]._id) {
+      return activities[0]._id;
+    }
+    console.warn('[ActivityMetrics] No activity ID found for:', type);
+    return '000000000000000000000001';
   };
 
   const handleFinish = async () => {
@@ -147,6 +151,11 @@ export default function ActivityMetrics() {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   }, [throttledDistance, throttledTime]);
 
+  // Calculate real-time calories
+  const calories = React.useMemo(() => {
+    return calculateCaloriesBurned(user?.physicalMetrics?.weight?.value);
+  }, [throttledTime, user]);
+
 
   // Prepare chart data - Now uses throttled values to prevent every-second recalculation
   const chartData = React.useMemo(() => {
@@ -205,7 +214,7 @@ export default function ActivityMetrics() {
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: theme.colors.background }}>
       {/* ... (previous JSX code same until ChartWrapper) ... */}
-      {/* Header with Time */}
+      {/* Header with Time and Calories */}
       <View className="px-6 pt-3">
         <View
           className="flex-row items-center justify-between pb-5 border-b"
@@ -227,6 +236,18 @@ export default function ActivityMetrics() {
             >
               {formatTime(time)}
             </Text>
+            {/* Calories Display - Only visible in header for distance-based activities (otherwise large in body) */}
+            {isDistanceBased && (
+              <Text
+                className="text-lg mt-1 opacity-80"
+                style={{
+                  color: theme.colors.text,
+                  fontFamily: theme.fonts.subheading,
+                }}
+              >
+                {calories} kcal
+              </Text>
+            )}
           </View>
           <View className="w-10 h-10" />
         </View>
@@ -237,106 +258,144 @@ export default function ActivityMetrics() {
         className="flex-1 px-6 pt-8"
         showsVerticalScrollIndicator={false}
       >
-        {/* Avg Pace */}
-        <View className="items-center mb-12">
-          <Text
-            className="text-lg mb-3 opacity-80"
-            style={{
-              color: theme.colors.text,
-              fontFamily: theme.fonts.subheading,
-            }}
-          >
-            Avg. Pace (min/km)
-          </Text>
-          <Text
-            className="text-8xl font-bold"
-            style={{
-              color: theme.colors.primary,
-              fontFamily: theme.fonts.heading,
-            }}
-          >
-            {avgPace}
-          </Text>
-        </View>
+        {/* Distance Metrics - Only for distance-based activities */}
+        {isDistanceBased ? (
+          <>
+            {/* Avg Pace */}
+            <View className="items-center mb-12">
+              <Text
+                className="text-lg mb-3 opacity-80"
+                style={{
+                  color: theme.colors.text,
+                  fontFamily: theme.fonts.subheading,
+                }}
+              >
+                Avg. Pace (min/km)
+              </Text>
+              <Text
+                className="text-8xl font-bold"
+                style={{
+                  color: theme.colors.primary,
+                  fontFamily: theme.fonts.heading,
+                }}
+              >
+                {avgPace}
+              </Text>
+            </View>
 
-        {/* Distance and Speed Row */}
-        <View
-          className="flex-row border-t border-b mb-6"
-          style={{ borderColor: theme.colors.text + '20' }}
-        >
-          <View
-            className="flex-1 py-8 px-5 items-center border-r"
-            style={{ borderRightColor: theme.colors.text + '20' }}
-          >
+            {/* Distance and Speed Row */}
+            <View
+              className="flex-row border-t border-b mb-6"
+              style={{ borderColor: theme.colors.text + '20' }}
+            >
+              <View
+                className="flex-1 py-8 px-5 items-center border-r"
+                style={{ borderRightColor: theme.colors.text + '20' }}
+              >
+                <Text
+                  className="text-base mb-3 opacity-70"
+                  style={{
+                    color: theme.colors.text,
+                    fontFamily: theme.fonts.subheading,
+                  }}
+                >
+                  Distance
+                </Text>
+                <Text
+                  className="text-4xl font-bold"
+                  style={{
+                    color: theme.colors.primary,
+                    fontFamily: theme.fonts.heading,
+                  }}
+                >
+                  {throttledDistance.toFixed(2)} km
+                </Text>
+              </View>
+              <View className="flex-1 py-8 px-5 items-center">
+                <Text
+                  className="text-base mb-3 opacity-70"
+                  style={{
+                    color: theme.colors.text,
+                    fontFamily: theme.fonts.subheading,
+                  }}
+                >
+                  Speed
+                </Text>
+                <Text
+                  className="text-4xl font-bold"
+                  style={{
+                    color: theme.colors.primary,
+                    fontFamily: theme.fonts.heading,
+                  }}
+                >
+                  {throttledSpeed.toFixed(1)} km/hr
+                </Text>
+              </View>
+            </View>
+
+            {/* Splits (Bar Chart) Section */}
+            <View>
+              <Text
+                className="text-lg mb-6 opacity-80 pl-2"
+                style={{
+                  color: theme.colors.text,
+                  fontFamily: theme.fonts.subheading,
+                }}
+              >
+                Splits (/km)
+              </Text>
+              <View
+                style={{
+                  backgroundColor: theme.colors.surface,
+                  borderRadius: 16,
+                  paddingVertical: 20,
+                  paddingHorizontal: 10,
+                  overflow: 'hidden',
+                  opacity: isPlaceholder ? 0.5 : 1
+                }}
+              >
+                <ChartWrapper
+                  data={chartData}
+                  theme={theme}
+                  shouldAnimate={shouldAnimate}
+                />
+              </View>
+            </View>
+          </>
+        ) : (
+          /* Layout for Non-Distance Activities (Center Calories) */
+          <View className="items-center justify-center pt-44">
+            <Feather name="activity" size={48} color={theme.colors.primary} style={{ marginBottom: 16, opacity: 0.8 }} />
             <Text
-              className="text-base mb-3 opacity-70"
+              className="text-xl mb-4 opacity-80"
               style={{
                 color: theme.colors.text,
                 fontFamily: theme.fonts.subheading,
               }}
             >
-              Distance
+              Calories Burned
             </Text>
             <Text
-              className="text-4xl font-bold"
+              className="font-bold"
               style={{
+                fontSize: 80,
                 color: theme.colors.primary,
                 fontFamily: theme.fonts.heading,
               }}
             >
-              {throttledDistance.toFixed(2)} km
+              {calories}
             </Text>
-          </View>
-          <View className="flex-1 py-8 px-5 items-center">
             <Text
-              className="text-base mb-3 opacity-70"
+              className="text-xl mt-2 opacity-60"
               style={{
                 color: theme.colors.text,
                 fontFamily: theme.fonts.subheading,
               }}
             >
-              Speed
-            </Text>
-            <Text
-              className="text-4xl font-bold"
-              style={{
-                color: theme.colors.primary,
-                fontFamily: theme.fonts.heading,
-              }}
-            >
-              {throttledSpeed.toFixed(1)} km/hr
+              kcal
             </Text>
           </View>
-        </View>
-
-        {/* Splits (Bar Chart) Section - Always Visible */}
-        <View>
-          <Text
-            className="text-lg mb-6 opacity-80 pl-2"
-            style={{
-              color: theme.colors.text,
-              fontFamily: theme.fonts.subheading,
-            }}
-          >
-            Splits (/km)
-          </Text>
-          <View
-            style={{
-              backgroundColor: theme.colors.surface,
-              borderRadius: 16,
-              paddingVertical: 20,
-              paddingHorizontal: 10,
-              overflow: 'hidden',
-              opacity: isPlaceholder ? 0.5 : 1
-            }}
-          >
-            <ChartWrapper
-              data={chartData}
-              theme={theme}
-              shouldAnimate={shouldAnimate}
-            />
-          </View>
-        </View>
+        )}
       </ScrollView>
     </SafeAreaView >
   );

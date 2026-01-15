@@ -42,6 +42,7 @@ exports.uploadGeoActivityIcon = async (fileSource, publicId = null) => {
     folder: "geo_activity_icons",
     public_id: publicId,
     overwrite: true,
+    resource_type: "raw", // Required for SVG files
   };
 
   if (fileSource && Buffer.isBuffer(fileSource)) {

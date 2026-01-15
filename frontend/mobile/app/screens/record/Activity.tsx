@@ -43,6 +43,7 @@ export default function TestMap() {
     time: contextTime,
     recording: contextRecording,
     activityType,
+    activities, // Add activities from context
     setSpeed: setContextSpeed,
     setDistance: setContextDistance,
     setTime: setContextTime,
@@ -51,6 +52,7 @@ export default function TestMap() {
     resetMetrics,
     calculateCaloriesBurned,
     SPLIT_DISTANCE_KM, // Get from context
+    isDistanceBased, // Flag for conditional tracking
   } = useActivityMetrics();
 
   const [location, setLocation] = useState<[number, number] | null>(null);
@@ -152,7 +154,8 @@ export default function TestMap() {
               // This reduces "jitter" accumulation when standing still
               const MOVEMENT_THRESHOLD = 0.001; // 1 meter
 
-              if (segmentDistance > MOVEMENT_THRESHOLD) {
+              // Only accumulate distance if movement is significant AND activity is distance-based
+              if (isDistanceBased && segmentDistance > MOVEMENT_THRESHOLD) {
                 totalDistanceRef.current += segmentDistance;
                 const newDistance = totalDistanceRef.current;
                 setContextDistance(newDistance);
@@ -444,10 +447,10 @@ export default function TestMap() {
       const userWeight = user?.physicalMetrics?.weight?.value || 70;
       const caloriesBurned = calculateCaloriesBurned(userWeight);
 
-      // Only save if there was actual activity
-      if (contextTime > 0 && contextDistance > 0) {
-        // Calculate average pace (min/km)
-        const avgPace = contextDistance > 0 ? (contextTime / 60) / contextDistance : 0;
+      // Only save if there was actual activity (distance OR time if non-distance sport)
+      if (contextTime > 0 && (contextDistance > 0 || !isDistanceBased)) {
+        // Calculate average pace (min/km) - only for distance sports
+        const avgPace = (isDistanceBased && contextDistance > 0) ? (contextTime / 60) / contextDistance : 0;
 
         // Prepare route coordinates for saving
         const routeForSave = routeCoords.map(([lon, lat]) => ({
@@ -529,7 +532,9 @@ export default function TestMap() {
         // No activity data
         Alert.alert(
           "Session Discarded",
-          "No distance or time was recorded for this session.",
+          isDistanceBased
+            ? "No distance was recorded for this session."
+            : "No time was recorded for this session.",
           [
             {
               text: "OK",
@@ -547,16 +552,20 @@ export default function TestMap() {
     }
   };
 
-  // Map activity type to a placeholder activity ID (you may need to adjust based on your DB)
+  // Map activity type name to actual activity ID from the loaded activities
   const getActivityId = (type: string): string => {
-    // These IDs should match your GeoActivity collection
-    // For now, using placeholder - replace with actual IDs from your database
-    const activityIds: Record<string, string> = {
-      Running: '000000000000000000000001',
-      Walking: '000000000000000000000002',
-      Cycling: '000000000000000000000003',
-    };
-    return activityIds[type] || activityIds.Running;
+    // Use activities from context (already destructured above)
+    const activity = activities.find(a => a.name === type);
+    if (activity?._id) {
+      return activity._id;
+    }
+    // Fallback to first activity if available
+    if (activities.length > 0 && activities[0]._id) {
+      return activities[0]._id;
+    }
+    // Last resort fallback
+    console.warn('[Activity] No activity ID found for:', type);
+    return '000000000000000000000001';
   };
 
   // Helper function to calculate distance between two coordinates (Haversine formula)

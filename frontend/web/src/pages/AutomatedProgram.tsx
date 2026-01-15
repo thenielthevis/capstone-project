@@ -164,11 +164,10 @@ export default function AutomatedProgram() {
                 <button
                   key={cat}
                   onClick={() => toggleSelection('selectedCategories', cat)}
-                  className={`px-4 py-2 rounded-lg transition ${
-                    preferences.selectedCategories.includes(cat)
+                  className={`px-4 py-2 rounded-lg transition ${preferences.selectedCategories.includes(cat)
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                    }`}
                 >
                   {cat}
                 </button>
@@ -183,11 +182,10 @@ export default function AutomatedProgram() {
                 <button
                   key={type}
                   onClick={() => toggleSelection('selectedTypes', type)}
-                  className={`px-4 py-2 rounded-lg transition ${
-                    preferences.selectedTypes.includes(type)
+                  className={`px-4 py-2 rounded-lg transition ${preferences.selectedTypes.includes(type)
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                    }`}
                 >
                   {type}
                 </button>
@@ -202,11 +200,10 @@ export default function AutomatedProgram() {
                 <button
                   key={eq}
                   onClick={() => toggleSelection('selectedEquipment', eq)}
-                  className={`px-4 py-2 rounded-lg transition ${
-                    preferences.selectedEquipment.includes(eq)
+                  className={`px-4 py-2 rounded-lg transition ${preferences.selectedEquipment.includes(eq)
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                    }`}
                 >
                   {eq}
                 </button>
@@ -282,7 +279,7 @@ export default function AutomatedProgram() {
                   className="mr-2"
                 />
                 <label htmlFor="mapBased" className="text-sm font-medium text-gray-700">
-                  Include map-based activities (running, cycling, etc.)
+                  Include outdoor activities (running, cycling, etc.)
                 </label>
               </div>
             </div>
@@ -300,7 +297,7 @@ export default function AutomatedProgram() {
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">{generatedProgram.name}</h2>
               <p className="text-gray-600 mb-4">{generatedProgram.description}</p>
-              
+
               <div className="mb-4">
                 <h3 className="font-semibold text-lg mb-2">Workouts ({generatedProgram.workouts.length})</h3>
                 <ul className="list-disc list-inside text-gray-700">
