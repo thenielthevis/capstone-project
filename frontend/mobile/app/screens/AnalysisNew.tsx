@@ -9,6 +9,8 @@ import {
   Dimensions,
   Animated,
   Linking,
+  Modal,
+  TextInput,
 } from "react-native";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../context/ThemeContext";
@@ -19,6 +21,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { fetchChecklistForMetric } from "../../utils/geminiService";
 import { getPredictionUpdateFlag, setPredictionUpdateFlag } from "../screens/analysis_input/prediction_input";
 import { formatDiseaseName } from "@/utils/formatDisease";
+import { LineChart } from "react-native-gifted-charts";
+import * as SecureStore from "expo-secure-store";
 
 // API Configuration - use environment variable or fallback to localhost
 const getApiUrl = (): string => {
@@ -655,6 +659,32 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
   const [currentPage, setCurrentPage] = useState(0);
   const [checklist, setChecklist] = useState<{ item: string; completed: boolean }[]>([]);
   const [checklistLoading, setChecklistLoading] = useState(false);
+  const [bmiHistory, setBmiHistory] = useState<Array<{ date: string; bmi: number }>>([]);
+  const [selectedBmiIndex, setSelectedBmiIndex] = useState<number | null>(null);
+  const [activityHistory, setActivityHistory] = useState<Array<{ date: string; pal: number; met: number }>>([]);
+  const [selectedActivityIndex, setSelectedActivityIndex] = useState<number | null>(null);
+  const [sleepHistory, setSleepHistory] = useState<Array<{ date: string; hours: number }>>([]);
+  const [selectedSleepIndex, setSelectedSleepIndex] = useState<number | null>(null);
+  const [waterHistory, setWaterHistory] = useState<Array<{ date: string; liters: number }>>([]);
+  const [selectedWaterIndex, setSelectedWaterIndex] = useState<number | null>(null);
+  const [stressHistory, setStressHistory] = useState<Array<{ date: string; score: number }>>([]);
+  const [selectedStressIndex, setSelectedStressIndex] = useState<number | null>(null);
+  const [dietaryHistory, setDietaryHistory] = useState<Array<{ date: string; mealFrequency: number }>>([]);
+  const [selectedDietaryIndex, setSelectedDietaryIndex] = useState<number | null>(null);
+  const [healthStatusHistory, setHealthStatusHistory] = useState<Array<{ date: string; score: number }>>([]);
+  const [selectedHealthStatusIndex, setSelectedHealthStatusIndex] = useState<number | null>(null);
+  const [environmentalHistory, setEnvironmentalHistory] = useState<Array<{ date: string; score: number }>>([]);
+  const [selectedEnvironmentalIndex, setSelectedEnvironmentalIndex] = useState<number | null>(null);
+  const [addictionHistory, setAddictionHistory] = useState<Array<{ date: string; score: number }>>([]);
+  const [selectedAddictionIndex, setSelectedAddictionIndex] = useState<number | null>(null);
+  const [diseaseRiskHistory, setDiseaseRiskHistory] = useState<Array<{ date: string; highRiskCount: number }>>([]);
+  const [selectedDiseaseRiskIndex, setSelectedDiseaseRiskIndex] = useState<number | null>(null);
+  const [showBmiModal, setShowBmiModal] = useState(false);
+  const [newBmiValue, setNewBmiValue] = useState<string>('');
+  const [selectedHeight, setSelectedHeight] = useState(170);
+  const [selectedWeight, setSelectedWeight] = useState(70);
+  const heightScrollRef = useRef<ScrollView>(null);
+  const weightScrollRef = useRef<ScrollView>(null);
   const screenWidth = Dimensions.get("window").width;
   const scrollViewRef = useRef<ScrollView>(null);
   const scrollX = new Animated.Value(0);
@@ -709,6 +739,26 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
     if (initialMetric) {
       fetchChecklistFromGemini();
     }
+    // Generate BMI history data
+    generateBMIHistory();
+    // Generate Activity history data
+    generateActivityHistory();
+    // Generate Sleep history data
+    generateSleepHistory();
+    // Generate Water history data
+    generateWaterHistory();
+    // Generate Stress history data
+    generateStressHistory();
+    // Generate Dietary history data
+    generateDietaryHistory();
+    // Generate Health Status history data
+    generateHealthStatusHistory();
+    // Generate Environmental history data
+    generateEnvironmentalHistory();
+    // Generate Addiction history data
+    generateAddictionHistory();
+    // Generate Disease Risk history data
+    generateDiseaseRiskHistory();
   }, [user, initialMetric]);
 
   useFocusEffect(
@@ -998,6 +1048,268 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
     });
   };
 
+  const generateBMIHistory = () => {
+    // Generate simulated BMI history for the past 12 months
+    const history = [];
+    const currentBMI = userData?.physicalMetrics?.bmi || 25;
+    const today = new Date();
+    
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(today);
+      date.setMonth(date.getMonth() - i);
+      
+      // Create variation in BMI with slight trend
+      const variation = (Math.random() - 0.5) * 2; // -1 to 1
+      const trend = (11 - i) * 0.05; // Slight upward/downward trend
+      const bmi = Math.max(18, Math.min(35, currentBMI + variation + trend));
+      
+      history.push({
+        date: `${date.getMonth() + 1}/${date.getDate()}`,
+        bmi: parseFloat(bmi.toFixed(1)),
+      });
+    }
+    
+    setBmiHistory(history);
+  };
+
+  const generateActivityHistory = () => {
+    // Generate simulated activity history for the past 12 months
+    const history = [];
+    const today = new Date();
+    
+    // Define PAL values based on activity level
+    const palValues: { [key: string]: number } = {
+      sedentary: 1.25,
+      lightly_active: 1.55,
+      moderately_active: 1.75,
+      very_active: 1.85,
+      extremely_active: 1.95,
+    };
+    
+    const currentPal = palValues[userData?.lifestyle?.activityLevel || 'sedentary'] || 1.5;
+    
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(today);
+      date.setMonth(date.getMonth() - i);
+      
+      // Create variation in PAL with slight trend
+      const variation = (Math.random() - 0.5) * 0.3; // -0.15 to 0.15
+      const trend = (11 - i) * 0.02;
+      const pal = Math.max(1.2, Math.min(2.4, currentPal + variation + trend));
+      
+      // MET is roughly 1.2 + (PAL - 1) * 30 for average person
+      const met = 1.2 + (pal - 1) * 30;
+      
+      history.push({
+        date: `${date.getMonth() + 1}/${date.getDate()}`,
+        pal: parseFloat(pal.toFixed(2)),
+        met: parseFloat(met.toFixed(1)),
+      });
+    }
+    
+    setActivityHistory(history);
+  };
+
+  const generateSleepHistory = () => {
+    const history = [];
+    const today = new Date();
+    const baseHours = userData?.lifestyle?.sleepHours || 7;
+
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(today);
+      date.setMonth(date.getMonth() - i);
+
+      const variation = (Math.random() - 0.5) * 2.5;
+      const trend = (11 - i) * 0.15;
+      const hours = Math.max(4, Math.min(10, baseHours + variation + trend));
+
+      history.push({
+        date: `${date.getMonth() + 1}/${date.getDate()}`,
+        hours: parseFloat(hours.toFixed(1)),
+      });
+    }
+
+    setSleepHistory(history);
+  };
+
+  const generateWaterHistory = () => {
+    const history = [];
+    const today = new Date();
+    const baseLiters = userData?.dietaryProfile?.dailyWaterIntake || 2.0;
+
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(today);
+      date.setMonth(date.getMonth() - i);
+
+      const variation = (Math.random() - 0.5) * 1.5;
+      const trend = (11 - i) * 0.08;
+      const liters = Math.max(0.5, Math.min(4, baseLiters + variation + trend));
+
+      history.push({
+        date: `${date.getMonth() + 1}/${date.getDate()}`,
+        liters: parseFloat(liters.toFixed(2)),
+      });
+    }
+
+    setWaterHistory(history);
+  };
+
+  const generateStressHistory = () => {
+    const history = [];
+    const today = new Date();
+    // Map stress level to a score (low=10, moderate=20, high=30)
+    const stressLevelMap: { [key: string]: number } = {
+      low: 10,
+      moderate: 20,
+      high: 30,
+    };
+    const userStressScore = stressLevelMap[userData?.riskFactors?.stressLevel?.toLowerCase() || 'low'] || 15;
+
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(today);
+      date.setMonth(date.getMonth() - i);
+
+      const variation = (Math.random() - 0.5) * 8;
+      const trend = (11 - i) * 0.5;
+      const score = Math.max(0, Math.min(40, userStressScore + variation + trend));
+
+      history.push({
+        date: `${date.getMonth() + 1}/${date.getDate()}`,
+        score: parseFloat(score.toFixed(1)),
+      });
+    }
+
+    setStressHistory(history);
+  };
+
+  const generateDietaryHistory = () => {
+    const history = [];
+    const today = new Date();
+    const baseMealFrequency = userData?.dietaryProfile?.mealFrequency || 3;
+
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(today);
+      date.setMonth(date.getMonth() - i);
+
+      const variation = (Math.random() - 0.5) * 1.5;
+      const trend = (11 - i) * 0.1;
+      const mealFrequency = Math.max(1, Math.min(6, baseMealFrequency + variation + trend));
+
+      history.push({
+        date: `${date.getMonth() + 1}/${date.getDate()}`,
+        mealFrequency: parseFloat(mealFrequency.toFixed(1)),
+      });
+    }
+
+    setDietaryHistory(history);
+  };
+
+  const generateHealthStatusHistory = () => {
+    const history = [];
+    const today = new Date();
+    const currentConditions = userData?.healthProfile?.currentConditions || [];
+    const baseScore = Math.max(0, 100 - currentConditions.length * 15);
+
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(today);
+      date.setMonth(date.getMonth() - i);
+
+      const variation = (Math.random() - 0.5) * 10;
+      const trend = (11 - i) * 0.5;
+      const score = Math.max(0, Math.min(100, baseScore + variation + trend));
+
+      history.push({
+        date: `${date.getMonth() + 1}/${date.getDate()}`,
+        score: parseFloat(score.toFixed(1)),
+      });
+    }
+
+    setHealthStatusHistory(history);
+  };
+
+  const generateEnvironmentalHistory = () => {
+    const history = [];
+    const today = new Date();
+    const pollutionExposure = userData?.environmentalFactors?.pollutionExposure || 'low';
+    const pollutionMap: { [key: string]: number } = {
+      low: 20,
+      moderate: 50,
+      high: 80,
+    };
+    const baseScore = pollutionMap[pollutionExposure.toLowerCase()] || 40;
+
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(today);
+      date.setMonth(date.getMonth() - i);
+
+      const variation = (Math.random() - 0.5) * 15;
+      const trend = (11 - i) * 0.3;
+      const score = Math.max(0, Math.min(100, baseScore + variation + trend));
+
+      history.push({
+        date: `${date.getMonth() + 1}/${date.getDate()}`,
+        score: parseFloat(score.toFixed(1)),
+      });
+    }
+
+    setEnvironmentalHistory(history);
+  };
+
+  const generateAddictionHistory = () => {
+    const history = [];
+    const today = new Date();
+    const addictions = userData?.riskFactors?.addictions || [];
+    const addictionRisk = addictions.length > 0 ? 'moderate' : 'none';
+    const riskMap: { [key: string]: number } = {
+      none: 5,
+      low: 20,
+      moderate: 50,
+      high: 80,
+    };
+    const baseScore = riskMap[addictionRisk.toLowerCase()] || 15;
+
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(today);
+      date.setMonth(date.getMonth() - i);
+
+      const variation = (Math.random() - 0.5) * 8;
+      const trend = (11 - i) * 0.2;
+      const score = Math.max(0, Math.min(100, baseScore + variation + trend));
+
+      history.push({
+        date: `${date.getMonth() + 1}/${date.getDate()}`,
+        score: parseFloat(score.toFixed(1)),
+      });
+    }
+
+    setAddictionHistory(history);
+  };
+
+  const generateDiseaseRiskHistory = () => {
+    const history = [];
+    const today = new Date();
+    const familyHistory = userData?.healthProfile?.familyHistory || [];
+    const baseHighRiskCount = familyHistory.filter((h: any) => {
+      const risk = h.risk?.toLowerCase() || '';
+      return risk.includes('risk') || risk.includes('disease');
+    }).length;
+
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(today);
+      date.setMonth(date.getMonth() - i);
+
+      const variation = Math.random() > 0.7 ? (Math.random() > 0.5 ? 1 : -1) : 0;
+      const highRiskCount = Math.max(0, Math.min(10, baseHighRiskCount + variation));
+
+      history.push({
+        date: `${date.getMonth() + 1}/${date.getDate()}`,
+        highRiskCount: Math.round(highRiskCount),
+      });
+    }
+
+    setDiseaseRiskHistory(history);
+  };
+
   const getBMIInfo = (bmi: number | null | undefined) => {
     if (!bmi)
       return {
@@ -1045,6 +1357,104 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
       normalized as keyof typeof ACTIVITY_LEVELS
       ] || ACTIVITY_LEVELS.sedentary
     );
+  };
+
+  const handleBmiUpdate = async () => {
+    // Calculate BMI from height (cm) and weight (kg)
+    // BMI = weight (kg) / (height (m)^2)
+    const heightInMeters = selectedHeight / 100;
+    const bmiValue = selectedWeight / (heightInMeters * heightInMeters);
+    
+    if (isNaN(bmiValue) || bmiValue < 10 || bmiValue > 60) {
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Invalid Values",
+        text2: "Please check height and weight values",
+      });
+      return;
+    }
+
+    // Add today's entry to BMI history
+    const today = new Date();
+    const dateStr = `${today.getMonth() + 1}/${today.getDate()}`;
+    
+    setBmiHistory((prevHistory) => {
+      // Check if today's date already exists
+      const existingIndex = prevHistory.findIndex(h => h.date === dateStr);
+      let newHistory;
+      
+      if (existingIndex >= 0) {
+        // Update existing today's entry
+        newHistory = [...prevHistory];
+        newHistory[existingIndex].bmi = parseFloat(bmiValue.toFixed(1));
+      } else {
+        // Add new entry for today
+        newHistory = [...prevHistory, { date: dateStr, bmi: parseFloat(bmiValue.toFixed(1)) }];
+      }
+      
+      // Keep only last 12 entries
+      if (newHistory.length > 12) {
+        newHistory = newHistory.slice(-12);
+      }
+      
+      return newHistory;
+    });
+
+    // Update selected index to today's entry
+    setSelectedBmiIndex(bmiHistory.length - 1);
+
+    // Update user data
+    if (userData) {
+      setUserData({
+        ...userData,
+        physicalMetrics: {
+          ...userData.physicalMetrics,
+          bmi: parseFloat(bmiValue.toFixed(1)),
+          height: { value: selectedHeight },
+          weight: { value: selectedWeight },
+        },
+      });
+    }
+
+    // Try to save to backend
+    try {
+      const token = await (async () => {
+        try {
+          return await SecureStore.getItemAsync("userToken");
+        } catch (e) {
+          return null;
+        }
+      })();
+
+      if (token) {
+        await fetch(`${API_URL}/profile/update`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            physicalMetrics: {
+              bmi: parseFloat(bmiValue.toFixed(1)),
+              height: { value: selectedHeight },
+              weight: { value: selectedWeight },
+            },
+          }),
+        });
+      }
+    } catch (err) {
+      console.error("Error updating BMI on backend:", err);
+    }
+
+    setShowBmiModal(false);
+    
+    Toast.show({
+      type: "success",
+      position: "top",
+      text1: "BMI Updated",
+      text2: `Height: ${selectedHeight}cm | Weight: ${selectedWeight}kg | BMI: ${bmiValue.toFixed(1)}`,
+    });
   };
 
   const renderBMIPage = () => {
@@ -1439,6 +1849,549 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             </View>
           </View>
 
+          {/* BMI Progress Chart with Interactive Date Selection */}
+          {bmiHistory.length > 0 && (
+            <View
+              style={{
+                backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FAFAFA',
+                borderRadius: 16,
+                padding: 16,
+                marginBottom: 24,
+                borderWidth: 1,
+                borderColor: theme.colors.text + '22',
+                zIndex: 1,
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                <MaterialCommunityIcons
+                  name="chart-line"
+                  size={20}
+                  color={theme.colors.primary}
+                  style={{ marginRight: 8 }}
+                />
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: '700',
+                    color: theme.colors.text,
+                    ...getHeadingFont(),
+                  }}
+                >
+                  BMI Progress (Last 12 Months)
+                </Text>
+              </View>
+
+              {/* Selected Date Display */}
+              {selectedBmiIndex !== null && (
+                <View
+                  style={{
+                    backgroundColor: theme.colors.primary + '15',
+                    borderRadius: 12,
+                    padding: 12,
+                    marginBottom: 12,
+                    borderLeftWidth: 4,
+                    borderLeftColor: theme.colors.primary,
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: theme.colors.text + '88',
+                        marginBottom: 4,
+                        ...getBodyFont(),
+                      }}
+                    >
+                      Last Update
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        color: theme.colors.primary,
+                        ...getBodyBoldFont(),
+                      }}
+                    >
+                      {bmiHistory[selectedBmiIndex].date}
+                    </Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: theme.colors.text + '88',
+                        marginBottom: 4,
+                        ...getBodyFont(),
+                      }}
+                    >
+                      BMI Value
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 18,
+                        color: theme.colors.primary,
+                        ...getHeadingFont(),
+                      }}
+                    >
+                      {bmiHistory[selectedBmiIndex].bmi}
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Interactive Chart - Scrollable */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={true}
+                scrollEventThrottle={16}
+                style={{
+                  marginBottom: 12,
+                  borderRadius: 12,
+                  overflow: 'hidden',
+                  backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#fff',
+                }}
+              >
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    /* Chart is tappable - tap to see dates in records below */
+                  }}
+                >
+                  <LineChart
+                    data={bmiHistory.map((item, idx) => ({
+                      value: item.bmi,
+                      label: item.date,
+                      onPress: () => setSelectedBmiIndex(idx),
+                    }))}
+                    height={220}
+                    width={Math.max(screenWidth - 64, bmiHistory.length * 40)}
+                    yAxisThickness={2}
+                    yAxisColor={theme.colors.primary}
+                    xAxisThickness={2}
+                    xAxisColor={theme.colors.primary}
+                    xAxisLabelTextStyle={{
+                      color: theme.colors.text + '77',
+                      fontSize: 10,
+                    }}
+                    yAxisTextStyle={{
+                      color: theme.colors.primary,
+                      fontSize: 11,
+                      fontWeight: '700',
+                    }}
+                    yAxisLabelSuffix=" kg"
+                    disableScroll={false}
+                    scrollToIndex={selectedBmiIndex ?? undefined}
+                    animateOnDataChange
+                    animationDuration={800}
+                    color1={theme.colors.primary}
+                    color2={theme.colors.primary + '44'}
+                    startFillColor={theme.colors.primary}
+                    startFillColor2={theme.colors.primary + '11'}
+                    noOfSections={5}
+                    showVerticalLines
+                    verticalLinesColor={theme.colors.text + '11'}
+                    backgroundColor={theme.mode === 'dark' ? theme.colors.surface : '#fff'}
+                    rulesColor={theme.colors.text + '11'}
+                    showDataPointOnFocus
+                    showStripOnFocus
+                    stripColor={theme.colors.primary}
+                    stripWidth={2}
+                    focusedDataPointIndex={selectedBmiIndex ?? 0}
+                    onFocus={(index: number) => setSelectedBmiIndex(index)}
+                  />
+                </TouchableOpacity>
+              </ScrollView>
+
+              {/* Swipeable Date Records */}
+              <View
+                style={{
+                  backgroundColor: theme.mode === 'dark' ? theme.colors.text + '11' : theme.colors.primary + '08',
+                  borderRadius: 12,
+                  padding: 12,
+                  marginBottom: 12,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 11,
+                    color: theme.colors.text + '88',
+                    marginBottom: 10,
+                    ...getBodyBoldFont(),
+                  }}
+                >
+                  📅 Tap any date to view
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={true}
+                  scrollEventThrottle={16}
+                  style={{ minHeight: 60 }}
+                >
+                  <View style={{ flexDirection: 'row', gap: 8, paddingRight: 16 }}>
+                    {bmiHistory.map((item, idx) => (
+                      <TouchableOpacity
+                        key={idx}
+                        onPress={() => setSelectedBmiIndex(idx)}
+                        style={{
+                          paddingHorizontal: 12,
+                          paddingVertical: 8,
+                          borderRadius: 20,
+                          backgroundColor: selectedBmiIndex === idx ? theme.colors.surface : theme.colors.background,
+                          borderWidth: 2,
+                          borderColor: selectedBmiIndex === idx ? theme.colors.primary : theme.colors.text + '22',
+                          minWidth: 80,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          elevation: selectedBmiIndex === idx ? 3 : 0,
+                          shadowColor: selectedBmiIndex === idx ? theme.colors.primary : 'transparent',
+                          shadowOffset: { width: 0, height: 1 },
+                          shadowOpacity: 0.2,
+                          shadowRadius: 2,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 10,
+                            color: selectedBmiIndex === idx ? theme.colors.primary : theme.colors.text + '88',
+                            ...getBodyBoldFont(),
+                            marginBottom: 4,
+                          }}
+                        >
+                          {item.date}
+                        </Text>
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            color: selectedBmiIndex === idx ? theme.colors.primary : theme.colors.text,
+                            ...getHeadingFont(),
+                          }}
+                        >
+                          {item.bmi}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+
+              {/* Scrollable Ruler for Quick BMI Update */}
+              <View
+                style={{
+                  backgroundColor: theme.mode === 'dark' ? theme.colors.background : theme.colors.primary + '08',
+                  borderRadius: 12,
+                  padding: 14,
+                  marginBottom: 16,
+                  borderLeftWidth: 4,
+                  borderLeftColor: theme.colors.primary,
+                }}
+              >
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <Text style={{ fontSize: 13, color: theme.colors.text + '88', ...getBodyBoldFont() }}>
+                    📏 📊 Quick Update
+                  </Text>
+                  <Text style={{ fontSize: 16, color: theme.colors.primary, ...getHeadingFont() }}>
+                    {(selectedWeight / ((selectedHeight / 100) ** 2)).toFixed(1)}
+                  </Text>
+                </View>
+
+                {/* Height Picker - Ruler Style */}
+                <View style={{ marginBottom: 16 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <Text style={{ fontSize: 12, color: theme.colors.text + '88' }}>
+                      Height:{' '}
+                      <Text style={{ fontSize: 14, fontWeight: '700', color: theme.colors.primary, letterSpacing: 1 }}>
+                        {selectedHeight}
+                      </Text>
+                      {' '}cm
+                    </Text>
+                    <View style={{ flexDirection: 'row', gap: 6 }}>
+                      <TouchableOpacity onPress={() => setSelectedHeight(Math.max(130, selectedHeight - 1))} style={{ paddingHorizontal: 8, paddingVertical: 4, backgroundColor: theme.colors.primary + '20', borderRadius: 6 }}>
+                        <Text style={{ fontSize: 14, color: theme.colors.primary }}>−</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => setSelectedHeight(Math.min(220, selectedHeight + 1))} style={{ paddingHorizontal: 8, paddingVertical: 4, backgroundColor: theme.colors.primary + '20', borderRadius: 6 }}>
+                        <Text style={{ fontSize: 14, color: theme.colors.primary }}>+</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                  <View
+                    style={{
+                      backgroundColor: theme.mode === 'dark' ? theme.colors.background : '#f5f5f5',
+                      borderRadius: 12,
+                      height: 80,
+                      overflow: 'hidden',
+                      position: 'relative',
+                    }}
+                  >
+                    {/* Red Indicator Line in Center */}
+                    <View
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: '50%',
+                        width: 3,
+                        height: '100%',
+                        backgroundColor: '#FF4444',
+                        zIndex: 10,
+                        marginLeft: -1.5,
+                      }}
+                    />
+
+                    {/* Ruler ScrollView */}
+                    <ScrollView
+                      ref={heightScrollRef}
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      scrollEventThrottle={8}
+                      snapToInterval={20}
+                      decelerationRate="fast"
+                      onMomentumScrollEnd={(event) => {
+                        const contentOffsetX = event.nativeEvent.contentOffset.x;
+                        const centerX = screenWidth / 2 - 40;
+                        const index = Math.round((contentOffsetX + centerX) / 20);
+                        const h = Math.max(130, Math.min(220, 130 + index));
+                        setSelectedHeight(h);
+                      }}
+                      style={{ flex: 1 }}
+                      contentContainerStyle={{
+                        paddingHorizontal: screenWidth / 2 - 40,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {Array.from({ length: 91 }).map((_, idx) => {
+                        const h = 130 + idx;
+                        const isMajor = idx % 10 === 0;
+                        return (
+                          <View
+                            key={`h-${h}`}
+                            style={{
+                              width: 20,
+                              alignItems: 'center',
+                              justifyContent: 'flex-start',
+                            }}
+                          >
+                            <View
+                              style={{
+                                width: 1.5,
+                                height: isMajor ? 40 : 20,
+                                backgroundColor: isMajor ? theme.colors.primary : theme.colors.text + '55',
+                                marginBottom: 2,
+                              }}
+                            />
+                            {isMajor && (
+                              <Text
+                                style={{
+                                  fontSize: 9,
+                                  color: theme.colors.text + '77',
+                                  marginTop: 2,
+                                }}
+                              >
+                                {h}
+                              </Text>
+                            )}
+                          </View>
+                        );
+                      })}
+                    </ScrollView>
+                  </View>
+                </View>
+
+                {/* Weight Picker - Ruler Style */}
+                <View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <Text style={{ fontSize: 12, color: theme.colors.text + '88' }}>
+                      Weight:{' '}
+                      <Text style={{ fontSize: 14, fontWeight: '700', color: theme.colors.primary, letterSpacing: 1 }}>
+                        {selectedWeight}
+                      </Text>
+                      {' '}kg
+                    </Text>
+                    <View style={{ flexDirection: 'row', gap: 6 }}>
+                      <TouchableOpacity onPress={() => setSelectedWeight(Math.max(40, selectedWeight - 1))} style={{ paddingHorizontal: 8, paddingVertical: 4, backgroundColor: theme.colors.primary + '20', borderRadius: 6 }}>
+                        <Text style={{ fontSize: 14, color: theme.colors.primary }}>−</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => setSelectedWeight(Math.min(150, selectedWeight + 1))} style={{ paddingHorizontal: 8, paddingVertical: 4, backgroundColor: theme.colors.primary + '20', borderRadius: 6 }}>
+                        <Text style={{ fontSize: 14, color: theme.colors.primary }}>+</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                  <View
+                    style={{
+                      backgroundColor: theme.mode === 'dark' ? theme.colors.background : '#f5f5f5',
+                      borderRadius: 12,
+                      height: 80,
+                      overflow: 'hidden',
+                      position: 'relative',
+                    }}
+                  >
+                    {/* Red Indicator Line in Center */}
+                    <View
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: '50%',
+                        width: 3,
+                        height: '100%',
+                        backgroundColor: '#FF4444',
+                        zIndex: 10,
+                        marginLeft: -1.5,
+                      }}
+                    />
+
+                    {/* Ruler ScrollView */}
+                    <ScrollView
+                      ref={weightScrollRef}
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      scrollEventThrottle={8}
+                      snapToInterval={20}
+                      decelerationRate="fast"
+                      onMomentumScrollEnd={(event) => {
+                        const contentOffsetX = event.nativeEvent.contentOffset.x;
+                        const centerX = screenWidth / 2 - 40;
+                        const index = Math.round((contentOffsetX + centerX) / 20);
+                        const w = Math.max(40, Math.min(150, 40 + index));
+                        setSelectedWeight(w);
+                      }}
+                      style={{ flex: 1 }}
+                      contentContainerStyle={{
+                        paddingHorizontal: screenWidth / 2 - 40,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {Array.from({ length: 111 }).map((_, idx) => {
+                        const w = 40 + idx;
+                        const isMajor = idx % 10 === 0;
+                        return (
+                          <View
+                            key={`w-${w}`}
+                            style={{
+                              width: 20,
+                              alignItems: 'center',
+                              justifyContent: 'flex-start',
+                            }}
+                          >
+                            <View
+                              style={{
+                                width: 1.5,
+                                height: isMajor ? 40 : 20,
+                                backgroundColor: isMajor ? theme.colors.primary : theme.colors.text + '55',
+                                marginBottom: 2,
+                              }}
+                            />
+                            {isMajor && (
+                              <Text
+                                style={{
+                                  fontSize: 9,
+                                  color: theme.colors.text + '77',
+                                  marginTop: 2,
+                                }}
+                              >
+                                {w}
+                              </Text>
+                            )}
+                          </View>
+                        );
+                      })}
+                    </ScrollView>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  onPress={handleBmiUpdate}
+                  style={{
+                    marginTop: 12,
+                    paddingVertical: 10,
+                    backgroundColor: theme.colors.primary,
+                    borderRadius: 8,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ color: '#fff', fontSize: 12, ...getBodyBoldFont() }}>💾 Save Update</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Statistics */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  marginTop: 12,
+                  paddingTop: 12,
+                  borderTopWidth: 1,
+                  borderTopColor: theme.colors.text + '22',
+                }}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: theme.colors.text + '88',
+                      marginBottom: 4,
+                      ...getBodyBoldFont(),
+                    }}
+                  >
+                    Min BMI
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: theme.colors.primary,
+                      ...getHeadingFont(),
+                    }}
+                  >
+                    {Math.min(...bmiHistory.map((h) => h.bmi)).toFixed(1)}
+                  </Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: theme.colors.text + '88',
+                      marginBottom: 4,
+                      ...getBodyBoldFont(),
+                    }}
+                  >
+                    Max BMI
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: '#FF9800',
+                      ...getHeadingFont(),
+                    }}
+                  >
+                    {Math.max(...bmiHistory.map((h) => h.bmi)).toFixed(1)}
+                  </Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: theme.colors.text + '88',
+                      marginBottom: 4,
+                      ...getBodyBoldFont(),
+                    }}
+                  >
+                    Avg BMI
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: '#4CAF50',
+                      ...getHeadingFont(),
+                    }}
+                  >
+                    {(bmiHistory.reduce((sum, h) => sum + h.bmi, 0) / bmiHistory.length).toFixed(1)}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+
           {/* Checklist Section - BEFORE References */}
           {renderChecklist()}
 
@@ -1498,6 +2451,201 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             </View>
           </View>
         </ScrollView>
+
+        {/* BMI Update Modal */}
+        <Modal
+          visible={showBmiModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowBmiModal(false)}
+        >
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: 'rgba(0, 0, 0, 0.6)',
+              justifyContent: 'center',
+              alignItems: 'center',
+              paddingHorizontal: 16,
+            }}
+          >
+            <View
+              style={{
+                backgroundColor: theme.colors.surface,
+                borderRadius: 16,
+                padding: 20,
+                width: '100%',
+                maxWidth: 360,
+              }}
+            >
+              <Text style={{ fontSize: 18, fontWeight: '700', color: theme.colors.text, marginBottom: 20, ...getHeadingFont() }}>
+                Measure Your Body
+              </Text>
+
+              {/* Height Picker */}
+              <View style={{ marginBottom: 24 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <Text style={{ fontSize: 13, color: theme.colors.text + '88', ...getBodyBoldFont() }}>
+                    📏 Height
+                  </Text>
+                  <Text style={{ fontSize: 20, color: theme.colors.primary, ...getHeadingFont() }}>
+                    {selectedHeight} cm
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                  <TouchableOpacity
+                    onPress={() => setSelectedHeight(Math.max(130, selectedHeight - 1))}
+                    style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: theme.colors.primary, borderRadius: 8 }}
+                  >
+                    <Text style={{ fontSize: 18, color: '#fff' }}>−</Text>
+                  </TouchableOpacity>
+                  <ScrollView
+                    ref={heightScrollRef}
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    scrollEventThrottle={16}
+                    style={{ flex: 1, height: 70 }}
+                    contentContainerStyle={{
+                      paddingHorizontal: (screenWidth - 120) / 2,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {Array.from({ length: 91 }).map((_, idx) => {
+                      const height = 130 + idx;
+                      const isMajor = idx % 10 === 0;
+                      const isSelected = height === selectedHeight;
+                      return (
+                        <TouchableOpacity
+                          key={`h-${height}`}
+                          onPress={() => setSelectedHeight(height)}
+                          style={{
+                            width: 2,
+                            height: isSelected ? 40 : isMajor ? 30 : 15,
+                            backgroundColor: isSelected ? '#FFD700' : isMajor ? theme.colors.primary : theme.colors.text + '44',
+                            marginHorizontal: 19,
+                            borderRadius: 1,
+                          }}
+                        />
+                      );
+                    })}
+                  </ScrollView>
+                  <TouchableOpacity
+                    onPress={() => setSelectedHeight(Math.min(220, selectedHeight + 1))}
+                    style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: theme.colors.primary, borderRadius: 8 }}
+                  >
+                    <Text style={{ fontSize: 18, color: '#fff' }}>+</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Weight Picker */}
+              <View style={{ marginBottom: 24 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <Text style={{ fontSize: 13, color: theme.colors.text + '88', ...getBodyBoldFont() }}>
+                    ⚖️ Weight
+                  </Text>
+                  <Text style={{ fontSize: 20, color: theme.colors.primary, ...getHeadingFont() }}>
+                    {selectedWeight} kg
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                  <TouchableOpacity
+                    onPress={() => setSelectedWeight(Math.max(40, selectedWeight - 1))}
+                    style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: theme.colors.primary, borderRadius: 8 }}
+                  >
+                    <Text style={{ fontSize: 18, color: '#fff' }}>−</Text>
+                  </TouchableOpacity>
+                  <ScrollView
+                    ref={weightScrollRef}
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    scrollEventThrottle={16}
+                    style={{ flex: 1, height: 70 }}
+                    contentContainerStyle={{
+                      paddingHorizontal: (screenWidth - 120) / 2,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {Array.from({ length: 111 }).map((_, idx) => {
+                      const weight = 40 + idx;
+                      const isMajor = idx % 10 === 0;
+                      const isSelected = weight === selectedWeight;
+                      return (
+                        <TouchableOpacity
+                          key={`w-${weight}`}
+                          onPress={() => setSelectedWeight(weight)}
+                          style={{
+                            width: 2,
+                            height: isSelected ? 40 : isMajor ? 30 : 15,
+                            backgroundColor: isSelected ? '#FFD700' : isMajor ? theme.colors.primary : theme.colors.text + '44',
+                            marginHorizontal: 19,
+                            borderRadius: 1,
+                          }}
+                        />
+                      );
+                    })}
+                  </ScrollView>
+                  <TouchableOpacity
+                    onPress={() => setSelectedWeight(Math.min(150, selectedWeight + 1))}
+                    style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: theme.colors.primary, borderRadius: 8 }}
+                  >
+                    <Text style={{ fontSize: 18, color: '#fff' }}>+</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Calculated BMI Display */}
+              <View
+                style={{
+                  backgroundColor: theme.colors.primary + '15',
+                  borderRadius: 12,
+                  padding: 14,
+                  marginBottom: 20,
+                  borderLeftWidth: 4,
+                  borderLeftColor: theme.colors.primary,
+                }}
+              >
+                <Text style={{ fontSize: 11, color: theme.colors.text + '77', marginBottom: 6, ...getBodyFont() }}>
+                  Calculated BMI
+                </Text>
+                <Text style={{ fontSize: 28, color: theme.colors.primary, ...getHeadingFont() }}>
+                  {(selectedWeight / ((selectedHeight / 100) ** 2)).toFixed(1)}
+                </Text>
+              </View>
+
+              {/* Action Buttons */}
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <TouchableOpacity
+                  onPress={() => setShowBmiModal(false)}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: theme.colors.primary,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ color: theme.colors.primary, ...getBodyBoldFont() }}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={handleBmiUpdate}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    borderRadius: 8,
+                    backgroundColor: theme.colors.primary,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ color: '#fff', ...getBodyBoldFont() }}>💾 Save</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
     );
   };
@@ -1988,6 +3136,331 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
 
           {/* Exercises Table (WHO-based for athletes) */}
           {renderActivityTable("Exercises (WHO Guidelines)", EXERCISES_DATA, "dumbbell")}
+
+          {/* Activity Progress Chart with History */}
+          {activityHistory.length > 0 && (
+            <View
+              style={{
+                backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FAFAFA',
+                borderRadius: 16,
+                padding: 16,
+                marginBottom: 24,
+                borderWidth: 1,
+                borderColor: theme.colors.text + '22',
+                zIndex: 1,
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                <MaterialCommunityIcons
+                  name="chart-line"
+                  size={20}
+                  color={theme.colors.primary}
+                  style={{ marginRight: 8 }}
+                />
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: '700',
+                    color: theme.colors.text,
+                    ...getHeadingFont(),
+                  }}
+                >
+                  Activity Level History (Last 12 Months)
+                </Text>
+              </View>
+
+              {/* Selected Date Display */}
+              {selectedActivityIndex !== null && (
+                <View
+                  style={{
+                    backgroundColor: theme.colors.primary + '15',
+                    borderRadius: 12,
+                    padding: 12,
+                    marginBottom: 12,
+                    borderLeftWidth: 4,
+                    borderLeftColor: theme.colors.primary,
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: theme.colors.text + '88',
+                        marginBottom: 4,
+                        ...getBodyFont(),
+                      }}
+                    >
+                      Date
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        color: theme.colors.primary,
+                        ...getBodyBoldFont(),
+                      }}
+                    >
+                      {activityHistory[selectedActivityIndex].date}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1, alignItems: 'center' }}>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: theme.colors.text + '88',
+                        marginBottom: 4,
+                        ...getBodyFont(),
+                      }}
+                    >
+                      PAL
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        color: theme.colors.primary,
+                        ...getHeadingFont(),
+                      }}
+                    >
+                      {activityHistory[selectedActivityIndex].pal}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: theme.colors.text + '88',
+                        marginBottom: 4,
+                        ...getBodyFont(),
+                      }}
+                    >
+                      MET
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        color: theme.colors.primary,
+                        ...getHeadingFont(),
+                      }}
+                    >
+                      {activityHistory[selectedActivityIndex].met}
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Interactive Chart - PAL Trend */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={true}
+                scrollEventThrottle={16}
+                style={{
+                  marginBottom: 12,
+                  borderRadius: 12,
+                  overflow: 'hidden',
+                  backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#fff',
+                }}
+              >
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    /* Chart is tappable */
+                  }}
+                >
+                  <LineChart
+                    data={activityHistory.map((item, idx) => ({
+                      value: item.pal,
+                      label: item.date,
+                    }))}
+                    height={220}
+                    width={Math.max(screenWidth - 64, activityHistory.length * 40)}
+                    yAxisThickness={2}
+                    yAxisColor={theme.colors.primary}
+                    xAxisThickness={2}
+                    xAxisColor={theme.colors.primary}
+                    xAxisLabelTextStyle={{
+                      color: theme.colors.text + '77',
+                      fontSize: 10,
+                    }}
+                    yAxisTextStyle={{
+                      color: theme.colors.primary,
+                      fontSize: 11,
+                      fontWeight: '700',
+                    }}
+                    yAxisLabelSuffix=" PAL"
+                    disableScroll={false}
+                    scrollToIndex={selectedActivityIndex ?? undefined}
+                    animateOnDataChange
+                    animationDuration={800}
+                    color1={theme.colors.primary}
+                    color2={theme.colors.primary + '44'}
+                    startFillColor={theme.colors.primary}
+                    startFillColor2={theme.colors.primary + '11'}
+                    noOfSections={5}
+                    showVerticalLines
+                    verticalLinesColor={theme.colors.text + '11'}
+                    backgroundColor={theme.mode === 'dark' ? theme.colors.surface : '#fff'}
+                    rulesColor={theme.colors.text + '11'}
+                    showDataPointOnFocus
+                    showStripOnFocus
+                    stripColor={theme.colors.primary}
+                    stripWidth={2}
+                    focusedDataPointIndex={selectedActivityIndex ?? 0}
+                    onFocus={(index: number) => setSelectedActivityIndex(index)}
+                  />
+                </TouchableOpacity>
+              </ScrollView>
+
+              {/* Swipeable Date Records */}
+              <View
+                style={{
+                  backgroundColor: theme.mode === 'dark' ? theme.colors.text + '11' : theme.colors.primary + '08',
+                  borderRadius: 12,
+                  padding: 12,
+                  marginBottom: 12,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 11,
+                    color: theme.colors.text + '88',
+                    marginBottom: 10,
+                    ...getBodyBoldFont(),
+                  }}
+                >
+                  📅 Tap any date to view
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={true}
+                  scrollEventThrottle={16}
+                  style={{ minHeight: 70 }}
+                >
+                  <View style={{ flexDirection: 'row', gap: 8, paddingRight: 16 }}>
+                    {activityHistory.map((item, idx) => (
+                      <TouchableOpacity
+                        key={idx}
+                        onPress={() => setSelectedActivityIndex(idx)}
+                        style={{
+                          paddingHorizontal: 12,
+                          paddingVertical: 8,
+                          borderRadius: 20,
+                          backgroundColor: selectedActivityIndex === idx ? theme.colors.surface : theme.colors.background,
+                          borderWidth: 2,
+                          borderColor: selectedActivityIndex === idx ? theme.colors.primary : theme.colors.text + '22',
+                          minWidth: 90,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          elevation: selectedActivityIndex === idx ? 3 : 0,
+                          shadowColor: selectedActivityIndex === idx ? theme.colors.primary : 'transparent',
+                          shadowOffset: { width: 0, height: 1 },
+                          shadowOpacity: 0.2,
+                          shadowRadius: 2,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 10,
+                            color: selectedActivityIndex === idx ? theme.colors.primary : theme.colors.text + '88',
+                            ...getBodyBoldFont(),
+                            marginBottom: 4,
+                          }}
+                        >
+                          {item.date}
+                        </Text>
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            color: selectedActivityIndex === idx ? theme.colors.primary : theme.colors.text,
+                            ...getHeadingFont(),
+                          }}
+                        >
+                          {item.pal} PAL
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+
+              {/* Statistics */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  marginTop: 12,
+                  paddingTop: 12,
+                  borderTopWidth: 1,
+                  borderTopColor: theme.colors.text + '22',
+                }}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: theme.colors.text + '88',
+                      marginBottom: 4,
+                      ...getBodyBoldFont(),
+                    }}
+                  >
+                    Min PAL
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: theme.colors.primary,
+                      ...getHeadingFont(),
+                    }}
+                  >
+                    {Math.min(...activityHistory.map((h) => h.pal)).toFixed(2)}
+                  </Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: theme.colors.text + '88',
+                      marginBottom: 4,
+                      ...getBodyBoldFont(),
+                    }}
+                  >
+                    Max PAL
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: '#FF9800',
+                      ...getHeadingFont(),
+                    }}
+                  >
+                    {Math.max(...activityHistory.map((h) => h.pal)).toFixed(2)}
+                  </Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: theme.colors.text + '88',
+                      marginBottom: 4,
+                      ...getBodyBoldFont(),
+                    }}
+                  >
+                    Avg PAL
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: '#4CAF50',
+                      ...getHeadingFont(),
+                    }}
+                  >
+                    {(activityHistory.reduce((sum, h) => sum + h.pal, 0) / activityHistory.length).toFixed(2)}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
 
           {/* Engagement Message */}
           <View
@@ -2495,6 +3968,310 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             </View>
           </View>
 
+          {/* Sleep History Chart with History */}
+          {sleepHistory.length > 0 && (
+            <View
+              style={{
+                backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FAFAFA',
+                borderRadius: 16,
+                padding: 16,
+                marginBottom: 20,
+                borderWidth: 1,
+                borderColor: theme.colors.text + '22',
+                zIndex: 1,
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                <MaterialCommunityIcons
+                  name="chart-line"
+                  size={20}
+                  color={sleepStatus.color}
+                  style={{ marginRight: 8 }}
+                />
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: '700',
+                    color: theme.colors.text,
+                    ...getHeadingFont(),
+                  }}
+                >
+                  Sleep Quality History (Last 12 Months)
+                </Text>
+              </View>
+
+              {/* Selected Date Display */}
+              {selectedSleepIndex !== null && (
+                <View
+                  style={{
+                    backgroundColor: sleepStatus.color + '15',
+                    borderRadius: 12,
+                    padding: 12,
+                    marginBottom: 12,
+                    borderLeftWidth: 4,
+                    borderLeftColor: sleepStatus.color,
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: theme.colors.text + '88',
+                        marginBottom: 4,
+                        ...getBodyFont(),
+                      }}
+                    >
+                      Date
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        color: sleepStatus.color,
+                        ...getBodyBoldFont(),
+                      }}
+                    >
+                      {sleepHistory[selectedSleepIndex].date}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: theme.colors.text + '88',
+                        marginBottom: 4,
+                        ...getBodyFont(),
+                      }}
+                    >
+                      Sleep Hours
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        color: sleepStatus.color,
+                        ...getHeadingFont(),
+                      }}
+                    >
+                      {sleepHistory[selectedSleepIndex].hours} hrs
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Interactive Chart */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={true}
+                scrollEventThrottle={16}
+                style={{
+                  marginBottom: 12,
+                  borderRadius: 12,
+                  overflow: 'hidden',
+                  backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#fff',
+                }}
+              >
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    /* Chart is tappable */
+                  }}
+                >
+                  <LineChart
+                    data={sleepHistory.map((item, idx) => ({
+                      value: item.hours,
+                      label: item.date,
+                    }))}
+                    height={220}
+                    width={Math.max(screenWidth - 64, sleepHistory.length * 40)}
+                    yAxisThickness={2}
+                    yAxisColor={sleepStatus.color}
+                    xAxisThickness={2}
+                    xAxisColor={sleepStatus.color}
+                    xAxisLabelTextStyle={{
+                      color: theme.colors.text + '77',
+                      fontSize: 10,
+                    }}
+                    yAxisTextStyle={{
+                      color: sleepStatus.color,
+                      fontSize: 11,
+                      fontWeight: '700',
+                    }}
+                    yAxisLabelSuffix=" hrs"
+                    disableScroll={false}
+                    scrollToIndex={selectedSleepIndex ?? undefined}
+                    animateOnDataChange
+                    animationDuration={800}
+                    color1={sleepStatus.color}
+                    color2={sleepStatus.color + '44'}
+                    startFillColor={sleepStatus.color}
+                    startFillColor2={sleepStatus.color + '11'}
+                    noOfSections={5}
+                    showVerticalLines
+                    verticalLinesColor={theme.colors.text + '11'}
+                    backgroundColor={theme.mode === 'dark' ? theme.colors.surface : '#fff'}
+                    rulesColor={theme.colors.text + '11'}
+                    showDataPointOnFocus
+                    showStripOnFocus
+                    stripColor={sleepStatus.color}
+                    stripWidth={2}
+                    focusedDataPointIndex={selectedSleepIndex ?? 0}
+                    onFocus={(index: number) => setSelectedSleepIndex(index)}
+                  />
+                </TouchableOpacity>
+              </ScrollView>
+
+              {/* Swipeable Date Records */}
+              <View
+                style={{
+                  backgroundColor: theme.mode === 'dark' ? theme.colors.text + '11' : theme.colors.primary + '08',
+                  borderRadius: 12,
+                  padding: 12,
+                  marginBottom: 12,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 11,
+                    color: theme.colors.text + '88',
+                    marginBottom: 10,
+                    ...getBodyBoldFont(),
+                  }}
+                >
+                  📅 Tap any date to view
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={true}
+                  scrollEventThrottle={16}
+                  style={{ minHeight: 70 }}
+                >
+                  <View style={{ flexDirection: 'row', gap: 8, paddingRight: 16 }}>
+                    {sleepHistory.map((item, idx) => (
+                      <TouchableOpacity
+                        key={idx}
+                        onPress={() => setSelectedSleepIndex(idx)}
+                        style={{
+                          paddingHorizontal: 12,
+                          paddingVertical: 8,
+                          borderRadius: 20,
+                          backgroundColor: selectedSleepIndex === idx ? theme.colors.surface : theme.colors.background,
+                          borderWidth: 2,
+                          borderColor: selectedSleepIndex === idx ? sleepStatus.color : theme.colors.text + '22',
+                          minWidth: 90,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          elevation: selectedSleepIndex === idx ? 3 : 0,
+                          shadowColor: selectedSleepIndex === idx ? sleepStatus.color : 'transparent',
+                          shadowOffset: { width: 0, height: 1 },
+                          shadowOpacity: 0.2,
+                          shadowRadius: 2,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 10,
+                            color: selectedSleepIndex === idx ? sleepStatus.color : theme.colors.text + '88',
+                            ...getBodyBoldFont(),
+                            marginBottom: 4,
+                          }}
+                        >
+                          {item.date}
+                        </Text>
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            color: selectedSleepIndex === idx ? sleepStatus.color : theme.colors.text,
+                            ...getHeadingFont(),
+                          }}
+                        >
+                          {item.hours} hrs
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+
+              {/* Statistics */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  marginTop: 12,
+                  paddingTop: 12,
+                  borderTopWidth: 1,
+                  borderTopColor: theme.colors.text + '22',
+                }}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: theme.colors.text + '88',
+                      marginBottom: 4,
+                      ...getBodyBoldFont(),
+                    }}
+                  >
+                    Min Sleep
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: sleepStatus.color,
+                      ...getHeadingFont(),
+                    }}
+                  >
+                    {Math.min(...sleepHistory.map((h) => h.hours)).toFixed(1)} hrs
+                  </Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: theme.colors.text + '88',
+                      marginBottom: 4,
+                      ...getBodyBoldFont(),
+                    }}
+                  >
+                    Max Sleep
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: '#FF9800',
+                      ...getHeadingFont(),
+                    }}
+                  >
+                    {Math.max(...sleepHistory.map((h) => h.hours)).toFixed(1)} hrs
+                  </Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: theme.colors.text + '88',
+                      marginBottom: 4,
+                      ...getBodyBoldFont(),
+                    }}
+                  >
+                    Avg Sleep
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: '#4CAF50',
+                      ...getHeadingFont(),
+                    }}
+                  >
+                    {(sleepHistory.reduce((sum, h) => sum + h.hours, 0) / sleepHistory.length).toFixed(1)} hrs
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+
           {/* Sleep Guidelines Table */}
           {renderSleepGuidelinesTable()}
 
@@ -2910,6 +4687,309 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             </View>
           </View>
 
+          {/* Water Intake History Chart with History */}
+          {waterHistory.length > 0 && (
+            <View
+              style={{
+                backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FAFAFA',
+                borderRadius: 16,
+                padding: 16,
+                marginBottom: 20,
+                borderWidth: 1,
+                borderColor: theme.colors.text + '22',
+                zIndex: 1,
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                <MaterialCommunityIcons
+                  name="chart-line"
+                  size={20}
+                  color="#00ACC1"
+                  style={{ marginRight: 8 }}
+                />
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: '700',
+                    color: theme.colors.text,
+                    ...getHeadingFont(),
+                  }}
+                >
+                  Water Intake History (Last 12 Months)
+                </Text>
+              </View>
+
+              {/* Selected Date Display */}
+              {selectedWaterIndex !== null && (
+                <View
+                  style={{
+                    backgroundColor: '#00ACC1' + '15',
+                    borderRadius: 12,
+                    padding: 12,
+                    marginBottom: 12,
+                    borderLeftWidth: 4,
+                    borderLeftColor: '#00ACC1',
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: theme.colors.text + '88',
+                        marginBottom: 4,
+                        ...getBodyFont(),
+                      }}
+                    >
+                      Date
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        color: '#00ACC1',
+                        ...getBodyBoldFont(),
+                      }}
+                    >
+                      {waterHistory[selectedWaterIndex].date}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: theme.colors.text + '88',
+                        marginBottom: 4,
+                        ...getBodyFont(),
+                      }}
+                    >
+                      Water Intake
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        color: '#00ACC1',
+                        ...getHeadingFont(),
+                      }}
+                    >
+                      {waterHistory[selectedWaterIndex].liters} L
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Interactive Chart */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={true}
+                scrollEventThrottle={16}
+                style={{
+                  marginBottom: 12,
+                  borderRadius: 12,
+                  overflow: 'hidden',
+                  backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#fff',
+                }}
+              >
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    /* Chart is tappable */
+                  }}
+                >
+                  <LineChart
+                    data={waterHistory.map((item, idx) => ({
+                      value: item.liters,
+                      label: item.date,
+                    }))}
+                    height={220}
+                    width={Math.max(screenWidth - 64, waterHistory.length * 40)}
+                    yAxisThickness={2}
+                    yAxisColor="#00ACC1"
+                    xAxisThickness={2}
+                    xAxisColor="#00ACC1"
+                    xAxisLabelTextStyle={{
+                      color: theme.colors.text + '77',
+                      fontSize: 10,
+                    }}
+                    yAxisTextStyle={{
+                      color: '#00ACC1',
+                      fontSize: 11,
+                      fontWeight: '700',
+                    }}
+                    yAxisLabelSuffix=" L"
+                    disableScroll={false}
+                    scrollToIndex={selectedWaterIndex ?? undefined}
+                    animateOnDataChange
+                    animationDuration={800}
+                    color1="#00ACC1"
+                    color2={'#00ACC144'}
+                    startFillColor="#00ACC1"
+                    startFillColor2={'#00ACC111'}
+                    noOfSections={5}
+                    showVerticalLines
+                    verticalLinesColor={theme.colors.text + '11'}
+                    backgroundColor={theme.mode === 'dark' ? theme.colors.surface : '#fff'}
+                    rulesColor={theme.colors.text + '11'}
+                    showDataPointOnFocus
+                    showStripOnFocus
+                    stripColor="#00ACC1"
+                    stripWidth={2}
+                    focusedDataPointIndex={selectedWaterIndex ?? 0}
+                  />
+                </TouchableOpacity>
+              </ScrollView>
+
+              {/* Swipeable Date Records */}
+              <View
+                style={{
+                  backgroundColor: theme.mode === 'dark' ? theme.colors.text + '11' : theme.colors.primary + '08',
+                  borderRadius: 12,
+                  padding: 12,
+                  marginBottom: 12,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 11,
+                    color: theme.colors.text + '88',
+                    marginBottom: 10,
+                    ...getBodyBoldFont(),
+                  }}
+                >
+                  📅 Tap any date to view
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={true}
+                  scrollEventThrottle={16}
+                  style={{ minHeight: 70 }}
+                >
+                  <View style={{ flexDirection: 'row', gap: 8, paddingRight: 16 }}>
+                    {waterHistory.map((item, idx) => (
+                      <TouchableOpacity
+                        key={idx}
+                        onPress={() => setSelectedWaterIndex(idx)}
+                        style={{
+                          paddingHorizontal: 12,
+                          paddingVertical: 8,
+                          borderRadius: 20,
+                          backgroundColor: selectedWaterIndex === idx ? theme.colors.surface : theme.colors.background,
+                          borderWidth: 2,
+                          borderColor: selectedWaterIndex === idx ? '#00ACC1' : theme.colors.text + '22',
+                          minWidth: 90,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          elevation: selectedWaterIndex === idx ? 3 : 0,
+                          shadowColor: selectedWaterIndex === idx ? '#00ACC1' : 'transparent',
+                          shadowOffset: { width: 0, height: 1 },
+                          shadowOpacity: 0.2,
+                          shadowRadius: 2,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 10,
+                            color: selectedWaterIndex === idx ? '#00ACC1' : theme.colors.text + '88',
+                            ...getBodyBoldFont(),
+                            marginBottom: 4,
+                          }}
+                        >
+                          {item.date}
+                        </Text>
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            color: selectedWaterIndex === idx ? '#00ACC1' : theme.colors.text,
+                            ...getHeadingFont(),
+                          }}
+                        >
+                          {item.liters} L
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+
+              {/* Statistics */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  marginTop: 12,
+                  paddingTop: 12,
+                  borderTopWidth: 1,
+                  borderTopColor: theme.colors.text + '22',
+                }}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: theme.colors.text + '88',
+                      marginBottom: 4,
+                      ...getBodyBoldFont(),
+                    }}
+                  >
+                    Min Intake
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: '#00ACC1',
+                      ...getHeadingFont(),
+                    }}
+                  >
+                    {Math.min(...waterHistory.map((h) => h.liters)).toFixed(2)} L
+                  </Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: theme.colors.text + '88',
+                      marginBottom: 4,
+                      ...getBodyBoldFont(),
+                    }}
+                  >
+                    Max Intake
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: '#FF9800',
+                      ...getHeadingFont(),
+                    }}
+                  >
+                    {Math.max(...waterHistory.map((h) => h.liters)).toFixed(2)} L
+                  </Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: theme.colors.text + '88',
+                      marginBottom: 4,
+                      ...getBodyBoldFont(),
+                    }}
+                  >
+                    Avg Intake
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: '#4CAF50',
+                      ...getHeadingFont(),
+                    }}
+                  >
+                    {(waterHistory.reduce((sum, h) => sum + h.liters, 0) / waterHistory.length).toFixed(2)} L
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+
           {/* Hydration Guidelines */}
           <View style={{ marginBottom: 20, zIndex: 1 }}>
             <Text style={{ fontSize: 13, color: theme.colors.text, marginBottom: 10, ...getSubHeadingFont() }}>
@@ -3115,6 +5195,98 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             </View>
           )}
 
+          {/* Addiction Risk History Chart */}
+          {addictionHistory.length > 0 && (
+            <View
+              style={{
+                backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FAFAFA',
+                borderRadius: 16,
+                padding: 16,
+                marginBottom: 20,
+                borderWidth: 1,
+                borderColor: theme.colors.text + '22',
+                zIndex: 1,
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                <MaterialCommunityIcons name="chart-line" size={20} color="#F44336" style={{ marginRight: 8 }} />
+                <Text style={{ fontSize: 16, fontWeight: '700', color: theme.colors.text, ...getHeadingFont() }}>
+                  Addiction Risk Score (Last 12 Months)
+                </Text>
+              </View>
+
+              {selectedAddictionIndex !== null && (
+                <View style={{ backgroundColor: '#F44336' + '15', borderRadius: 12, padding: 12, marginBottom: 12, borderLeftWidth: 4, borderLeftColor: '#F44336', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 12, color: theme.colors.text + '88', marginBottom: 4, ...getBodyFont() }}>Date</Text>
+                    <Text style={{ fontSize: 14, color: '#F44336', ...getBodyBoldFont() }}>
+                      {addictionHistory[selectedAddictionIndex].date}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                    <Text style={{ fontSize: 12, color: theme.colors.text + '88', marginBottom: 4, ...getBodyFont() }}>Risk Score</Text>
+                    <Text style={{ fontSize: 14, color: '#F44336', ...getHeadingFont() }}>
+                      {addictionHistory[selectedAddictionIndex].score.toFixed(1)}/100
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              <ScrollView horizontal showsHorizontalScrollIndicator={true} scrollEventThrottle={16} style={{ marginBottom: 12, borderRadius: 12, overflow: 'hidden', backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#fff' }}>
+                <LineChart
+                  data={addictionHistory.map((item) => ({ value: item.score, label: item.date }))}
+                  height={220}
+                  width={Math.max(screenWidth - 64, addictionHistory.length * 40)}
+                  yAxisThickness={2}
+                  yAxisColor="#F44336"
+                  xAxisThickness={2}
+                  xAxisColor="#F44336"
+                  xAxisLabelTextStyle={{ color: theme.colors.text + '77', fontSize: 10 }}
+                  yAxisTextStyle={{ color: '#F44336', fontSize: 11, fontWeight: '700' }}
+                  yAxisLabelSuffix="/100"
+                  disableScroll={false}
+                  scrollToIndex={selectedAddictionIndex ?? undefined}
+                  animateOnDataChange
+                  animationDuration={800}
+                  color1="#F44336"
+                  color2={'#F4433644'}
+                  startFillColor="#F44336"
+                  startFillColor2={'#F4433611'}
+                  noOfSections={5}
+                  showVerticalLines
+                  verticalLinesColor={theme.colors.text + '11'}
+                  backgroundColor={theme.mode === 'dark' ? theme.colors.surface : '#fff'}
+                  rulesColor={theme.colors.text + '11'}
+                  showDataPointOnFocus
+                  showStripOnFocus
+                  stripColor="#F44336"
+                  stripWidth={2}
+                  focusedDataPointIndex={selectedAddictionIndex ?? 0}
+                />
+              </ScrollView>
+
+              <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.text + '11' : theme.colors.primary + '08', borderRadius: 12, padding: 12 }}>
+                <Text style={{ fontSize: 11, color: theme.colors.text + '88', marginBottom: 10, ...getBodyBoldFont() }}>
+                  📅 Tap any date to view
+                </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={true} scrollEventThrottle={16} style={{ minHeight: 70 }}>
+                  <View style={{ flexDirection: 'row', gap: 8, paddingRight: 16 }}>
+                    {addictionHistory.map((item, idx) => (
+                      <TouchableOpacity key={idx} onPress={() => setSelectedAddictionIndex(idx)} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: selectedAddictionIndex === idx ? theme.colors.surface : theme.colors.background, borderWidth: 2, borderColor: selectedAddictionIndex === idx ? '#F44336' : theme.colors.text + '22', minWidth: 90, alignItems: 'center', justifyContent: 'center', elevation: selectedAddictionIndex === idx ? 3 : 0, shadowColor: selectedAddictionIndex === idx ? '#F44336' : 'transparent', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 2 }}>
+                        <Text style={{ fontSize: 10, color: selectedAddictionIndex === idx ? '#F44336' : theme.colors.text + '88', ...getBodyBoldFont(), marginBottom: 4 }}>
+                          {item.date}
+                        </Text>
+                        <Text style={{ fontSize: 11, color: selectedAddictionIndex === idx ? '#F44336' : theme.colors.text, ...getHeadingFont() }}>
+                          {item.score.toFixed(0)}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+            </View>
+          )}
+
           {/* Addiction Severity Criteria */}
           <View style={{ marginBottom: 20, zIndex: 1 }}>
             <Text style={{ fontSize: 13, color: theme.colors.text, marginBottom: 10, ...getSubHeadingFont() }}>
@@ -3219,6 +5391,309 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               </Text>
             </View>
           </View>
+
+          {/* Stress History Chart with History */}
+          {stressHistory.length > 0 && (
+            <View
+              style={{
+                backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FAFAFA',
+                borderRadius: 16,
+                padding: 16,
+                marginBottom: 24,
+                borderWidth: 1,
+                borderColor: theme.colors.text + '22',
+                zIndex: 1,
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                <MaterialCommunityIcons
+                  name="chart-line"
+                  size={20}
+                  color={stressInfo.color}
+                  style={{ marginRight: 8 }}
+                />
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: '700',
+                    color: theme.colors.text,
+                    ...getHeadingFont(),
+                  }}
+                >
+                  Stress History (Last 12 Months)
+                </Text>
+              </View>
+
+              {/* Selected Date Display */}
+              {selectedStressIndex !== null && (
+                <View
+                  style={{
+                    backgroundColor: stressInfo.color + '15',
+                    borderRadius: 12,
+                    padding: 12,
+                    marginBottom: 12,
+                    borderLeftWidth: 4,
+                    borderLeftColor: stressInfo.color,
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: theme.colors.text + '88',
+                        marginBottom: 4,
+                        ...getBodyFont(),
+                      }}
+                    >
+                      Date
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        color: stressInfo.color,
+                        ...getBodyBoldFont(),
+                      }}
+                    >
+                      {stressHistory[selectedStressIndex].date}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: theme.colors.text + '88',
+                        marginBottom: 4,
+                        ...getBodyFont(),
+                      }}
+                    >
+                      PSS Score
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        color: stressInfo.color,
+                        ...getHeadingFont(),
+                      }}
+                    >
+                      {stressHistory[selectedStressIndex].score}/40
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Interactive Chart */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={true}
+                scrollEventThrottle={16}
+                style={{
+                  marginBottom: 12,
+                  borderRadius: 12,
+                  overflow: 'hidden',
+                  backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#fff',
+                }}
+              >
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    /* Chart is tappable */
+                  }}
+                >
+                  <LineChart
+                    data={stressHistory.map((item, idx) => ({
+                      value: item.score,
+                      label: item.date,
+                    }))}
+                    height={220}
+                    width={Math.max(screenWidth - 64, stressHistory.length * 40)}
+                    yAxisThickness={2}
+                    yAxisColor={stressInfo.color}
+                    xAxisThickness={2}
+                    xAxisColor={stressInfo.color}
+                    xAxisLabelTextStyle={{
+                      color: theme.colors.text + '77',
+                      fontSize: 10,
+                    }}
+                    yAxisTextStyle={{
+                      color: stressInfo.color,
+                      fontSize: 11,
+                      fontWeight: '700',
+                    }}
+                    yAxisLabelSuffix="/40"
+                    disableScroll={false}
+                    scrollToIndex={selectedStressIndex ?? undefined}
+                    animateOnDataChange
+                    animationDuration={800}
+                    color1={stressInfo.color}
+                    color2={stressInfo.color + '44'}
+                    startFillColor={stressInfo.color}
+                    startFillColor2={stressInfo.color + '11'}
+                    noOfSections={5}
+                    showVerticalLines
+                    verticalLinesColor={theme.colors.text + '11'}
+                    backgroundColor={theme.mode === 'dark' ? theme.colors.surface : '#fff'}
+                    rulesColor={theme.colors.text + '11'}
+                    showDataPointOnFocus
+                    showStripOnFocus
+                    stripColor={stressInfo.color}
+                    stripWidth={2}
+                    focusedDataPointIndex={selectedStressIndex ?? 0}
+                  />
+                </TouchableOpacity>
+              </ScrollView>
+
+              {/* Swipeable Date Records */}
+              <View
+                style={{
+                  backgroundColor: theme.mode === 'dark' ? theme.colors.text + '11' : theme.colors.primary + '08',
+                  borderRadius: 12,
+                  padding: 12,
+                  marginBottom: 12,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 11,
+                    color: theme.colors.text + '88',
+                    marginBottom: 10,
+                    ...getBodyBoldFont(),
+                  }}
+                >
+                  📅 Tap any date to view
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={true}
+                  scrollEventThrottle={16}
+                  style={{ minHeight: 70 }}
+                >
+                  <View style={{ flexDirection: 'row', gap: 8, paddingRight: 16 }}>
+                    {stressHistory.map((item, idx) => (
+                      <TouchableOpacity
+                        key={idx}
+                        onPress={() => setSelectedStressIndex(idx)}
+                        style={{
+                          paddingHorizontal: 12,
+                          paddingVertical: 8,
+                          borderRadius: 20,
+                          backgroundColor: selectedStressIndex === idx ? theme.colors.surface : theme.colors.background,
+                          borderWidth: 2,
+                          borderColor: selectedStressIndex === idx ? stressInfo.color : theme.colors.text + '22',
+                          minWidth: 90,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          elevation: selectedStressIndex === idx ? 3 : 0,
+                          shadowColor: selectedStressIndex === idx ? stressInfo.color : 'transparent',
+                          shadowOffset: { width: 0, height: 1 },
+                          shadowOpacity: 0.2,
+                          shadowRadius: 2,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 10,
+                            color: selectedStressIndex === idx ? stressInfo.color : theme.colors.text + '88',
+                            ...getBodyBoldFont(),
+                            marginBottom: 4,
+                          }}
+                        >
+                          {item.date}
+                        </Text>
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            color: selectedStressIndex === idx ? stressInfo.color : theme.colors.text,
+                            ...getHeadingFont(),
+                          }}
+                        >
+                          {item.score}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+
+              {/* Statistics */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  marginTop: 12,
+                  paddingTop: 12,
+                  borderTopWidth: 1,
+                  borderTopColor: theme.colors.text + '22',
+                }}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: theme.colors.text + '88',
+                      marginBottom: 4,
+                      ...getBodyBoldFont(),
+                    }}
+                  >
+                    Min Score
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: stressInfo.color,
+                      ...getHeadingFont(),
+                    }}
+                  >
+                    {Math.min(...stressHistory.map((h) => h.score)).toFixed(1)}
+                  </Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: theme.colors.text + '88',
+                      marginBottom: 4,
+                      ...getBodyBoldFont(),
+                    }}
+                  >
+                    Max Score
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: '#FF9800',
+                      ...getHeadingFont(),
+                    }}
+                  >
+                    {Math.max(...stressHistory.map((h) => h.score)).toFixed(1)}
+                  </Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: theme.colors.text + '88',
+                      marginBottom: 4,
+                      ...getBodyBoldFont(),
+                    }}
+                  >
+                    Avg Score
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: '#4CAF50',
+                      ...getHeadingFont(),
+                    }}
+                  >
+                    {(stressHistory.reduce((sum, h) => sum + h.score, 0) / stressHistory.length).toFixed(1)}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
 
           {/* Stress Assessment Questionnaire */}
           <View style={{ marginBottom: 20, zIndex: 1 }}>
@@ -3359,6 +5834,309 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               </Text>
             </View>
           </View>
+
+          {/* Meal Frequency History Chart with History */}
+          {dietaryHistory.length > 0 && (
+            <View
+              style={{
+                backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FAFAFA',
+                borderRadius: 16,
+                padding: 16,
+                marginBottom: 20,
+                borderWidth: 1,
+                borderColor: theme.colors.text + '22',
+                zIndex: 1,
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                <MaterialCommunityIcons
+                  name="chart-line"
+                  size={20}
+                  color="#4CAF50"
+                  style={{ marginRight: 8 }}
+                />
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: '700',
+                    color: theme.colors.text,
+                    ...getHeadingFont(),
+                  }}
+                >
+                  Meal Frequency History (Last 12 Months)
+                </Text>
+              </View>
+
+              {/* Selected Date Display */}
+              {selectedDietaryIndex !== null && (
+                <View
+                  style={{
+                    backgroundColor: '#4CAF50' + '15',
+                    borderRadius: 12,
+                    padding: 12,
+                    marginBottom: 12,
+                    borderLeftWidth: 4,
+                    borderLeftColor: '#4CAF50',
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: theme.colors.text + '88',
+                        marginBottom: 4,
+                        ...getBodyFont(),
+                      }}
+                    >
+                      Date
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        color: '#4CAF50',
+                        ...getBodyBoldFont(),
+                      }}
+                    >
+                      {dietaryHistory[selectedDietaryIndex].date}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: theme.colors.text + '88',
+                        marginBottom: 4,
+                        ...getBodyFont(),
+                      }}
+                    >
+                      Meals/Day
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        color: '#4CAF50',
+                        ...getHeadingFont(),
+                      }}
+                    >
+                      {dietaryHistory[selectedDietaryIndex].mealFrequency}
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Interactive Chart */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={true}
+                scrollEventThrottle={16}
+                style={{
+                  marginBottom: 12,
+                  borderRadius: 12,
+                  overflow: 'hidden',
+                  backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#fff',
+                }}
+              >
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    /* Chart is tappable */
+                  }}
+                >
+                  <LineChart
+                    data={dietaryHistory.map((item, idx) => ({
+                      value: item.mealFrequency,
+                      label: item.date,
+                    }))}
+                    height={220}
+                    width={Math.max(screenWidth - 64, dietaryHistory.length * 40)}
+                    yAxisThickness={2}
+                    yAxisColor="#4CAF50"
+                    xAxisThickness={2}
+                    xAxisColor="#4CAF50"
+                    xAxisLabelTextStyle={{
+                      color: theme.colors.text + '77',
+                      fontSize: 10,
+                    }}
+                    yAxisTextStyle={{
+                      color: '#4CAF50',
+                      fontSize: 11,
+                      fontWeight: '700',
+                    }}
+                    yAxisLabelSuffix=" meals"
+                    disableScroll={false}
+                    scrollToIndex={selectedDietaryIndex ?? undefined}
+                    animateOnDataChange
+                    animationDuration={800}
+                    color1="#4CAF50"
+                    color2={'#4CAF5044'}
+                    startFillColor="#4CAF50"
+                    startFillColor2={'#4CAF5011'}
+                    noOfSections={5}
+                    showVerticalLines
+                    verticalLinesColor={theme.colors.text + '11'}
+                    backgroundColor={theme.mode === 'dark' ? theme.colors.surface : '#fff'}
+                    rulesColor={theme.colors.text + '11'}
+                    showDataPointOnFocus
+                    showStripOnFocus
+                    stripColor="#4CAF50"
+                    stripWidth={2}
+                    focusedDataPointIndex={selectedDietaryIndex ?? 0}
+                  />
+                </TouchableOpacity>
+              </ScrollView>
+
+              {/* Swipeable Date Records */}
+              <View
+                style={{
+                  backgroundColor: theme.mode === 'dark' ? theme.colors.text + '11' : theme.colors.primary + '08',
+                  borderRadius: 12,
+                  padding: 12,
+                  marginBottom: 12,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 11,
+                    color: theme.colors.text + '88',
+                    marginBottom: 10,
+                    ...getBodyBoldFont(),
+                  }}
+                >
+                  📅 Tap any date to view
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={true}
+                  scrollEventThrottle={16}
+                  style={{ minHeight: 70 }}
+                >
+                  <View style={{ flexDirection: 'row', gap: 8, paddingRight: 16 }}>
+                    {dietaryHistory.map((item, idx) => (
+                      <TouchableOpacity
+                        key={idx}
+                        onPress={() => setSelectedDietaryIndex(idx)}
+                        style={{
+                          paddingHorizontal: 12,
+                          paddingVertical: 8,
+                          borderRadius: 20,
+                          backgroundColor: selectedDietaryIndex === idx ? theme.colors.surface : theme.colors.background,
+                          borderWidth: 2,
+                          borderColor: selectedDietaryIndex === idx ? '#4CAF50' : theme.colors.text + '22',
+                          minWidth: 90,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          elevation: selectedDietaryIndex === idx ? 3 : 0,
+                          shadowColor: selectedDietaryIndex === idx ? '#4CAF50' : 'transparent',
+                          shadowOffset: { width: 0, height: 1 },
+                          shadowOpacity: 0.2,
+                          shadowRadius: 2,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 10,
+                            color: selectedDietaryIndex === idx ? '#4CAF50' : theme.colors.text + '88',
+                            ...getBodyBoldFont(),
+                            marginBottom: 4,
+                          }}
+                        >
+                          {item.date}
+                        </Text>
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            color: selectedDietaryIndex === idx ? '#4CAF50' : theme.colors.text,
+                            ...getHeadingFont(),
+                          }}
+                        >
+                          {item.mealFrequency} meals
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+
+              {/* Statistics */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  marginTop: 12,
+                  paddingTop: 12,
+                  borderTopWidth: 1,
+                  borderTopColor: theme.colors.text + '22',
+                }}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: theme.colors.text + '88',
+                      marginBottom: 4,
+                      ...getBodyBoldFont(),
+                    }}
+                  >
+                    Min Meals
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: '#4CAF50',
+                      ...getHeadingFont(),
+                    }}
+                  >
+                    {Math.min(...dietaryHistory.map((h) => h.mealFrequency)).toFixed(1)}
+                  </Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: theme.colors.text + '88',
+                      marginBottom: 4,
+                      ...getBodyBoldFont(),
+                    }}
+                  >
+                    Max Meals
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: '#FF9800',
+                      ...getHeadingFont(),
+                    }}
+                  >
+                    {Math.max(...dietaryHistory.map((h) => h.mealFrequency)).toFixed(1)}
+                  </Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: theme.colors.text + '88',
+                      marginBottom: 4,
+                      ...getBodyBoldFont(),
+                    }}
+                  >
+                    Avg Meals
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: '#4CAF50',
+                      ...getHeadingFont(),
+                    }}
+                  >
+                    {(dietaryHistory.reduce((sum, h) => sum + h.mealFrequency, 0) / dietaryHistory.length).toFixed(1)}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
 
           {/* Dietary Preferences */}
           {preferences.length > 0 && (
@@ -3519,6 +6297,126 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                     </Text>
                   </>
                 )}
+              </View>
+            </View>
+          )}
+
+          {/* Health Status History Chart */}
+          {healthStatusHistory.length > 0 && (
+            <View
+              style={{
+                backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FAFAFA',
+                borderRadius: 16,
+                padding: 16,
+                marginBottom: 20,
+                borderWidth: 1,
+                borderColor: theme.colors.text + '22',
+                zIndex: 1,
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                <MaterialCommunityIcons
+                  name="chart-line"
+                  size={20}
+                  color="#C2185B"
+                  style={{ marginRight: 8 }}
+                />
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: '700',
+                    color: theme.colors.text,
+                    ...getHeadingFont(),
+                  }}
+                >
+                  Overall Health Score (Last 12 Months)
+                </Text>
+              </View>
+
+              {selectedHealthStatusIndex !== null && (
+                <View
+                  style={{
+                    backgroundColor: '#C2185B' + '15',
+                    borderRadius: 12,
+                    padding: 12,
+                    marginBottom: 12,
+                    borderLeftWidth: 4,
+                    borderLeftColor: '#C2185B',
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 12, color: theme.colors.text + '88', marginBottom: 4, ...getBodyFont() }}>
+                      Date
+                    </Text>
+                    <Text style={{ fontSize: 14, color: '#C2185B', ...getBodyBoldFont() }}>
+                      {healthStatusHistory[selectedHealthStatusIndex].date}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                    <Text style={{ fontSize: 12, color: theme.colors.text + '88', marginBottom: 4, ...getBodyFont() }}>
+                      Score
+                    </Text>
+                    <Text style={{ fontSize: 14, color: '#C2185B', ...getHeadingFont() }}>
+                      {healthStatusHistory[selectedHealthStatusIndex].score.toFixed(1)}/100
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              <ScrollView horizontal showsHorizontalScrollIndicator={true} scrollEventThrottle={16} style={{ marginBottom: 12, borderRadius: 12, overflow: 'hidden', backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#fff' }}>
+                <LineChart
+                  data={healthStatusHistory.map((item) => ({ value: item.score, label: item.date }))}
+                  height={220}
+                  width={Math.max(screenWidth - 64, healthStatusHistory.length * 40)}
+                  yAxisThickness={2}
+                  yAxisColor="#C2185B"
+                  xAxisThickness={2}
+                  xAxisColor="#C2185B"
+                  xAxisLabelTextStyle={{ color: theme.colors.text + '77', fontSize: 10 }}
+                  yAxisTextStyle={{ color: '#C2185B', fontSize: 11, fontWeight: '700' }}
+                  yAxisLabelSuffix="/100"
+                  disableScroll={false}
+                  scrollToIndex={selectedHealthStatusIndex ?? undefined}
+                  animateOnDataChange
+                  animationDuration={800}
+                  color1="#C2185B"
+                  color2={'#C2185B44'}
+                  startFillColor="#C2185B"
+                  startFillColor2={'#C2185B11'}
+                  noOfSections={5}
+                  showVerticalLines
+                  verticalLinesColor={theme.colors.text + '11'}
+                  backgroundColor={theme.mode === 'dark' ? theme.colors.surface : '#fff'}
+                  rulesColor={theme.colors.text + '11'}
+                  showDataPointOnFocus
+                  showStripOnFocus
+                  stripColor="#C2185B"
+                  stripWidth={2}
+                  focusedDataPointIndex={selectedHealthStatusIndex ?? 0}
+                />
+              </ScrollView>
+
+              <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.text + '11' : theme.colors.primary + '08', borderRadius: 12, padding: 12 }}>
+                <Text style={{ fontSize: 11, color: theme.colors.text + '88', marginBottom: 10, ...getBodyBoldFont() }}>
+                  📅 Tap any date to view
+                </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={true} scrollEventThrottle={16} style={{ minHeight: 70 }}>
+                  <View style={{ flexDirection: 'row', gap: 8, paddingRight: 16 }}>
+                    {healthStatusHistory.map((item, idx) => (
+                      <TouchableOpacity key={idx} onPress={() => setSelectedHealthStatusIndex(idx)} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: selectedHealthStatusIndex === idx ? theme.colors.surface : theme.colors.background, borderWidth: 2, borderColor: selectedHealthStatusIndex === idx ? '#C2185B' : theme.colors.text + '22', minWidth: 90, alignItems: 'center', justifyContent: 'center', elevation: selectedHealthStatusIndex === idx ? 3 : 0, shadowColor: selectedHealthStatusIndex === idx ? '#C2185B' : 'transparent', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 2 }}>
+                        <Text style={{ fontSize: 10, color: selectedHealthStatusIndex === idx ? '#C2185B' : theme.colors.text + '88', ...getBodyBoldFont(), marginBottom: 4 }}>
+                          {item.date}
+                        </Text>
+                        <Text style={{ fontSize: 11, color: selectedHealthStatusIndex === idx ? '#C2185B' : theme.colors.text, ...getHeadingFont() }}>
+                          {item.score.toFixed(0)}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
               </View>
             </View>
           )}
@@ -3711,6 +6609,98 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             </View>
           </View>
 
+          {/* Environmental Exposure History Chart */}
+          {environmentalHistory.length > 0 && (
+            <View
+              style={{
+                backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FAFAFA',
+                borderRadius: 16,
+                padding: 16,
+                marginBottom: 20,
+                borderWidth: 1,
+                borderColor: theme.colors.text + '22',
+                zIndex: 1,
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                <MaterialCommunityIcons name="chart-line" size={20} color={pollutionInfo.color} style={{ marginRight: 8 }} />
+                <Text style={{ fontSize: 16, fontWeight: '700', color: theme.colors.text, ...getHeadingFont() }}>
+                  Pollution Exposure Trend (Last 12 Months)
+                </Text>
+              </View>
+
+              {selectedEnvironmentalIndex !== null && (
+                <View style={{ backgroundColor: pollutionInfo.color + '15', borderRadius: 12, padding: 12, marginBottom: 12, borderLeftWidth: 4, borderLeftColor: pollutionInfo.color, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 12, color: theme.colors.text + '88', marginBottom: 4, ...getBodyFont() }}>Date</Text>
+                    <Text style={{ fontSize: 14, color: pollutionInfo.color, ...getBodyBoldFont() }}>
+                      {environmentalHistory[selectedEnvironmentalIndex].date}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                    <Text style={{ fontSize: 12, color: theme.colors.text + '88', marginBottom: 4, ...getBodyFont() }}>AQI Score</Text>
+                    <Text style={{ fontSize: 14, color: pollutionInfo.color, ...getHeadingFont() }}>
+                      {environmentalHistory[selectedEnvironmentalIndex].score.toFixed(1)}
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              <ScrollView horizontal showsHorizontalScrollIndicator={true} scrollEventThrottle={16} style={{ marginBottom: 12, borderRadius: 12, overflow: 'hidden', backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#fff' }}>
+                <LineChart
+                  data={environmentalHistory.map((item) => ({ value: item.score, label: item.date }))}
+                  height={220}
+                  width={Math.max(screenWidth - 64, environmentalHistory.length * 40)}
+                  yAxisThickness={2}
+                  yAxisColor={pollutionInfo.color}
+                  xAxisThickness={2}
+                  xAxisColor={pollutionInfo.color}
+                  xAxisLabelTextStyle={{ color: theme.colors.text + '77', fontSize: 10 }}
+                  yAxisTextStyle={{ color: pollutionInfo.color, fontSize: 11, fontWeight: '700' }}
+                  yAxisLabelSuffix=" AQI"
+                  disableScroll={false}
+                  scrollToIndex={selectedEnvironmentalIndex ?? undefined}
+                  animateOnDataChange
+                  animationDuration={800}
+                  color1={pollutionInfo.color}
+                  color2={pollutionInfo.color + '44'}
+                  startFillColor={pollutionInfo.color}
+                  startFillColor2={pollutionInfo.color + '11'}
+                  noOfSections={5}
+                  showVerticalLines
+                  verticalLinesColor={theme.colors.text + '11'}
+                  backgroundColor={theme.mode === 'dark' ? theme.colors.surface : '#fff'}
+                  rulesColor={theme.colors.text + '11'}
+                  showDataPointOnFocus
+                  showStripOnFocus
+                  stripColor={pollutionInfo.color}
+                  stripWidth={2}
+                  focusedDataPointIndex={selectedEnvironmentalIndex ?? 0}
+                />
+              </ScrollView>
+
+              <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.text + '11' : theme.colors.primary + '08', borderRadius: 12, padding: 12 }}>
+                <Text style={{ fontSize: 11, color: theme.colors.text + '88', marginBottom: 10, ...getBodyBoldFont() }}>
+                  📅 Tap any date to view
+                </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={true} scrollEventThrottle={16} style={{ minHeight: 70 }}>
+                  <View style={{ flexDirection: 'row', gap: 8, paddingRight: 16 }}>
+                    {environmentalHistory.map((item, idx) => (
+                      <TouchableOpacity key={idx} onPress={() => setSelectedEnvironmentalIndex(idx)} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: selectedEnvironmentalIndex === idx ? theme.colors.surface : theme.colors.background, borderWidth: 2, borderColor: selectedEnvironmentalIndex === idx ? pollutionInfo.color : theme.colors.text + '22', minWidth: 90, alignItems: 'center', justifyContent: 'center', elevation: selectedEnvironmentalIndex === idx ? 3 : 0, shadowColor: selectedEnvironmentalIndex === idx ? pollutionInfo.color : 'transparent', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 2 }}>
+                        <Text style={{ fontSize: 10, color: selectedEnvironmentalIndex === idx ? pollutionInfo.color : theme.colors.text + '88', ...getBodyBoldFont(), marginBottom: 4 }}>
+                          {item.date}
+                        </Text>
+                        <Text style={{ fontSize: 11, color: selectedEnvironmentalIndex === idx ? pollutionInfo.color : theme.colors.text, ...getHeadingFont() }}>
+                          {item.score.toFixed(0)}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+            </View>
+          )}
+
           {/* Pollution Recommendations */}
           <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 20, borderLeftWidth: 5, borderLeftColor: pollutionInfo.color, zIndex: 1 }}>
             <Text style={{ fontSize: 13, color: theme.colors.text, marginBottom: 10, ...getSubHeadingFont() }}>
@@ -3863,6 +6853,98 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               Based on your health profile, here are conditions you may be at risk for
             </Text>
           </View>
+
+          {/* Disease Risk Trend Chart */}
+          {diseaseRiskHistory.length > 0 && (
+            <View
+              style={{
+                backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FAFAFA',
+                borderRadius: 16,
+                padding: 16,
+                marginBottom: 20,
+                borderWidth: 1,
+                borderColor: theme.colors.text + '22',
+                zIndex: 1,
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                <MaterialCommunityIcons name="chart-line" size={20} color="#FF6F00" style={{ marginRight: 8 }} />
+                <Text style={{ fontSize: 16, fontWeight: '700', color: theme.colors.text, ...getHeadingFont() }}>
+                  High-Risk Conditions Trend (Last 12 Months)
+                </Text>
+              </View>
+
+              {selectedDiseaseRiskIndex !== null && (
+                <View style={{ backgroundColor: '#FF6F00' + '15', borderRadius: 12, padding: 12, marginBottom: 12, borderLeftWidth: 4, borderLeftColor: '#FF6F00', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 12, color: theme.colors.text + '88', marginBottom: 4, ...getBodyFont() }}>Date</Text>
+                    <Text style={{ fontSize: 14, color: '#FF6F00', ...getBodyBoldFont() }}>
+                      {diseaseRiskHistory[selectedDiseaseRiskIndex].date}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                    <Text style={{ fontSize: 12, color: theme.colors.text + '88', marginBottom: 4, ...getBodyFont() }}>Conditions</Text>
+                    <Text style={{ fontSize: 14, color: '#FF6F00', ...getHeadingFont() }}>
+                      {diseaseRiskHistory[selectedDiseaseRiskIndex].highRiskCount}
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              <ScrollView horizontal showsHorizontalScrollIndicator={true} scrollEventThrottle={16} style={{ marginBottom: 12, borderRadius: 12, overflow: 'hidden', backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#fff' }}>
+                <LineChart
+                  data={diseaseRiskHistory.map((item) => ({ value: item.highRiskCount, label: item.date }))}
+                  height={220}
+                  width={Math.max(screenWidth - 64, diseaseRiskHistory.length * 40)}
+                  yAxisThickness={2}
+                  yAxisColor="#FF6F00"
+                  xAxisThickness={2}
+                  xAxisColor="#FF6F00"
+                  xAxisLabelTextStyle={{ color: theme.colors.text + '77', fontSize: 10 }}
+                  yAxisTextStyle={{ color: '#FF6F00', fontSize: 11, fontWeight: '700' }}
+                  yAxisLabelSuffix=" risks"
+                  disableScroll={false}
+                  scrollToIndex={selectedDiseaseRiskIndex ?? undefined}
+                  animateOnDataChange
+                  animationDuration={800}
+                  color1="#FF6F00"
+                  color2={'#FF6F0044'}
+                  startFillColor="#FF6F00"
+                  startFillColor2={'#FF6F0011'}
+                  noOfSections={5}
+                  showVerticalLines
+                  verticalLinesColor={theme.colors.text + '11'}
+                  backgroundColor={theme.mode === 'dark' ? theme.colors.surface : '#fff'}
+                  rulesColor={theme.colors.text + '11'}
+                  showDataPointOnFocus
+                  showStripOnFocus
+                  stripColor="#FF6F00"
+                  stripWidth={2}
+                  focusedDataPointIndex={selectedDiseaseRiskIndex ?? 0}
+                />
+              </ScrollView>
+
+              <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.text + '11' : theme.colors.primary + '08', borderRadius: 12, padding: 12 }}>
+                <Text style={{ fontSize: 11, color: theme.colors.text + '88', marginBottom: 10, ...getBodyBoldFont() }}>
+                  📅 Tap any date to view
+                </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={true} scrollEventThrottle={16} style={{ minHeight: 70 }}>
+                  <View style={{ flexDirection: 'row', gap: 8, paddingRight: 16 }}>
+                    {diseaseRiskHistory.map((item, idx) => (
+                      <TouchableOpacity key={idx} onPress={() => setSelectedDiseaseRiskIndex(idx)} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: selectedDiseaseRiskIndex === idx ? theme.colors.surface : theme.colors.background, borderWidth: 2, borderColor: selectedDiseaseRiskIndex === idx ? '#FF6F00' : theme.colors.text + '22', minWidth: 90, alignItems: 'center', justifyContent: 'center', elevation: selectedDiseaseRiskIndex === idx ? 3 : 0, shadowColor: selectedDiseaseRiskIndex === idx ? '#FF6F00' : 'transparent', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 2 }}>
+                        <Text style={{ fontSize: 10, color: selectedDiseaseRiskIndex === idx ? '#FF6F00' : theme.colors.text + '88', ...getBodyBoldFont(), marginBottom: 4 }}>
+                          {item.date}
+                        </Text>
+                        <Text style={{ fontSize: 14, color: selectedDiseaseRiskIndex === idx ? '#FF6F00' : theme.colors.text, ...getHeadingFont() }}>
+                          {item.highRiskCount}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+            </View>
+          )}
 
           {/* Info Section */}
           <View style={{ backgroundColor: "#fff" + "88", borderRadius: 16, padding: 16, marginBottom: 20, zIndex: 1, borderLeftWidth: 5, borderLeftColor: "#FF6F00" }}>
