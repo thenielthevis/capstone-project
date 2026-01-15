@@ -263,16 +263,8 @@ export default function Feed() {
         {/* Post Header */}
         <div className="flex items-center p-4 pb-3">
           <div
-            className="w-10 h-10 rounded-full flex items-center justify-center mr-3 cursor-pointer"
+            className="w-10 h-10 rounded-full flex items-center justify-center mr-3"
             style={{ backgroundColor: theme.colors.primary + '20' }}
-            onClick={(e) => {
-              e.stopPropagation();
-              const userId = user?._id || user?.id;
-              if (post.user?._id && post.user._id !== userId) {
-                handleReport('user', post.user._id, post.user.username);
-              }
-            }}
-            title={post.user?._id !== (user?._id || user?.id) ? 'Click to report user' : ''}
           >
             {post.user?.profilePicture ? (
               <img
@@ -340,7 +332,7 @@ export default function Feed() {
 
         {/* Session Reference Preview */}
         {post.reference?.item_id && (
-          <div className="px-4 pb-4">
+          <div className="px-4 pb-4 flex justify-center">
             <SessionPreview reference={post.reference as { item_id: any; item_type: 'GeoSession' | 'ProgramSession' | 'FoodLog' | 'Post' }} />
           </div>
         )}
