@@ -4,12 +4,13 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { 
   UtensilsCrossed, Search, Calendar, Trash2, ChevronLeft, ChevronRight,
-  Filter, TrendingUp, Users, Apple, RefreshCw
+  Filter, TrendingUp, Users, Apple, RefreshCw, Download
 } from 'lucide-react';
 import AdminSidebar from '@/components/AdminSidebar';
 import { useTheme } from '@/context/ThemeContext';
 import { adminApi, FoodLog, FoodLogStats } from '@/api/adminApi';
 import { showToast } from '@/components/Toast/Toast';
+import { exportFoodLogsReport } from '@/utils/pdfExport';
 
 export default function AdminFoodLogs() {
   const { theme } = useTheme();
@@ -28,6 +29,7 @@ export default function AdminFoodLogs() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showFilters, setShowFilters] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   // Load food logs whenever dependencies change
   useEffect(() => {
@@ -118,6 +120,44 @@ export default function AdminFoodLogs() {
     setRefreshing(false);
   };
 
+  const handleExportPDF = async () => {
+    try {
+      setExporting(true);
+      showToast({ type: 'info', text1: 'Generating PDF report...' });
+      
+      // Fetch all food logs for export (up to 500)
+      const allData = await adminApi.getAllFoodLogs(1, 500, {});
+      
+      exportFoodLogsReport(
+        allData.foodLogs.map(log => ({
+          _id: log._id,
+          userId: log.userId,
+          analyzedAt: log.analyzedAt,
+          inputMethod: log.inputMethod,
+          foodName: log.foodName,
+          dishName: log.dishName,
+          calories: log.calories,
+          servingSize: log.servingSize,
+          nutrients: log.nutrients,
+          confidence: log.confidence,
+        })),
+        stats ? {
+          totalFoodLogs: stats.totalFoodLogs,
+          totalUsers: stats.totalUsers,
+          recentLogs: stats.recentLogs,
+          averageLogsPerUser: stats.averageLogsPerUser,
+        } : undefined
+      );
+      
+      showToast({ type: 'success', text1: 'PDF report generated successfully!' });
+    } catch (error: any) {
+      console.error('[AdminFoodLogs] Export PDF error:', error);
+      showToast({ type: 'error', text1: 'Failed to generate PDF report' });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -148,6 +188,18 @@ export default function AdminFoodLogs() {
               </p>
             </div>
             <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleExportPDF}
+                disabled={exporting || foodLogs.length === 0}
+                style={{
+                  borderColor: theme.colors.border,
+                  color: theme.colors.text,
+                }}
+              >
+                <Download className={`w-4 h-4 mr-2 ${exporting ? 'animate-pulse' : ''}`} />
+                {exporting ? 'Exporting...' : 'Export PDF'}
+              </Button>
               <Button
                 variant="outline"
                 onClick={handleRefresh}

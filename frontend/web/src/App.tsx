@@ -17,6 +17,7 @@ import TermsAndConditions from './pages/TermsAndConditions';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminUsers from './pages/AdminUsers';
 import AdminReports from './pages/AdminReports';
+import AdminHealthReports from './pages/AdminHealthReports';
 import CreateAdmin from './pages/CreateAdmin';
 import AdminFoodLogs from './pages/AdminFoodLogs';
 import AdminGeoActivities from './pages/AdminGeoActivities';
@@ -204,6 +205,14 @@ function App() {
         element={
           <ProtectedRoute>
             <AdminReports />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/health-reports"
+        element={
+          <ProtectedRoute>
+            <AdminHealthReports />
           </ProtectedRoute>
         }
       />

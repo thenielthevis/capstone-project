@@ -19,6 +19,7 @@ import {
   AlertOctagon,
   Filter,
   RefreshCw,
+  Download,
 } from 'lucide-react';
 import AdminSidebar from '@/components/AdminSidebar';
 import { useTheme } from '@/context/ThemeContext';
@@ -37,6 +38,8 @@ import {
   ResolutionAction,
   ReportStatsResponse,
 } from '@/api/reportApi';
+import { showToast } from '@/components/Toast/Toast';
+import { exportReportsReport } from '@/utils/pdfExport';
 import logoImg from '../assets/logo.png';
 
 export default function AdminReports() {
@@ -60,6 +63,8 @@ export default function AdminReports() {
   const [showViewModal, setShowViewModal] = useState(false);
   const [showActionModal, setShowActionModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     fetchReports();
@@ -172,6 +177,49 @@ export default function AdminReports() {
       report.reason.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([fetchReports(pagination.page), fetchStats()]);
+    setRefreshing(false);
+  };
+
+  const handleExportPDF = async () => {
+    try {
+      setExporting(true);
+      showToast({ type: 'info', text1: 'Generating PDF report...' });
+      
+      // Fetch all reports for export (up to 500)
+      const allData = await getAllReports({ page: 1, limit: 500 });
+      
+      exportReportsReport(
+        allData.reports.map(report => ({
+          _id: report._id,
+          reporter: report.reporter,
+          reportType: report.reportType,
+          reportedUser: report.reportedUser,
+          reason: report.reason,
+          description: report.description,
+          status: report.status,
+          resolution: report.resolution,
+          createdAt: report.createdAt,
+        })),
+        stats ? {
+          totalReports: stats.totalReports,
+          pendingReports: stats.pendingReports,
+          resolvedReports: stats.resolvedReports,
+          dismissedReports: stats.dismissedReports,
+        } : undefined
+      );
+      
+      showToast({ type: 'success', text1: 'PDF report generated successfully!' });
+    } catch (error: any) {
+      console.error('[AdminReports] Export PDF error:', error);
+      showToast({ type: 'error', text1: 'Failed to generate PDF report' });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const getStatusIcon = (status: ReportStatus) => {
     switch (status) {
       case 'pending':
@@ -236,21 +284,47 @@ export default function AdminReports() {
                 Reports Management
               </h1>
             </div>
-            <Button
-              variant="ghost"
-              onClick={() => navigate('/admin/dashboard')}
-              style={{ color: theme.colors.textSecondary }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.colors.cardHover;
-                e.currentTarget.style.color = theme.colors.text;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = theme.colors.textSecondary;
-              }}
-            >
-              Back to Dashboard
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleExportPDF}
+                disabled={exporting || reports.length === 0}
+                style={{
+                  borderColor: theme.colors.border,
+                  color: theme.colors.text,
+                }}
+              >
+                <Download className={`w-4 h-4 mr-2 ${exporting ? 'animate-pulse' : ''}`} />
+                {exporting ? 'Exporting...' : 'Export PDF'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleRefresh}
+                disabled={refreshing}
+                style={{
+                  borderColor: theme.colors.border,
+                  color: theme.colors.text,
+                }}
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => navigate('/admin/dashboard')}
+                style={{ color: theme.colors.textSecondary }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.colors.cardHover;
+                  e.currentTarget.style.color = theme.colors.text;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = theme.colors.textSecondary;
+                }}
+              >
+                Back to Dashboard
+              </Button>
+            </div>
           </div>
         </header>
 
