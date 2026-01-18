@@ -10,7 +10,7 @@ import {
   Send,
   Reply,
   X,
-  MoreHorizontal,
+  Flag,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
@@ -21,6 +21,7 @@ import { commentApi, Comment } from '@/api/commentApi';
 import ReactionButton from '@/components/ReactionButton';
 import SessionPreview from '@/components/feed/SessionPreview';
 import Header from '@/components/Header';
+import { ReportType } from '@/api/reportApi';
 
 interface CommentWithReplies extends Comment {
   replies: CommentWithReplies[];
@@ -41,6 +42,12 @@ export default function PostDetail() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const userId = user?._id || user?.id;
+
+  const handleReport = (type: ReportType, itemId: string, itemName?: string) => {
+    const params = new URLSearchParams({ type, id: itemId });
+    if (itemName) params.append('name', itemName);
+    navigate(`/report?${params.toString()}`);
+  };
 
   useEffect(() => {
     if (postId) {
@@ -413,9 +420,8 @@ export default function PostDetail() {
           {/* Post Header */}
           <div className="flex items-center p-4">
             <div 
-              className="w-10 h-10 rounded-full flex items-center justify-center mr-3 overflow-hidden cursor-pointer"
+              className="w-10 h-10 rounded-full flex items-center justify-center mr-3 overflow-hidden"
               style={{ backgroundColor: theme.colors.primary + '20' }}
-              onClick={() => navigate('/profile')}
             >
               {post.user?.profilePicture ? (
                 <img src={post.user.profilePicture} alt={post.user.username} className="w-10 h-10 rounded-full object-cover" />
@@ -426,8 +432,7 @@ export default function PostDetail() {
             <div className="flex-1">
               <span 
                 style={{ color: theme.colors.text }} 
-                className="font-semibold cursor-pointer hover:underline"
-                onClick={() => navigate('/profile')}
+                className="font-semibold"
               >
                 {post.user?.username || 'Unknown User'}
               </span>
@@ -435,9 +440,16 @@ export default function PostDetail() {
                 {getTimeAgo(post.createdAt)}
               </p>
             </div>
-            <button className="p-2 hover:opacity-70">
-              <MoreHorizontal className="w-5 h-5" style={{ color: theme.colors.text }} />
-            </button>
+            {/* Report Post Button */}
+            {post.user?._id !== userId && (
+              <button 
+                onClick={() => handleReport('post', post._id)}
+                className="p-2 rounded-lg hover:opacity-80 transition"
+                title="Report post"
+              >
+                <Flag className="w-5 h-5" style={{ color: theme.colors.textTertiary }} />
+              </button>
+            )}
           </div>
 
           {/* Post Title & Content */}
@@ -454,7 +466,7 @@ export default function PostDetail() {
 
           {/* Session Reference Preview */}
           {post.reference?.item_id && (
-            <div className="px-4 pb-4">
+            <div className="px-4 pb-4 flex justify-center">
               <SessionPreview reference={post.reference as { item_id: any; item_type: 'GeoSession' | 'ProgramSession' | 'FoodLog' | 'Post' }} />
             </div>
           )}

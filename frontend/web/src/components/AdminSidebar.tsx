@@ -5,7 +5,7 @@ import {
   LogOut, Users,
   Home, Utensils, MapPin, Dumbbell, BookOpen, Award,
   ChevronLeft, Sun, Moon, Waves, Flag,
-  Shield
+  Shield, FileText
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -44,6 +44,7 @@ export default function AdminSidebar({ activeNav = 'home', onSidebarToggle }: Ad
   const navigationItems: NavItem[] = [
     { id: 'home', label: 'Dashboard', icon: <Home className="w-5 h-5" />, path: '/admin/dashboard', color: '#3b82f6', bgColor: '#3b82f620' },
     { id: 'users', label: 'Users', icon: <Users className="w-5 h-5" />, path: '/admin/users', color: '#10b981', bgColor: '#10b98120' },
+    { id: 'health-reports', label: 'Health Reports', icon: <FileText className="w-5 h-5" />, path: '/admin/health-reports', color: '#14b8a6', bgColor: '#14b8a620' },
     { id: 'reports', label: 'Reports', icon: <Flag className="w-5 h-5" />, path: '/admin/reports', color: '#ef4444', bgColor: '#ef444420' },
     { id: 'geo-activities', label: 'Geo Activities', icon: <MapPin className="w-5 h-5" />, path: '/admin/geo-activities', color: '#f97316', bgColor: '#f9731620' },
     { id: 'workouts', label: 'Workouts', icon: <Dumbbell className="w-5 h-5" />, path: '/admin/workouts', color: '#ec4899', bgColor: '#ec489920' },

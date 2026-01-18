@@ -172,8 +172,20 @@ export default function AnalysisDashboard() {
   const [selectedMetric, setSelectedMetric] = useState<string | null>(null);
   const [showDetail, setShowDetail] = useState(false);
   const [showUpdateSuccess, setShowUpdateSuccess] = useState(false);
+  const [pressedButton, setPressedButton] = useState<string | null>(null);
   const screenWidth = Dimensions.get("window").width;
   const screenHeight = Dimensions.get("window").height;
+  
+  // BMI Quick Update Modal States
+  const [showBmiModal, setShowBmiModal] = useState(false);
+  const [bmiHeight, setBmiHeight] = useState(userData?.physicalMetrics?.height?.value?.toString() || "");
+  const [bmiWeight, setBmiWeight] = useState(userData?.physicalMetrics?.weight?.value?.toString() || "");
+  const [bmiLoading, setBmiLoading] = useState(false);
+  
+  // Activity Level Quick Update Modal States
+  const [showActivityModal, setShowActivityModal] = useState(false);
+  const [selectedActivityLevel, setSelectedActivityLevel] = useState<string>(userData?.lifestyle?.activityLevel || "moderately_active");
+  const [activityLoading, setActivityLoading] = useState(false);
 
   useEffect(() => {
     loadUserData();
@@ -475,11 +487,65 @@ export default function AnalysisDashboard() {
         </Text>
         <TouchableOpacity
           onPress={loadUserData}
-          style={buttonStyle}
+          onPressIn={() => setPressedButton("retry")}
+          onPressOut={() => setPressedButton(null)}
+          activeOpacity={1}
+          style={{
+            marginBottom: 0,
+            borderRadius: 8,
+            overflow: "hidden",
+          }}
         >
-          <Text style={buttonTextStyle}>
-            Retry
-          </Text>
+          {pressedButton === "retry" ? (
+            <View
+              style={{
+                paddingHorizontal: 32,
+                paddingVertical: 12,
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: 8,
+                backgroundColor: "#FFFFFF",
+                elevation: 2,
+                shadowColor: theme.colors.primary,
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.2,
+                shadowRadius: 2,
+              }}
+            >
+              <Text
+                style={{
+                  color: "#000",
+                  fontSize: 14,
+                  fontFamily: theme.fonts.bodyBold,
+                }}
+              >
+                Retry
+              </Text>
+            </View>
+          ) : (
+            <LinearGradient
+              colors={[theme.colors.primary, theme.colors.primary + "DD"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                paddingHorizontal: 32,
+                paddingVertical: 12,
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: 8,
+              }}
+            >
+              <Text
+                style={{
+                  color: "#fff",
+                  fontSize: 14,
+                  fontFamily: theme.fonts.bodyBold,
+                }}
+              >
+                Retry
+              </Text>
+            </LinearGradient>
+          )}
         </TouchableOpacity>
       </View>
     );
@@ -492,7 +558,7 @@ export default function AnalysisDashboard() {
         {showUpdateSuccess && (
           <View
             style={{
-              backgroundColor: "#4CAF50",
+              backgroundColor: theme.colors.primary,
               paddingHorizontal: 16,
               paddingVertical: 12,
               marginHorizontal: 16,
@@ -549,42 +615,75 @@ export default function AnalysisDashboard() {
             onPress={() => {
               router.push("/screens/analysis_input/prediction_input");
             }}
-            activeOpacity={0.7}
+            onPressIn={() => setPressedButton("updateHealth")}
+            onPressOut={() => setPressedButton(null)}
+            activeOpacity={1}
             style={{
               marginBottom: 24,
               borderRadius: 16,
               overflow: "hidden",
             }}
           >
-            <LinearGradient
-              colors={["#FF6B6B", "#FF8E8E"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{
-                paddingVertical: 16,
-                paddingHorizontal: 20,
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 12,
-                elevation: 5,
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 3 },
-                shadowOpacity: 0.2,
-                shadowRadius: 6,
-              }}
-            >
-              <MaterialCommunityIcons name="heart-pulse" size={24} color="#fff" />
-              <Text
+            {pressedButton === "updateHealth" ? (
+              <View
                 style={{
-                  fontSize: 16,
-                  fontFamily: theme.fonts.bodyBold,
-                  color: "#fff",
+                  paddingVertical: 16,
+                  paddingHorizontal: 20,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 12,
+                  backgroundColor: "#FFFFFF",
+                  borderRadius: 16,
+                  elevation: 5,
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 3 },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 6,
                 }}
               >
-                Update Health Metrics
-              </Text>
-            </LinearGradient>
+                <MaterialCommunityIcons name="heart-pulse" size={24} color="#000" />
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontFamily: theme.fonts.bodyBold,
+                    color: "#000",
+                  }}
+                >
+                  Update Health Metrics
+                </Text>
+              </View>
+            ) : (
+              <LinearGradient
+                colors={[theme.colors.primary, theme.colors.primary + "DD"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{
+                  paddingVertical: 16,
+                  paddingHorizontal: 20,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 12,
+                  elevation: 5,
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 3 },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 6,
+                }}
+              >
+                <MaterialCommunityIcons name="heart-pulse" size={24} color="#fff" />
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontFamily: theme.fonts.bodyBold,
+                    color: "#fff",
+                  }}
+                >
+                  Update Health Metrics
+                </Text>
+              </LinearGradient>
+            )}
           </TouchableOpacity>
 
           <View

@@ -23,6 +23,7 @@ import { getPredictionUpdateFlag, setPredictionUpdateFlag } from "../screens/ana
 import { formatDiseaseName } from "@/utils/formatDisease";
 import { LineChart } from "react-native-gifted-charts";
 import * as SecureStore from "expo-secure-store";
+import { tokenStorage } from "../../utils/tokenStorage";
 
 // API Configuration - use environment variable or fallback to localhost
 const getApiUrl = (): string => {
@@ -198,21 +199,21 @@ const SLEEP_GUIDELINES = [
   {
     range: "< 6 hours",
     status: "Poor / Risky",
-    color: "#F44336",
+    color: "#38b6ff",
     description: "Insufficient sleep associated with increased health risks",
     mortality: "~14% higher risk of all-cause mortality",
   },
   {
     range: "7 - 9 hours",
     status: "Normal / Optimal",
-    color: "#4CAF50",
+    color: "#38b6ff",
     description: "Recommended sleep duration for most adults",
     mortality: "Reference range for healthy sleep",
   },
   {
     range: "> 9 hours",
     status: "Abnormal / Risky",
-    color: "#FF9800",
+    color: "#38b6ff",
     description: "Excessive sleep may indicate underlying health issues",
     mortality: "~34% higher risk of all-cause mortality",
   },
@@ -223,24 +224,24 @@ const WATER_GUIDELINES = [
   {
     range: "< 295 mmol/L",
     status: "Hydrated",
-    color: "#4CAF50",
-    bgColor: "#E8F5E9",
+    color: "#38b6ff",
+    bgColor: "#E3F2FD",
     tips: "Optimal hydration level - maintain current water intake",
     icon: "water",
   },
   {
     range: "295-299.9 mmol/L",
     status: "Impending Dehydration",
-    color: "#FF9800",
-    bgColor: "#FFF3E0",
+    color: "#38b6ff",
+    bgColor: "#BBDEFB",
     tips: "Start increasing water intake gradually",
     icon: "alert-circle",
   },
   {
     range: "≥ 300 mmol/L",
     status: "Dehydrated",
-    color: "#F44336",
-    bgColor: "#FFEBEE",
+    color: "#38b6ff",
+    bgColor: "#90CAF9",
     tips: "Increase water intake immediately - aim for 2-3 liters daily",
     icon: "alert-octagon",
   },
@@ -251,8 +252,8 @@ const ADDICTION_CRITERIA = [
   {
     severity: "Mild",
     criteria: "2-3 criteria met",
-    color: "#FFD54F",
-    bgColor: "#FFFDE7",
+    color: "#38b6ff",
+    bgColor: "#E3F2FD",
     examples: [
       "Occasional substance use despite problems",
       "Failed attempts to reduce use",
@@ -263,8 +264,8 @@ const ADDICTION_CRITERIA = [
   {
     severity: "Moderate",
     criteria: "4-5 criteria met",
-    color: "#FF9800",
-    bgColor: "#FFF3E0",
+    color: "#38b6ff",
+    bgColor: "#BBDEFB",
     examples: [
       "Regular substance use affecting relationships",
       "Neglecting activities due to substance use",
@@ -277,8 +278,8 @@ const ADDICTION_CRITERIA = [
   {
     severity: "Severe",
     criteria: "6+ criteria met",
-    color: "#F44336",
-    bgColor: "#FFEBEE",
+    color: "#38b6ff",
+    bgColor: "#90CAF9",
     examples: [
       "Persistent desire to use or unsuccessful efforts to cut down",
       "Using the substance in larger amounts than intended",
@@ -345,8 +346,8 @@ const STRESS_LEVELS = [
   {
     range: "0-13",
     level: "Low Stress",
-    color: "#4CAF50",
-    bgColor: "#E8F5E9",
+    color: "#38b6ff",
+    bgColor: "#E3F2FD",
     description: "You have a healthy stress level with good coping skills",
     icon: "emoticon-happy",
     recommendations: [
@@ -359,8 +360,8 @@ const STRESS_LEVELS = [
   {
     range: "14-26",
     level: "Moderate Stress",
-    color: "#FF9800",
-    bgColor: "#FFF3E0",
+    color: "#38b6ff",
+    bgColor: "#BBDEFB",
     description: "You experience moderate stress levels. Consider stress management techniques",
     icon: "emoticon-neutral",
     recommendations: [
@@ -374,8 +375,8 @@ const STRESS_LEVELS = [
   {
     range: "27-40",
     level: "High Perceived Stress",
-    color: "#F44336",
-    bgColor: "#FFEBEE",
+    color: "#38b6ff",
+    bgColor: "#90CAF9",
     description: "You experience high stress levels. Professional support is recommended",
     icon: "emoticon-sad",
     recommendations: [
@@ -391,11 +392,7 @@ const STRESS_LEVELS = [
 
 // Scientific References for Stress
 const STRESS_SCIENTIFIC_REFERENCES = [
-  {
-    title: "APA - Perceived Stress Scale (PSS)",
-    description: "Original PSS instrument and validation for stress assessment",
-    url: "https://www.apa.org/news/press/releases/stress/2019/stress-america-ctd",
-  },
+
   {
     title: "NIH/PMC - Stress and Cardiovascular Health",
     description: "Effects of chronic stress on cardiovascular system",
@@ -424,40 +421,40 @@ const MEAL_FREQUENCY_GUIDELINES = [
   {
     frequency: "1-2 meals/day",
     status: "Insufficient",
-    color: "#F44336",
-    bgColor: "#FFEBEE",
+    color: "#38b6ff",
+    bgColor: "#E3F2FD",
     impact: "May lead to overeating, slow metabolism, nutrient deficiency",
     recommendations: "Aim for at least 3 meals daily",
   },
   {
     frequency: "3 meals/day",
     status: "Standard",
-    color: "#4CAF50",
-    bgColor: "#E8F5E9",
+    color: "#38b6ff",
+    bgColor: "#E3F2FD",
     impact: "Optimal for most people, supports steady energy levels",
     recommendations: "Consider 1-2 healthy snacks if needed",
   },
   {
     frequency: "3-4 meals/day",
     status: "Optimal",
-    color: "#2196F3",
-    bgColor: "#E3F2FD",
+    color: "#38b6ff",
+    bgColor: "#BBDEFB",
     impact: "Supports steady metabolism and energy throughout day",
     recommendations: "Include one healthy snack between meals",
   },
   {
     frequency: "5-6 meals/day",
     status: "Frequent",
-    color: "#9C27B0",
-    bgColor: "#F3E5F5",
+    color: "#38b6ff",
+    bgColor: "#90CAF9",
     impact: "Benefits athletes or people with high activity levels",
     recommendations: "Include smaller portions, ensure nutritional variety",
   },
   {
     frequency: "6+ meals/day",
     status: "Very Frequent",
-    color: "#FF6F00",
-    bgColor: "#FFE0B2",
+    color: "#38b6ff",
+    bgColor: "#64B5F6",
     impact: "For competitive athletes or specialized training",
     recommendations: "Work with nutritionist for proper meal planning",
   },
@@ -484,25 +481,25 @@ const DIETARY_SCIENTIFIC_REFERENCES = [
 
 // Health Status - Chronic Conditions
 const HEALTH_CONDITIONS_INFO = [
-  { condition: "Hypertension", impact: "High blood pressure - increases cardiovascular risk", color: "#F44336" },
-  { condition: "Diabetes", impact: "Blood sugar regulation issues", color: "#FF9800" },
-  { condition: "Heart Disease", impact: "Cardiovascular complications", color: "#F44336" },
-  { condition: "Asthma", impact: "Respiratory condition", color: "#2196F3" },
-  { condition: "Arthritis", impact: "Joint inflammation and pain", color: "#FF5722" },
-  { condition: "Obesity", impact: "Weight-related health complications", color: "#FF9800" },
-  { condition: "Depression", impact: "Mental health condition", color: "#9C27B0" },
-  { condition: "Anxiety", impact: "Anxiety disorder - affects quality of life", color: "#9C27B0" },
+  { condition: "Hypertension", impact: "High blood pressure - increases cardiovascular risk", color: "#38b6ff" },
+  { condition: "Diabetes", impact: "Blood sugar regulation issues", color: "#38b6ff" },
+  { condition: "Heart Disease", impact: "Cardiovascular complications", color: "#38b6ff" },
+  { condition: "Asthma", impact: "Respiratory condition", color: "#38b6ff" },
+  { condition: "Arthritis", impact: "Joint inflammation and pain", color: "#38b6ff" },
+  { condition: "Obesity", impact: "Weight-related health complications", color: "#38b6ff" },
+  { condition: "Depression", impact: "Mental health condition", color: "#38b6ff" },
+  { condition: "Anxiety", impact: "Anxiety disorder - affects quality of life", color: "#38b6ff" },
 ];
 
 // Family History Risk Factors
 const FAMILY_HISTORY_INFO = [
-  { history: "Heart Disease", risk: "High cardiovascular risk", color: "#F44336" },
-  { history: "Diabetes", risk: "Higher predisposition to Type 2 Diabetes", color: "#FF9800" },
-  { history: "Cancer", risk: "Increased cancer risk depending on type", color: "#D32F2F" },
-  { history: "Stroke", risk: "Cerebrovascular disease risk", color: "#F44336" },
-  { history: "High Cholesterol", risk: "Metabolic and cardiovascular complications", color: "#FF6F00" },
-  { history: "Hypertension", risk: "Genetic predisposition to high blood pressure", color: "#F44336" },
-  { history: "Alzheimer's", risk: "Neurodegenerative disease risk", color: "#7B1FA2" },
+  { history: "Heart Disease", risk: "High cardiovascular risk", color: "#38b6ff" },
+  { history: "Diabetes", risk: "Higher predisposition to Type 2 Diabetes", color: "#38b6ff" },
+  { history: "Cancer", risk: "Increased cancer risk depending on type", color: "#38b6ff" },
+  { history: "Stroke", risk: "Cerebrovascular disease risk", color: "#38b6ff" },
+  { history: "High Cholesterol", risk: "Metabolic and cardiovascular complications", color: "#38b6ff" },
+  { history: "Hypertension", risk: "Genetic predisposition to high blood pressure", color: "#38b6ff" },
+  { history: "Alzheimer's", risk: "Neurodegenerative disease risk", color: "#38b6ff" },
 ];
 
 // Blood Type Information
@@ -529,19 +526,15 @@ const HEALTH_STATUS_SCIENTIFIC_REFERENCES = [
     description: "Comprehensive information on medical conditions and their management",
     url: "https://www.mayoclinic.org/diseases-conditions",
   },
-  {
-    title: "WHO - Family History & Genetic Risk",
-    description: "Understanding familial risk factors and genetic predisposition",
-    url: "https://www.who.int/news-room/fact-sheets/detail/genetic-disorders",
-  },
+ 
 ];
 
 // Environmental Factors - Pollution Exposure Levels
 const POLLUTION_EXPOSURE_LEVELS = [
   {
     level: "Low",
-    color: "#4CAF50",
-    bgColor: "#E8F5E9",
+    color: "#38b6ff",
+    bgColor: "#E3F2FD",
     description: "Minimal air pollution exposure",
     aqi: "0-50 (Good)",
     health: "Minimal health impact",
@@ -553,8 +546,8 @@ const POLLUTION_EXPOSURE_LEVELS = [
   },
   {
     level: "Medium",
-    color: "#FF9800",
-    bgColor: "#FFF3E0",
+    color: "#38b6ff",
+    bgColor: "#BBDEFB",
     description: "Moderate air pollution exposure",
     aqi: "51-100 (Moderate)",
     health: "Sensitive groups may experience health effects",
@@ -567,8 +560,8 @@ const POLLUTION_EXPOSURE_LEVELS = [
   },
   {
     level: "High",
-    color: "#F44336",
-    bgColor: "#FFEBEE",
+    color: "#38b6ff",
+    bgColor: "#90CAF9",
     description: "High air pollution exposure",
     aqi: "101-500+ (Unhealthy)",
     health: "General population may experience health effects",
@@ -610,39 +603,31 @@ const OCCUPATION_TYPE_INFO = [
 
 // Scientific References for Environmental Factors
 const ENVIRONMENTAL_SCIENTIFIC_REFERENCES = [
-  {
-    title: "EPA - Air Quality Index (AQI) Guide",
-    description: "Understanding air pollution levels and health impacts",
-    url: "https://www.epa.gov/air-quality/air-quality-index-aqi",
-  },
+ 
   {
     title: "WHO - Air Pollution & Health",
     description: "Global impacts of air pollution on human health",
     url: "https://www.who.int/news-room/fact-sheets/detail/ambient-(outdoor)-air-quality-and-health",
   },
-  {
-    title: "NIH/PMC - Occupational Health & Disease",
-    description: "Research on workplace hazards and occupational health outcomes",
-    url: "https://pubmed.ncbi.nlm.nih.gov/32606529/",
-  },
+ 
 ];
 
 const DISEASE_PREDICTION_REFERENCES = [
-  {
-    title: "American Heart Association - Hypertension Guide",
-    description: "Understanding high blood pressure prevention and management",
-    url: "https://www.heart.org/en/health-topics/consumer/answers/answers-by-heart-fact-sheets-about-heart-attack/answers-about-high-blood-pressure",
-  },
-  {
-    title: "CDC - Diabetes Prevention & Management",
-    description: "Evidence-based strategies for diabetes prevention and control",
-    url: "https://www.cdc.gov/diabetes/basics/diabetes.html",
-  },
-  {
-    title: "NIH - Cardiovascular Disease Risk Factors",
-    description: "Research on heart disease prevention and risk assessment",
-    url: "https://www.nhlbi.nih.gov/health/heart/disease",
-  },
+  // {
+  //   title: "American Heart Association - Hypertension Guide",
+  //   description: "Understanding high blood pressure prevention and management",
+  //   url: "https://www.heart.org/en/health-topics/consumer/answers/answers-by-heart-fact-sheets-about-heart-attack/answers-about-high-blood-pressure",
+  // },
+  // {
+  //   title: "CDC - Diabetes Prevention & Management",
+  //   description: "Evidence-based strategies for diabetes prevention and control",
+  //   url: "https://www.cdc.gov/diabetes/basics/diabetes.html",
+  // },
+  // {
+  //   title: "NIH - Cardiovascular Disease Risk Factors",
+  //   description: "Research on heart disease prevention and risk assessment",
+  //   url: "https://www.nhlbi.nih.gov/health/heart/disease",
+  // },
   {
     title: "WHO - Asthma Overview",
     description: "Global asthma facts and prevention strategies",
@@ -677,12 +662,40 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
   const [selectedEnvironmentalIndex, setSelectedEnvironmentalIndex] = useState<number | null>(null);
   const [addictionHistory, setAddictionHistory] = useState<Array<{ date: string; score: number }>>([]);
   const [selectedAddictionIndex, setSelectedAddictionIndex] = useState<number | null>(null);
+
+  // Health Status Quick Update States
+  const [healthStatusQuickUpdate, setHealthStatusQuickUpdate] = useState({
+    conditions: '',
+    familyHistory: '',
+    medications: '',
+    dietaryPrefs: '',
+  });
+  const [addictionQuickUpdate, setAddictionQuickUpdate] = useState({
+    substance: '',
+    duration: 1,
+  });
   const [diseaseRiskHistory, setDiseaseRiskHistory] = useState<Array<{ date: string; highRiskCount: number }>>([]);
   const [selectedDiseaseRiskIndex, setSelectedDiseaseRiskIndex] = useState<number | null>(null);
   const [showBmiModal, setShowBmiModal] = useState(false);
   const [newBmiValue, setNewBmiValue] = useState<string>('');
   const [selectedHeight, setSelectedHeight] = useState(170);
   const [selectedWeight, setSelectedWeight] = useState(70);
+  const [isButtonPressed, setIsButtonPressed] = useState(false);
+  
+  // Quick Update Edit States
+  const [editingQuickUpdate, setEditingQuickUpdate] = useState<string | null>(null);
+  const [quickUpdateValues, setQuickUpdateValues] = useState<{ [key: string]: string }>({
+    activity: '',
+    sleep: '',
+    water: '',
+    stress: '',
+    dietary: '',
+    health: '',
+    environment: '',
+    addiction: '',
+    risks: '',
+  });
+  
   const heightScrollRef = useRef<ScrollView>(null);
   const weightScrollRef = useRef<ScrollView>(null);
   const screenWidth = Dimensions.get("window").width;
@@ -690,6 +703,357 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
   const scrollX = new Animated.Value(0);
   const singleView = !!initialMetric;
   const contentMaxWidth = Math.min(screenWidth * 0.95, 900);
+
+  const handleButtonPress = (pressed: boolean) => {
+    setIsButtonPressed(pressed);
+  };
+
+  // Quick Update Save Functions
+  const saveQuickUpdate = (metric: string, value: number) => {
+    const today = new Date();
+    const dateStr = `${today.getMonth() + 1}/${today.getDate()}`;
+
+    switch (metric) {
+      case 'activity':
+        // Map rating (1-5) to activity level
+        const activityLevelMap = {
+          1: 'sedentary',
+          2: 'lightly_active',
+          3: 'moderately_active',
+          4: 'very_active',
+          5: 'extremely_active',
+        };
+        const newActivityLevel = activityLevelMap[value as keyof typeof activityLevelMap] || 'sedentary';
+        
+        setActivityHistory((prev) => {
+          const updated = [...prev];
+          const existingIdx = updated.findIndex(h => h.date === dateStr);
+          const met = 1.2 + (value - 1) * 30;
+          if (existingIdx >= 0) {
+            updated[existingIdx] = { date: dateStr, pal: parseFloat(value.toFixed(2)), met: parseFloat(met.toFixed(1)) };
+          } else {
+            updated.push({ date: dateStr, pal: parseFloat(value.toFixed(2)), met: parseFloat(met.toFixed(1)) });
+          }
+          return updated.length > 12 ? updated.slice(-12) : updated;
+        });
+        
+        // Update userData to reflect new activity level
+        if (userData) {
+          setUserData({
+            ...userData,
+            lifestyle: {
+              ...userData.lifestyle,
+              activityLevel: newActivityLevel,
+            },
+          });
+        }
+        break;
+      case 'sleep':
+        setSleepHistory((prev) => {
+          const updated = [...prev];
+          const existingIdx = updated.findIndex(h => h.date === dateStr);
+          if (existingIdx >= 0) {
+            updated[existingIdx] = { date: dateStr, hours: parseFloat(value.toFixed(1)) };
+          } else {
+            updated.push({ date: dateStr, hours: parseFloat(value.toFixed(1)) });
+          }
+          return updated.length > 12 ? updated.slice(-12) : updated;
+        });
+        break;
+      case 'water':
+        setWaterHistory((prev) => {
+          const updated = [...prev];
+          const existingIdx = updated.findIndex(h => h.date === dateStr);
+          if (existingIdx >= 0) {
+            updated[existingIdx] = { date: dateStr, liters: parseFloat(value.toFixed(2)) };
+          } else {
+            updated.push({ date: dateStr, liters: parseFloat(value.toFixed(2)) });
+          }
+          return updated.length > 12 ? updated.slice(-12) : updated;
+        });
+        break;
+      case 'stress':
+        setStressHistory((prev) => {
+          const updated = [...prev];
+          const existingIdx = updated.findIndex(h => h.date === dateStr);
+          if (existingIdx >= 0) {
+            updated[existingIdx] = { date: dateStr, score: parseFloat(Math.min(40, value).toFixed(1)) };
+          } else {
+            updated.push({ date: dateStr, score: parseFloat(Math.min(40, value).toFixed(1)) });
+          }
+          return updated.length > 12 ? updated.slice(-12) : updated;
+        });
+        break;
+      case 'dietary':
+        setDietaryHistory((prev) => {
+          const updated = [...prev];
+          const existingIdx = updated.findIndex(h => h.date === dateStr);
+          if (existingIdx >= 0) {
+            updated[existingIdx] = { date: dateStr, mealFrequency: parseFloat(value.toFixed(1)) };
+          } else {
+            updated.push({ date: dateStr, mealFrequency: parseFloat(value.toFixed(1)) });
+          }
+          return updated.length > 12 ? updated.slice(-12) : updated;
+        });
+        break;
+      case 'health':
+        setHealthStatusHistory((prev) => {
+          const updated = [...prev];
+          const existingIdx = updated.findIndex(h => h.date === dateStr);
+          if (existingIdx >= 0) {
+            updated[existingIdx] = { date: dateStr, score: parseFloat(Math.min(100, value).toFixed(1)) };
+          } else {
+            updated.push({ date: dateStr, score: parseFloat(Math.min(100, value).toFixed(1)) });
+          }
+          return updated.length > 12 ? updated.slice(-12) : updated;
+        });
+        break;
+      case 'environment':
+        setEnvironmentalHistory((prev) => {
+          const updated = [...prev];
+          const existingIdx = updated.findIndex(h => h.date === dateStr);
+          if (existingIdx >= 0) {
+            updated[existingIdx] = { date: dateStr, score: parseFloat(Math.min(100, value).toFixed(1)) };
+          } else {
+            updated.push({ date: dateStr, score: parseFloat(Math.min(100, value).toFixed(1)) });
+          }
+          return updated.length > 12 ? updated.slice(-12) : updated;
+        });
+        break;
+      case 'addiction':
+        setAddictionHistory((prev) => {
+          const updated = [...prev];
+          const existingIdx = updated.findIndex(h => h.date === dateStr);
+          if (existingIdx >= 0) {
+            updated[existingIdx] = { date: dateStr, score: parseFloat(Math.min(100, value).toFixed(1)) };
+          } else {
+            updated.push({ date: dateStr, score: parseFloat(Math.min(100, value).toFixed(1)) });
+          }
+          return updated.length > 12 ? updated.slice(-12) : updated;
+        });
+        break;
+      case 'risks':
+        setDiseaseRiskHistory((prev) => {
+          const updated = [...prev];
+          const existingIdx = updated.findIndex(h => h.date === dateStr);
+          if (existingIdx >= 0) {
+            updated[existingIdx] = { date: dateStr, highRiskCount: Math.round(value) };
+          } else {
+            updated.push({ date: dateStr, highRiskCount: Math.round(value) });
+          }
+          return updated.length > 12 ? updated.slice(-12) : updated;
+        });
+        break;
+    }
+
+    setEditingQuickUpdate(null);
+    setQuickUpdateValues({ ...quickUpdateValues, [metric]: '' });
+    Toast.show({
+      type: 'success',
+      position: 'top',
+      text1: 'Updated',
+      text2: `${metric.charAt(0).toUpperCase() + metric.slice(1)} value saved to history`,
+    });
+  };
+
+  // Save Quick Update History to Backend
+  const saveHistoryToBackend = async () => {
+    try {
+      const token = await tokenStorage.getToken();
+
+      if (!token) return;
+
+      // Build update payload with both BMI and Activity Level
+      const updatePayload: any = {};
+
+      // Add activity level if it exists
+      if (userData?.lifestyle?.activityLevel) {
+        updatePayload.lifestyle = {
+          activityLevel: userData.lifestyle.activityLevel,
+          sleepHours: userData.lifestyle?.sleepHours,
+        };
+      }
+
+      // Add BMI if it exists
+      if (userData?.physicalMetrics?.bmi) {
+        updatePayload.physicalMetrics = {
+          bmi: userData.physicalMetrics.bmi,
+          height: userData.physicalMetrics.height,
+          weight: userData.physicalMetrics.weight,
+        };
+      }
+
+      // Only send if we have something to update
+      if (Object.keys(updatePayload).length === 0) return;
+
+      const response = await fetch(`${API_URL}/users/profile`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(updatePayload),
+      });
+
+      if (!response.ok) {
+        console.warn('Failed to save to backend:', response.statusText);
+      }
+    } catch (error) {
+      console.warn('Error saving to backend:', error);
+      // Don't show error to user as this is a background operation
+    }
+  };
+
+  // Quick Update Render Helper
+  const renderQuickUpdate = (
+    metric: string,
+    emoji: string,
+    currentValue: number,
+    label: string,
+    description: string,
+    tip: string,
+    maxValue?: number
+  ) => {
+    const isEditing = editingQuickUpdate === metric;
+    const inputValue = quickUpdateValues[metric];
+
+    return (
+      <View
+        style={{
+          backgroundColor: theme.mode === 'dark' ? theme.colors.background : theme.colors.primary + '08',
+          borderRadius: 12,
+          padding: 14,
+          marginBottom: 16,
+          borderLeftWidth: 4,
+          borderLeftColor: theme.colors.primary,
+        }}
+      >
+        {!isEditing ? (
+          <>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <Text style={{ fontSize: 13, color: theme.colors.text + '88', ...getBodyBoldFont() }}>
+                {emoji} Quick Update
+              </Text>
+              <Text style={{ fontSize: 16, color: theme.colors.primary, ...getHeadingFont() }}>
+                {label}
+              </Text>
+            </View>
+            <Text style={{ fontSize: 11, color: theme.colors.text + '88', marginBottom: 12, ...getBodyFont() }}>
+              {description}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <View style={{ flex: 1, backgroundColor: theme.colors.primary + '22', borderRadius: 8, padding: 10 }}>
+                <Text style={{ fontSize: 12, color: theme.colors.text + '99', ...getBodyFont() }}>
+                  💡 {tip}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setEditingQuickUpdate(metric)}
+                style={{
+                  backgroundColor: theme.colors.primary,
+                  borderRadius: 8,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+              >
+                <MaterialCommunityIcons name="pencil" size={16} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+          </>
+        ) : (
+          <>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <Text style={{ fontSize: 13, color: theme.colors.text + '88', ...getBodyBoldFont() }}>
+                {emoji} Update Value
+              </Text>
+            </View>
+            <View style={{ marginBottom: 12 }}>
+              <TextInput
+                placeholder={`Enter new ${metric} value`}
+                placeholderTextColor={theme.colors.text + '66'}
+                value={inputValue}
+                onChangeText={(val) => setQuickUpdateValues({ ...quickUpdateValues, [metric]: val })}
+                keyboardType="decimal-pad"
+                style={{
+                  borderWidth: 1,
+                  borderColor: theme.colors.primary,
+                  borderRadius: 8,
+                  padding: 10,
+                  color: theme.colors.text,
+                  fontSize: 14,
+                  ...getBodyFont(),
+                }}
+              />
+            </View>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity
+                onPress={() => {
+                  if (!inputValue || isNaN(Number(inputValue))) {
+                    Toast.show({
+                      type: 'error',
+                      position: 'top',
+                      text1: 'Invalid Input',
+                      text2: 'Please enter a valid number',
+                    });
+                    return;
+                  }
+                  const numValue = Number(inputValue);
+                  if (maxValue && numValue > maxValue) {
+                    Toast.show({
+                      type: 'error',
+                      position: 'top',
+                      text1: 'Invalid Input',
+                      text2: `Maximum value is ${maxValue}`,
+                    });
+                    return;
+                  }
+                  
+                  // Route to specific handlers for metrics that need database save
+                  if (metric === 'sleep') {
+                    handleSleepUpdate(numValue);
+                  } else if (metric === 'water') {
+                    handleWaterUpdate(numValue);
+                  } else if (metric === 'stress') {
+                    handleStressUpdate(numValue);
+                  } else if (metric === 'dietary') {
+                    handleMealFrequencyUpdate(numValue);
+                  } else {
+                    saveQuickUpdate(metric, numValue);
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  backgroundColor: theme.colors.primary,
+                  borderRadius: 8,
+                  paddingVertical: 10,
+                  alignItems: 'center',
+                }}
+              >
+                <Text style={{ fontSize: 12, color: '#FFFFFF', ...getBodyBoldFont() }}>Save</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  setEditingQuickUpdate(null);
+                  setQuickUpdateValues({ ...quickUpdateValues, [metric]: '' });
+                }}
+                style={{
+                  flex: 1,
+                  backgroundColor: theme.colors.text + '22',
+                  borderRadius: 8,
+                  paddingVertical: 10,
+                  alignItems: 'center',
+                }}
+              >
+                <Text style={{ fontSize: 12, color: theme.colors.text, ...getBodyBoldFont() }}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
+      </View>
+    );
+  };
 
   // Theme-based color helper
   const getSemanticColor = (type: 'success' | 'warning' | 'danger' | 'info' | 'secondary' | 'accent') => {
@@ -734,6 +1098,48 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
     return theme.mode === 'dark' ? theme.colors.surface : '#FFFFFF';
   };
 
+  // Minimalist button style helper - blue and white theme
+  const getMinimalistButtonStyle = (isActive: boolean = false) => ({
+    borderWidth: 2,
+    borderColor: theme.colors.primary,
+    backgroundColor: isActive ? '#FFFFFF' : 'transparent',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    elevation: isActive ? 2 : 0,
+    shadowColor: isActive ? theme.colors.primary : 'transparent',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  });
+
+  // Minimalist button text style - adapts based on active state
+  const getMinimalistButtonTextStyle = (isActive: boolean = false) => ({
+    color: isActive ? theme.colors.primary : theme.colors.primary,
+    fontSize: 12,
+    ...getBodyBoldFont(),
+  });
+
+  // Primary action button style - filled minimalist
+  const getPrimaryActionButtonStyle = () => ({
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    elevation: 2,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  });
+
+  // Primary action text style
+  const getPrimaryActionTextStyle = () => ({
+    color: '#FFFFFF',
+    fontSize: 12,
+    ...getBodyBoldFont(),
+  });
+
   useEffect(() => {
     loadUserData();
     if (initialMetric) {
@@ -775,6 +1181,20 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
       }
     }, [])
   );
+
+  // Save data when activity level or BMI changes (for quick updates)
+  useEffect(() => {
+    saveHistoryToBackend();
+  }, [userData?.lifestyle?.activityLevel, userData?.physicalMetrics?.bmi]);
+
+  // Only call onClose when component actually unmounts
+  useEffect(() => {
+    return () => {
+      if (onClose) {
+        onClose();
+      }
+    };
+  }, [onClose]);
 
   const fetchChecklistFromGemini = async () => {
     setChecklistLoading(true);
@@ -949,15 +1369,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
     setLoading(true);
     setError(null);
     try {
-      const token = await (async () => {
-        try {
-          const mod = await import("../../utils/tokenStorage");
-          const t = await mod.tokenStorage.getToken();
-          return t;
-        } catch (e) {
-          return null;
-        }
-      })();
+      const token = await tokenStorage.getToken();
 
       if (!token) {
         setError("Please sign in to view your health analysis");
@@ -1417,44 +1829,1559 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
       });
     }
 
-    // Try to save to backend
+    // Save to backend
     try {
-      const token = await (async () => {
-        try {
-          return await SecureStore.getItemAsync("userToken");
-        } catch (e) {
-          return null;
-        }
-      })();
+      const token = await tokenStorage.getToken();
+      console.log("Token retrieved:", token ? "exists" : "null");
 
-      if (token) {
-        await fetch(`${API_URL}/profile/update`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            physicalMetrics: {
-              bmi: parseFloat(bmiValue.toFixed(1)),
-              height: { value: selectedHeight },
-              weight: { value: selectedWeight },
-            },
-          }),
+      if (!token) {
+        Toast.show({
+          type: "warning",
+          position: "top",
+          text1: "Offline Mode",
+          text2: "Update saved locally. Sign in to sync to database.",
         });
+        return;
       }
-    } catch (err) {
-      console.error("Error updating BMI on backend:", err);
+
+      console.log("Sending BMI update:", {
+        height: selectedHeight,
+        weight: selectedWeight,
+        bmi: bmiValue.toFixed(1),
+        apiUrl: API_URL,
+      });
+
+      const response = await fetch(`${API_URL}/users/profile`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          physicalMetrics: {
+            height: { value: selectedHeight },
+            weight: { value: selectedWeight },
+          },
+        }),
+      });
+
+      console.log("Backend response status:", response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Backend response status:", response.status);
+        console.error("Backend response body:", errorText);
+        throw new Error(`Backend error: ${response.status} - ${errorText}`);
+      }
+
+      const responseData = await response.json();
+      console.log("BMI update response:", responseData);
+
+      Toast.show({
+        type: "success",
+        position: "top",
+        text1: "BMI Updated & Saved",
+        text2: `Height: ${selectedHeight}cm | Weight: ${selectedWeight}kg | BMI: ${bmiValue.toFixed(1)}`,
+      });
+    } catch (err: any) {
+      console.error("Full error object:", err);
+      console.error("Error message:", err?.message);
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Database Save Failed",
+        text2: "Local update saved. Check console for details.",
+      });
+    }
+  };
+
+  const handleActivityUpdate = async (newActivityLevel: string) => {
+    // Validate activity level
+    if (!ACTIVITY_LEVELS[newActivityLevel as keyof typeof ACTIVITY_LEVELS]) {
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Invalid Activity Level",
+        text2: "Please select a valid activity level",
+      });
+      return;
     }
 
-    setShowBmiModal(false);
+    // Add today's entry to activity history
+    const today = new Date();
+    const dateStr = `${today.getMonth() + 1}/${today.getDate()}`;
     
-    Toast.show({
-      type: "success",
-      position: "top",
-      text1: "BMI Updated",
-      text2: `Height: ${selectedHeight}cm | Weight: ${selectedWeight}kg | BMI: ${bmiValue.toFixed(1)}`,
+    const activityInfo = ACTIVITY_LEVELS[newActivityLevel as keyof typeof ACTIVITY_LEVELS];
+    const palValue = parseFloat(activityInfo.pal.split("-")[0]); // Get first value of PAL range
+    const metValue = parseFloat(activityInfo.met.split("-")[0]); // Get first value of MET range
+
+    setActivityHistory((prevHistory) => {
+      const existingIndex = prevHistory.findIndex(h => h.date === dateStr);
+      let newHistory;
+      
+      if (existingIndex >= 0) {
+        newHistory = [...prevHistory];
+        newHistory[existingIndex] = { date: dateStr, pal: palValue, met: metValue };
+      } else {
+        newHistory = [...prevHistory, { date: dateStr, pal: palValue, met: metValue }];
+      }
+      
+      if (newHistory.length > 12) {
+        newHistory = newHistory.slice(-12);
+      }
+      
+      return newHistory;
     });
+
+    // Update selected index to today's entry
+    setSelectedActivityIndex(activityHistory.length - 1);
+
+    // Update user data with new activity level
+    if (userData) {
+      setUserData({
+        ...userData,
+        lifestyle: {
+          ...userData.lifestyle,
+          activityLevel: newActivityLevel,
+        },
+      });
+    }
+
+    // Save to backend
+    try {
+      const token = await tokenStorage.getToken();
+      console.log("Token retrieved for activity update:", token ? "exists" : "null");
+
+      if (!token) {
+        Toast.show({
+          type: "warning",
+          position: "top",
+          text1: "Offline Mode",
+          text2: "Update saved locally. Sign in to sync to database.",
+        });
+        return;
+      }
+
+      console.log("Sending activity level update:", {
+        activityLevel: newActivityLevel,
+        apiUrl: API_URL,
+      });
+
+      const response = await fetch(`${API_URL}/users/profile`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          lifestyle: {
+            activityLevel: newActivityLevel,
+          },
+        }),
+      });
+
+      console.log("Backend response status:", response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Backend response status:", response.status);
+        console.error("Backend response body:", errorText);
+        throw new Error(`Backend error: ${response.status} - ${errorText}`);
+      }
+
+      const responseData = await response.json();
+      console.log("Activity update response:", responseData);
+
+      Toast.show({
+        type: "success",
+        position: "top",
+        text1: "Activity Level Updated & Saved",
+        text2: `${newActivityLevel.replace(/_/g, " ").toUpperCase()}`,
+      });
+    } catch (err: any) {
+      console.error("Full error object:", err);
+      console.error("Error message:", err?.message);
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Database Save Failed",
+        text2: "Local update saved. Check console for details.",
+      });
+    }
+  };
+
+  const handleSleepUpdate = async (sleepHours: number) => {
+    // Validate sleep hours
+    if (isNaN(sleepHours) || sleepHours < 0 || sleepHours > 24) {
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Invalid Sleep Hours",
+        text2: "Please enter a value between 0 and 24 hours",
+      });
+      return;
+    }
+
+    // Add today's entry to sleep history
+    const today = new Date();
+    const dateStr = `${today.getMonth() + 1}/${today.getDate()}`;
+    
+    setSleepHistory((prevHistory) => {
+      const existingIndex = prevHistory.findIndex(h => h.date === dateStr);
+      let newHistory;
+      
+      if (existingIndex >= 0) {
+        newHistory = [...prevHistory];
+        newHistory[existingIndex] = { date: dateStr, hours: parseFloat(sleepHours.toFixed(1)) };
+      } else {
+        newHistory = [...prevHistory, { date: dateStr, hours: parseFloat(sleepHours.toFixed(1)) }];
+      }
+      
+      if (newHistory.length > 12) {
+        newHistory = newHistory.slice(-12);
+      }
+      
+      return newHistory;
+    });
+
+    // Update selected index to today's entry
+    setSelectedSleepIndex(sleepHistory.length - 1);
+
+    // Update user data with new sleep hours
+    if (userData) {
+      setUserData({
+        ...userData,
+        lifestyle: {
+          ...userData.lifestyle,
+          sleepHours: parseFloat(sleepHours.toFixed(1)),
+        },
+      });
+    }
+
+    // Save to backend
+    try {
+      const token = await tokenStorage.getToken();
+      console.log("Token retrieved for sleep update:", token ? "exists" : "null");
+
+      if (!token) {
+        Toast.show({
+          type: "warning",
+          position: "top",
+          text1: "Offline Mode",
+          text2: "Update saved locally. Sign in to sync to database.",
+        });
+        return;
+      }
+
+      console.log("Sending sleep hours update:", {
+        sleepHours: sleepHours,
+        apiUrl: API_URL,
+      });
+
+      const response = await fetch(`${API_URL}/users/profile`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          lifestyle: {
+            sleepHours: parseFloat(sleepHours.toFixed(1)),
+          },
+        }),
+      });
+
+      console.log("Backend response status:", response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Backend response status:", response.status);
+        console.error("Backend response body:", errorText);
+        throw new Error(`Backend error: ${response.status} - ${errorText}`);
+      }
+
+      const responseData = await response.json();
+      console.log("Sleep update response:", responseData);
+
+      Toast.show({
+        type: "success",
+        position: "top",
+        text1: "Sleep Hours Updated & Saved",
+        text2: `${sleepHours.toFixed(1)} hours/night`,
+      });
+    } catch (err: any) {
+      console.error("Full error object:", err);
+      console.error("Error message:", err?.message);
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Database Save Failed",
+        text2: "Local update saved. Check console for details.",
+      });
+    }
+  };
+
+  const handleWaterUpdate = async (waterLiters: number) => {
+    // Validate water intake
+    if (isNaN(waterLiters) || waterLiters < 0 || waterLiters > 20) {
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Invalid Water Intake",
+        text2: "Please enter a value between 0 and 20 liters",
+      });
+      return;
+    }
+
+    // Add today's entry to water history
+    const today = new Date();
+    const dateStr = `${today.getMonth() + 1}/${today.getDate()}`;
+    
+    setWaterHistory((prevHistory) => {
+      const existingIndex = prevHistory.findIndex(h => h.date === dateStr);
+      let newHistory;
+      
+      if (existingIndex >= 0) {
+        newHistory = [...prevHistory];
+        newHistory[existingIndex] = { date: dateStr, liters: parseFloat(waterLiters.toFixed(2)) };
+      } else {
+        newHistory = [...prevHistory, { date: dateStr, liters: parseFloat(waterLiters.toFixed(2)) }];
+      }
+      
+      if (newHistory.length > 12) {
+        newHistory = newHistory.slice(-12);
+      }
+      
+      return newHistory;
+    });
+
+    // Update selected index to today's entry
+    setSelectedWaterIndex(waterHistory.length - 1);
+
+    // Update user data with new water intake
+    if (userData) {
+      setUserData({
+        ...userData,
+        dietaryProfile: {
+          ...userData.dietaryProfile,
+          dailyWaterIntake: parseFloat(waterLiters.toFixed(2)),
+        },
+      });
+    }
+
+    // Save to backend
+    try {
+      const token = await tokenStorage.getToken();
+      console.log("Token retrieved for water update:", token ? "exists" : "null");
+
+      if (!token) {
+        Toast.show({
+          type: "warning",
+          position: "top",
+          text1: "Offline Mode",
+          text2: "Update saved locally. Sign in to sync to database.",
+        });
+        return;
+      }
+
+      console.log("Sending water intake update:", {
+        waterLiters: waterLiters,
+        apiUrl: API_URL,
+      });
+
+      const response = await fetch(`${API_URL}/users/profile`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          dietaryProfile: {
+            dailyWaterIntake: parseFloat(waterLiters.toFixed(2)),
+          },
+        }),
+      });
+
+      console.log("Backend response status:", response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Backend response status:", response.status);
+        console.error("Backend response body:", errorText);
+        throw new Error(`Backend error: ${response.status} - ${errorText}`);
+      }
+
+      const responseData = await response.json();
+      console.log("Water update response:", responseData);
+
+      Toast.show({
+        type: "success",
+        position: "top",
+        text1: "Water Intake Updated & Saved",
+        text2: `${waterLiters.toFixed(2)} liters/day`,
+      });
+    } catch (err: any) {
+      console.error("Full error object:", err);
+      console.error("Error message:", err?.message);
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Database Save Failed",
+        text2: "Local update saved. Check console for details.",
+      });
+    }
+  };
+
+  const handleStressUpdate = async (stressScore: number) => {
+    // Validate stress score (0-40 based on PSS questionnaire)
+    if (isNaN(stressScore) || stressScore < 0 || stressScore > 40) {
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Invalid Stress Score",
+        text2: "Please enter a value between 0 and 40",
+      });
+      return;
+    }
+
+    // Add today's entry to stress history
+    const today = new Date();
+    const dateStr = `${today.getMonth() + 1}/${today.getDate()}`;
+    
+    setStressHistory((prevHistory) => {
+      const existingIndex = prevHistory.findIndex(h => h.date === dateStr);
+      let newHistory;
+      
+      if (existingIndex >= 0) {
+        newHistory = [...prevHistory];
+        newHistory[existingIndex] = { date: dateStr, score: parseFloat(stressScore.toFixed(1)) };
+      } else {
+        newHistory = [...prevHistory, { date: dateStr, score: parseFloat(stressScore.toFixed(1)) }];
+      }
+      
+      if (newHistory.length > 12) {
+        newHistory = newHistory.slice(-12);
+      }
+      
+      return newHistory;
+    });
+
+    // Update selected index to today's entry
+    setSelectedStressIndex(stressHistory.length - 1);
+
+    // Update user data with new stress level
+    if (userData) {
+      setUserData({
+        ...userData,
+        riskFactors: {
+          ...userData.riskFactors,
+          stressLevel: stressScore <= 13 ? 'low' : (stressScore <= 26 ? 'moderate' : 'high'),
+        },
+      });
+    }
+
+    // Save to backend
+    try {
+      const token = await tokenStorage.getToken();
+      console.log("Token retrieved for stress update:", token ? "exists" : "null");
+
+      if (!token) {
+        Toast.show({
+          type: "warning",
+          position: "top",
+          text1: "Offline Mode",
+          text2: "Update saved locally. Sign in to sync to database.",
+        });
+        return;
+      }
+
+      console.log("Sending stress level update:", {
+        stressScore: stressScore,
+        apiUrl: API_URL,
+      });
+
+      const response = await fetch(`${API_URL}/users/profile`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          riskFactors: {
+            stressLevel: stressScore <= 13 ? 'low' : (stressScore <= 26 ? 'moderate' : 'high'),
+          },
+        }),
+      });
+
+      console.log("Backend response status:", response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Backend response status:", response.status);
+        console.error("Backend response body:", errorText);
+        throw new Error(`Backend error: ${response.status} - ${errorText}`);
+      }
+
+      const responseData = await response.json();
+      console.log("Stress update response:", responseData);
+
+      const stressLevel = stressScore <= 13 ? 'Low Stress' : (stressScore <= 26 ? 'Moderate Stress' : 'High Stress');
+      Toast.show({
+        type: "success",
+        position: "top",
+        text1: "Stress Level Updated & Saved",
+        text2: `${stressScore.toFixed(0)}/40 - ${stressLevel}`,
+      });
+    } catch (err: any) {
+      console.error("Full error object:", err);
+      console.error("Error message:", err?.message);
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Database Save Failed",
+        text2: "Local update saved. Check console for details.",
+      });
+    }
+  };
+
+  const handleMealFrequencyUpdate = async (mealFrequency: number) => {
+    // Validate meal frequency
+    if (isNaN(mealFrequency) || mealFrequency < 1 || mealFrequency > 6) {
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Invalid Meal Frequency",
+        text2: "Please enter a value between 1 and 6 meals per day",
+      });
+      return;
+    }
+
+    // Add today's entry to dietary history
+    const today = new Date();
+    const dateStr = `${today.getMonth() + 1}/${today.getDate()}`;
+    
+    setDietaryHistory((prevHistory) => {
+      const existingIndex = prevHistory.findIndex(h => h.date === dateStr);
+      let newHistory;
+      
+      if (existingIndex >= 0) {
+        newHistory = [...prevHistory];
+        newHistory[existingIndex] = { date: dateStr, mealFrequency: parseFloat(mealFrequency.toFixed(1)) };
+      } else {
+        newHistory = [...prevHistory, { date: dateStr, mealFrequency: parseFloat(mealFrequency.toFixed(1)) }];
+      }
+      
+      if (newHistory.length > 12) {
+        newHistory = newHistory.slice(-12);
+      }
+      
+      return newHistory;
+    });
+
+    // Update selected index to today's entry
+    setSelectedDietaryIndex(dietaryHistory.length - 1);
+
+    // Update user data with new meal frequency
+    if (userData) {
+      setUserData({
+        ...userData,
+        dietaryProfile: {
+          ...userData.dietaryProfile,
+          mealFrequency: parseFloat(mealFrequency.toFixed(1)),
+        },
+      });
+    }
+
+    // Save to backend
+    try {
+      const token = await tokenStorage.getToken();
+      console.log("Token retrieved for meal frequency update:", token ? "exists" : "null");
+
+      if (!token) {
+        Toast.show({
+          type: "warning",
+          position: "top",
+          text1: "Offline Mode",
+          text2: "Update saved locally. Sign in to sync to database.",
+        });
+        return;
+      }
+
+      console.log("Sending meal frequency update:", {
+        mealFrequency: mealFrequency,
+        apiUrl: API_URL,
+      });
+
+      const response = await fetch(`${API_URL}/users/profile`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          dietaryProfile: {
+            mealFrequency: parseFloat(mealFrequency.toFixed(1)),
+          },
+        }),
+      });
+
+      console.log("Backend response status:", response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Backend response status:", response.status);
+        console.error("Backend response body:", errorText);
+        throw new Error(`Backend error: ${response.status} - ${errorText}`);
+      }
+
+      const responseData = await response.json();
+      console.log("Meal frequency update response:", responseData);
+
+      Toast.show({
+        type: "success",
+        position: "top",
+        text1: "Meal Frequency Updated & Saved",
+        text2: `${mealFrequency.toFixed(1)} meals/day`,
+      });
+    } catch (err: any) {
+      console.error("Full error object:", err);
+      console.error("Error message:", err?.message);
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Database Save Failed",
+        text2: "Local update saved. Check console for details.",
+      });
+    }
+  };
+
+  const handleDietaryPreferencesUpdate = async (preferences: string[]) => {
+    // Validate preferences
+    if (!Array.isArray(preferences) || preferences.length === 0) {
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Invalid Input",
+        text2: "Please select at least one dietary preference",
+      });
+      return;
+    }
+
+    // Convert preferences to lowercase for backend
+    const normalizedPreferences = preferences.map(p => p.toLowerCase().replace(/\s+/g, '-'));
+
+    // Update user data with new preferences
+    if (userData) {
+      setUserData({
+        ...userData,
+        dietaryProfile: {
+          ...userData.dietaryProfile,
+          preferences: normalizedPreferences,
+        },
+      });
+    }
+
+    // Save to backend
+    try {
+      const token = await tokenStorage.getToken();
+      console.log("Token retrieved for dietary preferences update:", token ? "exists" : "null");
+
+      if (!token) {
+        Toast.show({
+          type: "warning",
+          position: "top",
+          text1: "Offline Mode",
+          text2: "Update saved locally. Sign in to sync to database.",
+        });
+        return;
+      }
+
+      console.log("Sending dietary preferences update:", {
+        preferences: normalizedPreferences,
+        apiUrl: API_URL,
+      });
+
+      const response = await fetch(`${API_URL}/users/profile`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          dietaryProfile: {
+            preferences: normalizedPreferences,
+          },
+        }),
+      });
+
+      console.log("Backend response status:", response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Backend response status:", response.status);
+        console.error("Backend response body:", errorText);
+        throw new Error(`Backend error: ${response.status} - ${errorText}`);
+      }
+
+      const responseData = await response.json();
+      console.log("Dietary preferences update response:", responseData);
+
+      Toast.show({
+        type: "success",
+        position: "top",
+        text1: "Dietary Preferences Updated & Saved",
+        text2: `${normalizedPreferences.join(", ")}`,
+      });
+    } catch (err: any) {
+      console.error("Full error object:", err);
+      console.error("Error message:", err?.message);
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Database Save Failed",
+        text2: "Local update saved. Check console for details.",
+      });
+    }
+  };
+
+  const handleAllergiesUpdate = async (allergies: string[]) => {
+    // Validate allergies input (can be empty or array)
+    if (!Array.isArray(allergies)) {
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Invalid Input",
+        text2: "Please enter valid food allergies",
+      });
+      return;
+    }
+
+    // Update user data with new allergies
+    if (userData) {
+      setUserData({
+        ...userData,
+        dietaryProfile: {
+          ...userData.dietaryProfile,
+          allergies: allergies,
+        },
+      });
+    }
+
+    // Save to backend
+    try {
+      const token = await tokenStorage.getToken();
+      console.log("Token retrieved for allergies update:", token ? "exists" : "null");
+
+      if (!token) {
+        Toast.show({
+          type: "warning",
+          position: "top",
+          text1: "Offline Mode",
+          text2: "Update saved locally. Sign in to sync to database.",
+        });
+        return;
+      }
+
+      console.log("Sending allergies update:", {
+        allergies: allergies,
+        apiUrl: API_URL,
+      });
+
+      const response = await fetch(`${API_URL}/users/profile`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          dietaryProfile: {
+            allergies: allergies,
+          },
+        }),
+      });
+
+      console.log("Backend response status:", response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Backend response status:", response.status);
+        console.error("Backend response body:", errorText);
+        throw new Error(`Backend error: ${response.status} - ${errorText}`);
+      }
+
+      const responseData = await response.json();
+      console.log("Allergies update response:", responseData);
+
+      const allergiesText = allergies.length > 0 ? allergies.join(", ") : "No allergies";
+      Toast.show({
+        type: "success",
+        position: "top",
+        text1: "Food Allergies Updated & Saved",
+        text2: allergiesText,
+      });
+    } catch (err: any) {
+      console.error("Full error object:", err);
+      console.error("Error message:", err?.message);
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Database Save Failed",
+        text2: "Local update saved. Check console for details.",
+      });
+    }
+  };
+
+  const handleHealthStatusConditionsUpdate = async (conditions: string) => {
+    if (!conditions.trim()) {
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Invalid Input",
+        text2: "Please enter at least one condition",
+      });
+      return;
+    }
+
+    const conditionsList = conditions.split(",").map(c => c.trim()).filter(c => c.length > 0);
+
+    if (userData) {
+      setUserData({
+        ...userData,
+        healthProfile: {
+          ...userData.healthProfile,
+          currentConditions: conditionsList,
+        },
+      });
+    }
+
+    try {
+      const token = await tokenStorage.getToken();
+      console.log("Token retrieved for health conditions update:", token ? "exists" : "null");
+
+      if (!token) {
+        Toast.show({
+          type: "warning",
+          position: "top",
+          text1: "Offline Mode",
+          text2: "Update saved locally. Sign in to sync to database.",
+        });
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/users/profile`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          healthProfile: {
+            currentConditions: conditionsList,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Backend response status:", response.status);
+        console.error("Backend response body:", errorText);
+        throw new Error(`Backend error: ${response.status} - ${errorText}`);
+      }
+
+      const responseData = await response.json();
+      console.log("Health conditions update response:", responseData);
+
+      Toast.show({
+        type: "success",
+        position: "top",
+        text1: "Current Conditions Updated & Saved",
+        text2: conditionsList.join(", "),
+      });
+
+      setHealthStatusQuickUpdate({ ...healthStatusQuickUpdate, conditions: '' });
+    } catch (err: any) {
+      console.error("Full error object:", err);
+      console.error("Error message:", err?.message);
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Database Save Failed",
+        text2: "Local update saved. Check console for details.",
+      });
+    }
+  };
+
+  const handleFamilyHistoryUpdate = async (history: string) => {
+    if (!history.trim()) {
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Invalid Input",
+        text2: "Please enter at least one family history",
+      });
+      return;
+    }
+
+    const historyList = history.split(",").map(h => h.trim()).filter(h => h.length > 0);
+
+    if (userData) {
+      setUserData({
+        ...userData,
+        healthProfile: {
+          ...userData.healthProfile,
+          familyHistory: historyList,
+        },
+      });
+    }
+
+    try {
+      const token = await tokenStorage.getToken();
+      console.log("Token retrieved for family history update:", token ? "exists" : "null");
+
+      if (!token) {
+        Toast.show({
+          type: "warning",
+          position: "top",
+          text1: "Offline Mode",
+          text2: "Update saved locally. Sign in to sync to database.",
+        });
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/users/profile`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          healthProfile: {
+            familyHistory: historyList,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Backend response status:", response.status);
+        console.error("Backend response body:", errorText);
+        throw new Error(`Backend error: ${response.status} - ${errorText}`);
+      }
+
+      const responseData = await response.json();
+      console.log("Family history update response:", responseData);
+
+      Toast.show({
+        type: "success",
+        position: "top",
+        text1: "Family History Updated & Saved",
+        text2: historyList.join(", "),
+      });
+
+      setHealthStatusQuickUpdate({ ...healthStatusQuickUpdate, familyHistory: '' });
+    } catch (err: any) {
+      console.error("Full error object:", err);
+      console.error("Error message:", err?.message);
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Database Save Failed",
+        text2: "Local update saved. Check console for details.",
+      });
+    }
+  };
+
+  const handleMedicationsUpdate = async (medications: string) => {
+    if (!medications.trim()) {
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Invalid Input",
+        text2: "Please enter at least one medication",
+      });
+      return;
+    }
+
+    const medicationsList = medications.split(",").map(m => m.trim()).filter(m => m.length > 0);
+
+    if (userData) {
+      setUserData({
+        ...userData,
+        healthProfile: {
+          ...userData.healthProfile,
+          medications: medicationsList,
+        },
+      });
+    }
+
+    try {
+      const token = await tokenStorage.getToken();
+      console.log("Token retrieved for medications update:", token ? "exists" : "null");
+
+      if (!token) {
+        Toast.show({
+          type: "warning",
+          position: "top",
+          text1: "Offline Mode",
+          text2: "Update saved locally. Sign in to sync to database.",
+        });
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/users/profile`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          healthProfile: {
+            medications: medicationsList,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Backend response status:", response.status);
+        console.error("Backend response body:", errorText);
+        throw new Error(`Backend error: ${response.status} - ${errorText}`);
+      }
+
+      const responseData = await response.json();
+      console.log("Medications update response:", responseData);
+
+      Toast.show({
+        type: "success",
+        position: "top",
+        text1: "Current Medications Updated & Saved",
+        text2: medicationsList.join(", "),
+      });
+
+      setHealthStatusQuickUpdate({ ...healthStatusQuickUpdate, medications: '' });
+    } catch (err: any) {
+      console.error("Full error object:", err);
+      console.error("Error message:", err?.message);
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Database Save Failed",
+        text2: "Local update saved. Check console for details.",
+      });
+    }
+  };
+
+  const handleDietaryPreferencesTextUpdate = async (preferences: string) => {
+    if (!preferences.trim()) {
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Invalid Input",
+        text2: "Please enter at least one dietary preference",
+      });
+      return;
+    }
+
+    const validPreferences = ['vegetarian', 'vegan', 'pescatarian', 'kosher', 'halal', 'gluten-free', 'dairy-free'];
+    const preferencesList = preferences.split(",").map(p => p.trim().toLowerCase()).filter(p => p.length > 0);
+
+    // Validate all entered preferences
+    const invalidPrefs = preferencesList.filter(p => !validPreferences.includes(p));
+    if (invalidPrefs.length > 0) {
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Invalid Preferences",
+        text2: `Invalid: ${invalidPrefs.join(", ")}. Valid options: vegetarian, vegan, pescatarian, kosher, halal, gluten-free, dairy-free`,
+      });
+      return;
+    }
+
+    if (userData) {
+      setUserData({
+        ...userData,
+        dietaryProfile: {
+          ...userData.dietaryProfile,
+          preferences: preferencesList,
+        },
+      });
+    }
+
+    try {
+      const token = await tokenStorage.getToken();
+      console.log("Token retrieved for dietary preferences text update:", token ? "exists" : "null");
+
+      if (!token) {
+        Toast.show({
+          type: "warning",
+          position: "top",
+          text1: "Offline Mode",
+          text2: "Update saved locally. Sign in to sync to database.",
+        });
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/users/profile`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          dietaryProfile: {
+            preferences: preferencesList,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Backend response status:", response.status);
+        console.error("Backend response body:", errorText);
+        throw new Error(`Backend error: ${response.status} - ${errorText}`);
+      }
+
+      const responseData = await response.json();
+      console.log("Dietary preferences text update response:", responseData);
+
+      Toast.show({
+        type: "success",
+        position: "top",
+        text1: "Dietary Preferences Updated & Saved",
+        text2: preferencesList.join(", "),
+      });
+
+      setHealthStatusQuickUpdate({ ...healthStatusQuickUpdate, dietaryPrefs: '' });
+    } catch (err: any) {
+      console.error("Full error object:", err);
+      console.error("Error message:", err?.message);
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Database Save Failed",
+        text2: "Local update saved. Check console for details.",
+      });
+    }
+  };
+
+  const handlePollutionExposureUpdate = async (pollutionLevel: string) => {
+    if (!pollutionLevel || !['low', 'medium', 'high'].includes(pollutionLevel.toLowerCase())) {
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Invalid Input",
+        text2: "Please select a valid pollution level (Low, Medium, High)",
+      });
+      return;
+    }
+
+    const normalizedLevel = pollutionLevel.toLowerCase();
+
+    if (userData) {
+      setUserData({
+        ...userData,
+        environmentalFactors: {
+          ...userData.environmentalFactors,
+          pollutionExposure: normalizedLevel,
+        },
+      });
+    }
+
+    try {
+      const token = await tokenStorage.getToken();
+      console.log("Token retrieved for pollution exposure update:", token ? "exists" : "null");
+
+      if (!token) {
+        Toast.show({
+          type: "warning",
+          position: "top",
+          text1: "Offline Mode",
+          text2: "Update saved locally. Sign in to sync to database.",
+        });
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/users/profile`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          environmentalFactors: {
+            pollutionExposure: normalizedLevel,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Backend response status:", response.status);
+        console.error("Backend response body:", errorText);
+        throw new Error(`Backend error: ${response.status} - ${errorText}`);
+      }
+
+      const responseData = await response.json();
+      console.log("Pollution exposure update response:", responseData);
+
+      Toast.show({
+        type: "success",
+        position: "top",
+        text1: "Pollution Exposure Updated & Saved",
+        text2: `Level: ${normalizedLevel.charAt(0).toUpperCase() + normalizedLevel.slice(1)}`,
+      });
+    } catch (err: any) {
+      console.error("Full error object:", err);
+      console.error("Error message:", err?.message);
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Database Save Failed",
+        text2: "Local update saved. Check console for details.",
+      });
+    }
+  };
+
+  const handleOccupationTypeUpdate = async (occupationType: string) => {
+    const validTypes = ['sedentary', 'physical', 'mixed'];
+    if (!occupationType || !validTypes.includes(occupationType.toLowerCase())) {
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Invalid Input",
+        text2: "Please select a valid occupation type (Sedentary, Physical, Mixed)",
+      });
+      return;
+    }
+
+    const normalizedType = occupationType.toLowerCase();
+
+    if (userData) {
+      setUserData({
+        ...userData,
+        environmentalFactors: {
+          ...userData.environmentalFactors,
+          occupationType: normalizedType,
+        },
+      });
+    }
+
+    try {
+      const token = await tokenStorage.getToken();
+      console.log("Token retrieved for occupation type update:", token ? "exists" : "null");
+
+      if (!token) {
+        Toast.show({
+          type: "warning",
+          position: "top",
+          text1: "Offline Mode",
+          text2: "Update saved locally. Sign in to sync to database.",
+        });
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/users/profile`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          environmentalFactors: {
+            occupationType: normalizedType,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Backend response status:", response.status);
+        console.error("Backend response body:", errorText);
+        throw new Error(`Backend error: ${response.status} - ${errorText}`);
+      }
+
+      const responseData = await response.json();
+      console.log("Occupation type update response:", responseData);
+
+      Toast.show({
+        type: "success",
+        position: "top",
+        text1: "Occupation Type Updated & Saved",
+        text2: `Type: ${normalizedType.charAt(0).toUpperCase() + normalizedType.slice(1)}`,
+      });
+    } catch (err: any) {
+      console.error("Full error object:", err);
+      console.error("Error message:", err?.message);
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Database Save Failed",
+        text2: "Local update saved. Check console for details.",
+      });
+    }
+  };
+
+  const handleAddictionSubstanceUpdate = async (substance: string) => {
+    if (!substance.trim()) {
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Invalid Input",
+        text2: "Please enter a substance name",
+      });
+      return;
+    }
+
+    const currentAddictions = userData?.riskFactors?.addictions || [];
+    const substanceName = substance.trim();
+
+    // Check if substance already exists
+    const substanceExists = currentAddictions.some(
+      a => a.substance.toLowerCase() === substanceName.toLowerCase()
+    );
+
+    if (substanceExists) {
+      Toast.show({
+        type: "warning",
+        position: "top",
+        text1: "Already Added",
+        text2: `${substanceName} is already in your tracking list`,
+      });
+      return;
+    }
+
+    // ADD to the list (don't replace)
+    const updatedAddictions = [
+      ...currentAddictions,
+      { substance: substanceName, severity: 'mild', duration: 1 }
+    ];
+
+    if (userData) {
+      setUserData({
+        ...userData,
+        riskFactors: {
+          ...userData.riskFactors,
+          addictions: updatedAddictions,
+        },
+      });
+    }
+
+    try {
+      const token = await tokenStorage.getToken();
+      console.log("Token retrieved for addiction substance update:", token ? "exists" : "null");
+
+      if (!token) {
+        Toast.show({
+          type: "warning",
+          position: "top",
+          text1: "Offline Mode",
+          text2: "Update saved locally. Sign in to sync to database.",
+        });
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/users/profile`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          riskFactors: {
+            addictions: updatedAddictions,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Backend response status:", response.status);
+        console.error("Backend response body:", errorText);
+        throw new Error(`Backend error: ${response.status} - ${errorText}`);
+      }
+
+      const responseData = await response.json();
+      console.log("Addiction substance update response:", responseData);
+
+      Toast.show({
+        type: "success",
+        position: "top",
+        text1: "Substance Added & Saved",
+        text2: substanceName,
+      });
+    } catch (err: any) {
+      console.error("Full error object:", err);
+      console.error("Error message:", err?.message);
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Database Save Failed",
+        text2: "Local update saved. Check console for details.",
+      });
+    }
+  };
+
+  const handleRemoveSubstance = async (substanceIndex: number) => {
+    const currentAddictions = userData?.riskFactors?.addictions || [];
+    const updatedAddictions = currentAddictions.filter((_, idx) => idx !== substanceIndex);
+
+    if (userData) {
+      setUserData({
+        ...userData,
+        riskFactors: {
+          ...userData.riskFactors,
+          addictions: updatedAddictions,
+        },
+      });
+    }
+
+    try {
+      const token = await tokenStorage.getToken();
+      console.log("Token retrieved for remove substance:", token ? "exists" : "null");
+
+      if (!token) {
+        Toast.show({
+          type: "warning",
+          position: "top",
+          text1: "Offline Mode",
+          text2: "Update saved locally. Sign in to sync to database.",
+        });
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/users/profile`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          riskFactors: {
+            addictions: updatedAddictions,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Backend response status:", response.status);
+        console.error("Backend response body:", errorText);
+        throw new Error(`Backend error: ${response.status} - ${errorText}`);
+      }
+
+      const responseData = await response.json();
+      console.log("Remove substance response:", responseData);
+
+      Toast.show({
+        type: "success",
+        position: "top",
+        text1: "Substance Removed & Saved",
+        text2: currentAddictions[substanceIndex].substance,
+      });
+    } catch (err: any) {
+      console.error("Full error object:", err);
+      console.error("Error message:", err?.message);
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Database Save Failed",
+        text2: "Local update saved. Check console for details.",
+      });
+    }
+  };
+
+  const handleAddictionDurationUpdate = async (durationMonths: number) => {
+    if (durationMonths < 1) {
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Invalid Input",
+        text2: "Duration must be at least 1 month",
+      });
+      return;
+    }
+
+    const currentAddictions = userData?.riskFactors?.addictions || [];
+    // Update or create first addiction entry
+    let updatedAddictions;
+    if (currentAddictions.length > 0) {
+      updatedAddictions = [
+        { ...currentAddictions[0], duration: durationMonths },
+        ...currentAddictions.slice(1),
+      ];
+    } else {
+      updatedAddictions = [{ substance: 'Unknown', severity: 'mild', duration: durationMonths }];
+    }
+
+    if (userData) {
+      setUserData({
+        ...userData,
+        riskFactors: {
+          ...userData.riskFactors,
+          addictions: updatedAddictions,
+        },
+      });
+    }
+
+    try {
+      const token = await tokenStorage.getToken();
+      console.log("Token retrieved for addiction duration update:", token ? "exists" : "null");
+
+      if (!token) {
+        Toast.show({
+          type: "warning",
+          position: "top",
+          text1: "Offline Mode",
+          text2: "Update saved locally. Sign in to sync to database.",
+        });
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/users/profile`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          riskFactors: {
+            addictions: updatedAddictions,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Backend response status:", response.status);
+        console.error("Backend response body:", errorText);
+        throw new Error(`Backend error: ${response.status} - ${errorText}`);
+      }
+
+      const responseData = await response.json();
+      console.log("Addiction duration update response:", responseData);
+
+      const years = Math.floor(durationMonths / 12);
+      const months = durationMonths % 12;
+      const durationText = years > 0 
+        ? `${years}y ${months}m` 
+        : `${durationMonths}m`;
+
+      Toast.show({
+        type: "success",
+        position: "top",
+        text1: "Duration Updated & Saved",
+        text2: durationText,
+      });
+    } catch (err: any) {
+      console.error("Full error object:", err);
+      console.error("Error message:", err?.message);
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "Database Save Failed",
+        text2: "Local update saved. Check console for details.",
+      });
+    }
   };
 
   const renderBMIPage = () => {
@@ -1470,14 +3397,14 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
           flex: 1,
         }}
       >
-        <LinearGradient
-          colors={theme.gradients.bmi as [string, string, ...string[]]}
+        <View
           style={{
             position: "absolute",
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
+            backgroundColor: theme.colors.background,
             zIndex: 0,
           }}
         />
@@ -1954,7 +3881,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 }}
               >
                 <TouchableOpacity
-                  activeOpacity={0.7}
+                  activeOpacity={1} onPressIn={() => handleButtonPress(true)} onPressOut={() => handleButtonPress(false)}
                   onPress={() => {
                     /* Chart is tappable - tap to see dates in records below */
                   }}
@@ -2035,20 +3962,10 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                         key={idx}
                         onPress={() => setSelectedBmiIndex(idx)}
                         style={{
-                          paddingHorizontal: 12,
-                          paddingVertical: 8,
-                          borderRadius: 20,
-                          backgroundColor: selectedBmiIndex === idx ? theme.colors.surface : theme.colors.background,
-                          borderWidth: 2,
-                          borderColor: selectedBmiIndex === idx ? theme.colors.primary : theme.colors.text + '22',
+                          ...getMinimalistButtonStyle(selectedBmiIndex === idx),
                           minWidth: 80,
                           alignItems: 'center',
                           justifyContent: 'center',
-                          elevation: selectedBmiIndex === idx ? 3 : 0,
-                          shadowColor: selectedBmiIndex === idx ? theme.colors.primary : 'transparent',
-                          shadowOffset: { width: 0, height: 1 },
-                          shadowOpacity: 0.2,
-                          shadowRadius: 2,
                         }}
                       >
                         <Text
@@ -2107,10 +4024,10 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                       {' '}cm
                     </Text>
                     <View style={{ flexDirection: 'row', gap: 6 }}>
-                      <TouchableOpacity onPress={() => setSelectedHeight(Math.max(130, selectedHeight - 1))} style={{ paddingHorizontal: 8, paddingVertical: 4, backgroundColor: theme.colors.primary + '20', borderRadius: 6 }}>
+                      <TouchableOpacity onPress={() => setSelectedHeight(Math.max(130, selectedHeight - 1))} style={{ ...getMinimalistButtonStyle(false), borderRadius: 6 }}>
                         <Text style={{ fontSize: 14, color: theme.colors.primary }}>−</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity onPress={() => setSelectedHeight(Math.min(220, selectedHeight + 1))} style={{ paddingHorizontal: 8, paddingVertical: 4, backgroundColor: theme.colors.primary + '20', borderRadius: 6 }}>
+                      <TouchableOpacity onPress={() => setSelectedHeight(Math.min(220, selectedHeight + 1))} style={{ ...getMinimalistButtonStyle(false), borderRadius: 6 }}>
                         <Text style={{ fontSize: 14, color: theme.colors.primary }}>+</Text>
                       </TouchableOpacity>
                     </View>
@@ -2209,10 +4126,10 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                       {' '}kg
                     </Text>
                     <View style={{ flexDirection: 'row', gap: 6 }}>
-                      <TouchableOpacity onPress={() => setSelectedWeight(Math.max(40, selectedWeight - 1))} style={{ paddingHorizontal: 8, paddingVertical: 4, backgroundColor: theme.colors.primary + '20', borderRadius: 6 }}>
+                      <TouchableOpacity onPress={() => setSelectedWeight(Math.max(40, selectedWeight - 1))} style={{ ...getMinimalistButtonStyle(false), borderRadius: 6 }}>
                         <Text style={{ fontSize: 14, color: theme.colors.primary }}>−</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity onPress={() => setSelectedWeight(Math.min(150, selectedWeight + 1))} style={{ paddingHorizontal: 8, paddingVertical: 4, backgroundColor: theme.colors.primary + '20', borderRadius: 6 }}>
+                      <TouchableOpacity onPress={() => setSelectedWeight(Math.min(150, selectedWeight + 1))} style={{ ...getMinimalistButtonStyle(false), borderRadius: 6 }}>
                         <Text style={{ fontSize: 14, color: theme.colors.primary }}>+</Text>
                       </TouchableOpacity>
                     </View>
@@ -2304,13 +4221,11 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                   onPress={handleBmiUpdate}
                   style={{
                     marginTop: 12,
-                    paddingVertical: 10,
-                    backgroundColor: theme.colors.primary,
-                    borderRadius: 8,
+                    ...getPrimaryActionButtonStyle(),
                     alignItems: 'center',
                   }}
                 >
-                  <Text style={{ color: '#fff', fontSize: 12, ...getBodyBoldFont() }}>💾 Save Update</Text>
+                  <Text style={getPrimaryActionTextStyle()}>💾 Save Update</Text>
                 </TouchableOpacity>
               </View>
 
@@ -2360,7 +4275,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                   <Text
                     style={{
                       fontSize: 14,
-                      color: '#FF9800',
+                      color: theme.colors.primary,
                       ...getHeadingFont(),
                     }}
                   >
@@ -2381,7 +4296,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                   <Text
                     style={{
                       fontSize: 14,
-                      color: '#4CAF50',
+                      color: theme.colors.primary,
                       ...getHeadingFont(),
                     }}
                   >
@@ -2494,9 +4409,9 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
                   <TouchableOpacity
                     onPress={() => setSelectedHeight(Math.max(130, selectedHeight - 1))}
-                    style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: theme.colors.primary, borderRadius: 8 }}
+                    style={{ ...getPrimaryActionButtonStyle() }}
                   >
-                    <Text style={{ fontSize: 18, color: '#fff' }}>−</Text>
+                    <Text style={getPrimaryActionTextStyle()}>−</Text>
                   </TouchableOpacity>
                   <ScrollView
                     ref={heightScrollRef}
@@ -2531,9 +4446,9 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                   </ScrollView>
                   <TouchableOpacity
                     onPress={() => setSelectedHeight(Math.min(220, selectedHeight + 1))}
-                    style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: theme.colors.primary, borderRadius: 8 }}
+                    style={{ ...getPrimaryActionButtonStyle() }}
                   >
-                    <Text style={{ fontSize: 18, color: '#fff' }}>+</Text>
+                    <Text style={getPrimaryActionTextStyle()}>+</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -2551,9 +4466,9 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
                   <TouchableOpacity
                     onPress={() => setSelectedWeight(Math.max(40, selectedWeight - 1))}
-                    style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: theme.colors.primary, borderRadius: 8 }}
+                    style={{ ...getPrimaryActionButtonStyle() }}
                   >
-                    <Text style={{ fontSize: 18, color: '#fff' }}>−</Text>
+                    <Text style={getPrimaryActionTextStyle()}>−</Text>
                   </TouchableOpacity>
                   <ScrollView
                     ref={weightScrollRef}
@@ -2588,9 +4503,9 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                   </ScrollView>
                   <TouchableOpacity
                     onPress={() => setSelectedWeight(Math.min(150, selectedWeight + 1))}
-                    style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: theme.colors.primary, borderRadius: 8 }}
+                    style={{ ...getPrimaryActionButtonStyle() }}
                   >
-                    <Text style={{ fontSize: 18, color: '#fff' }}>+</Text>
+                    <Text style={getPrimaryActionTextStyle()}>+</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -2620,27 +4535,22 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                   onPress={() => setShowBmiModal(false)}
                   style={{
                     flex: 1,
-                    paddingVertical: 12,
-                    borderRadius: 8,
-                    borderWidth: 1,
-                    borderColor: theme.colors.primary,
+                    ...getMinimalistButtonStyle(false),
                     alignItems: 'center',
                   }}
                 >
-                  <Text style={{ color: theme.colors.primary, ...getBodyBoldFont() }}>Cancel</Text>
+                  <Text style={getMinimalistButtonTextStyle(false)}>Cancel</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   onPress={handleBmiUpdate}
                   style={{
                     flex: 1,
-                    paddingVertical: 12,
-                    borderRadius: 8,
-                    backgroundColor: theme.colors.primary,
+                    ...getPrimaryActionButtonStyle(),
                     alignItems: 'center',
                   }}
                 >
-                  <Text style={{ color: '#fff', ...getBodyBoldFont() }}>💾 Save</Text>
+                  <Text style={getPrimaryActionTextStyle()}>💾 Save</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -2942,14 +4852,14 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
           flex: 1,
         }}
       >
-        <LinearGradient
-          colors={theme.gradients.activity as [string, string, ...string[]]}
+        <View
           style={{
             position: "absolute",
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
+            backgroundColor: theme.colors.background,
             zIndex: 0,
           }}
         />
@@ -2983,6 +4893,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             </Text>
           </View>
 
+      
           {/* Main Activity Card */}
           <View
             style={{
@@ -3132,7 +5043,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
           {renderGuidelinesTable()}
 
           {/* Daily Activities Table */}
-          {renderActivityTable("Daily Activities", DAILY_ACTIVITIES, "clipboard-list")}
+          {renderActivityTable("Daily Activities", DAILY_ACTIVITIES, "")}
 
           {/* Exercises Table (WHO-based for athletes) */}
           {renderActivityTable("Exercises (WHO Guidelines)", EXERCISES_DATA, "dumbbell")}
@@ -3263,7 +5174,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 }}
               >
                 <TouchableOpacity
-                  activeOpacity={0.7}
+                  activeOpacity={1} onPressIn={() => handleButtonPress(true)} onPressOut={() => handleButtonPress(false)}
                   onPress={() => {
                     /* Chart is tappable */
                   }}
@@ -3343,20 +5254,10 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                         key={idx}
                         onPress={() => setSelectedActivityIndex(idx)}
                         style={{
-                          paddingHorizontal: 12,
-                          paddingVertical: 8,
-                          borderRadius: 20,
-                          backgroundColor: selectedActivityIndex === idx ? theme.colors.surface : theme.colors.background,
-                          borderWidth: 2,
-                          borderColor: selectedActivityIndex === idx ? theme.colors.primary : theme.colors.text + '22',
+                          ...getMinimalistButtonStyle(selectedActivityIndex === idx),
                           minWidth: 90,
                           alignItems: 'center',
                           justifyContent: 'center',
-                          elevation: selectedActivityIndex === idx ? 3 : 0,
-                          shadowColor: selectedActivityIndex === idx ? theme.colors.primary : 'transparent',
-                          shadowOffset: { width: 0, height: 1 },
-                          shadowOpacity: 0.2,
-                          shadowRadius: 2,
                         }}
                       >
                         <Text
@@ -3383,82 +5284,6 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                   </View>
                 </ScrollView>
               </View>
-
-              {/* Statistics */}
-              <View
-                style={{
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  marginTop: 12,
-                  paddingTop: 12,
-                  borderTopWidth: 1,
-                  borderTopColor: theme.colors.text + '22',
-                }}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      color: theme.colors.text + '88',
-                      marginBottom: 4,
-                      ...getBodyBoldFont(),
-                    }}
-                  >
-                    Min PAL
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 14,
-                      color: theme.colors.primary,
-                      ...getHeadingFont(),
-                    }}
-                  >
-                    {Math.min(...activityHistory.map((h) => h.pal)).toFixed(2)}
-                  </Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      color: theme.colors.text + '88',
-                      marginBottom: 4,
-                      ...getBodyBoldFont(),
-                    }}
-                  >
-                    Max PAL
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 14,
-                      color: '#FF9800',
-                      ...getHeadingFont(),
-                    }}
-                  >
-                    {Math.max(...activityHistory.map((h) => h.pal)).toFixed(2)}
-                  </Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      color: theme.colors.text + '88',
-                      marginBottom: 4,
-                      ...getBodyBoldFont(),
-                    }}
-                  >
-                    Avg PAL
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 14,
-                      color: '#4CAF50',
-                      ...getHeadingFont(),
-                    }}
-                  >
-                    {(activityHistory.reduce((sum, h) => sum + h.pal, 0) / activityHistory.length).toFixed(2)}
-                  </Text>
-                </View>
-              </View>
             </View>
           )}
 
@@ -3474,16 +5299,18 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               zIndex: 1,
             }}
           >
-            <Text
-              style={{
-                fontSize: 13,
-                color: theme.colors.text,
-                marginBottom: 8,
-                ...getSubHeadingFont(),
-              }}
-            >
-              <MaterialCommunityIcons name="star" size={14} color={theme.colors.text} /> Your Recommendation
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+              <MaterialCommunityIcons name="star" size={14} color={theme.colors.text} />
+              <Text
+                style={{
+                  fontSize: 13,
+                  color: theme.colors.text,
+                  ...getSubHeadingFont(),
+                }}
+              >
+                Your Recommendation
+              </Text>
+            </View>
             <Text
               style={{
                 fontSize: 12,
@@ -3496,24 +5323,89 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             </Text>
           </View>
 
+            {/* Quick Update Section */}
+          <View
+            style={{
+              backgroundColor: theme.mode === 'dark' ? theme.colors.background : theme.colors.primary + '08',
+              borderRadius: 16,
+              padding: 16,
+              marginBottom: 20,
+              borderLeftWidth: 4,
+              borderLeftColor: "#9C27B0",
+              zIndex: 1,
+            }}
+          >
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <Text style={{ fontSize: 13, color: theme.colors.text + '88', ...getBodyBoldFont() }}>
+                ⚡ Quick Update
+              </Text>
+              <Text style={{ fontSize: 14, color: "#9C27B0", ...getHeadingFont() }}>
+                {activityLevel.replace(/_/g, " ").toUpperCase()}
+              </Text>
+            </View>
+            <Text style={{ fontSize: 11, color: theme.colors.text + '88', marginBottom: 12, ...getBodyFont() }}>
+              Select a new activity level to update your profile
+            </Text>
+            <View style={{ gap: 8 }}>
+              {Object.entries(ACTIVITY_LEVELS).map(([key, value]) => (
+                <TouchableOpacity
+                  key={key}
+                  onPress={() => handleActivityUpdate(key)}
+                  style={{
+                    backgroundColor: activityLevel === key ? '#9C27B0' : (theme.mode === 'dark' ? theme.colors.surface : '#FFFFFF'),
+                    borderRadius: 10,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    borderWidth: 1,
+                    borderColor: activityLevel === key ? '#9C27B0' : (theme.mode === 'dark' ? theme.colors.surface : '#EEEEEE'),
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: activityLevel === key ? '#FFFFFF' : theme.colors.text,
+                        ...getBodyBoldFont(),
+                      }}
+                    >
+                      {key.replace(/_/g, " ").toUpperCase()}
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 10,
+                        color: activityLevel === key ? '#FFFFFF99' : (theme.colors.text + '77'),
+                        marginTop: 2,
+                      }}
+                    >
+                      {value.description}
+                    </Text>
+                  </View>
+                  <MaterialCommunityIcons
+                    name={value.icon as any}
+                    size={20}
+                    color={activityLevel === key ? '#FFFFFF' : '#9C27B0'}
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
           {/* Checklist Section - BEFORE References */}
           {renderChecklist()}
 
           {/* Scientific References */}
           <View style={{ zIndex: 1 }}>
-            <Text
-              style={{
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>
+              {renderIcon("book-open-variant", 14)}
+              <Text style={{
                 fontSize: 12,
                 color: theme.colors.text,
-                marginBottom: 10,
                 ...getBodyBoldFont(),
-              }}
-            >
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                {renderIcon("book-open-variant", 14)}
-                <Text>Scientific References</Text>
-              </View>
-            </Text>
+              }}>Scientific References</Text>
+            </View>
             <View style={{ gap: 8 }}>
               {ACTIVITY_SCIENTIFIC_REFERENCES.map((ref, idx) => (
                 <TouchableOpacity
@@ -3731,14 +5623,14 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
           flex: 1,
         }}
       >
-        <LinearGradient
-          colors={theme.gradients.addiction as [string, string, ...string[]]}
+        <View
           style={{
             position: "absolute",
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
+            backgroundColor: theme.colors.background,
             zIndex: 0,
           }}
         />
@@ -4073,7 +5965,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 }}
               >
                 <TouchableOpacity
-                  activeOpacity={0.7}
+                  activeOpacity={1} onPressIn={() => handleButtonPress(true)} onPressOut={() => handleButtonPress(false)}
                   onPress={() => {
                     /* Chart is tappable */
                   }}
@@ -4153,26 +6045,16 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                         key={idx}
                         onPress={() => setSelectedSleepIndex(idx)}
                         style={{
-                          paddingHorizontal: 12,
-                          paddingVertical: 8,
-                          borderRadius: 20,
-                          backgroundColor: selectedSleepIndex === idx ? theme.colors.surface : theme.colors.background,
-                          borderWidth: 2,
-                          borderColor: selectedSleepIndex === idx ? sleepStatus.color : theme.colors.text + '22',
+                          ...getMinimalistButtonStyle(selectedSleepIndex === idx),
                           minWidth: 90,
                           alignItems: 'center',
                           justifyContent: 'center',
-                          elevation: selectedSleepIndex === idx ? 3 : 0,
-                          shadowColor: selectedSleepIndex === idx ? sleepStatus.color : 'transparent',
-                          shadowOffset: { width: 0, height: 1 },
-                          shadowOpacity: 0.2,
-                          shadowRadius: 2,
                         }}
                       >
                         <Text
                           style={{
                             fontSize: 10,
-                            color: selectedSleepIndex === idx ? sleepStatus.color : theme.colors.text + '88',
+                            color: selectedSleepIndex === idx ? theme.colors.primary : theme.colors.text + '88',
                             ...getBodyBoldFont(),
                             marginBottom: 4,
                           }}
@@ -4182,7 +6064,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                         <Text
                           style={{
                             fontSize: 11,
-                            color: selectedSleepIndex === idx ? sleepStatus.color : theme.colors.text,
+                            color: selectedSleepIndex === idx ? theme.colors.primary : theme.colors.text,
                             ...getHeadingFont(),
                           }}
                         >
@@ -4240,7 +6122,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                   <Text
                     style={{
                       fontSize: 14,
-                      color: '#FF9800',
+                      color: theme.colors.primary,
                       ...getHeadingFont(),
                     }}
                   >
@@ -4261,7 +6143,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                   <Text
                     style={{
                       fontSize: 14,
-                      color: '#4CAF50',
+                      color: theme.colors.primary,
                       ...getHeadingFont(),
                     }}
                   >
@@ -4274,6 +6156,16 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
 
           {/* Sleep Guidelines Table */}
           {renderSleepGuidelinesTable()}
+
+          {/* Quick Update Section */}
+          {sleepHistory.length > 0 && renderQuickUpdate(
+            'sleep',
+            '🛏️ 😴',
+            sleepHistory[sleepHistory.length - 1].hours,
+            `${sleepHistory[sleepHistory.length - 1].hours.toFixed(1)} hrs`,
+            'Your latest sleep duration. Consistent 7-9 hours nightly supports optimal health.',
+            'Maintain consistent sleep schedule for better recovery'
+          )}
 
           {/* Engagement Message */}
           <View
@@ -4482,14 +6374,14 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
           flex: 1,
         }}
       >
-        <LinearGradient
-          colors={theme.gradients.prediction as [string, string, ...string[]]}
+        <View
           style={{
             position: "absolute",
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
+            backgroundColor: theme.colors.background,
             zIndex: 0,
           }}
         />
@@ -4656,9 +6548,8 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
 
     return (
       <View style={{ width: singleView ? "100%" : screenWidth, paddingHorizontal: 16, paddingVertical: 24, flex: 1 }}>
-        <LinearGradient
-          colors={theme.gradients.water as [string, string, ...string[]]}
-          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}
+        <View
+          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: theme.colors.background, zIndex: 0 }}
         />
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
@@ -4723,12 +6614,12 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               {selectedWaterIndex !== null && (
                 <View
                   style={{
-                    backgroundColor: '#00ACC1' + '15',
+                    backgroundColor: theme.colors.primary + '15',
                     borderRadius: 12,
                     padding: 12,
                     marginBottom: 12,
                     borderLeftWidth: 4,
-                    borderLeftColor: '#00ACC1',
+                    borderLeftColor: theme.colors.primary,
                     flexDirection: 'row',
                     justifyContent: 'space-between',
                     alignItems: 'center',
@@ -4748,7 +6639,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                     <Text
                       style={{
                         fontSize: 14,
-                        color: '#00ACC1',
+                        color: theme.colors.primary,
                         ...getBodyBoldFont(),
                       }}
                     >
@@ -4769,7 +6660,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                     <Text
                       style={{
                         fontSize: 14,
-                        color: '#00ACC1',
+                        color: theme.colors.primary,
                         ...getHeadingFont(),
                       }}
                     >
@@ -4792,7 +6683,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 }}
               >
                 <TouchableOpacity
-                  activeOpacity={0.7}
+                  activeOpacity={1} onPressIn={() => handleButtonPress(true)} onPressOut={() => handleButtonPress(false)}
                   onPress={() => {
                     /* Chart is tappable */
                   }}
@@ -4813,7 +6704,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                       fontSize: 10,
                     }}
                     yAxisTextStyle={{
-                      color: '#00ACC1',
+                      color: theme.colors.primary,
                       fontSize: 11,
                       fontWeight: '700',
                     }}
@@ -4871,26 +6762,16 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                         key={idx}
                         onPress={() => setSelectedWaterIndex(idx)}
                         style={{
-                          paddingHorizontal: 12,
-                          paddingVertical: 8,
-                          borderRadius: 20,
-                          backgroundColor: selectedWaterIndex === idx ? theme.colors.surface : theme.colors.background,
-                          borderWidth: 2,
-                          borderColor: selectedWaterIndex === idx ? '#00ACC1' : theme.colors.text + '22',
+                          ...getMinimalistButtonStyle(selectedWaterIndex === idx),
                           minWidth: 90,
                           alignItems: 'center',
                           justifyContent: 'center',
-                          elevation: selectedWaterIndex === idx ? 3 : 0,
-                          shadowColor: selectedWaterIndex === idx ? '#00ACC1' : 'transparent',
-                          shadowOffset: { width: 0, height: 1 },
-                          shadowOpacity: 0.2,
-                          shadowRadius: 2,
                         }}
                       >
                         <Text
                           style={{
                             fontSize: 10,
-                            color: selectedWaterIndex === idx ? '#00ACC1' : theme.colors.text + '88',
+                            color: selectedWaterIndex === idx ? theme.colors.primary : theme.colors.text + '88',
                             ...getBodyBoldFont(),
                             marginBottom: 4,
                           }}
@@ -4900,7 +6781,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                         <Text
                           style={{
                             fontSize: 11,
-                            color: selectedWaterIndex === idx ? '#00ACC1' : theme.colors.text,
+                            color: selectedWaterIndex === idx ? theme.colors.primary : theme.colors.text,
                             ...getHeadingFont(),
                           }}
                         >
@@ -4937,7 +6818,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                   <Text
                     style={{
                       fontSize: 14,
-                      color: '#00ACC1',
+                      color: theme.colors.primary,
                       ...getHeadingFont(),
                     }}
                   >
@@ -4958,7 +6839,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                   <Text
                     style={{
                       fontSize: 14,
-                      color: '#FF9800',
+                      color: theme.colors.primary,
                       ...getHeadingFont(),
                     }}
                   >
@@ -4979,7 +6860,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                   <Text
                     style={{
                       fontSize: 14,
-                      color: '#4CAF50',
+                      color: theme.colors.primary,
                       ...getHeadingFont(),
                     }}
                   >
@@ -5032,6 +6913,16 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               Drink water consistently throughout the day. A good rule: if you're thirsty, you're already mildly dehydrated. Aim for pale urine as an indicator of good hydration.
             </Text>
           </View>
+
+          {/* Quick Update Section */}
+          {waterHistory.length > 0 && renderQuickUpdate(
+            'water',
+            '💧 💙',
+            waterHistory[waterHistory.length - 1].liters,
+            `${waterHistory[waterHistory.length - 1].liters.toFixed(1)} L`,
+            'Your latest daily water intake. Aim for 2-3 liters daily for optimal hydration.',
+            'Drink water before you feel thirsty for consistent hydration'
+          )}
 
           {/* Checklist Section - BEFORE References */}
           {renderChecklist()}
@@ -5134,13 +7025,21 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                   </Text>
                   {addictions.map((add, idx) => (
                     <View key={idx} style={{ marginBottom: 12, backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#F5F5F5', borderRadius: 10, padding: 10 }}>
-                      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                        <Text style={{ fontSize: 12, color: theme.colors.text, ...getBodyBoldFont() }}>
-                          • {add.substance}
-                        </Text>
-                        <Text style={{ fontSize: 10, color: addictionInfo.color, backgroundColor: addictionInfo.color + "22", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4, ...getBodyBoldFont() }}>
-                          {add.severity.toUpperCase()}
-                        </Text>
+                      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 12, color: theme.colors.text, ...getBodyBoldFont() }}>
+                            • {add.substance}
+                          </Text>
+                          <Text style={{ fontSize: 10, color: addictionInfo.color, backgroundColor: addictionInfo.color + "22", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4, marginTop: 4, alignSelf: 'flex-start', ...getBodyBoldFont() }}>
+                            {add.severity.toUpperCase()}
+                          </Text>
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => handleRemoveSubstance(idx)}
+                          style={{ padding: 4 }}
+                        >
+                          <MaterialCommunityIcons name="close-circle" size={18} color="#F44336" />
+                        </TouchableOpacity>
                       </View>
                       <Text style={{ fontSize: 10, color: theme.colors.text + "88" }}>
                         ⏱️ Duration: {getDurationMetrics(add.duration || 0)}
@@ -5163,6 +7062,111 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               </View>
             </View>
           )}
+
+          {/* Quick Update: Substance */}
+          <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FAFAFA', borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 2, borderColor: '#F44336' + '33', zIndex: 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+              <MaterialCommunityIcons name="lightning-bolt" size={18} color="#F44336" style={{ marginRight: 8 }} />
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#F44336', ...getHeadingFont() }}>
+                ⚡ Quick Update: Substance
+              </Text>
+            </View>
+            <TextInput
+              placeholder="Enter substance name (e.g., alcohol, tobacco, cannabis)"
+              placeholderTextColor={theme.colors.text + '55'}
+              value={addictionQuickUpdate.substance}
+              onChangeText={(text) => setAddictionQuickUpdate({ ...addictionQuickUpdate, substance: text })}
+              style={{
+                backgroundColor: theme.mode === 'dark' ? theme.colors.text + '11' : '#fff',
+                color: theme.colors.text,
+                borderRadius: 8,
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                marginBottom: 12,
+                borderWidth: 1,
+                borderColor: '#F44336' + '33',
+                ...getBodyFont(),
+              }}
+            />
+            <TouchableOpacity
+              onPress={() => {
+                if (addictionQuickUpdate.substance.trim()) {
+                  handleAddictionSubstanceUpdate(addictionQuickUpdate.substance);
+                  setAddictionQuickUpdate({ ...addictionQuickUpdate, substance: '' });
+                }
+              }}
+              style={{
+                backgroundColor: '#F44336',
+                borderRadius: 8,
+                paddingVertical: 10,
+                alignItems: 'center',
+              }}
+            >
+              <Text style={{ color: '#fff', fontWeight: '700', ...getBodyBoldFont() }}>
+                Save
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Quick Update: Duration */}
+          <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FAFAFA', borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 2, borderColor: '#FF9800' + '33', zIndex: 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+              <MaterialCommunityIcons name="lightning-bolt" size={18} color="#FF9800" style={{ marginRight: 8 }} />
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#FF9800', ...getHeadingFont() }}>
+                ⚡ Quick Update: Duration (Months)
+              </Text>
+            </View>
+            <Text style={{ fontSize: 11, color: theme.colors.text + '88', marginBottom: 12, ...getBodyFont() }}>
+              Select duration in months (use slider to adjust)
+            </Text>
+            <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.text + '11' : '#fff', borderRadius: 8, padding: 12, marginBottom: 12, borderWidth: 1, borderColor: '#FF9800' + '33' }}>
+              <Text style={{ fontSize: 14, color: '#FF9800', marginBottom: 8, ...getBodyBoldFont() }}>
+                {addictions.length > 0 ? addictions[0].duration : 1} months
+              </Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 6 }}>
+                {[1, 3, 6, 12, 24, 36].map((months) => {
+                  const isSelected = addictions.length > 0 && addictions[0].duration === months;
+                  return (
+                    <TouchableOpacity
+                      key={months}
+                      onPress={() => handleAddictionDurationUpdate(months)}
+                      style={{
+                        backgroundColor: isSelected ? '#FF9800' : (theme.mode === 'dark' ? theme.colors.surface : '#fff'),
+                        borderRadius: 6,
+                        paddingHorizontal: 8,
+                        paddingVertical: 6,
+                        borderWidth: 1,
+                        borderColor: isSelected ? '#FF9800' : '#DDD',
+                        flex: 1,
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Text style={{ fontSize: 11, color: isSelected ? '#fff' : theme.colors.text, fontWeight: '600' }}>
+                        {months}m
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+            <TouchableOpacity
+              onPress={() => {
+                if (addictions.length > 0) {
+                  handleAddictionDurationUpdate(addictions[0].duration);
+                }
+              }}
+              style={{
+                backgroundColor: '#FF9800',
+                borderRadius: 8,
+                paddingVertical: 10,
+                alignItems: 'center',
+              }}
+            >
+              <Text style={{ color: '#fff', fontWeight: '700', ...getBodyBoldFont() }}>
+                Save
+              </Text>
+            </TouchableOpacity>
+          </View>
 
           {/* Duration Scale */}
           {addictions.length > 0 && (
@@ -5216,16 +7220,16 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               </View>
 
               {selectedAddictionIndex !== null && (
-                <View style={{ backgroundColor: '#F44336' + '15', borderRadius: 12, padding: 12, marginBottom: 12, borderLeftWidth: 4, borderLeftColor: '#F44336', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View style={{ backgroundColor: theme.colors.primary + '15', borderRadius: 12, padding: 12, marginBottom: 12, borderLeftWidth: 4, borderLeftColor: theme.colors.primary, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: 12, color: theme.colors.text + '88', marginBottom: 4, ...getBodyFont() }}>Date</Text>
-                    <Text style={{ fontSize: 14, color: '#F44336', ...getBodyBoldFont() }}>
+                    <Text style={{ fontSize: 14, color: theme.colors.primary, ...getBodyBoldFont() }}>
                       {addictionHistory[selectedAddictionIndex].date}
                     </Text>
                   </View>
                   <View style={{ flex: 1, alignItems: 'flex-end' }}>
                     <Text style={{ fontSize: 12, color: theme.colors.text + '88', marginBottom: 4, ...getBodyFont() }}>Risk Score</Text>
-                    <Text style={{ fontSize: 14, color: '#F44336', ...getHeadingFont() }}>
+                    <Text style={{ fontSize: 14, color: theme.colors.primary, ...getHeadingFont() }}>
                       {addictionHistory[selectedAddictionIndex].score.toFixed(1)}/100
                     </Text>
                   </View>
@@ -5242,7 +7246,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                   xAxisThickness={2}
                   xAxisColor="#F44336"
                   xAxisLabelTextStyle={{ color: theme.colors.text + '77', fontSize: 10 }}
-                  yAxisTextStyle={{ color: '#F44336', fontSize: 11, fontWeight: '700' }}
+                  yAxisTextStyle={{ color: theme.colors.primary, fontSize: 11, fontWeight: '700' }}
                   yAxisLabelSuffix="/100"
                   disableScroll={false}
                   scrollToIndex={selectedAddictionIndex ?? undefined}
@@ -5272,11 +7276,11 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 <ScrollView horizontal showsHorizontalScrollIndicator={true} scrollEventThrottle={16} style={{ minHeight: 70 }}>
                   <View style={{ flexDirection: 'row', gap: 8, paddingRight: 16 }}>
                     {addictionHistory.map((item, idx) => (
-                      <TouchableOpacity key={idx} onPress={() => setSelectedAddictionIndex(idx)} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: selectedAddictionIndex === idx ? theme.colors.surface : theme.colors.background, borderWidth: 2, borderColor: selectedAddictionIndex === idx ? '#F44336' : theme.colors.text + '22', minWidth: 90, alignItems: 'center', justifyContent: 'center', elevation: selectedAddictionIndex === idx ? 3 : 0, shadowColor: selectedAddictionIndex === idx ? '#F44336' : 'transparent', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 2 }}>
-                        <Text style={{ fontSize: 10, color: selectedAddictionIndex === idx ? '#F44336' : theme.colors.text + '88', ...getBodyBoldFont(), marginBottom: 4 }}>
+                      <TouchableOpacity key={idx} onPress={() => setSelectedAddictionIndex(idx)} style={{ ...getMinimalistButtonStyle(selectedAddictionIndex === idx), minWidth: 90, alignItems: 'center', justifyContent: 'center' }}>
+                        <Text style={{ fontSize: 10, color: selectedAddictionIndex === idx ? theme.colors.primary : theme.colors.text + '88', ...getBodyBoldFont(), marginBottom: 4 }}>
                           {item.date}
                         </Text>
-                        <Text style={{ fontSize: 11, color: selectedAddictionIndex === idx ? '#F44336' : theme.colors.text, ...getHeadingFont() }}>
+                        <Text style={{ fontSize: 11, color: selectedAddictionIndex === idx ? theme.colors.primary : theme.colors.text, ...getHeadingFont() }}>
                           {item.score.toFixed(0)}
                         </Text>
                       </TouchableOpacity>
@@ -5325,6 +7329,17 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             </Text>
           </View>
 
+          {/* Quick Update Section */}
+          {addictionHistory.length > 0 && renderQuickUpdate(
+            'addiction',
+            '⚠️ 🆘',
+            addictionHistory[addictionHistory.length - 1].score,
+            `${addictionHistory[addictionHistory.length - 1].score.toFixed(0)}/100`,
+            'Your current addiction risk assessment. Seek professional help if concerns arise.',
+            'Support groups and counseling services are available for assistance',
+            100
+          )}
+
           {/* Checklist Section - BEFORE References */}
           {renderChecklist()}
 
@@ -5358,9 +7373,8 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
 
     return (
       <View style={{ width: singleView ? "100%" : screenWidth, paddingHorizontal: 16, paddingVertical: 24, flex: 1 }}>
-        <LinearGradient
-          colors={theme.gradients.stress as [string, string, ...string[]]}
-          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}
+        <View
+          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: theme.colors.background, zIndex: 0 }}
         />
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
@@ -5497,7 +7511,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 }}
               >
                 <TouchableOpacity
-                  activeOpacity={0.7}
+                  activeOpacity={1} onPressIn={() => handleButtonPress(true)} onPressOut={() => handleButtonPress(false)}
                   onPress={() => {
                     /* Chart is tappable */
                   }}
@@ -5576,26 +7590,16 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                         key={idx}
                         onPress={() => setSelectedStressIndex(idx)}
                         style={{
-                          paddingHorizontal: 12,
-                          paddingVertical: 8,
-                          borderRadius: 20,
-                          backgroundColor: selectedStressIndex === idx ? theme.colors.surface : theme.colors.background,
-                          borderWidth: 2,
-                          borderColor: selectedStressIndex === idx ? stressInfo.color : theme.colors.text + '22',
+                          ...getMinimalistButtonStyle(selectedStressIndex === idx),
                           minWidth: 90,
                           alignItems: 'center',
                           justifyContent: 'center',
-                          elevation: selectedStressIndex === idx ? 3 : 0,
-                          shadowColor: selectedStressIndex === idx ? stressInfo.color : 'transparent',
-                          shadowOffset: { width: 0, height: 1 },
-                          shadowOpacity: 0.2,
-                          shadowRadius: 2,
                         }}
                       >
                         <Text
                           style={{
                             fontSize: 10,
-                            color: selectedStressIndex === idx ? stressInfo.color : theme.colors.text + '88',
+                            color: selectedStressIndex === idx ? theme.colors.primary : theme.colors.text + '88',
                             ...getBodyBoldFont(),
                             marginBottom: 4,
                           }}
@@ -5605,7 +7609,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                         <Text
                           style={{
                             fontSize: 11,
-                            color: selectedStressIndex === idx ? stressInfo.color : theme.colors.text,
+                            color: selectedStressIndex === idx ? theme.colors.primary : theme.colors.text,
                             ...getHeadingFont(),
                           }}
                         >
@@ -5663,7 +7667,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                   <Text
                     style={{
                       fontSize: 14,
-                      color: '#FF9800',
+                      color: theme.colors.primary,
                       ...getHeadingFont(),
                     }}
                   >
@@ -5684,7 +7688,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                   <Text
                     style={{
                       fontSize: 14,
-                      color: '#4CAF50',
+                      color: theme.colors.primary,
                       ...getHeadingFont(),
                     }}
                   >
@@ -5759,6 +7763,17 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
           {/* Checklist Section - BEFORE References */}
           {renderChecklist()}
 
+          {/* Quick Update Section */}
+          {stressHistory.length > 0 && renderQuickUpdate(
+            'stress',
+            '🧘 🌬️',
+            stressHistory[stressHistory.length - 1].score,
+            `${stressHistory[stressHistory.length - 1].score.toFixed(0)}/40`,
+            'Your current perceived stress score. Regular exercise and meditation help reduce stress levels.',
+            'Practice deep breathing for 5 minutes daily to manage stress',
+            40
+          )}
+
           {/* Scientific References */}
           <View style={{ zIndex: 1 }}>
             <Text style={{ fontSize: 12, color: theme.colors.text, marginBottom: 10, ...getBodyBoldFont() }}>
@@ -5801,9 +7816,8 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
 
     return (
       <View style={{ width: singleView ? "100%" : screenWidth, paddingHorizontal: 16, paddingVertical: 24, flex: 1 }}>
-        <LinearGradient
-          colors={theme.gradients.dietary as [string, string, ...string[]]}
-          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}
+        <View
+          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: theme.colors.background, zIndex: 0 }}
         />
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
@@ -5832,6 +7846,346 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               <Text style={{ fontSize: 11, color: theme.colors.text + "88", lineHeight: 16, ...getBodyFont() }}>
                 {mealInfo.impact}
               </Text>
+            </View>
+          </View>
+
+          {/* Dietary Preferences */}
+          {preferences.length > 0 && (
+            <View style={{ marginBottom: 20, zIndex: 1 }}>
+              <Text style={{ fontSize: 13, color: theme.colors.text, marginBottom: 10, ...getSubHeadingFont() }}>
+                Dietary Preferences
+              </Text>
+              <View style={{ gap: 10 }}>
+                {preferences.map((pref, idx) => {
+                  const prefInfo = DIETARY_PREFERENCES_INFO.find(p => p.preference.toLowerCase().includes(pref.toLowerCase()));
+                  return (
+                    <View key={idx} style={{ backgroundColor: "#fff" + "88", borderRadius: 12, padding: 12, borderLeftWidth: 4, borderLeftColor: "#4CAF50" }}>
+                      <Text style={{ fontSize: 12, color: theme.colors.text, marginBottom: 4, ...getBodyBoldFont() }}>
+                        {prefInfo?.preference || pref}
+                      </Text>
+                      <Text style={{ fontSize: 10, color: theme.colors.text + "88", ...getBodyFont() }}>
+                        {prefInfo?.description}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
+          {/* Allergies */}
+          {allergies.length > 0 && (
+            <View style={{ marginBottom: 20, zIndex: 1 }}>
+              <Text style={{ fontSize: 13, color: theme.colors.text, marginBottom: 10, ...getSubHeadingFont() }}>
+                Food Allergies
+              </Text>
+              <View style={{ gap: 8 }}>
+                {allergies.map((allergy, idx) => (
+                  <View key={idx} style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : "#FFEBEE", borderRadius: 10, padding: 10, marginBottom: 8, borderLeftWidth: 4, borderLeftColor: "#F44336", flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <MaterialCommunityIcons name="alert-circle" size={16} color="#F44336" />
+                    <Text style={{ fontSize: 12, color: theme.colors.text, flex: 1, ...getBodyBoldFont() }}>
+                      {allergy}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Quick Update: Dietary Preferences */}
+          <View
+            style={{
+              backgroundColor: theme.mode === 'dark' ? theme.colors.background : theme.colors.primary + '08',
+              borderRadius: 16,
+              padding: 16,
+              marginBottom: 20,
+              borderLeftWidth: 4,
+              borderLeftColor: "#4CAF50",
+              zIndex: 1,
+            }}
+          >
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <Text style={{ fontSize: 13, color: theme.colors.text + '88', ...getBodyBoldFont() }}>
+                🥗 Quick Update: Dietary Preferences
+              </Text>
+            </View>
+            <Text style={{ fontSize: 11, color: theme.colors.text + '88', marginBottom: 12, ...getBodyFont() }}>
+              Select your dietary preferences (can select multiple)
+            </Text>
+            <View style={{ gap: 8 }}>
+              {DIETARY_PREFERENCES_INFO.map((pref, idx) => {
+                const isSelected = preferences.includes(pref.preference);
+                return (
+                  <TouchableOpacity
+                    key={idx}
+                    onPress={() => {
+                      let updatedPrefs = [...preferences];
+                      if (isSelected) {
+                        updatedPrefs = updatedPrefs.filter(p => p !== pref.preference);
+                      } else {
+                        updatedPrefs.push(pref.preference);
+                      }
+                      handleDietaryPreferencesUpdate(updatedPrefs);
+                    }}
+                    style={{
+                      backgroundColor: isSelected ? '#4CAF50' : (theme.mode === 'dark' ? theme.colors.surface : '#FFFFFF'),
+                      borderRadius: 10,
+                      paddingHorizontal: 12,
+                      paddingVertical: 10,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      borderWidth: 1,
+                      borderColor: isSelected ? '#4CAF50' : (theme.mode === 'dark' ? theme.colors.surface : '#EEEEEE'),
+                    }}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          color: isSelected ? '#FFFFFF' : theme.colors.text,
+                          ...getBodyBoldFont(),
+                        }}
+                      >
+                        {pref.preference}
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 10,
+                          color: isSelected ? '#FFFFFF99' : (theme.colors.text + '77'),
+                          marginTop: 2,
+                        }}
+                      >
+                        {pref.description}
+                      </Text>
+                    </View>
+                    <MaterialCommunityIcons
+                      name={isSelected ? "check-circle" : "circle-outline"}
+                      size={20}
+                      color={isSelected ? '#FFFFFF' : '#4CAF50'}
+                    />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+ 
+       
+          {/* Quick Update: Food Allergies */}
+          <View
+            style={{
+              backgroundColor: theme.mode === 'dark' ? theme.colors.background : '#FFEBEE',
+              borderRadius: 16,
+              padding: 16,
+              marginBottom: 20,
+              borderLeftWidth: 4,
+              borderLeftColor: "#F44336",
+              zIndex: 1,
+            }}
+          >
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <Text style={{ fontSize: 13, color: theme.colors.text + '88', ...getBodyBoldFont() }}>
+                ⚠️ Quick Update: Food Allergies
+              </Text>
+            </View>
+            <Text style={{ fontSize: 11, color: theme.colors.text + '88', marginBottom: 12, ...getBodyFont() }}>
+              Add or remove your food allergies
+            </Text>
+            
+            {/* Current Allergies Display */}
+            {allergies.length > 0 && (
+              <View style={{ marginBottom: 12 }}>
+                <Text style={{ fontSize: 11, color: theme.colors.text + '88', marginBottom: 8, ...getBodyBoldFont() }}>
+                  Current allergies:
+                </Text>
+                <View style={{ gap: 6 }}>
+                  {allergies.map((allergy, idx) => (
+                    <View
+                      key={idx}
+                      style={{
+                        backgroundColor: '#F44336',
+                        borderRadius: 8,
+                        paddingHorizontal: 10,
+                        paddingVertical: 6,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <Text style={{ fontSize: 11, color: '#FFFFFF', ...getBodyBoldFont() }}>
+                        {allergy}
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => {
+                          const updatedAllergies = allergies.filter((_, i) => i !== idx);
+                          handleAllergiesUpdate(updatedAllergies);
+                        }}
+                      >
+                        <MaterialCommunityIcons name="close-circle" size={16} color="#FFFFFF" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Add New Allergy */}
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TextInput
+                placeholder="Add a food allergy..."
+                placeholderTextColor={theme.colors.text + '66'}
+                value={quickUpdateValues['allergies'] || ''}
+                onChangeText={(val) => setQuickUpdateValues({ ...quickUpdateValues, allergies: val })}
+                style={{
+                  flex: 1,
+                  borderWidth: 1,
+                  borderColor: "#F44336",
+                  borderRadius: 8,
+                  paddingHorizontal: 10,
+                  paddingVertical: 8,
+                  color: theme.colors.text,
+                  fontSize: 12,
+                  ...getBodyFont(),
+                }}
+              />
+              <TouchableOpacity
+                onPress={() => {
+                  const newAllergy = quickUpdateValues['allergies']?.trim();
+                  if (newAllergy && !allergies.includes(newAllergy)) {
+                    const updatedAllergies = [...allergies, newAllergy];
+                    handleAllergiesUpdate(updatedAllergies);
+                    setQuickUpdateValues({ ...quickUpdateValues, allergies: '' });
+                  } else if (allergies.includes(newAllergy)) {
+                    Toast.show({
+                      type: 'warning',
+                      position: 'top',
+                      text1: 'Duplicate Allergy',
+                      text2: 'This allergy is already added',
+                    });
+                  } else {
+                    Toast.show({
+                      type: 'error',
+                      position: 'top',
+                      text1: 'Empty Input',
+                      text2: 'Please enter a food allergy',
+                    });
+                  }
+                }}
+                style={{
+                  backgroundColor: '#F44336',
+                  borderRadius: 8,
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+              >
+                <MaterialCommunityIcons name="plus" size={18} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Meal Frequency Guidelines Table */}
+          <View style={{ marginBottom: 20, zIndex: 1 }}>
+            <Text style={{ fontSize: 13, color: theme.colors.text, marginBottom: 10, ...getSubHeadingFont() }}>
+              Meal Frequency Guidelines
+            </Text>
+            <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : "#fff" + "88", borderRadius: 12, overflow: "hidden", elevation: 2 }}>
+              {/* Table Header */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  backgroundColor: "#4CAF50" + "33",
+                  paddingHorizontal: 10,
+                  paddingVertical: 10,
+                  borderBottomWidth: 2,
+                  borderBottomColor: "#4CAF50",
+                }}
+              >
+                <Text
+                  style={{
+                    flex: 0.8,
+                    fontSize: 9,
+                    color: theme.colors.text,
+                    textTransform: "uppercase",
+                    letterSpacing: 0.3,
+                    ...getBodyBoldFont(),
+                  }}
+                >
+                  Frequency
+
+                </Text>
+                <Text
+                  style={{
+                    flex: 1,
+                    fontSize: 9,
+                    color: theme.colors.text,
+                    textTransform: "uppercase",
+                    letterSpacing: 0.3,
+                    ...getBodyBoldFont(),
+                  }}
+                >
+                  Status
+                </Text>
+                <Text
+                  style={{
+                    flex: 1.2,
+                    fontSize: 9,
+                    color: theme.colors.text,
+                    textTransform: "uppercase",
+                    letterSpacing: 0.3,
+                    ...getBodyBoldFont(),
+                  }}
+                >
+                  Health Impact
+                </Text>
+              </View>
+              {/* Table Rows */}
+              {MEAL_FREQUENCY_GUIDELINES.map((guideline, idx) => (
+                <View
+                  key={idx}
+                  style={{
+                    flexDirection: "row",
+                    paddingHorizontal: 10,
+                    paddingVertical: 10,
+                    borderBottomWidth: idx < MEAL_FREQUENCY_GUIDELINES.length - 1 ? 1 : 0,
+                    borderBottomColor: "#4CAF50" + "22",
+                    backgroundColor: idx % 2 === 0 ? "transparent" : "#4CAF50" + "11",
+                  }}
+                >
+                  <Text
+                    style={{
+                      flex: 0.8,
+                      fontSize: 10,
+                      color: theme.colors.text,
+                      ...getBodyBoldFont(),
+                    }}
+                  >
+                    {guideline.frequency}
+                  </Text>
+                  <Text
+                    style={{
+                      flex: 1,
+                      fontSize: 10,
+                      color: guideline.color,
+                      ...getBodyBoldFont(),
+                    }}
+                  >
+                    {guideline.status}
+                  </Text>
+                  <Text
+                    style={{
+                      flex: 1.2,
+                      fontSize: 9,
+                      color: theme.colors.text + "88",
+                      lineHeight: 14,
+                      ...getBodyFont(),
+                    }}
+                  >
+                    {guideline.impact}
+                  </Text>
+                </View>
+              ))}
             </View>
           </View>
 
@@ -5871,12 +8225,12 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               {selectedDietaryIndex !== null && (
                 <View
                   style={{
-                    backgroundColor: '#4CAF50' + '15',
+                    backgroundColor: theme.colors.primary + '15',
                     borderRadius: 12,
                     padding: 12,
                     marginBottom: 12,
                     borderLeftWidth: 4,
-                    borderLeftColor: '#4CAF50',
+                    borderLeftColor: theme.colors.primary,
                     flexDirection: 'row',
                     justifyContent: 'space-between',
                     alignItems: 'center',
@@ -5896,7 +8250,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                     <Text
                       style={{
                         fontSize: 14,
-                        color: '#4CAF50',
+                        color: theme.colors.primary,
                         ...getBodyBoldFont(),
                       }}
                     >
@@ -5917,7 +8271,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                     <Text
                       style={{
                         fontSize: 14,
-                        color: '#4CAF50',
+                        color: theme.colors.primary,
                         ...getHeadingFont(),
                       }}
                     >
@@ -5940,7 +8294,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 }}
               >
                 <TouchableOpacity
-                  activeOpacity={0.7}
+                  activeOpacity={1} onPressIn={() => handleButtonPress(true)} onPressOut={() => handleButtonPress(false)}
                   onPress={() => {
                     /* Chart is tappable */
                   }}
@@ -5961,7 +8315,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                       fontSize: 10,
                     }}
                     yAxisTextStyle={{
-                      color: '#4CAF50',
+                      color: theme.colors.primary,
                       fontSize: 11,
                       fontWeight: '700',
                     }}
@@ -6018,27 +8372,16 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                       <TouchableOpacity
                         key={idx}
                         onPress={() => setSelectedDietaryIndex(idx)}
-                        style={{
-                          paddingHorizontal: 12,
-                          paddingVertical: 8,
-                          borderRadius: 20,
-                          backgroundColor: selectedDietaryIndex === idx ? theme.colors.surface : theme.colors.background,
-                          borderWidth: 2,
-                          borderColor: selectedDietaryIndex === idx ? '#4CAF50' : theme.colors.text + '22',
+                        style={{...getMinimalistButtonStyle(selectedDietaryIndex === idx),
                           minWidth: 90,
                           alignItems: 'center',
                           justifyContent: 'center',
-                          elevation: selectedDietaryIndex === idx ? 3 : 0,
-                          shadowColor: selectedDietaryIndex === idx ? '#4CAF50' : 'transparent',
-                          shadowOffset: { width: 0, height: 1 },
-                          shadowOpacity: 0.2,
-                          shadowRadius: 2,
                         }}
                       >
                         <Text
                           style={{
                             fontSize: 10,
-                            color: selectedDietaryIndex === idx ? '#4CAF50' : theme.colors.text + '88',
+                            color: selectedDietaryIndex === idx ? theme.colors.primary : theme.colors.text + '88',
                             ...getBodyBoldFont(),
                             marginBottom: 4,
                           }}
@@ -6048,11 +8391,11 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                         <Text
                           style={{
                             fontSize: 11,
-                            color: selectedDietaryIndex === idx ? '#4CAF50' : theme.colors.text,
+                            color: selectedDietaryIndex === idx ? theme.colors.primary : theme.colors.text,
                             ...getHeadingFont(),
                           }}
                         >
-                          {item.mealFrequency} meals
+                          {item.mealFrequency}
                         </Text>
                       </TouchableOpacity>
                     ))}
@@ -6085,7 +8428,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                   <Text
                     style={{
                       fontSize: 14,
-                      color: '#4CAF50',
+                      color: theme.colors.primary,
                       ...getHeadingFont(),
                     }}
                   >
@@ -6106,7 +8449,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                   <Text
                     style={{
                       fontSize: 14,
-                      color: '#FF9800',
+                      color: theme.colors.primary,
                       ...getHeadingFont(),
                     }}
                   >
@@ -6127,7 +8470,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                   <Text
                     style={{
                       fontSize: 14,
-                      color: '#4CAF50',
+                      color: theme.colors.primary,
                       ...getHeadingFont(),
                     }}
                   >
@@ -6138,71 +8481,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             </View>
           )}
 
-          {/* Dietary Preferences */}
-          {preferences.length > 0 && (
-            <View style={{ marginBottom: 20, zIndex: 1 }}>
-              <Text style={{ fontSize: 13, color: theme.colors.text, marginBottom: 10, ...getSubHeadingFont() }}>
-                Dietary Preferences
-              </Text>
-              <View style={{ gap: 10 }}>
-                {preferences.map((pref, idx) => {
-                  const prefInfo = DIETARY_PREFERENCES_INFO.find(p => p.preference.toLowerCase().includes(pref.toLowerCase()));
-                  return (
-                    <View key={idx} style={{ backgroundColor: "#fff" + "88", borderRadius: 12, padding: 12, borderLeftWidth: 4, borderLeftColor: "#4CAF50" }}>
-                      <Text style={{ fontSize: 12, color: theme.colors.text, marginBottom: 4, ...getBodyBoldFont() }}>
-                        {prefInfo?.preference || pref}
-                      </Text>
-                      <Text style={{ fontSize: 10, color: theme.colors.text + "88", ...getBodyFont() }}>
-                        {prefInfo?.description}
-                      </Text>
-                    </View>
-                  );
-                })}
-              </View>
-            </View>
-          )}
-
-          {/* Allergies */}
-          {allergies.length > 0 && (
-            <View style={{ marginBottom: 20, zIndex: 1 }}>
-              <Text style={{ fontSize: 13, color: theme.colors.text, marginBottom: 10, ...getSubHeadingFont() }}>
-                Food Allergies
-              </Text>
-              <View style={{ gap: 8 }}>
-                {allergies.map((allergy, idx) => (
-                  <View key={idx} style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : "#FFEBEE", borderRadius: 10, padding: 10, marginBottom: 8, borderLeftWidth: 4, borderLeftColor: "#F44336", flexDirection: "row", alignItems: "center", gap: 8 }}>
-                    <MaterialCommunityIcons name="alert-circle" size={16} color="#F44336" />
-                    <Text style={{ fontSize: 12, color: theme.colors.text, flex: 1, ...getBodyBoldFont() }}>
-                      {allergy}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
-
-          {/* Meal Frequency Guidelines Table */}
-          <View style={{ marginBottom: 20, zIndex: 1 }}>
-            <Text style={{ fontSize: 13, color: theme.colors.text, marginBottom: 10, ...getSubHeadingFont() }}>
-              Meal Frequency Guidelines
-            </Text>
-            <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : "#fff" + "88", borderRadius: 12, overflow: "hidden", elevation: 2 }}>
-              {/* Header */}
-              <View style={{ flexDirection: "row", backgroundColor: "#4CAF50" + "33", paddingHorizontal: 10, paddingVertical: 10, borderBottomWidth: 2, borderBottomColor: "#4CAF50" }}>
-                <Text style={{ flex: 1.2, fontSize: 9, color: theme.colors.text, textTransform: "uppercase", ...getBodyBoldFont() }}>Frequency</Text>
-                <Text style={{ flex: 1, fontSize: 9, color: theme.colors.text, textTransform: "uppercase", ...getBodyBoldFont() }}>Status</Text>
-                <Text style={{ flex: 1.3, fontSize: 9, color: theme.colors.text, textTransform: "uppercase", ...getBodyBoldFont() }}>Impact</Text>
-              </View>
-              {/* Rows */}
-              {MEAL_FREQUENCY_GUIDELINES.map((guideline, idx) => (
-                <View key={idx} style={{ flexDirection: "row", paddingHorizontal: 10, paddingVertical: 10, borderBottomWidth: idx < MEAL_FREQUENCY_GUIDELINES.length - 1 ? 1 : 0, borderBottomColor: "#4CAF50" + "22", backgroundColor: idx % 2 === 0 ? "transparent" : "#4CAF50" + "11" }}>
-                  <Text style={{ flex: 1.2, fontSize: 10, color: theme.colors.text, ...getBodyBoldFont() }}>{guideline.frequency}</Text>
-                  <Text style={{ flex: 1, fontSize: 9, color: guideline.color, ...getBodyBoldFont() }}>{guideline.status}</Text>
-                  <Text style={{ flex: 1.3, fontSize: 9, color: theme.colors.text + "88", lineHeight: 13, ...getBodyFont() }}>{guideline.impact}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
+      
 
           {/* Nutrition Tips */}
           <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 20, borderLeftWidth: 5, borderLeftColor: "#4CAF50", zIndex: 1 }}>
@@ -6222,6 +8501,17 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               • Stay hydrated and limit sugary drinks
             </Text>
           </View>
+
+          {/* Quick Update Section */}
+          {dietaryHistory.length > 0 && renderQuickUpdate(
+            'dietary',
+            '🍽️ 🥗',
+            dietaryHistory[dietaryHistory.length - 1].mealFrequency,
+            `${dietaryHistory[dietaryHistory.length - 1].mealFrequency.toFixed(1)} meals`,
+            'Your current meal frequency. Optimal intake varies by lifestyle and goals.',
+            'Consistent meal timing helps regulate metabolism and energy',
+            6
+          )}
 
           {/* Checklist Section - BEFORE References */}
           {renderChecklist()}
@@ -6261,9 +8551,8 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
 
     return (
       <View style={{ width: singleView ? "100%" : screenWidth, paddingHorizontal: 16, paddingVertical: 24, flex: 1 }}>
-        <LinearGradient
-          colors={theme.gradients.health as [string, string, ...string[]]}
-          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}
+        <View
+          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: theme.colors.background, zIndex: 0 }}
         />
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
@@ -6336,12 +8625,12 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               {selectedHealthStatusIndex !== null && (
                 <View
                   style={{
-                    backgroundColor: '#C2185B' + '15',
+                    backgroundColor: theme.colors.primary + '15',
                     borderRadius: 12,
                     padding: 12,
                     marginBottom: 12,
                     borderLeftWidth: 4,
-                    borderLeftColor: '#C2185B',
+                    borderLeftColor: theme.colors.primary,
                     flexDirection: 'row',
                     justifyContent: 'space-between',
                     alignItems: 'center',
@@ -6351,7 +8640,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                     <Text style={{ fontSize: 12, color: theme.colors.text + '88', marginBottom: 4, ...getBodyFont() }}>
                       Date
                     </Text>
-                    <Text style={{ fontSize: 14, color: '#C2185B', ...getBodyBoldFont() }}>
+                    <Text style={{ fontSize: 14, color: theme.colors.primary, ...getBodyBoldFont() }}>
                       {healthStatusHistory[selectedHealthStatusIndex].date}
                     </Text>
                   </View>
@@ -6359,7 +8648,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                     <Text style={{ fontSize: 12, color: theme.colors.text + '88', marginBottom: 4, ...getBodyFont() }}>
                       Score
                     </Text>
-                    <Text style={{ fontSize: 14, color: '#C2185B', ...getHeadingFont() }}>
+                    <Text style={{ fontSize: 14, color: theme.colors.primary, ...getHeadingFont() }}>
                       {healthStatusHistory[selectedHealthStatusIndex].score.toFixed(1)}/100
                     </Text>
                   </View>
@@ -6376,7 +8665,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                   xAxisThickness={2}
                   xAxisColor="#C2185B"
                   xAxisLabelTextStyle={{ color: theme.colors.text + '77', fontSize: 10 }}
-                  yAxisTextStyle={{ color: '#C2185B', fontSize: 11, fontWeight: '700' }}
+                  yAxisTextStyle={{ color: theme.colors.primary, fontSize: 11, fontWeight: '700' }}
                   yAxisLabelSuffix="/100"
                   disableScroll={false}
                   scrollToIndex={selectedHealthStatusIndex ?? undefined}
@@ -6406,11 +8695,11 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 <ScrollView horizontal showsHorizontalScrollIndicator={true} scrollEventThrottle={16} style={{ minHeight: 70 }}>
                   <View style={{ flexDirection: 'row', gap: 8, paddingRight: 16 }}>
                     {healthStatusHistory.map((item, idx) => (
-                      <TouchableOpacity key={idx} onPress={() => setSelectedHealthStatusIndex(idx)} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: selectedHealthStatusIndex === idx ? theme.colors.surface : theme.colors.background, borderWidth: 2, borderColor: selectedHealthStatusIndex === idx ? '#C2185B' : theme.colors.text + '22', minWidth: 90, alignItems: 'center', justifyContent: 'center', elevation: selectedHealthStatusIndex === idx ? 3 : 0, shadowColor: selectedHealthStatusIndex === idx ? '#C2185B' : 'transparent', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 2 }}>
-                        <Text style={{ fontSize: 10, color: selectedHealthStatusIndex === idx ? '#C2185B' : theme.colors.text + '88', ...getBodyBoldFont(), marginBottom: 4 }}>
+                      <TouchableOpacity key={idx} onPress={() => setSelectedHealthStatusIndex(idx)} style={{ ...getMinimalistButtonStyle(selectedHealthStatusIndex === idx), minWidth: 90, alignItems: 'center', justifyContent: 'center' }}>
+                        <Text style={{ fontSize: 10, color: selectedHealthStatusIndex === idx ? theme.colors.primary : theme.colors.text + '88', ...getBodyBoldFont(), marginBottom: 4 }}>
                           {item.date}
                         </Text>
-                        <Text style={{ fontSize: 11, color: selectedHealthStatusIndex === idx ? '#C2185B' : theme.colors.text, ...getHeadingFont() }}>
+                        <Text style={{ fontSize: 11, color: selectedHealthStatusIndex === idx ? theme.colors.primary : theme.colors.text, ...getHeadingFont() }}>
                           {item.score.toFixed(0)}
                         </Text>
                       </TouchableOpacity>
@@ -6420,6 +8709,10 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               </View>
             </View>
           )}
+
+       
+
+       
 
           {/* Current Conditions */}
           {currentConditions.length > 0 && (
@@ -6444,6 +8737,48 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               })}
             </View>
           )}
+
+             {/* Quick Update: Current Conditions */}
+          <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FAFAFA', borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 2, borderColor: theme.colors.primary + '33', zIndex: 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+              <MaterialCommunityIcons name="lightning-bolt" size={18} color={theme.colors.primary} style={{ marginRight: 8 }} />
+              <Text style={{ fontSize: 14, fontWeight: '700', color: theme.colors.primary, ...getHeadingFont() }}>
+              Quick Update: Current Conditions
+              </Text>
+            </View>
+            <TextInput
+              placeholder="Enter conditions (comma-separated, e.g., Diabetes, Hypertension)"
+              placeholderTextColor={theme.colors.text + '55'}
+              value={healthStatusQuickUpdate.conditions}
+              onChangeText={(text) => setHealthStatusQuickUpdate({ ...healthStatusQuickUpdate, conditions: text })}
+              multiline
+              numberOfLines={2}
+              style={{
+                backgroundColor: theme.mode === 'dark' ? theme.colors.text + '11' : '#fff',
+                color: theme.colors.text,
+                borderRadius: 8,
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                marginBottom: 12,
+                borderWidth: 1,
+                borderColor: theme.colors.primary + '33',
+                ...getBodyFont(),
+              }}
+            />
+            <TouchableOpacity
+              onPress={() => handleHealthStatusConditionsUpdate(healthStatusQuickUpdate.conditions)}
+              style={{
+                backgroundColor: theme.colors.primary,
+                borderRadius: 8,
+                paddingVertical: 10,
+                alignItems: 'center',
+              }}
+            >
+              <Text style={{ color: '#fff', fontWeight: '700', ...getBodyBoldFont() }}>
+                Save
+              </Text>
+            </TouchableOpacity>
+          </View>
 
           {/* Family History */}
           {familyHistory.length > 0 && (
@@ -6472,6 +8807,50 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             </View>
           )}
 
+            {/* Quick Update: Family History */}
+          <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FAFAFA', borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 2, borderColor: theme.colors.primary + '33', zIndex: 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+              <MaterialCommunityIcons name="lightning-bolt" size={18} color={theme.colors.primary} style={{ marginRight: 8 }} />
+              <Text style={{ fontSize: 14, fontWeight: '700', color: theme.colors.primary, ...getHeadingFont() }}>
+              Quick Update: Family History
+              </Text>
+            </View>
+            <TextInput
+              placeholder="Enter family history (comma-separated, e.g., Cancer, Heart Disease)"
+              placeholderTextColor={theme.colors.text + '55'}
+              value={healthStatusQuickUpdate.familyHistory}
+              onChangeText={(text) => setHealthStatusQuickUpdate({ ...healthStatusQuickUpdate, familyHistory: text })}
+              multiline
+              numberOfLines={2}
+              style={{
+                backgroundColor: theme.mode === 'dark' ? theme.colors.text + '11' : '#fff',
+                color: theme.colors.text,
+                borderRadius: 8,
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                marginBottom: 12,
+                borderWidth: 1,
+                borderColor: theme.colors.primary + '33',
+                ...getBodyFont(),
+              }}
+            />
+            <TouchableOpacity
+              onPress={() => handleFamilyHistoryUpdate(healthStatusQuickUpdate.familyHistory)}
+              style={{
+                backgroundColor: theme.colors.primary,
+                borderRadius: 8,
+                paddingVertical: 10,
+                alignItems: 'center',
+              }}
+            >
+              <Text style={{ color: '#fff', fontWeight: '700', ...getBodyBoldFont() }}>
+                Save
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+       
+
           {/* Medications */}
           {medications.length > 0 && (
             <View style={{ marginBottom: 20, zIndex: 1 }}>
@@ -6488,6 +8867,48 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               ))}
             </View>
           )}
+
+   {/* Quick Update: Current Medications */}
+          <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FAFAFA', borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 2, borderColor: theme.colors.primary + '33', zIndex: 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+              <MaterialCommunityIcons name="lightning-bolt" size={18} color={theme.colors.primary} style={{ marginRight: 8 }} />
+              <Text style={{ fontSize: 14, fontWeight: '700', color: theme.colors.primary, ...getHeadingFont() }}>
+                Quick Update: Current Medications
+              </Text>
+            </View>
+            <TextInput
+              placeholder="Enter medications (comma-separated, e.g., Aspirin, Metformin)"
+              placeholderTextColor={theme.colors.text + '55'}
+              value={healthStatusQuickUpdate.medications}
+              onChangeText={(text) => setHealthStatusQuickUpdate({ ...healthStatusQuickUpdate, medications: text })}
+              multiline
+              numberOfLines={2}
+              style={{
+                backgroundColor: theme.mode === 'dark' ? theme.colors.text + '11' : '#fff',
+                color: theme.colors.text,
+                borderRadius: 8,
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                marginBottom: 12,
+                borderWidth: 1,
+                borderColor: theme.colors.primary + '33',
+                ...getBodyFont(),
+              }}
+            />
+            <TouchableOpacity
+              onPress={() => handleMedicationsUpdate(healthStatusQuickUpdate.medications)}
+              style={{
+                backgroundColor: theme.colors.primary,
+                borderRadius: 8,
+                paddingVertical: 10,
+                alignItems: 'center',
+              }}
+            >
+              <Text style={{ color: '#fff', fontWeight: '700', ...getBodyBoldFont() }}>
+                Save
+              </Text>
+            </TouchableOpacity>
+          </View>
 
           {/* Health Conditions Reference Table */}
           <View style={{ marginBottom: 20, zIndex: 1 }}>
@@ -6529,6 +8950,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             </Text>
           </View>
 
+     
           {/* Checklist Section - BEFORE References */}
           {renderChecklist()}
 
@@ -6566,9 +8988,8 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
 
     return (
       <View style={{ width: screenWidth, paddingHorizontal: 16, paddingVertical: 24, flex: 1 }}>
-        <LinearGradient
-          colors={theme.gradients.environment as [string, string, ...string[]]}
-          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}
+        <View
+          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: theme.colors.background, zIndex: 0 }}
         />
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
@@ -6606,6 +9027,84 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               <Text style={{ fontSize: 10, color: theme.colors.text + "88", ...getBodyFont() }}>
                 {pollutionInfo.health}
               </Text>
+            </View>
+          </View>
+
+          {/* Quick Update: Pollution Exposure */}
+          <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FAFAFA', borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 2, borderColor: '#00897B' + '33', zIndex: 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+              <MaterialCommunityIcons name="lightning-bolt" size={18} color="#00897B" style={{ marginRight: 8 }} />
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#00897B', ...getHeadingFont() }}>
+              Quick Update: Pollution Exposure
+              </Text>
+            </View>
+            <Text style={{ fontSize: 11, color: theme.colors.text + '88', marginBottom: 12, ...getBodyFont() }}>
+              Select your current pollution exposure level
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+              {POLLUTION_EXPOSURE_LEVELS.map((level, idx) => {
+                const isSelected = pollutionExposure.toLowerCase() === level.level.toLowerCase();
+                return (
+                  <TouchableOpacity
+                    key={idx}
+                    onPress={() => handlePollutionExposureUpdate(level.level)}
+                    style={{
+                      backgroundColor: isSelected ? level.color : (theme.mode === 'dark' ? theme.colors.surface : '#fff'),
+                      borderRadius: 8,
+                      paddingHorizontal: 16,
+                      paddingVertical: 10,
+                      borderWidth: 2,
+                      borderColor: isSelected ? level.color : (theme.mode === 'dark' ? theme.colors.surface : '#DDD'),
+                      flex: 1,
+                      minWidth: '30%',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Text style={{ color: isSelected ? '#fff' : theme.colors.text, fontWeight: '700', ...getBodyBoldFont() }}>
+                      {level.level}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Quick Update: Occupation Type */}
+          <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FAFAFA', borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 2, borderColor: '#F57C00' + '33', zIndex: 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+              <MaterialCommunityIcons name="lightning-bolt" size={18} color="#F57C00" style={{ marginRight: 8 }} />
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#F57C00', ...getHeadingFont() }}>
+              Quick Update: Occupation Type
+              </Text>
+            </View>
+            <Text style={{ fontSize: 11, color: theme.colors.text + '88', marginBottom: 12, ...getBodyFont() }}>
+              Select your occupational activity level
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+              {OCCUPATION_TYPE_INFO.map((occ, idx) => {
+                const isSelected = occupationType.toLowerCase() === occ.type.toLowerCase();
+                return (
+                  <TouchableOpacity
+                    key={idx}
+                    onPress={() => handleOccupationTypeUpdate(occ.type)}
+                    style={{
+                      backgroundColor: isSelected ? '#F57C00' : (theme.mode === 'dark' ? theme.colors.surface : '#fff'),
+                      borderRadius: 8,
+                      paddingHorizontal: 16,
+                      paddingVertical: 10,
+                      borderWidth: 2,
+                      borderColor: isSelected ? '#F57C00' : (theme.mode === 'dark' ? theme.colors.surface : '#DDD'),
+                      flex: 1,
+                      minWidth: '30%',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Text style={{ color: isSelected ? '#fff' : theme.colors.text, fontWeight: '700', ...getBodyBoldFont() }}>
+                      {occ.type}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
 
@@ -6686,11 +9185,11 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 <ScrollView horizontal showsHorizontalScrollIndicator={true} scrollEventThrottle={16} style={{ minHeight: 70 }}>
                   <View style={{ flexDirection: 'row', gap: 8, paddingRight: 16 }}>
                     {environmentalHistory.map((item, idx) => (
-                      <TouchableOpacity key={idx} onPress={() => setSelectedEnvironmentalIndex(idx)} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: selectedEnvironmentalIndex === idx ? theme.colors.surface : theme.colors.background, borderWidth: 2, borderColor: selectedEnvironmentalIndex === idx ? pollutionInfo.color : theme.colors.text + '22', minWidth: 90, alignItems: 'center', justifyContent: 'center', elevation: selectedEnvironmentalIndex === idx ? 3 : 0, shadowColor: selectedEnvironmentalIndex === idx ? pollutionInfo.color : 'transparent', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 2 }}>
-                        <Text style={{ fontSize: 10, color: selectedEnvironmentalIndex === idx ? pollutionInfo.color : theme.colors.text + '88', ...getBodyBoldFont(), marginBottom: 4 }}>
+                      <TouchableOpacity key={idx} onPress={() => setSelectedEnvironmentalIndex(idx)} style={{ ...getMinimalistButtonStyle(selectedEnvironmentalIndex === idx), minWidth: 90, alignItems: 'center', justifyContent: 'center' }}>
+                        <Text style={{ fontSize: 10, color: selectedEnvironmentalIndex === idx ? theme.colors.primary : theme.colors.text + '88', ...getBodyBoldFont(), marginBottom: 4 }}>
                           {item.date}
                         </Text>
-                        <Text style={{ fontSize: 11, color: selectedEnvironmentalIndex === idx ? pollutionInfo.color : theme.colors.text, ...getHeadingFont() }}>
+                        <Text style={{ fontSize: 11, color: selectedEnvironmentalIndex === idx ? theme.colors.primary : theme.colors.text, ...getHeadingFont() }}>
                           {item.score.toFixed(0)}
                         </Text>
                       </TouchableOpacity>
@@ -6714,13 +9213,13 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
           </View>
 
           {/* Occupation Type Card */}
-          <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FFF3E0', borderRadius: 24, padding: 24, marginBottom: 20, borderWidth: 3, borderColor: '#FF9800', elevation: 8, zIndex: 1 }}>
+          <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FFF3E0', borderRadius: 24, padding: 24, marginBottom: 20, borderWidth: 3, borderColor: theme.colors.primary, elevation: 8, zIndex: 1 }}>
             <View style={{ alignItems: 'center', marginBottom: 20 }}>
               <MaterialCommunityIcons name="briefcase" size={32} color={'#FF9800'} />
               <Text style={{ fontSize: 16, color: theme.colors.text + '88', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1, ...getBodyBoldFont() }}>
                 Occupation Type
               </Text>
-              <Text style={{ fontSize: 20, color: '#FF9800', marginBottom: 8, ...getHeadingFont() }}>
+              <Text style={{ fontSize: 20, color: theme.colors.primary, marginBottom: 8, ...getHeadingFont() }}>
                 {occupationInfo.type}
               </Text>
               <Text style={{ fontSize: 12, color: theme.colors.text + '88', lineHeight: 16, marginBottom: 8, ...getBodyFont() }}>
@@ -6731,7 +9230,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               </Text>
             </View>
 
-            <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FFFFFF', borderRadius: 12, padding: 12, marginTop: 12, borderTopWidth: 2, borderTopColor: '#FF9800' + '44' }}>
+            <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FFFFFF', borderRadius: 12, padding: 12, marginTop: 12, borderTopWidth: 2, borderTopColor: theme.colors.primary + '44' }}>
               <Text style={{ fontSize: 11, color: theme.colors.text, marginBottom: 6, ...getBodyBoldFont() }}>
                 Health Risk:
               </Text>
@@ -6797,6 +9296,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             </View>
           </View>
 
+        
           {/* Checklist Section - BEFORE References */}
           {renderChecklist()}
 
@@ -6836,9 +9336,8 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
 
     return (
       <View style={{ width: screenWidth, paddingHorizontal: 16, paddingVertical: 24, flex: 1 }}>
-        <LinearGradient
-          colors={theme.gradients.risks as [string, string, ...string[]]}
-          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}
+        <View
+          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: theme.colors.background, zIndex: 0 }}
         />
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
@@ -6875,16 +9374,16 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               </View>
 
               {selectedDiseaseRiskIndex !== null && (
-                <View style={{ backgroundColor: '#FF6F00' + '15', borderRadius: 12, padding: 12, marginBottom: 12, borderLeftWidth: 4, borderLeftColor: '#FF6F00', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View style={{ backgroundColor: theme.colors.primary + '15', borderRadius: 12, padding: 12, marginBottom: 12, borderLeftWidth: 4, borderLeftColor: theme.colors.primary, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: 12, color: theme.colors.text + '88', marginBottom: 4, ...getBodyFont() }}>Date</Text>
-                    <Text style={{ fontSize: 14, color: '#FF6F00', ...getBodyBoldFont() }}>
+                    <Text style={{ fontSize: 14, color: theme.colors.primary, ...getBodyBoldFont() }}>
                       {diseaseRiskHistory[selectedDiseaseRiskIndex].date}
                     </Text>
                   </View>
                   <View style={{ flex: 1, alignItems: 'flex-end' }}>
                     <Text style={{ fontSize: 12, color: theme.colors.text + '88', marginBottom: 4, ...getBodyFont() }}>Conditions</Text>
-                    <Text style={{ fontSize: 14, color: '#FF6F00', ...getHeadingFont() }}>
+                    <Text style={{ fontSize: 14, color: theme.colors.primary, ...getHeadingFont() }}>
                       {diseaseRiskHistory[selectedDiseaseRiskIndex].highRiskCount}
                     </Text>
                   </View>
@@ -6901,7 +9400,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                   xAxisThickness={2}
                   xAxisColor="#FF6F00"
                   xAxisLabelTextStyle={{ color: theme.colors.text + '77', fontSize: 10 }}
-                  yAxisTextStyle={{ color: '#FF6F00', fontSize: 11, fontWeight: '700' }}
+                  yAxisTextStyle={{ color: theme.colors.primary, fontSize: 11, fontWeight: '700' }}
                   yAxisLabelSuffix=" risks"
                   disableScroll={false}
                   scrollToIndex={selectedDiseaseRiskIndex ?? undefined}
@@ -6931,11 +9430,35 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 <ScrollView horizontal showsHorizontalScrollIndicator={true} scrollEventThrottle={16} style={{ minHeight: 70 }}>
                   <View style={{ flexDirection: 'row', gap: 8, paddingRight: 16 }}>
                     {diseaseRiskHistory.map((item, idx) => (
-                      <TouchableOpacity key={idx} onPress={() => setSelectedDiseaseRiskIndex(idx)} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: selectedDiseaseRiskIndex === idx ? theme.colors.surface : theme.colors.background, borderWidth: 2, borderColor: selectedDiseaseRiskIndex === idx ? '#FF6F00' : theme.colors.text + '22', minWidth: 90, alignItems: 'center', justifyContent: 'center', elevation: selectedDiseaseRiskIndex === idx ? 3 : 0, shadowColor: selectedDiseaseRiskIndex === idx ? '#FF6F00' : 'transparent', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 2 }}>
-                        <Text style={{ fontSize: 10, color: selectedDiseaseRiskIndex === idx ? '#FF6F00' : theme.colors.text + '88', ...getBodyBoldFont(), marginBottom: 4 }}>
+                      <TouchableOpacity
+                        key={idx}
+                        onPress={() => setSelectedDiseaseRiskIndex(idx)}
+                        style={{
+                          borderRadius: 20,
+                          backgroundColor: selectedDiseaseRiskIndex === idx ? theme.colors.surface : theme.colors.background,
+                          borderWidth: 2,
+                          borderColor: selectedDiseaseRiskIndex === idx ? theme.colors.primary : theme.colors.text + '22',
+                          minWidth: 90,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          elevation: selectedDiseaseRiskIndex === idx ? 3 : 0,
+                          shadowColor: selectedDiseaseRiskIndex === idx ? theme.colors.primary : 'transparent',
+                          shadowOffset: { width: 0, height: 1 },
+                          shadowOpacity: 0.2,
+                          shadowRadius: 2,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 10,
+                            color: selectedDiseaseRiskIndex === idx ? theme.colors.primary : theme.colors.text + '88',
+                            ...getBodyBoldFont(),
+                            marginBottom: 4,
+                          }}
+                        >
                           {item.date}
                         </Text>
-                        <Text style={{ fontSize: 14, color: selectedDiseaseRiskIndex === idx ? '#FF6F00' : theme.colors.text, ...getHeadingFont() }}>
+                        <Text style={{ fontSize: 14, color: selectedDiseaseRiskIndex === idx ? theme.colors.primary : theme.colors.text, ...getHeadingFont() }}>
                           {item.highRiskCount}
                         </Text>
                       </TouchableOpacity>
@@ -7053,6 +9576,17 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               • Maintain a healthy diet and exercise regularly{"\n"}• Keep your health profile updated with accurate information{"\n"}• Monitor your vital signs and health metrics{"\n"}• Reduce stress and get adequate sleep{"\n"}• Avoid harmful substances and maintain healthy habits
             </Text>
           </View>
+
+          {/* Quick Update Section */}
+          {diseaseRiskHistory.length > 0 && renderQuickUpdate(
+            'risks',
+            '❤️ 🔍',
+            diseaseRiskHistory[diseaseRiskHistory.length - 1].highRiskCount,
+            `${diseaseRiskHistory[diseaseRiskHistory.length - 1].highRiskCount} Risks`,
+            'Number of high-risk disease conditions detected. Preventive measures recommended.',
+            'Regular health screening and lifestyle modifications reduce disease risk',
+            10
+          )}
 
           {/* Checklist Section - BEFORE References */}
           {renderChecklist()}
@@ -7290,3 +9824,9 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
     </View>
   );
 }
+
+
+
+
+
+

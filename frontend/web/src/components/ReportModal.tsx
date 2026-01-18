@@ -108,6 +108,9 @@ const ReportModal: React.FC<ReportModalProps> = ({
     onClose();
   };
 
+  // Don't render if not open - check early to avoid unnecessary JSX creation
+  if (!isOpen) return null;
+
   const modalContent = (
     <div
       className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
@@ -271,9 +274,6 @@ const ReportModal: React.FC<ReportModalProps> = ({
       </div>
     </div>
   );
-
-  // Don't render if not open
-  if (!isOpen) return null;
 
   // Use portal to render modal at document body level
   return createPortal(modalContent, document.body);

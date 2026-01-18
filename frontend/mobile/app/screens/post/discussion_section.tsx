@@ -340,26 +340,16 @@ export default function DiscussionSection() {
                     {/* Post Display */}
                     <View className="p-5 border-b" style={{ borderBottomColor: theme.colors.text + '11' }}>
                         <View className="flex-row items-center mb-3">
-                            <TouchableOpacity
+                            <View
                                 className="w-10 h-10 rounded-full items-center justify-center mr-3"
                                 style={{ backgroundColor: theme.colors.primary + '20' }}
-                                onPress={() => {
-                                    if (post.user?._id && post.user._id !== userId) {
-                                        handleOpenReportModal("user", post.user._id, post.user.username || post.user.name);
-                                    }
-                                }}
-                                onLongPress={() => {
-                                    if (post.user?._id && post.user._id !== userId) {
-                                        handleOpenReportModal("user", post.user._id, post.user.username || post.user.name);
-                                    }
-                                }}
                             >
                                 {post.user?.profilePicture ? (
                                     <Image source={{ uri: post.user.profilePicture }} className="w-10 h-10 rounded-full" />
                                 ) : (
                                     <Ionicons name="person" size={20} color={theme.colors.primary} />
                                 )}
-                            </TouchableOpacity>
+                            </View>
                             <View className="flex-1">
                                 <Text style={{ fontFamily: theme.fonts.heading, color: theme.colors.text }} className="text-base">
                                     {post.user?.username || post.user?.name || "Unknown User"}

@@ -18,8 +18,7 @@ import {
   Utensils,
   Dumbbell,
   MessageSquare,
-  Home,
-  MoreHorizontal
+  Home
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -204,9 +203,8 @@ export default function Dashboard() {
         {/* Post Header */}
         <div className="flex items-center p-3">
           <div 
-            className="w-10 h-10 rounded-full flex items-center justify-center mr-3 overflow-hidden cursor-pointer"
+            className="w-10 h-10 rounded-full flex items-center justify-center mr-3 overflow-hidden"
             style={{ backgroundColor: theme.colors.primary + '20' }}
-            onClick={() => navigate('/profile')}
           >
             {post.user?.profilePicture ? (
               <img src={post.user.profilePicture} alt={post.user.username} className="w-10 h-10 rounded-full object-cover" />
@@ -217,8 +215,7 @@ export default function Dashboard() {
           <div className="flex-1">
             <span 
               style={{ color: theme.colors.text }} 
-              className="text-sm font-semibold cursor-pointer hover:underline"
-              onClick={() => navigate('/profile')}
+              className="text-sm font-semibold"
             >
               {post.user?.username || 'Unknown User'}
             </span>
@@ -226,9 +223,6 @@ export default function Dashboard() {
               {getTimeAgo(post.createdAt)} ago
             </p>
           </div>
-          <button className="p-1 hover:opacity-70">
-            <MoreHorizontal className="w-5 h-5" style={{ color: theme.colors.text }} />
-          </button>
         </div>
 
         {/* Post Content - Clickable area */}
@@ -264,7 +258,7 @@ export default function Dashboard() {
 
           {/* Session Reference Preview */}
           {post.reference?.item_id && (
-            <div className="px-3 pb-3">
+            <div className="px-3 pb-3 flex justify-center">
               <SessionPreview reference={post.reference as { item_id: any; item_type: 'GeoSession' | 'ProgramSession' | 'FoodLog' | 'Post' }} />
             </div>
           )}

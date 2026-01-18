@@ -4,12 +4,13 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { 
   MapPin, Search, Calendar, Trash2, ChevronLeft, ChevronRight,
-  Filter, TrendingUp, Users, Activity, RefreshCw, Clock, Flame, Navigation
+  Filter, TrendingUp, Users, Activity, RefreshCw, Clock, Flame, Navigation, Download
 } from 'lucide-react';
 import AdminSidebar from '@/components/AdminSidebar';
 import { useTheme } from '@/context/ThemeContext';
 import { adminApi, GeoSession, GeoActivityStats, GeoActivity } from '@/api/adminApi';
 import { showToast } from '@/components/Toast/Toast';
+import { exportGeoActivitiesReport, GeoSessionData, GeoActivityData } from '@/utils/pdfExport';
 
 export default function AdminGeoActivities() {
   const { theme } = useTheme();
@@ -29,6 +30,7 @@ export default function AdminGeoActivities() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showFilters, setShowFilters] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [activeTab, setActiveTab] = useState<'sessions' | 'activities'>('sessions');
 
   // Load data whenever dependencies change
@@ -167,6 +169,49 @@ export default function AdminGeoActivities() {
     setRefreshing(false);
   };
 
+  const handleExportPDF = async () => {
+    try {
+      setExporting(true);
+      showToast({ type: 'info', text1: 'Fetching all data for export...' });
+      
+      // Fetch all sessions (up to 500)
+      let allSessions: GeoSession[] = [];
+      let page = 1;
+      let hasMore = true;
+      
+      while (hasMore && page <= 25) {
+        const data = await adminApi.getAllGeoSessions(page, 20);
+        allSessions = [...allSessions, ...data.sessions];
+        hasMore = data.pagination.currentPage < data.pagination.totalPages;
+        page++;
+      }
+      
+      // Fetch all activities
+      let allActivities: GeoActivity[] = [];
+      page = 1;
+      hasMore = true;
+      
+      while (hasMore && page <= 10) {
+        const data = await adminApi.getAllGeoActivities(page, 20);
+        allActivities = [...allActivities, ...data.activities];
+        hasMore = data.pagination.currentPage < data.pagination.totalPages;
+        page++;
+      }
+      
+      exportGeoActivitiesReport(
+        allSessions as GeoSessionData[],
+        allActivities as GeoActivityData[],
+        stats || undefined
+      );
+      showToast({ type: 'success', text1: `Exported ${allSessions.length} sessions and ${allActivities.length} activities to PDF` });
+    } catch (error: any) {
+      console.error('[AdminGeoActivities] Export error:', error);
+      showToast({ type: 'error', text1: 'Failed to export data' });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -211,6 +256,17 @@ export default function AdminGeoActivities() {
               </p>
             </div>
             <div className="flex gap-2">
+              <Button
+                onClick={handleExportPDF}
+                disabled={exporting}
+                style={{
+                  backgroundColor: theme.colors.primary,
+                  color: '#fff',
+                }}
+              >
+                <Download className={`w-4 h-4 mr-2 ${exporting ? 'animate-pulse' : ''}`} />
+                Export PDF
+              </Button>
               <Button
                 variant="outline"
                 onClick={handleRefresh}

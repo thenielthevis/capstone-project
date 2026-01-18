@@ -4,12 +4,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { 
   Calendar, Search, ChevronLeft, ChevronRight,
-  Filter, TrendingUp, RefreshCw, User, Activity
+  Filter, TrendingUp, RefreshCw, User, Activity, Download
 } from 'lucide-react';
 import AdminSidebar from '@/components/AdminSidebar';
 import { useTheme } from '@/context/ThemeContext';
 import { adminApi, Program, ProgramStats } from '@/api/adminApi';
 import { showToast } from '@/components/Toast/Toast';
+import { exportProgramsReport } from '@/utils/pdfExport';
 
 export default function AdminPrograms() {
   const { theme } = useTheme();
@@ -26,6 +27,7 @@ export default function AdminPrograms() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showFilters, setShowFilters] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   // Load programs whenever dependencies change
   useEffect(() => {
@@ -95,6 +97,42 @@ export default function AdminPrograms() {
     setRefreshing(false);
   };
 
+  const handleExportPDF = async () => {
+    try {
+      setExporting(true);
+      showToast({ type: 'info', text1: 'Generating PDF report...' });
+      
+      // Fetch all programs for export (up to 500)
+      const allData = await adminApi.getAllPrograms(1, 500, {});
+      
+      exportProgramsReport(
+        allData.programs.map(program => ({
+          _id: program._id,
+          user_id: program.user_id,
+          name: program.name,
+          description: program.description,
+          workouts: program.workouts,
+          geo_activities: program.geo_activities,
+          created_at: program.created_at,
+        })),
+        stats ? {
+          totalPrograms: stats.totalPrograms,
+          totalCreators: stats.totalCreators,
+          recentPrograms: stats.recentPrograms,
+          avgWorkoutsPerProgram: stats.avgWorkoutsPerProgram,
+          avgActivitiesPerProgram: stats.avgActivitiesPerProgram,
+        } : undefined
+      );
+      
+      showToast({ type: 'success', text1: 'PDF report generated successfully!' });
+    } catch (error: any) {
+      console.error('[AdminPrograms] Export PDF error:', error);
+      showToast({ type: 'error', text1: 'Failed to generate PDF report' });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -123,6 +161,18 @@ export default function AdminPrograms() {
               </p>
             </div>
             <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleExportPDF}
+                disabled={exporting || programs.length === 0}
+                style={{
+                  borderColor: theme.colors.border,
+                  color: theme.colors.text,
+                }}
+              >
+                <Download className={`w-4 h-4 mr-2 ${exporting ? 'animate-pulse' : ''}`} />
+                {exporting ? 'Exporting...' : 'Export PDF'}
+              </Button>
               <Button
                 variant="outline"
                 onClick={handleRefresh}

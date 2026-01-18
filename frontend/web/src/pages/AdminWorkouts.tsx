@@ -4,12 +4,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { 
   Dumbbell, Search, Trash2, ChevronLeft, ChevronRight,
-  Filter, TrendingUp, RefreshCw, Image, Tag, Plus, Edit, X
+  Filter, TrendingUp, RefreshCw, Image, Tag, Plus, Edit, X, Download
 } from 'lucide-react';
 import AdminSidebar from '@/components/AdminSidebar';
 import { useTheme } from '@/context/ThemeContext';
 import { adminApi, Workout, WorkoutStats } from '@/api/adminApi';
 import { showToast } from '@/components/Toast/Toast';
+import { exportWorkoutsReport, WorkoutData } from '@/utils/pdfExport';
 
 export default function AdminWorkouts() {
   const { theme } = useTheme();
@@ -33,6 +34,7 @@ export default function AdminWorkouts() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingWorkout, setEditingWorkout] = useState<Workout | null>(null);
+  const [exporting, setExporting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   // Form states
@@ -133,6 +135,33 @@ export default function AdminWorkouts() {
     setRefreshing(true);
     await Promise.all([fetchWorkouts(), fetchStats()]);
     setRefreshing(false);
+  };
+
+  const handleExportPDF = async () => {
+    try {
+      setExporting(true);
+      showToast({ type: 'info', text1: 'Fetching all workouts for export...' });
+      
+      // Fetch all workouts for export (up to 500)
+      let allWorkouts: Workout[] = [];
+      let page = 1;
+      let hasMore = true;
+      
+      while (hasMore && page <= 25) {
+        const data = await adminApi.getAllWorkouts(page, 20);
+        allWorkouts = [...allWorkouts, ...data.workouts];
+        hasMore = data.pagination.currentPage < data.pagination.totalPages;
+        page++;
+      }
+      
+      exportWorkoutsReport(allWorkouts as WorkoutData[], stats || undefined);
+      showToast({ type: 'success', text1: `Exported ${allWorkouts.length} workouts to PDF` });
+    } catch (error: any) {
+      console.error('[AdminWorkouts] Export error:', error);
+      showToast({ type: 'error', text1: 'Failed to export workouts' });
+    } finally {
+      setExporting(false);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -301,6 +330,18 @@ export default function AdminWorkouts() {
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Create Workout
+              </Button>
+              <Button
+                onClick={handleExportPDF}
+                disabled={exporting}
+                variant="outline"
+                style={{
+                  borderColor: theme.colors.primary,
+                  color: theme.colors.primary,
+                }}
+              >
+                <Download className={`w-4 h-4 mr-2 ${exporting ? 'animate-pulse' : ''}`} />
+                Export PDF
               </Button>
               <Button
                 variant="outline"
