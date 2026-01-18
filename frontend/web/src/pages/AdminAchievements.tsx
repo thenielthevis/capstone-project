@@ -4,13 +4,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { 
   Award, Search, Trash2, ChevronLeft, ChevronRight,
-  Filter, TrendingUp, RefreshCw, Trophy, Medal, Plus, Edit
+  Filter, TrendingUp, RefreshCw, Trophy, Medal, Plus, Edit, Download
 } from 'lucide-react';
 import AdminSidebar from '@/components/AdminSidebar';
 import { useTheme } from '@/context/ThemeContext';
 import { adminApi, Achievement, AchievementStats } from '@/api/adminApi';
 import { showToast } from '@/components/Toast/Toast';
 import AchievementModal from '@/components/AchievementModal';
+import { exportAchievementsReport } from '@/utils/pdfExport';
 
 export default function AdminAchievements() {
   const { theme } = useTheme();
@@ -30,6 +31,7 @@ export default function AdminAchievements() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showFilters, setShowFilters] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null);
@@ -167,6 +169,45 @@ export default function AdminAchievements() {
     });
   };
 
+  const handleExportPDF = async () => {
+    try {
+      setExporting(true);
+      showToast({ type: 'info', text1: 'Generating PDF report...' });
+      
+      // Fetch all achievements for export (up to 500)
+      const allData = await adminApi.getAllAchievements(1, 500, {});
+      
+      exportAchievementsReport(
+        allData.achievements.map(achievement => ({
+          _id: achievement._id,
+          name: achievement.name,
+          description: achievement.description,
+          category: achievement.category,
+          icon: achievement.icon,
+          criteria: achievement.criteria,
+          points: achievement.points,
+          tier: achievement.tier,
+          is_active: achievement.is_active,
+          earnedCount: achievement.earnedCount,
+          created_at: achievement.created_at,
+        })),
+        stats ? {
+          totalAchievements: stats.totalAchievements,
+          activeAchievements: stats.activeAchievements,
+          totalUserAchievements: stats.totalUserAchievements,
+          completionRate: stats.completionRate,
+        } : undefined
+      );
+      
+      showToast({ type: 'success', text1: 'PDF report generated successfully!' });
+    } catch (error: any) {
+      console.error('[AdminAchievements] Export PDF error:', error);
+      showToast({ type: 'error', text1: 'Failed to generate PDF report' });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const getTierColor = (tier: string) => {
     const colors: { [key: string]: string } = {
       bronze: '#CD7F32',
@@ -219,6 +260,18 @@ export default function AdminAchievements() {
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Create Achievement
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleExportPDF}
+                disabled={exporting || achievements.length === 0}
+                style={{
+                  borderColor: theme.colors.border,
+                  color: theme.colors.text,
+                }}
+              >
+                <Download className={`w-4 h-4 mr-2 ${exporting ? 'animate-pulse' : ''}`} />
+                {exporting ? 'Exporting...' : 'Export PDF'}
               </Button>
               <Button
                 variant="outline"

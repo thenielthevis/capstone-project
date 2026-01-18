@@ -5,13 +5,15 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { 
   Users, Activity, BarChart3, TrendingUp, Shield, Flag,
   MapPin, Dumbbell, BookOpen, Award, Utensils, ArrowRight,
-  RefreshCw, Clock, UserPlus, ChevronRight
+  RefreshCw, Clock, UserPlus, ChevronRight, Download
 } from 'lucide-react';
 import AdminSidebar from '@/components/AdminSidebar';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { adminApi, AdminStats } from '@/api/adminApi';
 import { getReportStats, ReportStatsResponse } from '@/api/reportApi';
+import { showToast } from '@/components/Toast/Toast';
+import { exportDashboardSummary } from '@/utils/pdfExport';
 
 interface QuickLink {
   id: string;
@@ -36,6 +38,7 @@ export default function AdminDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     fetchStats();
@@ -70,6 +73,68 @@ export default function AdminDashboard() {
   const handleRefresh = () => {
     fetchStats();
     fetchReportStats();
+  };
+
+  const handleExportPDF = async () => {
+    try {
+      setExporting(true);
+      showToast({ type: 'info', text1: 'Fetching all statistics for report...' });
+      
+      // Fetch all stats for comprehensive report
+      const [workoutStats, programStats, foodLogStats, achievementStats, geoStats] = await Promise.all([
+        adminApi.getWorkoutStats().catch(() => null),
+        adminApi.getProgramStats().catch(() => null),
+        adminApi.getFoodLogStats().catch(() => null),
+        adminApi.getAchievementStats().catch(() => null),
+        adminApi.getGeoActivityStats().catch(() => null),
+      ]);
+      
+      exportDashboardSummary({
+        totalUsers: stats.totalUsers,
+        totalAdmins: stats.totalAdmins,
+        reportStats: reportStats ? {
+          totalReports: reportStats.totalReports,
+          pendingReports: reportStats.pendingReports,
+          resolvedReports: reportStats.resolvedReports,
+          dismissedReports: reportStats.dismissedReports,
+          byType: reportStats.byType,
+        } : undefined,
+        workoutStats: workoutStats ? {
+          totalWorkouts: workoutStats.totalWorkouts,
+          bodyweightWorkouts: workoutStats.bodyweightWorkouts,
+          equipmentWorkouts: workoutStats.equipmentWorkouts,
+        } : undefined,
+        programStats: programStats ? {
+          totalPrograms: programStats.totalPrograms,
+          totalCreators: programStats.totalCreators,
+          avgWorkoutsPerProgram: programStats.avgWorkoutsPerProgram,
+        } : undefined,
+        foodLogStats: foodLogStats ? {
+          totalFoodLogs: foodLogStats.totalFoodLogs,
+          totalUsers: foodLogStats.totalUsers,
+          recentLogs: foodLogStats.recentLogs,
+          averageLogsPerUser: foodLogStats.averageLogsPerUser,
+        } : undefined,
+        achievementStats: achievementStats ? {
+          totalAchievements: achievementStats.totalAchievements,
+          activeAchievements: achievementStats.activeAchievements,
+          totalUserAchievements: achievementStats.totalUserAchievements,
+          completionRate: achievementStats.completionRate,
+        } : undefined,
+        geoStats: geoStats ? {
+          totalActivities: geoStats.totalActivities,
+          totalSessions: geoStats.totalSessions,
+          totalUsers: geoStats.totalUsers,
+        } : undefined,
+      });
+      
+      showToast({ type: 'success', text1: 'Comprehensive dashboard report generated!' });
+    } catch (error: any) {
+      console.error('[AdminDashboard] Export PDF error:', error);
+      showToast({ type: 'error', text1: 'Failed to generate summary' });
+    } finally {
+      setExporting(false);
+    }
   };
 
   const quickLinks: QuickLink[] = [
@@ -136,6 +201,20 @@ export default function AdminDashboard() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportPDF}
+                disabled={exporting}
+                className="gap-2"
+                style={{ 
+                  borderColor: theme.colors.border,
+                  color: theme.colors.text 
+                }}
+              >
+                <Download className={`w-4 h-4 ${exporting ? 'animate-pulse' : ''}`} />
+                {exporting ? 'Exporting...' : 'Export Summary'}
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"

@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Search, Users, Mail, Calendar, Shield, Eye } from 'lucide-react';
+import { Search, Users, Mail, Calendar, Shield, Eye, Download, RefreshCw } from 'lucide-react';
 import AdminSidebar from '@/components/AdminSidebar';
 import { useTheme } from '@/context/ThemeContext';
 import { adminApi, User } from '@/api/adminApi';
+import { showToast } from '@/components/Toast/Toast';
+import { exportUsersReport } from '@/utils/pdfExport';
 import logoImg from '../assets/logo.png';
 
 export default function AdminUsers() {
@@ -25,6 +27,8 @@ export default function AdminUsers() {
   });
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showViewModal, setShowViewModal] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     fetchUsers(pagination.page, filterRole);
@@ -67,6 +71,47 @@ export default function AdminUsers() {
     setShowViewModal(true);
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchUsers(pagination.page, filterRole);
+    setRefreshing(false);
+  };
+
+  const handleExportPDF = async () => {
+    try {
+      setExporting(true);
+      showToast({ type: 'info', text1: 'Generating PDF report...' });
+      
+      // Fetch all users for export (up to 500)
+      const allData = await adminApi.getUsers(1, 500, undefined);
+      const stats = await adminApi.getStats();
+      
+      exportUsersReport(
+        allData.users.map(user => ({
+          _id: user._id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          registeredDate: user.registeredDate,
+          verified: user.verified,
+          age: user.age,
+          gender: user.gender,
+          physicalMetrics: user.physicalMetrics,
+          lifestyle: user.lifestyle,
+          lastPrediction: user.lastPrediction,
+        })),
+        stats
+      );
+      
+      showToast({ type: 'success', text1: 'PDF report generated successfully!' });
+    } catch (error: any) {
+      console.error('[AdminUsers] Export PDF error:', error);
+      showToast({ type: 'error', text1: 'Failed to generate PDF report' });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const filteredUsers = users.filter(user =>
     user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
@@ -86,21 +131,47 @@ export default function AdminUsers() {
               <img src={logoImg} alt="Lifora Logo" className="w-10 h-10" />
               <h1 className="text-2xl font-bold" style={{ color: theme.colors.text }}>List of Users</h1>
             </div>
-            <Button
-              variant="ghost"
-              onClick={() => navigate('/admin/dashboard')}
-              style={{ color: theme.colors.textSecondary }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.colors.cardHover;
-                e.currentTarget.style.color = theme.colors.text;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = theme.colors.textSecondary;
-              }}
-            >
-              Back to Dashboard
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleExportPDF}
+                disabled={exporting || users.length === 0}
+                style={{
+                  borderColor: theme.colors.border,
+                  color: theme.colors.text,
+                }}
+              >
+                <Download className={`w-4 h-4 mr-2 ${exporting ? 'animate-pulse' : ''}`} />
+                {exporting ? 'Exporting...' : 'Export PDF'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleRefresh}
+                disabled={refreshing}
+                style={{
+                  borderColor: theme.colors.border,
+                  color: theme.colors.text,
+                }}
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => navigate('/admin/dashboard')}
+                style={{ color: theme.colors.textSecondary }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.colors.cardHover;
+                  e.currentTarget.style.color = theme.colors.text;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = theme.colors.textSecondary;
+                }}
+              >
+                Back to Dashboard
+              </Button>
+            </div>
           </div>
         </header>
 
@@ -258,45 +329,57 @@ export default function AdminUsers() {
             </Card>
 
             {/* Pagination */}
-            {pagination.pages > 1 && (
-              <Card style={{ backgroundColor: theme.colors.card, borderColor: theme.colors.border }}>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm" style={{ color: theme.colors.textSecondary }}>
-                      Page {pagination.page} of {pagination.pages}
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        onClick={() => handlePageChange(pagination.page - 1)}
-                        disabled={pagination.page === 1}
-                        size="sm"
-                      >
-                        Previous
-                      </Button>
-                      {Array.from({ length: pagination.pages }, (_, i) => i + 1).map((page) => (
+            <Card style={{ backgroundColor: theme.colors.card, borderColor: theme.colors.border }}>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm" style={{ color: theme.colors.textSecondary }}>
+                    Showing {filteredUsers.length} of {pagination.total} users | Page {pagination.page} of {pagination.pages || 1}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => handlePageChange(pagination.page - 1)}
+                      disabled={pagination.page <= 1 || loading}
+                      size="sm"
+                    >
+                      Previous
+                    </Button>
+                    {pagination.pages > 0 && Array.from({ length: Math.min(pagination.pages, 5) }, (_, i) => {
+                      // Show first 5 pages or pages around current
+                      let pageNum;
+                      if (pagination.pages <= 5) {
+                        pageNum = i + 1;
+                      } else if (pagination.page <= 3) {
+                        pageNum = i + 1;
+                      } else if (pagination.page >= pagination.pages - 2) {
+                        pageNum = pagination.pages - 4 + i;
+                      } else {
+                        pageNum = pagination.page - 2 + i;
+                      }
+                      return (
                         <Button
-                          key={page}
-                          variant={pagination.page === page ? 'default' : 'outline'}
-                          onClick={() => handlePageChange(page)}
+                          key={pageNum}
+                          variant={pagination.page === pageNum ? 'default' : 'outline'}
+                          onClick={() => handlePageChange(pageNum)}
+                          disabled={loading}
                           size="sm"
                         >
-                          {page}
+                          {pageNum}
                         </Button>
-                      ))}
-                      <Button
-                        variant="outline"
-                        onClick={() => handlePageChange(pagination.page + 1)}
-                        disabled={pagination.page === pagination.pages}
-                        size="sm"
-                      >
-                        Next
-                      </Button>
-                    </div>
+                      );
+                    })}
+                    <Button
+                      variant="outline"
+                      onClick={() => handlePageChange(pagination.page + 1)}
+                      disabled={pagination.page >= pagination.pages || loading}
+                      size="sm"
+                    >
+                      Next
+                    </Button>
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </main>
