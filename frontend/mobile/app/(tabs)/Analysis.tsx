@@ -22,6 +22,8 @@ import Toast from "react-native-toast-message";
 import { LinearGradient } from "expo-linear-gradient";
 import Analysis from "../screens/AnalysisNew";
 import { getPredictionUpdateFlag, setPredictionUpdateFlag } from "../screens/analysis_input/prediction_input";
+import AssessmentQuestions from "../screens/analysis_input/assessment_questions";
+import { tokenStorage } from "@/utils/tokenStorage";
 
 
 const getApiUrl = (): string => {
@@ -186,6 +188,11 @@ export default function AnalysisDashboard() {
   const [showActivityModal, setShowActivityModal] = useState(false);
   const [selectedActivityLevel, setSelectedActivityLevel] = useState<string>(userData?.lifestyle?.activityLevel || "moderately_active");
   const [activityLoading, setActivityLoading] = useState(false);
+
+
+
+  // Assessment Questions Modal States
+  const [showAssessmentQuestions, setShowAssessmentQuestions] = useState(false);
 
   useEffect(() => {
     loadUserData();
@@ -739,12 +746,144 @@ export default function AnalysisDashboard() {
             </Text>
           </View>
         </ScrollView>
+
+     
+        {/* Daily Assessment Questions Button */}
+        <View
+          style={{
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            borderTopWidth: 1,
+            borderTopColor: theme.colors.surface,
+          }}
+        >
+          <TouchableOpacity
+            onPress={async () => {
+              try {
+                setLoading(true);
+                const token = await tokenStorage.getToken();
+                if (!token) {
+                  Toast.show({
+                    type: "error",
+                    text1: "Error",
+                    text2: "Please sign in first",
+                  });
+                  return;
+                }
+
+                const response = await fetch(
+                  `${API_URL}/assessment/generate-daily-questions`,
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({}),
+                  }
+                );
+
+                if (!response.ok) {
+                  throw new Error("Failed to generate questions");
+                }
+
+                setShowAssessmentQuestions(true);
+              } catch (error: any) {
+                Toast.show({
+                  type: "error",
+                  text1: "Error",
+                  text2: error.message || "Failed to generate assessment questions",
+                });
+              } finally {
+                setLoading(false);
+              }
+            }}
+            onPressIn={() => setPressedButton("assessment")}
+            onPressOut={() => setPressedButton(null)}
+            activeOpacity={1}
+            style={{
+              borderRadius: 16,
+              overflow: "hidden",
+            }}
+          >
+            {pressedButton === "assessment" ? (
+              <View
+                style={{
+                  paddingVertical: 14,
+                  paddingHorizontal: 20,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 12,
+                  backgroundColor: "#FFFFFF",
+                  borderRadius: 16,
+                  elevation: 5,
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 3 },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 6,
+                }}
+              >
+                <MaterialCommunityIcons name="clipboard-list" size={24} color="#000" />
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontFamily: theme.fonts.bodyBold,
+                    color: "#000",
+                  }}
+                >
+                  Daily Assessment
+                </Text>
+              </View>
+            ) : (
+              <LinearGradient
+                colors={["#06B6D4", "#0891B2"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{
+                  paddingVertical: 14,
+                  paddingHorizontal: 20,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 12,
+                  elevation: 5,
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 3 },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 6,
+                }}
+              >
+                <MaterialCommunityIcons name="clipboard-list" size={24} color="#fff" />
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontFamily: theme.fonts.bodyBold,
+                    color: "#fff",
+                  }}
+                >
+                  Daily Assessment
+                </Text>
+              </LinearGradient>
+            )}
+          </TouchableOpacity>
+        </View>
+
       </SafeAreaView>
 
       {/* Full-screen Analysis Screen (replaces Modal) */}
       {showDetail && (
         <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000 }}>
           <Analysis initialMetric={selectedMetric ?? undefined} onClose={handleCloseDetail} />
+        </View>
+      )}
+
+     
+
+      {/* Assessment Questions Screen */}
+      {showAssessmentQuestions && (
+        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 1001 }}>
+          <AssessmentQuestions onClose={() => setShowAssessmentQuestions(false)} />
         </View>
       )}
 
