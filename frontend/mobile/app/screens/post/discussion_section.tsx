@@ -10,6 +10,7 @@ import { useUser } from "../../context/UserContext";
 import ReactionButton, { REACTIONS } from "../../components/ReactionButton";
 import ReportModal from "../../components/Modals/ReportModal";
 import { ReportType } from "../../api/reportApi";
+import SessionPreview from "../../components/feed/SessionPreview";
 
 type Comment = {
     _id: string;
@@ -44,6 +45,10 @@ type Post = {
     content: string;
     images: string[];
     createdAt: string;
+    reference?: {
+        item_id: any;
+        item_type: 'GeoSession' | 'ProgramSession' | 'FoodLog';
+    };
 };
 
 export default function DiscussionSection() {
@@ -112,10 +117,28 @@ export default function DiscussionSection() {
 
         try {
             setPosting(true);
-            await commentApi.createComment(postId, newComment, replyingTo || undefined);
+            const newCommentData = await commentApi.createComment(postId, newComment, replyingTo || undefined);
+
+            // Optimistically add the new comment to the list
+            if (newCommentData) {
+                setComments(prev => [...prev, {
+                    ...newCommentData,
+                    user: {
+                        _id: userId || '',
+                        username: user?.username,
+                        name: user?.name,
+                        profilePicture: user?.profilePicture,
+                    },
+                    votes: { upvotes: [], downvotes: [] },
+                    reactions: [],
+                }]);
+            } else {
+                // Fallback to refresh if we don't get the new comment back
+                await fetchData();
+            }
+
             setNewComment("");
             setReplyingTo(null);
-            await fetchData();
         } catch (error) {
             console.error("Error posting comment:", error);
             Alert.alert("Error", "Failed to post comment");
@@ -126,37 +149,149 @@ export default function DiscussionSection() {
 
     const handleVoteComment = async (commentId: string, voteType: "up" | "down") => {
         try {
+            // Optimistically update the local state
+            setComments(prevComments => prevComments.map(comment => {
+                if (comment._id === commentId) {
+                    const upvotes = [...(comment.votes?.upvotes || [])];
+                    const downvotes = [...(comment.votes?.downvotes || [])];
+
+                    // Check if user already has this vote
+                    const upIndex = upvotes.findIndex((v: any) => v.toString() === userId);
+                    const downIndex = downvotes.findIndex((v: any) => v.toString() === userId);
+                    const wasUpvoted = upIndex > -1;
+                    const wasDownvoted = downIndex > -1;
+
+                    // Remove user from both arrays
+                    if (upIndex > -1) upvotes.splice(upIndex, 1);
+                    if (downIndex > -1) downvotes.splice(downIndex, 1);
+
+                    // Toggle logic: only add if it wasn't the same vote
+                    if (voteType === 'up' && !wasUpvoted) {
+                        upvotes.push(userId || '');
+                    } else if (voteType === 'down' && !wasDownvoted) {
+                        downvotes.push(userId || '');
+                    }
+
+                    return { ...comment, votes: { upvotes, downvotes } };
+                }
+                return comment;
+            }));
+
+            // Make API call in background
             await commentApi.voteComment(commentId, voteType);
-            await fetchData();
         } catch (error) {
             console.error("Error voting:", error);
+            // Revert on error
+            await fetchData();
         }
     };
 
     const handleReactComment = async (commentId: string, reactionType: string) => {
         try {
+            // Optimistically update the local state
+            setComments(prevComments => prevComments.map(comment => {
+                if (comment._id === commentId) {
+                    const reactions = [...(comment.reactions || [])];
+                    const existingIndex = reactions.findIndex((r: any) =>
+                        (r.user === userId || r.user?._id === userId)
+                    );
+
+                    if (existingIndex > -1) {
+                        // Toggle: if same reaction, remove it; otherwise update it
+                        if (reactions[existingIndex].type === reactionType) {
+                            reactions.splice(existingIndex, 1);
+                        } else {
+                            reactions[existingIndex] = { user: userId || '', type: reactionType };
+                        }
+                    } else {
+                        // Add new reaction
+                        reactions.push({ user: userId || '', type: reactionType });
+                    }
+
+                    return { ...comment, reactions };
+                }
+                return comment;
+            }));
+
+            // Make API call in background
             await commentApi.reactComment(commentId, reactionType);
-            await fetchData();
         } catch (error) {
             console.error("Error reacting:", error);
+            // Revert on error
+            await fetchData();
         }
     };
 
-    const handleVote = async (postId: string, voteType: "up" | "down") => {
+    const handleVote = async (postIdToVote: string, voteType: "up" | "down") => {
         try {
-            await postApi.votePost(postId, voteType);
-            await fetchData();
+            // Optimistically update the local state
+            setPost(prevPost => {
+                if (!prevPost) return prevPost;
+
+                const upvotes = [...((prevPost as any).votes?.upvotes || [])];
+                const downvotes = [...((prevPost as any).votes?.downvotes || [])];
+
+                // Check if user already has this vote
+                const upIndex = upvotes.findIndex((v: any) => v.toString() === userId);
+                const downIndex = downvotes.findIndex((v: any) => v.toString() === userId);
+                const wasUpvoted = upIndex > -1;
+                const wasDownvoted = downIndex > -1;
+
+                // Remove user from both arrays
+                if (upIndex > -1) upvotes.splice(upIndex, 1);
+                if (downIndex > -1) downvotes.splice(downIndex, 1);
+
+                // Toggle logic: only add if it wasn't the same vote
+                if (voteType === 'up' && !wasUpvoted) {
+                    upvotes.push(userId || '');
+                } else if (voteType === 'down' && !wasDownvoted) {
+                    downvotes.push(userId || '');
+                }
+
+                return { ...prevPost, votes: { upvotes, downvotes } } as any;
+            });
+
+            // Make API call in background
+            await postApi.votePost(postIdToVote, voteType);
         } catch (error) {
             console.error("Error voting post:", error);
+            // Revert on error
+            await fetchData();
         }
     };
 
-    const handleReaction = async (postId: string, reactionType: string) => {
+    const handleReaction = async (postIdToReact: string, reactionType: string) => {
         try {
-            await postApi.likePost(postId, reactionType);
-            await fetchData();
+            // Optimistically update the local state
+            setPost(prevPost => {
+                if (!prevPost) return prevPost;
+
+                const reactions = [...((prevPost as any).reactions || [])];
+                const existingIndex = reactions.findIndex((r: any) =>
+                    (r.user === userId || r.user?._id === userId)
+                );
+
+                if (existingIndex > -1) {
+                    // Toggle: if same reaction, remove it; otherwise update it
+                    if (reactions[existingIndex].type === reactionType) {
+                        reactions.splice(existingIndex, 1);
+                    } else {
+                        reactions[existingIndex] = { user: userId || '', type: reactionType };
+                    }
+                } else {
+                    // Add new reaction
+                    reactions.push({ user: userId || '', type: reactionType });
+                }
+
+                return { ...prevPost, reactions } as any;
+            });
+
+            // Make API call in background
+            await postApi.likePost(postIdToReact, reactionType);
         } catch (error) {
             console.error("Error reacting to post:", error);
+            // Revert on error
+            await fetchData();
         }
     };
 
@@ -203,59 +338,99 @@ export default function DiscussionSection() {
         const reactionCount = comment.reactions?.length || 0;
         const isReplying = replyingTo === comment._id;
 
+        // Cap the visual indent at depth 4 to prevent excessive nesting
+        const maxVisualDepth = 4;
+        const visualDepth = Math.min(depth, maxVisualDepth);
+        const indentPerLevel = 12; // Thin indent
+
         return (
-            <View key={comment._id} className={depth > 0 ? "mt-3" : "mt-4"}>
+            <View key={comment._id} style={{ marginTop: depth === 0 ? 12 : 8 }}>
                 <View className="flex-row">
+                    {/* Thread line for nested replies */}
+                    {depth > 0 && (
+                        <TouchableOpacity
+                            style={{
+                                width: indentPerLevel,
+                                alignItems: 'center',
+                                paddingTop: 4,
+                            }}
+                            activeOpacity={0.6}
+                        >
+                            <View style={{
+                                width: 2,
+                                flex: 1,
+                                backgroundColor: theme.colors.text + '20',
+                                borderRadius: 1,
+                            }} />
+                        </TouchableOpacity>
+                    )}
+
                     {/* Avatar */}
-                    <View className="w-8 h-8 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.colors.primary + '20' }}>
+                    <View className="w-7 h-7 rounded-full items-center justify-center mr-2" style={{ backgroundColor: theme.colors.primary + '20' }}>
                         {comment.user?.profilePicture ? (
-                            <Image source={{ uri: comment.user.profilePicture }} className="w-8 h-8 rounded-full" />
+                            <Image source={{ uri: comment.user.profilePicture }} className="w-7 h-7 rounded-full" />
                         ) : (
-                            <Ionicons name="person" size={16} color={theme.colors.primary} />
+                            <Ionicons name="person" size={14} color={theme.colors.primary} />
                         )}
                     </View>
 
                     {/* Comment Content */}
                     <View className="flex-1">
-                        <View className="rounded-xl p-3" style={{ backgroundColor: theme.colors.surface }}>
-                            <View className="flex-row items-center mb-1">
-                                <Text style={{ fontFamily: theme.fonts.bodyBold, color: theme.colors.text }} className="text-sm">
-                                    {comment.user?.username || comment.user?.name || "Unknown"}
-                                </Text>
-                                <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '66' }} className="text-xs ml-2">
-                                    · {getTimeAgo(comment.createdAt)}
-                                </Text>
-                            </View>
-                            <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text }} className="text-sm leading-5">
-                                {comment.content}
+                        {/* Header: Username + Time */}
+                        <View className="flex-row items-center flex-wrap">
+                            <Text style={{ fontFamily: theme.fonts.bodyBold, color: theme.colors.text, fontSize: 13 }}>
+                                {comment.user?.username || comment.user?.name || "Unknown"}
                             </Text>
+                            <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '55', fontSize: 12, marginLeft: 6 }}>
+                                {getTimeAgo(comment.createdAt)}
+                            </Text>
+                            {depth > maxVisualDepth && (
+                                <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '44', fontSize: 11, marginLeft: 6 }}>
+                                    · lvl {depth}
+                                </Text>
+                            )}
                         </View>
 
+                        {/* Comment Text */}
+                        <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text, fontSize: 14, lineHeight: 20, marginTop: 2 }}>
+                            {comment.content}
+                        </Text>
+
                         {/* Action Bar */}
-                        <View className="flex-row items-center mt-2 ml-3">
-                            <TouchableOpacity onPress={() => handleVoteComment(comment._id, "up")} className="flex-row items-center mr-4">
+                        <View className="flex-row items-center mt-2" style={{ marginLeft: -6 }}>
+                            {/* Upvote */}
+                            <TouchableOpacity
+                                onPress={() => handleVoteComment(comment._id, "up")}
+                                className="flex-row items-center"
+                                style={{ paddingVertical: 4, paddingHorizontal: 6 }}
+                            >
                                 <Ionicons
-                                    name={comment.votes?.upvotes?.some((v: any) => v.toString() === userId) ? "arrow-up-circle" : "arrow-up-circle-outline"}
-                                    size={18}
-                                    color={comment.votes?.upvotes?.some((v: any) => v.toString() === userId) ? theme.colors.primary : theme.colors.text + '77'}
+                                    name={comment.votes?.upvotes?.some((v: any) => v.toString() === userId) ? "arrow-up" : "arrow-up-outline"}
+                                    size={16}
+                                    color={comment.votes?.upvotes?.some((v: any) => v.toString() === userId) ? theme.colors.primary : theme.colors.text + '66'}
                                 />
-                                <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '77' }} className="ml-1 text-xs">
-                                    {upvoteCount}
-                                </Text>
                             </TouchableOpacity>
 
-                            <TouchableOpacity onPress={() => handleVoteComment(comment._id, "down")} className="flex-row items-center mr-4">
+                            {/* Vote Count */}
+                            <Text style={{ fontFamily: theme.fonts.bodyBold, color: theme.colors.text + '88', fontSize: 12, minWidth: 24, textAlign: 'center' }}>
+                                {upvoteCount - downvoteCount}
+                            </Text>
+
+                            {/* Downvote */}
+                            <TouchableOpacity
+                                onPress={() => handleVoteComment(comment._id, "down")}
+                                className="flex-row items-center"
+                                style={{ paddingVertical: 4, paddingHorizontal: 6 }}
+                            >
                                 <Ionicons
-                                    name={comment.votes?.downvotes?.some((v: any) => v.toString() === userId) ? "arrow-down-circle" : "arrow-down-circle-outline"}
-                                    size={18}
-                                    color={comment.votes?.downvotes?.some((v: any) => v.toString() === userId) ? theme.colors.primary : theme.colors.text + '77'}
+                                    name={comment.votes?.downvotes?.some((v: any) => v.toString() === userId) ? "arrow-down" : "arrow-down-outline"}
+                                    size={16}
+                                    color={comment.votes?.downvotes?.some((v: any) => v.toString() === userId) ? theme.colors.secondary : theme.colors.text + '66'}
                                 />
-                                <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '77' }} className="ml-1 text-xs">
-                                    {downvoteCount}
-                                </Text>
                             </TouchableOpacity>
 
-                            <View className="mr-4">
+                            {/* Reaction */}
+                            <View style={{ marginLeft: 8 }}>
                                 <ReactionButton
                                     userReaction={comment.reactions?.find((r: any) => r.user === userId || r.user?._id === userId)?.type}
                                     reactionCount={reactionCount}
@@ -263,9 +438,14 @@ export default function DiscussionSection() {
                                 />
                             </View>
 
-                            <TouchableOpacity onPress={() => setReplyingTo(isReplying ? null : comment._id)} className="flex-row items-center">
-                                <MaterialCommunityIcons name="reply-outline" size={16} color={theme.colors.text + '77'} />
-                                <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '77' }} className="ml-1 text-xs">
+                            {/* Reply */}
+                            <TouchableOpacity
+                                onPress={() => setReplyingTo(isReplying ? null : comment._id)}
+                                className="flex-row items-center"
+                                style={{ paddingVertical: 4, paddingHorizontal: 8, marginLeft: 4 }}
+                            >
+                                <MaterialCommunityIcons name="comment-outline" size={14} color={theme.colors.text + '66'} />
+                                <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '66', fontSize: 12, marginLeft: 4 }}>
                                     {isReplying ? "Cancel" : "Reply"}
                                 </Text>
                             </TouchableOpacity>
@@ -273,7 +453,7 @@ export default function DiscussionSection() {
 
                         {/* Replies */}
                         {comment.replies && comment.replies.length > 0 && (
-                            <View className="mt-2 pl-3" style={{ borderLeftWidth: 2, borderLeftColor: theme.colors.text + '10' }}>
+                            <View style={{ marginTop: 8 }}>
                                 {comment.replies.map(reply => renderComment(reply as Comment & { replies: Comment[] }, depth + 1))}
                             </View>
                         )}
@@ -378,9 +558,18 @@ export default function DiscussionSection() {
                             {post.content}
                         </Text>
 
-                        {post.images && post.images.length > 0 && (
+                        {/* Combined Horizontal Scroll for Reference and Images */}
+                        {(post.reference || (post.images && post.images.length > 0)) && (
                             <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-3">
-                                {post.images.map((imageUrl, index) => (
+                                {/* Session Preview (First Item) */}
+                                {post.reference && (
+                                    <View style={{ marginRight: 8 }}>
+                                        <SessionPreview reference={post.reference as any} />
+                                    </View>
+                                )}
+
+                                {/* Post Images */}
+                                {post.images && post.images.map((imageUrl, index) => (
                                     <TouchableOpacity
                                         key={index}
                                         activeOpacity={0.9}
@@ -395,8 +584,12 @@ export default function DiscussionSection() {
                                     >
                                         <Image
                                             source={{ uri: imageUrl }}
-                                            className="h-48 rounded-xl mr-2"
-                                            style={{ width: 240 }}
+                                            className="rounded-xl"
+                                            style={{
+                                                width: 300,
+                                                height: 256,
+                                                marginRight: index === post.images.length - 1 ? 0 : 8
+                                            }}
                                             resizeMode="cover"
                                         />
                                     </TouchableOpacity>
@@ -487,16 +680,18 @@ export default function DiscussionSection() {
                     </View>
 
                     {/* Comments Section */}
-                    <View className="px-5 pb-5">
+                    <View className="pb-5">
                         {commentTree.length === 0 ? (
-                            <View className="items-center py-10">
+                            <View className="items-center py-10 px-5">
                                 <Ionicons name="chatbubbles-outline" size={48} color={theme.colors.text + '33'} />
                                 <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '77' }} className="mt-3">
                                     No comments yet. Be the first!
                                 </Text>
                             </View>
                         ) : (
-                            commentTree.map(comment => renderComment(comment as Comment & { replies: Comment[] }))
+                            <View className="px-4">
+                                {commentTree.map(comment => renderComment(comment as Comment & { replies: Comment[] }))}
+                            </View>
                         )}
                     </View>
                 </ScrollView>

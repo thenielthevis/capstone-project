@@ -166,6 +166,38 @@ export default function ImageMax() {
                 </Text>
               )}
             </View>
+
+            {/* View Session Link */}
+            {post.reference && (
+              <TouchableOpacity
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: theme.colors.primary + '20',
+                  padding: 8,
+                  borderRadius: 8,
+                  alignSelf: 'flex-start',
+                  marginBottom: 12
+                }}
+                onPress={() => {
+                  router.push({
+                    pathname: "/components/feed/SessionDetails",
+                    params: {
+                      sessionType: post.reference.item_type,
+                      sessionData: JSON.stringify(post.reference.item_id),
+                      images: JSON.stringify(post.images), // Pass images back so loop is complete? Or maybe not needed if going back?
+                      postId: post._id
+                    }
+                  });
+                }}
+              >
+                <Ionicons name="barbell-outline" size={16} color={theme.colors.primary} />
+                <Text style={{ fontFamily: theme.fonts.bodyBold, color: theme.colors.primary, marginLeft: 6 }}>
+                  View Session Details
+                </Text>
+              </TouchableOpacity>
+            )}
+
             {/* Post Stats Row */}
             {(post.reactions?.length > 0 || ((post as any).commentCount || 0) > 0) && (
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8, paddingHorizontal: 4 }}>
@@ -191,13 +223,13 @@ export default function ImageMax() {
 
                 {/* Right: Comments */}
                 <TouchableOpacity onPress={() => router.push(`/screens/post/discussion_section?postId=${post._id}` as any)}>
-                {((post as any).commentCount || 0) > 0 && (
-                  <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '99', fontSize: 13 }}>
-                      {(post as any).commentCount} comments
-                    </Text>
-                  </View>
-                )}
+                  {((post as any).commentCount || 0) > 0 && (
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                      <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '99', fontSize: 13 }}>
+                        {(post as any).commentCount} comments
+                      </Text>
+                    </View>
+                  )}
                 </TouchableOpacity>
                 {/* Shares hidden if 0 */}
               </View>

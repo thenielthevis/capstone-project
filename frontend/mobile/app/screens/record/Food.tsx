@@ -508,7 +508,7 @@ export default function Food() {
         if (currentMultiDishId) {
           const dishId = currentMultiDishId;
           const isAdditional = addingAdditionalImage;
-          
+
           if (isAdditional) {
             // Add as additional image
             const dish = multiDishes.find(d => d.id === dishId);
@@ -529,7 +529,7 @@ export default function Food() {
                 : d
             ));
           }
-          
+
           // Reset multi-dish camera state
           setCurrentMultiDishId(null);
           setAddingAdditionalImage(false);
@@ -537,7 +537,7 @@ export default function Food() {
           // Regular single image mode
           setImageUri(manipulatedImage.uri);
         }
-        
+
         setShowCamera(false);
       }
     } catch (err) {
@@ -631,7 +631,7 @@ export default function Food() {
 
     if (!result.canceled && result.assets[0]) {
       const { uri, base64 } = result.assets[0];
-      
+
       if (isAdditional) {
         // Add as additional image
         const dish = multiDishes.find(d => d.id === dishId);
@@ -709,12 +709,12 @@ export default function Food() {
               notes: `${dish.cuisineType} cuisine. ${dish.notes || ''}`,
               healthyAlternatives: dish.healthyAlternatives || [],
               recipeLinks: dish.recipeLinks || [],
-              brandedProduct: { 
-                isBranded: false, 
-                brandName: null, 
-                productName: null, 
-                ingredients: null, 
-                purchaseLinks: { lazada: null, shopee: null, puregold: null } 
+              brandedProduct: {
+                isBranded: false,
+                brandName: null,
+                productName: null,
+                ingredients: null,
+                purchaseLinks: { lazada: null, shopee: null, puregold: null }
               },
               nutritionSources: []
             });
@@ -903,6 +903,20 @@ export default function Food() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePostFood = (log: any) => {
+    router.push({
+      pathname: '/screens/post/post_session',
+      params: {
+        type: 'FoodLog',
+        id: log._id,
+        title: log.dishName || log.foodName,
+        subtitle: `${log.calories} kcal • ${log.servingSize}`,
+        imageUri: log.imageUrl || undefined,
+        sessionData: JSON.stringify(log)
+      }
+    });
   };
 
   const handleAnalyzeImage = async () => {
@@ -2608,7 +2622,7 @@ export default function Food() {
                       editable={!loading}
                     />
                   </View>
-                  
+
                   {/* Dish Suggestions */}
                   {showDishSuggestions && (
                     <View style={{ marginTop: 8 }}>
@@ -2620,8 +2634,8 @@ export default function Food() {
                       }}>
                         Quick picks (Filipino & Asian):
                       </Text>
-                      <ScrollView 
-                        horizontal 
+                      <ScrollView
+                        horizontal
                         showsHorizontalScrollIndicator={false}
                         style={{ marginBottom: 8 }}
                       >
@@ -2629,31 +2643,31 @@ export default function Food() {
                           .filter(d => !dishName || d.toLowerCase().includes(dishName.toLowerCase()))
                           .slice(0, 15)
                           .map((dish, index) => (
-                          <TouchableOpacity
-                            key={index}
-                            onPress={() => {
-                              setDishName(dish);
-                              setShowDishSuggestions(false);
-                            }}
-                            style={{
-                              paddingHorizontal: 12,
-                              paddingVertical: 6,
-                              borderRadius: 16,
-                              backgroundColor: theme.colors.primary + '15',
-                              marginRight: 8,
-                              borderWidth: 1,
-                              borderColor: theme.colors.primary + '30',
-                            }}
-                          >
-                            <Text style={{
-                              fontFamily: theme.fonts.body,
-                              fontSize: theme.fontSizes.sm,
-                              color: theme.colors.primary,
-                            }}>
-                              {dish}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
+                            <TouchableOpacity
+                              key={index}
+                              onPress={() => {
+                                setDishName(dish);
+                                setShowDishSuggestions(false);
+                              }}
+                              style={{
+                                paddingHorizontal: 12,
+                                paddingVertical: 6,
+                                borderRadius: 16,
+                                backgroundColor: theme.colors.primary + '15',
+                                marginRight: 8,
+                                borderWidth: 1,
+                                borderColor: theme.colors.primary + '30',
+                              }}
+                            >
+                              <Text style={{
+                                fontFamily: theme.fonts.body,
+                                fontSize: theme.fontSizes.sm,
+                                color: theme.colors.primary,
+                              }}>
+                                {dish}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
                       </ScrollView>
                       <TouchableOpacity
                         onPress={() => setShowDishSuggestions(false)}
@@ -3226,8 +3240,8 @@ export default function Food() {
                         disabled={loading || multiDishes.filter(d => d.base64).length === 0}
                         style={{
                           flex: 3,
-                          backgroundColor: (loading || multiDishes.filter(d => d.base64).length === 0) 
-                            ? '#f59e0b44' 
+                          backgroundColor: (loading || multiDishes.filter(d => d.base64).length === 0)
+                            ? '#f59e0b44'
                             : '#f59e0b',
                           borderRadius: 12,
                           paddingVertical: 14,
@@ -3428,75 +3442,110 @@ export default function Food() {
                             <MaterialCommunityIcons name="food" size={40} color={theme.colors.primary + '55'} />
                           </View>
                         )}
-                        <View style={{ flex: 1, padding: 14 }}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                            <Text
-                              style={{
-                                fontFamily: theme.fonts.heading,
-                                fontSize: theme.fontSizes.base,
-                                color: theme.colors.text,
-                                flex: 1,
-                              }}
-                              numberOfLines={1}
-                            >
-                              {log.dishName || log.foodName}
-                            </Text>
-                            {log.inputMethod === 'multi-dish' && (
-                              <View style={{
-                                backgroundColor: '#f59e0b',
-                                paddingHorizontal: 6,
-                                paddingVertical: 2,
-                                borderRadius: 6,
-                                marginLeft: 8,
-                              }}>
-                                <Text style={{
-                                  fontFamily: theme.fonts.bodyBold,
-                                  fontSize: 10,
-                                  color: '#FFFFFF',
+                        <View style={{ flex: 1, paddingVertical: 14, paddingLeft: 14 }}>
+                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <View style={{ flex: 1, marginRight: 8 }}>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
+                                <Text
+                                  style={{
+                                    fontFamily: theme.fonts.heading,
+                                    fontSize: theme.fontSizes.base,
+                                    color: theme.colors.text,
+                                    flex: 1,
+                                  }}
+                                  numberOfLines={1}
+                                >
+                                  {log.dishName || log.foodName}
+                                </Text>
+                                {log.inputMethod === 'multi-dish' && (
+                                  <View style={{
+                                    backgroundColor: '#f59e0b',
+                                    paddingHorizontal: 6,
+                                    paddingVertical: 2,
+                                    borderRadius: 6,
+                                    marginLeft: 8,
+                                  }}>
+                                    <Text style={{
+                                      fontFamily: theme.fonts.bodyBold,
+                                      fontSize: 10,
+                                      color: '#FFFFFF',
+                                    }}>
+                                      Multi
+                                    </Text>
+                                  </View>
+                                )}
+                              </View>
+
+                              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                                <View style={{
+                                  backgroundColor: theme.colors.primary + '15',
+                                  paddingHorizontal: 8,
+                                  paddingVertical: 2,
+                                  borderRadius: 6,
+                                  marginRight: 8,
                                 }}>
-                                  Multi
+                                  <Text style={{
+                                    fontFamily: theme.fonts.bodyBold,
+                                    fontSize: 10,
+                                    color: theme.colors.primary
+                                  }}>
+                                    {log.calories} kcal
+                                  </Text>
+                                </View>
+                                {log.servingSize && (
+                                  <Text style={{
+                                    fontFamily: theme.fonts.body,
+                                    fontSize: theme.fontSizes.xs,
+                                    color: theme.colors.text + '77'
+                                  }}>
+                                    {log.servingSize}
+                                  </Text>
+                                )}
+                              </View>
+
+                              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <MaterialCommunityIcons name="clock-outline" size={12} color={theme.colors.text + '55'} />
+                                <Text style={{
+                                  fontFamily: theme.fonts.body,
+                                  fontSize: 10,
+                                  color: theme.colors.text + '55',
+                                  marginLeft: 4,
+                                }}>
+                                  {new Date(log.analyzedAt).toLocaleDateString()} • {new Date(log.analyzedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </Text>
                               </View>
-                            )}
-                          </View>
-
-                          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-                            <View style={{
-                              backgroundColor: theme.colors.primary + '15',
-                              paddingHorizontal: 8,
-                              paddingVertical: 3,
-                              borderRadius: 8,
-                              marginRight: 8,
-                            }}>
-                              <Text style={{
-                                fontFamily: theme.fonts.bodyBold,
-                                fontSize: theme.fontSizes.xs,
-                                color: theme.colors.primary
-                              }}>
-                                {log.calories} kcal
-                              </Text>
                             </View>
-                            {log.servingSize && (
-                              <Text style={{
-                                fontFamily: theme.fonts.body,
-                                fontSize: theme.fontSizes.xs,
-                                color: theme.colors.text + '77'
-                              }}>
-                                {log.servingSize}
-                              </Text>
-                            )}
-                          </View>
 
-                          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            <MaterialCommunityIcons name="clock-outline" size={14} color={theme.colors.text + '55'} />
-                            <Text style={{
-                              fontFamily: theme.fonts.body,
-                              fontSize: theme.fontSizes.xs,
-                              color: theme.colors.text + '55',
-                              marginLeft: 4,
-                            }}>
-                              {new Date(log.analyzedAt).toLocaleDateString()} at {new Date(log.analyzedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </Text>
+                            {/* Post Action */}
+                            <View style={{ marginRight: 8 }}>
+                              {!log.isPosted ? (
+                                <TouchableOpacity
+                                  onPress={() => handlePostFood(log)}
+                                  style={{
+                                    backgroundColor: theme.colors.primary,
+                                    paddingHorizontal: 10,
+                                    paddingVertical: 6,
+                                    borderRadius: 8,
+                                    flexDirection: 'row',
+                                    alignItems: 'center'
+                                  }}
+                                >
+                                  <MaterialCommunityIcons name="share-outline" size={14} color="#FFFFFF" />
+                                  <Text style={{
+                                    color: '#FFFFFF',
+                                    fontSize: 11,
+                                    fontFamily: theme.fonts.bodyBold,
+                                    marginLeft: 4
+                                  }}>
+                                    Post
+                                  </Text>
+                                </TouchableOpacity>
+                              ) : (
+                                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.primary + '15', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
+                                  <Ionicons name="checkmark-circle" size={14} color={theme.colors.primary} />
+                                </View>
+                              )}
+                            </View>
                           </View>
                         </View>
                         <View style={{ justifyContent: 'center', paddingRight: 14 }}>

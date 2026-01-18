@@ -14,17 +14,25 @@ export default function PostSessionScreen() {
     const router = useRouter();
     const params = useLocalSearchParams();
 
-    const { type, id, title: initialTitle, subtitle, imageUri } = params;
+    const { type, id, title: initialTitle, subtitle, imageUri, postId, initialContent, initialImages, initialVisibility } = params;
+
+    const isEditing = !!postId;
 
     const [postTitle, setPostTitle] = useState(initialTitle as string || "");
-    const [content, setContent] = useState("");
-    const [images, setImages] = useState<string[]>([]);
-    const [visibility, setVisibility] = useState<VisibilityOption>("public");
-    const [posting,
+    const [content, setContent] = useState(initialContent as string || "");
+    // Use initialImages if editing, otherwise empty array. Parse if it's a JSON string which params sometimes are.
+    const [images, setImages] = useState<string[]>(
+        initialImages ? (Array.isArray(initialImages) ? initialImages : [initialImages as string]) : []
+    );
+    // Separate state for original images we might want to keep (hosted URLs)
+    const [keepImages, setKeepImages] = useState<string[]>(
+        initialImages ? (Array.isArray(initialImages) ? initialImages : [initialImages as string]).filter(img => img.startsWith('http')) : []
+    );
 
-        setPosting] = useState(false);
+    const [visibility, setVisibility] = useState<VisibilityOption>((initialVisibility as VisibilityOption) || "public");
+    const [posting, setPosting] = useState(false);
 
-    if (!type || !id) {
+    if (!isEditing && (!type || !id)) {
         console.warn("Missing type or id for post session");
     }
 
@@ -48,7 +56,12 @@ export default function PostSessionScreen() {
     };
 
     const removeImage = (index: number) => {
+        const imageToRemove = images[index];
         setImages(images.filter((_, i) => i !== index));
+        // If it was a kept image, remove it from keepImages too
+        if (imageToRemove.startsWith('http')) {
+            setKeepImages(keepImages.filter(img => img !== imageToRemove));
+        }
     };
 
     const handlePost = async () => {
@@ -59,30 +72,46 @@ export default function PostSessionScreen() {
 
         try {
             setPosting(true);
-            await postApi.createPost(
-                content,
-                {
-                    item_id: id as string,
-                    item_type: type as "GeoSession" | "ProgramSession" | "FoodLog"
-                },
-                postTitle || undefined,
-                images.length > 0 ? images : undefined,
-                visibility
-            );
 
-            Alert.alert("Success", "Posted to your feed!", [
-                { text: "OK", onPress: () => router.push("/(tabs)/Home") }
-            ]);
+            if (isEditing) {
+                // Determine which images are new (local URIs)
+                const newImages = images.filter(img => !img.startsWith('http'));
+
+                await postApi.updatePost(postId as string, {
+                    content,
+                    title: postTitle,
+                    visibility,
+                    images: newImages,
+                    keepImages: keepImages // Only keep the ones user didn't remove
+                });
+                Alert.alert("Success", "Post updated!", [
+                    { text: "OK", onPress: () => router.push("/(tabs)/Home") }
+                ]);
+            } else {
+                await postApi.createPost(
+                    content,
+                    {
+                        item_id: id as string,
+                        item_type: type as "GeoSession" | "ProgramSession" | "FoodLog"
+                    },
+                    postTitle || undefined,
+                    images.length > 0 ? images : undefined,
+                    visibility
+                );
+                Alert.alert("Success", "Posted to your feed!", [
+                    { text: "OK", onPress: () => router.push("/(tabs)/Home") }
+                ]);
+            }
         } catch (error) {
-            console.error("Post failed", error);
-            Alert.alert("Error", "Failed to post. Please try again.");
+            console.error(isEditing ? "Update failed" : "Post failed", error);
+            Alert.alert("Error", `Failed to ${isEditing ? "update" : "post"}. Please try again.`);
         } finally {
             setPosting(false);
         }
     };
 
     const handleSkip = () => {
-        router.push("/(tabs)/Home");
+        router.back();
     };
 
     const visibilityOptions: { key: VisibilityOption; label: string; icon: string }[] = [
@@ -94,14 +123,22 @@ export default function PostSessionScreen() {
     return (
         <SafeAreaView className="flex-1" style={{ backgroundColor: theme.colors.background }}>
             {/* Header */}
-            <View className="px-5 py-4 flex-row items-center justify-between border-b" style={{ borderBottomColor: theme.colors.text + '11' }}>
-                <TouchableOpacity onPress={handleSkip}>
-                    <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text }} className="text-base">Skip</Text>
+            <View className="px-5 py-4 flex-row items-center justify-between border-b relative" style={{ borderBottomColor: theme.colors.text + '11' }}>
+                <TouchableOpacity onPress={handleSkip} style={{ zIndex: 10 }}>
+                    <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text }} className="text-base">Cancel</Text>
                 </TouchableOpacity>
-                <Text style={{ fontFamily: theme.fonts.heading, color: theme.colors.text }} className="text-lg">Share Activity</Text>
-                <TouchableOpacity onPress={handlePost} disabled={posting}>
-                    {posting ? <ActivityIndicator color={theme.colors.primary} /> :
-                        <Text style={{ fontFamily: theme.fonts.heading, color: theme.colors.primary }} className="text-base">Post</Text>}
+
+                <View className="absolute left-0 right-0 top-0 bottom-0 justify-center items-center" pointerEvents="none">
+                    <Text style={{ fontFamily: theme.fonts.heading, color: theme.colors.text }} className="text-lg">
+                        {isEditing ? "Edit Post" : "Share Activity"}
+                    </Text>
+                </View>
+
+                <TouchableOpacity onPress={handlePost} disabled={posting} style={{ backgroundColor: theme.colors.primary, padding: 5, borderRadius: 10, width: 70, height: 30, justifyContent: "center", alignItems: "center", zIndex: 10 }}>
+                    {posting ? <ActivityIndicator color="#FFF" size="small" /> :
+                        <Text style={{ fontFamily: theme.fonts.heading, color: "#FFF" }} className="text-base">
+                            {isEditing ? "Update" : "Post"}
+                        </Text>}
                 </TouchableOpacity>
             </View>
 
@@ -119,7 +156,13 @@ export default function PostSessionScreen() {
                         <Image source={{ uri: imageUri as string }} className="w-15 h-15 rounded-lg mr-4" />
                     ) : (
                         <View className="w-15 h-15 rounded-lg items-center justify-center mr-4" style={{ backgroundColor: theme.colors.primary + '20' }}>
-                            <Ionicons name={type === "FoodLog" ? "fast-food" : type === "ProgramSession" ? "barbell" : "map"} size={30} color={theme.colors.primary} />
+                            {type === "FoodLog" ? (
+                                <Ionicons name="fast-food" size={30} color={theme.colors.primary} />
+                            ) : type === "ProgramSession" ? (
+                                <Ionicons name="barbell" size={30} color={theme.colors.primary} />
+                            ) : (
+                                <MaterialCommunityIcons name="map-marker-radius-outline" size={30} color={theme.colors.primary} />
+                            )}
                         </View>
                     )}
                     <View className="flex-1">
@@ -162,28 +205,48 @@ export default function PostSessionScreen() {
                     onChangeText={setContent}
                 />
 
-                {/* Image Gallery */}
-                {images.length > 0 && (
-                    <View className="mb-5">
-                        <Text style={{ fontFamily: theme.fonts.bodyBold, color: theme.colors.text }} className="mb-2">
-                            Images ({images.length}/10)
-                        </Text>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-2">
-                            {images.map((uri, index) => (
-                                <View key={index} className="mr-2 relative">
-                                    <Image source={{ uri }} className="w-25 h-25 rounded-lg" />
-                                    <TouchableOpacity
-                                        onPress={() => removeImage(index)}
-                                        className="absolute -top-2 -right-2 rounded-full w-6 h-6 items-center justify-center"
-                                        style={{ backgroundColor: theme.colors.primary }}
-                                    >
-                                        <Ionicons name="close" size={16} color="#FFFFFF" />
-                                    </TouchableOpacity>
-                                </View>
-                            ))}
-                        </ScrollView>
-                    </View>
-                )}
+                {/* Image Gallery - Always Visible */}
+                <View className="mb-5">
+                    <Text style={{ fontFamily: theme.fonts.bodyBold, color: theme.colors.text }} className="mb-2">
+                        Preview Images ({images.length > 0 ? images.length + 1 : 1}/10)
+                    </Text>
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        className="mb-2"
+                        contentContainerStyle={{ paddingTop: 8, paddingRight: 8 }}
+                    >
+                        {/* Static Placeholder Preview in Gallery */}
+                        <View className="mr-2 relative" style={{ width: 120, height: 120 }}>
+                            <Image
+                                source={
+                                    type === "FoodLog" ? require('../../../assets/images/food-placeholder.jpg') :
+                                        type === "ProgramSession" ? require('../../../assets/images/program-placeholder.jpg') :
+                                            require('../../../assets/images/outdoor-placeholder.jpg')
+                                }
+                                className="w-full h-full rounded-lg opacity-30 border-2"
+                                resizeMode="cover"
+                                style={{ borderColor: theme.colors.primary }}
+                            />
+                            <View className="absolute bottom-1 right-1 bg-black/50 px-2 py-0.5 rounded">
+                                <Text style={{ color: 'white', fontSize: 10, fontFamily: theme.fonts.body }}>Sample Cover</Text>
+                            </View>
+                        </View>
+
+                        {images.map((uri, index) => (
+                            <View key={index} className="mr-2 relative" style={{ width: 120, height: 120 }}>
+                                <Image source={{ uri }} className="w-full h-full rounded-lg" resizeMode="cover" />
+                                <TouchableOpacity
+                                    onPress={() => removeImage(index)}
+                                    className="absolute -top-1 -right-1 rounded-full w-6 h-6 items-center justify-center"
+                                    style={{ backgroundColor: theme.colors.primary, zIndex: 10, elevation: 5 }}
+                                >
+                                    <Ionicons name="close" size={16} color="#FFFFFF" />
+                                </TouchableOpacity>
+                            </View>
+                        ))}
+                    </ScrollView>
+                </View>
 
                 {/* Add Images Button */}
                 <TouchableOpacity

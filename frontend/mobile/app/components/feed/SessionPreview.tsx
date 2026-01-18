@@ -28,9 +28,11 @@ type SessionPreviewProps = {
         item_id: any;
         item_type: 'GeoSession' | 'ProgramSession' | 'FoodLog';
     };
+    style?: any;
+    extraParams?: any;
 };
 
-export default function SessionPreview({ reference }: SessionPreviewProps) {
+export default function SessionPreview({ reference, style, extraParams }: SessionPreviewProps) {
     const { theme } = useTheme();
     const router = useRouter();
     const { item_id: session, item_type } = reference;
@@ -42,7 +44,8 @@ export default function SessionPreview({ reference }: SessionPreviewProps) {
             pathname: "/components/feed/SessionDetails",
             params: {
                 sessionType: item_type,
-                sessionData: JSON.stringify(session)
+                sessionData: JSON.stringify(session),
+                ...extraParams
             }
         });
     };
@@ -80,7 +83,7 @@ export default function SessionPreview({ reference }: SessionPreviewProps) {
                 activeOpacity={0.9}
                 onPress={handlePress}
                 className="mr-3 overflow-hidden rounded-xl bg-gray-100 relative"
-                style={{ width: 300, height: 256, backgroundColor: theme.colors.surface }}
+                style={[{ width: 300, height: 256, backgroundColor: theme.colors.surface }, style]}
             >
                 {/* Map View */}
                 {coordinates.length > 0 ? (
@@ -165,7 +168,7 @@ export default function SessionPreview({ reference }: SessionPreviewProps) {
                 activeOpacity={0.9}
                 onPress={handlePress}
                 className="mr-3 overflow-hidden rounded-xl relative"
-                style={{ width: 300, height: 256, backgroundColor: theme.colors.surface }}
+                style={[{ width: 300, height: 256, backgroundColor: theme.colors.surface }, style]}
             >
                 <Image
                     source={{ uri: session.imageUrl || 'https://via.placeholder.com/300' }}
@@ -173,7 +176,7 @@ export default function SessionPreview({ reference }: SessionPreviewProps) {
                     resizeMode="cover"
                 />
                 {/* Kcal Overlay */}
-                <View className="absolute top-3 right-3 px-3 py-1 rounded-full" style={{ backgroundColor: theme.colors.background + 'EE' }}>
+                <View className="absolute top-4 left-3 px-3 py-1 rounded-full" style={{ backgroundColor: theme.colors.background + 'EE' }}>
                     <Text style={{ fontFamily: theme.fonts.heading, color: theme.colors.primary, fontSize: 14 }}>
                         {session.calories} kcal
                     </Text>
@@ -217,7 +220,7 @@ export default function SessionPreview({ reference }: SessionPreviewProps) {
                 activeOpacity={0.9}
                 onPress={handlePress}
                 className="mr-3 overflow-hidden rounded-xl p-4 justify-between"
-                style={{ width: 300, height: 256, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.overlay + '20' }}
+                style={[{ width: 300, height: 256, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.overlay + '20' }, style]}
             >
                 <View>
                     <View className="flex-row items-center justify-between mb-4">

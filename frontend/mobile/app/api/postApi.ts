@@ -1,4 +1,7 @@
 import axiosInstance from "./axiosInstance";
+import { tokenStorage } from "../../utils/tokenStorage";
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:5000/api";
 
 export const postApi = {
     createPost: async (
@@ -11,47 +14,73 @@ export const postApi = {
         try {
             console.log('[postApi] Creating post with:', { content, reference, title, visibility, imageCount: images?.length });
 
+            // If no images, use simple JSON request via axios (more reliable)
+            if (!images || images.length === 0) {
+                console.log('[postApi] No images, using JSON request...');
+                const { data } = await axiosInstance.post("/posts", {
+                    content,
+                    title: title || undefined,
+                    visibility: visibility || "public",
+                    reference: reference || undefined
+                });
+                console.log('[postApi] Post created successfully:', data);
+                return data;
+            }
+
+            // With images, use native fetch API (works better with FormData in React Native)
+            console.log('[postApi] Has images, using fetch with FormData...');
             const formData = new FormData();
             formData.append("content", content);
             if (title) formData.append("title", title);
             if (visibility) formData.append("visibility", visibility);
             if (reference) formData.append("reference", JSON.stringify(reference));
 
-            // Append images if provided
-            if (images && images.length > 0) {
-                console.log('[postApi] Adding images to FormData...');
-                for (let i = 0; i < images.length; i++) {
-                    const imageUri = images[i];
-                    console.log(`[postApi] Processing image ${i + 1}/${images.length}:`, imageUri);
+            // Append images
+            console.log('[postApi] Adding images to FormData...');
+            for (let i = 0; i < images.length; i++) {
+                const imageUri = images[i];
+                console.log(`[postApi] Processing image ${i + 1}/${images.length}:`, imageUri);
 
-                    // For React Native, we need to create a proper file object
-                    const filename = imageUri.split('/').pop() || `image_${i}.jpg`;
-                    const match = /\.(\w+)$/.exec(filename);
-                    const type = match ? `image/${match[1]}` : 'image/jpeg';
+                const filename = imageUri.split('/').pop() || `image_${i}.jpg`;
+                const match = /\.(\w+)$/.exec(filename);
+                const type = match ? `image/${match[1]}` : 'image/jpeg';
 
-                    // React Native requires this specific format
-                    formData.append('images', {
-                        uri: imageUri,
-                        type: type,
-                        name: filename,
-                    } as any);
-                }
-                console.log('[postApi] Images added to FormData');
+                formData.append('images', {
+                    uri: imageUri,
+                    type: type,
+                    name: filename,
+                } as any);
+            }
+            console.log('[postApi] Images added to FormData');
+
+            // Get auth token
+            const token = await tokenStorage.getToken();
+            console.log('[postApi] Sending fetch request to:', `${API_URL}/posts`);
+
+            // Use native fetch - it handles FormData better in React Native
+            const response = await fetch(`${API_URL}/posts`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
+                    // DO NOT set Content-Type - fetch will set it automatically with boundary
+                },
+                body: formData,
+            });
+
+            console.log('[postApi] Fetch response status:', response.status);
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('[postApi] Fetch error response:', errorData);
+                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
             }
 
-            console.log('[postApi] Sending request...');
-            // In React Native, we should NOT set Content-Type manually for FormData
-            // Axios will automatically set it with the correct boundary
-            const { data } = await axiosInstance.post("/posts", formData, {
-                timeout: 30000, // 30 second timeout
-                transformRequest: (data) => data, // Prevent axios from transforming FormData
-            });
+            const data = await response.json();
             console.log('[postApi] Post created successfully:', data);
             return data;
         } catch (error: any) {
             console.error('[postApi] Error creating post:', error);
-            console.error('[postApi] Error response:', error.response?.data);
-            console.error('[postApi] Error status:', error.response?.status);
+            console.error('[postApi] Error message:', error.message);
             throw error;
         }
     },
@@ -80,6 +109,81 @@ export const postApi = {
     deletePost: async (postId: string) => {
         const { data } = await axiosInstance.delete(`/posts/${postId}`);
         return data;
+    },
+
+    updatePost: async (
+        postId: string,
+        updates: {
+            content?: string;
+            title?: string;
+            visibility?: "public" | "friends" | "private";
+            images?: string[]; // Array of local URIs for new images
+            keepImages?: string[]; // Array of remote URLs to keep
+        }
+    ) => {
+        try {
+            console.log(`[postApi] Updating post ${postId} with:`, updates);
+
+            // Check if we have new images to upload
+            const hasNewImages = updates.images && updates.images.length > 0;
+
+            if (!hasNewImages) {
+                // simple JSON update
+                console.log('[postApi] No new images, using JSON update...');
+                const { data } = await axiosInstance.put(`/posts/${postId}`, {
+                    content: updates.content,
+                    title: updates.title,
+                    visibility: updates.visibility,
+                    keepImages: updates.keepImages
+                });
+                return data;
+            }
+
+            // Multipart update
+            console.log('[postApi] Has new images, using fetch with FormData...');
+            const formData = new FormData();
+            if (updates.content !== undefined) formData.append("content", updates.content);
+            if (updates.title !== undefined) formData.append("title", updates.title);
+            if (updates.visibility !== undefined) formData.append("visibility", updates.visibility);
+
+            // Handle existing images to keep
+            if (updates.keepImages) {
+                updates.keepImages.forEach(img => formData.append("keepImages[]", img));
+            }
+
+            // Append new images
+            for (let i = 0; i < (updates.images || []).length; i++) {
+                const imageUri = updates.images![i];
+                const filename = imageUri.split('/').pop() || `image_${i}.jpg`;
+                const match = /\.(\w+)$/.exec(filename);
+                const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+                formData.append('images', {
+                    uri: imageUri,
+                    type: type,
+                    name: filename,
+                } as any);
+            }
+
+            const token = await tokenStorage.getToken();
+            const response = await fetch(`${API_URL}/posts/${postId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
+                },
+                body: formData,
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error: any) {
+            console.error('[postApi] Error updating post:', error);
+            throw error;
+        }
     },
 };
 

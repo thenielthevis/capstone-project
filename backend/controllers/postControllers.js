@@ -5,14 +5,18 @@ const ProgramSession = require("../models/programSessionModel");
 const FoodLog = require("../models/foodLogModel");
 const Comment = require("../models/commentModel");
 
+console.log('[postControllers.js] Loaded');
+
 // @desc    Create a new post
 // @route   POST /api/posts
 // @access  Protected
 exports.createPost = async (req, res) => {
     try {
-        console.log('[CREATE POST] Request received');
-        console.log('[CREATE POST] req.body:', req.body);
-        console.log('[CREATE POST] req.files:', req.files);
+        console.log('--------------------------------------------------');
+        console.log('[CREATE POST] Request received at', new Date().toISOString());
+        console.log('[CREATE POST] req.user:', req.user ? req.user.id : 'No user');
+        console.log('[CREATE POST] req.body keys:', Object.keys(req.body));
+        console.log('[CREATE POST] req.files count:', req.files ? req.files.length : 0);
 
         let { content, title, visibility, reference } = req.body;
         const imageFiles = req.files || [];
@@ -47,6 +51,7 @@ exports.createPost = async (req, res) => {
             console.log('[CREATE POST] Images uploaded:', imageUrls);
         }
 
+        console.log('[CREATE POST] Creating document in DB...');
         const newPost = await Post.create({
             user: req.user.id,
             title: title || "Untitled",
@@ -56,28 +61,22 @@ exports.createPost = async (req, res) => {
             reference: reference || undefined
         });
 
-        console.log('[CREATE POST] Post document created:', newPost._id);
+        console.log('[CREATE POST] Post document created with ID:', newPost._id);
         console.log('[CREATE POST] Fetching with populated data...');
 
         try {
             const fullPost = await Post.findById(newPost._id)
                 .populate("user", "username name profilePicture email")
                 .populate("reference.item_id")
-                .lean(); // Convert to plain object to avoid circular references
+                .lean();
 
             console.log('[CREATE POST] Post fetched and populated successfully');
-            console.log('[CREATE POST] About to send response with status 201...');
-
             res.status(201).json(fullPost);
-
             console.log('[CREATE POST] ✅ Response sent successfully');
         } catch (populateError) {
             console.error('[CREATE POST] ❌ Error populating post:', populateError);
-            console.log('[CREATE POST] Sending post without populated data as fallback');
-
             const plainPost = newPost.toObject();
             res.status(201).json(plainPost);
-
             console.log('[CREATE POST] ✅ Fallback response sent');
         }
     } catch (error) {
@@ -85,6 +84,97 @@ exports.createPost = async (req, res) => {
         console.error('[CREATE POST] Error stack:', error.stack);
         res.status(500).json({ message: error.message });
         console.log('[CREATE POST] Error response sent');
+    }
+};
+
+// @desc    Update a post
+// @route   PUT /api/posts/:id
+// @access  Protected
+exports.updatePost = async (req, res) => {
+    try {
+        console.log('--------------------------------------------------');
+        console.log('[UPDATE POST] Request received at', new Date().toISOString());
+        console.log('[UPDATE POST] Post ID:', req.params.id);
+        console.log('[UPDATE POST] req.body keys:', Object.keys(req.body));
+
+        const { content, title, visibility, keepImages } = req.body;
+        const imageFiles = req.files || [];
+
+        let post = await Post.findById(req.params.id);
+
+        if (!post) {
+            return res.status(404).json({ message: "Post not found" });
+        }
+
+        // Check user ownership
+        if (post.user.toString() !== req.user.id) {
+            return res.status(401).json({ message: "User not authorized" });
+        }
+
+        // Update basic fields
+        if (content !== undefined) post.content = content;
+        if (title !== undefined) post.title = title;
+        if (visibility !== undefined) post.visibility = visibility;
+
+        // Handle Images
+        // 1. Start with images to keep (from client)
+        let finalImages = [];
+
+        if (keepImages) {
+            // keepImages coming from FormData might be a single string or array
+            // If it's a JSON stringified array, parse it
+            try {
+                if (typeof keepImages === 'string') {
+                    // Check if it looks like a JSON array
+                    if (keepImages.trim().startsWith('[')) {
+                        finalImages = JSON.parse(keepImages);
+                    } else {
+                        // Just a single URL string
+                        finalImages = [keepImages];
+                    }
+                } else if (Array.isArray(keepImages)) {
+                    finalImages = keepImages;
+                }
+            } catch (e) {
+                console.error('[UPDATE POST] Error parsing keepImages:', e);
+                // Fallback: don't crash, maybe just ignore or try to use raw
+            }
+        }
+
+        console.log('[UPDATE POST] Keeping images:', finalImages.length);
+
+        // 2. Upload new images
+        if (imageFiles.length > 0) {
+            console.log(`[UPDATE POST] Uploading ${imageFiles.length} new images...`);
+            for (const file of imageFiles) {
+                const uploadResult = await require('../utils/cloudinary').uploadPostImage(file.buffer);
+                finalImages.push(uploadResult.secure_url);
+            }
+        }
+
+        // Limit check
+        if (finalImages.length > 10) {
+            return res.status(400).json({ message: "Maximum 10 images allowed" });
+        }
+
+        if (keepImages !== undefined || imageFiles.length > 0) {
+            post.images = finalImages;
+        }
+
+        await post.save();
+
+        // Return populated
+        const fullPost = await Post.findById(post._id)
+            .populate("user", "username name profilePicture email")
+            .populate("reference.item_id")
+            .lean();
+
+        res.status(200).json(fullPost);
+        console.log('[UPDATE POST] ✅ Updated successfully');
+
+    } catch (error) {
+        console.error('[UPDATE POST] ❌ Error:', error);
+        res.status(500).json({ message: error.message });
     }
 };
 

@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { View, Text, TouchableOpacity, ScrollView, Image, RefreshControl, ActivityIndicator, Alert, StyleSheet } from "react-native";
-import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring } from "react-native-reanimated";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { View, Text, TouchableOpacity, ScrollView, Image, RefreshControl, ActivityIndicator, Alert, StyleSheet, FlatList, Dimensions } from "react-native";
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring, FadeInDown, FadeOutDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
 import { Ionicons, MaterialCommunityIcons, MaterialIcons, FontAwesome6 } from "@expo/vector-icons";
@@ -10,6 +10,8 @@ import { useUser } from "../context/UserContext";
 import ReactionButton, { REACTIONS } from "../components/ReactionButton";
 import SessionPreview from "../components/feed/SessionPreview";
 import ReportModal from "../components/Modals/ReportModal";
+import { BottomSheetModal, BottomSheetModalProvider, BottomSheetBackdrop, BottomSheetView } from "@gorhom/bottom-sheet";
+import PostMediaCarousel from "../components/feed/PostMediaCarousel";
 
 type Post = {
   _id: string;
@@ -53,6 +55,16 @@ export default function Home() {
   // Report Modal State
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportPostId, setReportPostId] = useState<string | null>(null);
+
+  // Post Options Bottom Sheet State
+  const [selectedPostForOptions, setSelectedPostForOptions] = useState<Post | null>(null);
+  const bottomSheetModalRef = useRef<BottomSheetModal>(null);
+  const snapPoints = useMemo(() => ['30%'], []); // Adjusted height for options
+
+  const handleOpenKeyOptions = useCallback((post: Post) => {
+    setSelectedPostForOptions(post);
+    bottomSheetModalRef.current?.present();
+  }, []);
 
   // FAB Animation
   const [fabOpen, setFabOpen] = useState(false);
@@ -211,14 +223,18 @@ export default function Home() {
   };
 
   const getTimeAgo = (date: string) => {
-    const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
+    const now = new Date();
+    const past = new Date(date);
+    const seconds = Math.floor((now.getTime() - past.getTime()) / 1000);
+
     if (seconds < 60) return `${seconds}s ago`;
     const minutes = Math.floor(seconds / 60);
     if (minutes < 60) return `${minutes}m ago`;
     const hours = Math.floor(minutes / 60);
     if (hours < 24) return `${hours}h ago`;
-    const days = Math.floor(hours / 24);
-    return `${days}d ago`;
+
+    // If more than 24 hours, show formatted date
+    return new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).format(past);
   };
 
   const renderPost = (post: Post) => {
@@ -256,35 +272,34 @@ export default function Home() {
                 <Ionicons name="person" size={20} color={theme.colors.primary} />
               )}
             </View>
-            <View className="flex-1">
+            <View className="flex-1 ">
               <Text style={{ fontFamily: theme.fonts.heading, color: theme.colors.text }} className="text-base">
                 {post.user?.username || "Unknown User"}
               </Text>
-              <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '77' }} className="text-xs">
-                {getTimeAgo(post.createdAt)}
-              </Text>
+              <View className="flex-row items-center mt-1">
+                <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '77' }} className="text-xs">
+                  {getTimeAgo(post.createdAt)} •
+                </Text>
+                <View className="ml-1">
+                  {post.visibility === "public" ? (
+                    <MaterialIcons name="public" size={14} color={theme.colors.text + '77'} />
+                  ) : (
+                    <Ionicons
+                      name={post.visibility === "private" ? "lock-closed" : "people"}
+                      size={14}
+                      color={theme.colors.text + '77'}
+                    />
+                  )}
+                </View>
+              </View>
             </View>
-            {post.visibility === "public" ? (
-              <MaterialIcons name="public" size={16} color={theme.colors.text + '77'} />
-            ) : (
-              <Ionicons
-                name={post.visibility === "private" ? "lock-closed" : "people"}
-                size={16}
-                color={theme.colors.text + '77'}
-              />
-            )}
-            {/* Report Button */}
-            {post.user?._id !== userId && (
-              <TouchableOpacity
-                onPress={() => {
-                  setReportPostId(post._id);
-                  setShowReportModal(true);
-                }}
-                style={{ marginLeft: 12, padding: 4 }}
-              >
-                <Ionicons name="flag-outline" size={18} color={theme.colors.text + '77'} />
-              </TouchableOpacity>
-            )}
+            {/* Settings Button */}
+            <TouchableOpacity
+              onPress={() => handleOpenKeyOptions(post)}
+              style={{ marginLeft: 6, padding: 8 }}
+            >
+              <Ionicons name="ellipsis-vertical" size={20} color={theme.colors.text + '77'} />
+            </TouchableOpacity>
           </View>
 
           {/* Post Content */}
@@ -302,45 +317,10 @@ export default function Home() {
 
         {/* Post Content */}
         {/* Combined Horizontal Scroll for Reference and Images */}
+        {/* Post Content */}
+        {/* Full Width Media Carousel */}
         {(post.reference || (post.images && post.images.length > 0)) && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-2">
-
-            {/* Session Preview (First Item) */}
-            {post.reference && (
-              <View style={{ marginLeft: 16, marginBottom: 16 }}>
-                <SessionPreview reference={post.reference as any} />
-              </View>
-            )}
-
-            {/* Post Images */}
-            {post.images && post.images.map((imageUrl, index) => (
-              <TouchableOpacity
-                key={index}
-                activeOpacity={0.9}
-                onPress={() => router.push({
-                  pathname: '/screens/post/image-max',
-                  params: {
-                    images: JSON.stringify(post.images),
-                    index: index.toString(),
-                    postId: post._id
-                  }
-                })}
-              >
-                <Image
-                  source={{ uri: imageUrl }}
-                  className="h-64 rounded-xl"
-                  style={{
-                    width: 300,
-                    height: 256,
-                    // Adjust margins based on whether reference exists
-                    marginLeft: (index === 0 && !post.reference) ? 16 : 0,
-                    marginRight: index === post.images.length - 1 ? 16 : 8
-                  }}
-                  resizeMode="cover"
-                />
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+          <PostMediaCarousel post={post} />
         )}
 
         {/* Post Stats Row */}
@@ -573,6 +553,102 @@ export default function Home() {
         reportType="post"
         itemId={reportPostId || ""}
       />
+
+      {/* Gorhom Bottom Sheet for Post Options */}
+      <BottomSheetModalProvider>
+        <BottomSheetModal
+          ref={bottomSheetModalRef}
+          index={0}
+          snapPoints={snapPoints}
+          backdropComponent={(props) => (
+            <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.5} />
+          )}
+          backgroundStyle={{ backgroundColor: theme.colors.surface }}
+          handleIndicatorStyle={{ backgroundColor: theme.colors.text + '33' }}
+          onDismiss={() => setSelectedPostForOptions(null)}
+        >
+          <BottomSheetView style={{ flex: 1, padding: 20, paddingBottom: 40, backgroundColor: theme.colors.surface }}>
+            {selectedPostForOptions && (
+              <>
+                {selectedPostForOptions.user._id === (user?._id || user?.id) ? (
+                  <>
+                    <TouchableOpacity
+                      className="flex-row items-center p-4 rounded-xl mb-2"
+                      style={{ backgroundColor: theme.colors.background + '66' }}
+                      onPress={() => {
+                        const post = selectedPostForOptions;
+                        bottomSheetModalRef.current?.dismiss();
+                        router.push({
+                          pathname: "/screens/post/post_session",
+                          params: {
+                            postId: post._id,
+                            initialContent: post.content,
+                            initialImages: post.images,
+                            initialVisibility: post.visibility,
+                            title: post.title
+                          }
+                        } as any);
+                      }}
+                    >
+                      <Ionicons name="create-outline" size={24} color={theme.colors.text} style={{ fontWeight: 'bold' }} />
+                      <Text style={{ fontFamily: theme.fonts.heading, color: theme.colors.text }} className="ml-3 text-lg">Edit Post</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      className="flex-row items-center p-4 rounded-xl"
+                      style={{ backgroundColor: theme.colors.background + '66' }}
+                      onPress={() => {
+                        const postId = selectedPostForOptions._id;
+                        bottomSheetModalRef.current?.dismiss();
+                        Alert.alert(
+                          "Delete Post",
+                          "Are you sure you want to delete this post?",
+                          [
+                            { text: "Cancel", style: "cancel" },
+                            {
+                              text: "Delete",
+                              style: "destructive",
+                              onPress: async () => {
+                                try {
+                                  setLoading(true);
+                                  await postApi.deletePost(postId);
+                                  setPosts(prev => prev.filter(p => p._id !== postId));
+                                } catch (err) {
+                                  console.error(err);
+                                  Alert.alert("Error", "Failed to delete post.");
+                                } finally {
+                                  setLoading(false);
+                                }
+                              }
+                            }
+                          ]
+                        );
+                      }}
+                    >
+                      <Ionicons name="trash-outline" size={24} color={theme.colors.text} style={{ fontWeight: 'bold' }} />
+                      <Text style={{ fontFamily: theme.fonts.heading, color: theme.colors.text }} className="ml-3 text-lg">Delete Post</Text>
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <TouchableOpacity
+                    className="flex-row items-center p-4 rounded-xl"
+                    style={{ backgroundColor: theme.colors.background }}
+                    onPress={() => {
+                      const postId = selectedPostForOptions._id;
+                      bottomSheetModalRef.current?.dismiss();
+                      setReportPostId(postId);
+                      setShowReportModal(true);
+                    }}
+                  >
+                    <Ionicons name="flag" size={24} color={theme.colors.text} />
+                    <Text style={{ fontFamily: theme.fonts.heading, color: theme.colors.text }} className="ml-3 text-lg">Report Post</Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
+          </BottomSheetView>
+        </BottomSheetModal>
+      </BottomSheetModalProvider>
     </View>
   );
 }

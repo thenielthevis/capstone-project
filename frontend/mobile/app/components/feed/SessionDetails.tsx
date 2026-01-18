@@ -112,6 +112,27 @@ export default function SessionDetails() {
         }
     }, [params.sessionData]);
 
+    const images = useMemo(() => {
+        try {
+            return params.images ? JSON.parse(params.images as string) : [];
+        } catch (e) { return []; }
+    }, [params.images]);
+
+    const postId = params.postId as string;
+
+    const handleOpenImages = () => {
+        if (images && images.length > 0 && postId) {
+            router.push({
+                pathname: '/screens/post/image-max',
+                params: {
+                    images: params.images, // Pass as is (string)
+                    index: "0",
+                    postId: postId
+                }
+            });
+        }
+    };
+
     // Bottom Sheet Ref & SnapPoints
     const bottomSheetRef = useRef<BottomSheet>(null);
     const snapPoints = useMemo(() => ['50%', '100%'], []);
@@ -146,27 +167,29 @@ export default function SessionDetails() {
 
             return (
                 <View style={{ height: '60%' }}>
-                    {coordinates.length > 0 ? (
-                        <MapLibreGL.MapView
-                            style={{ flex: 1 }}
-                            mapStyle={theme.mode === "dark"
-                                ? "https://api.maptiler.com/maps/019b1d6d-f87f-771b-88b8-776fa8f37312/style.json?key=" + MAPTILER_KEY
-                                : `https://api.maptiler.com/maps/streets-v4/style.json?key=${MAPTILER_KEY}`}
-                            logoEnabled={true} attributionEnabled={true} scrollEnabled={true} pitchEnabled={false} rotateEnabled={true} zoomEnabled={true} compassEnabled={false}
-                        >
-                            <MapLibreGL.Camera
-                                defaultSettings={!cameraBounds ? { centerCoordinate: [0, 0], zoomLevel: 1 } : undefined}
-                                bounds={cameraBounds} animationDuration={1000}
-                            />
-                            <MapLibreGL.ShapeSource id="routeSource" shape={{ type: 'Feature', geometry: { type: 'LineString', coordinates: coordinates }, properties: {} }}>
-                                <MapLibreGL.LineLayer id="routeFill" style={{ lineColor: theme.colors.primary, lineWidth: 6, lineCap: 'round', lineJoin: 'round', lineOpacity: 0.8 }} />
-                            </MapLibreGL.ShapeSource>
-                        </MapLibreGL.MapView>
-                    ) : (
-                        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                            <Ionicons name="map-outline" size={64} color={theme.colors.text} />
-                        </View>
-                    )}
+                    <TouchableOpacity activeOpacity={images.length > 0 ? 0.9 : 1} onPress={handleOpenImages} style={{ flex: 1 }}>
+                        {coordinates.length > 0 ? (
+                            <MapLibreGL.MapView
+                                style={{ flex: 1 }}
+                                mapStyle={theme.mode === "dark"
+                                    ? "https://api.maptiler.com/maps/019b1d6d-f87f-771b-88b8-776fa8f37312/style.json?key=" + MAPTILER_KEY
+                                    : `https://api.maptiler.com/maps/streets-v4/style.json?key=${MAPTILER_KEY}`}
+                                logoEnabled={true} attributionEnabled={true} scrollEnabled={true} pitchEnabled={false} rotateEnabled={true} zoomEnabled={true} compassEnabled={false}
+                            >
+                                <MapLibreGL.Camera
+                                    defaultSettings={!cameraBounds ? { centerCoordinate: [0, 0], zoomLevel: 1 } : undefined}
+                                    bounds={cameraBounds} animationDuration={1000}
+                                />
+                                <MapLibreGL.ShapeSource id="routeSource" shape={{ type: 'Feature', geometry: { type: 'LineString', coordinates: coordinates }, properties: {} }}>
+                                    <MapLibreGL.LineLayer id="routeFill" style={{ lineColor: theme.colors.primary, lineWidth: 6, lineCap: 'round', lineJoin: 'round', lineOpacity: 0.8 }} />
+                                </MapLibreGL.ShapeSource>
+                            </MapLibreGL.MapView>
+                        ) : (
+                            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                                <Ionicons name="map-outline" size={64} color={theme.colors.text} />
+                            </View>
+                        )}
+                    </TouchableOpacity>
                     {/* Back Button Overlay */}
                     <SafeAreaView style={{ position: 'absolute', top: 0, left: 0 }}>
                         <TouchableOpacity onPress={() => router.back()} style={{ marginLeft: 16, marginTop: 8, padding: 8, backgroundColor: theme.colors.background, borderRadius: 20 }}>
@@ -180,7 +203,9 @@ export default function SessionDetails() {
         if (sessionType === 'FoodLog') {
             return (
                 <View style={{ flex: 1 }}>
-                    <Image source={{ uri: session.imageUrl || 'https://via.placeholder.com/400' }} style={{ width: '100%', height: '55%' }} resizeMode="cover" />
+                    <TouchableOpacity activeOpacity={images.length > 0 ? 0.9 : 1} onPress={handleOpenImages} style={{ flex: 1, height: '55%' }}>
+                        <Image source={{ uri: session.imageUrl || 'https://via.placeholder.com/400' }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                    </TouchableOpacity>
                     <SafeAreaView style={{ position: 'absolute', top: 0, left: 0 }}>
                         <TouchableOpacity onPress={() => router.back()} style={{ marginLeft: 16, marginTop: 8, padding: 8, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20 }}>
                             <Ionicons name="arrow-back" size={24} color="#FFF" />

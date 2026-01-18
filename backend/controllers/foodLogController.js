@@ -238,19 +238,26 @@ exports.getUserFoodLogs = async (req, res) => {
 
     const totalCount = await FoodLog.countDocuments(query);
 
+    // Check if food logs are already posted
+    const Post = require('../models/postModel');
+    const logsWithPostStatus = await Promise.all(foodLogs.map(async (log) => {
+      const existingPost = await Post.findOne({
+        "reference.item_id": log._id,
+        "reference.item_type": "FoodLog"
+      }).select("_id");
+
+      return {
+        ...log.toObject(),
+        isPosted: !!existingPost
+      };
+    }));
+
     console.log('[GET USER FOOD LOGS] Found', foodLogs.length, 'food logs');
     console.log('[GET USER FOOD LOGS] Total matching count:', totalCount);
 
-    // Log sample data if found
-    if (foodLogs.length > 0) {
-      console.log('[GET USER FOOD LOGS] First food log ID:', foodLogs[0]._id);
-      console.log('[GET USER FOOD LOGS] First food log userId:', foodLogs[0].userId);
-      console.log('[GET USER FOOD LOGS] First food log name:', foodLogs[0].foodName);
-    }
-
     res.status(200).json({
       message: 'Food logs retrieved successfully',
-      foodLogs,
+      foodLogs: logsWithPostStatus,
       pagination: {
         currentPage: parseInt(page),
         totalPages: Math.ceil(totalCount / parseInt(limit)),

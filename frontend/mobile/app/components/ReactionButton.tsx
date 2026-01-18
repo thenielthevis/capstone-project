@@ -9,6 +9,7 @@ interface ReactionButtonProps {
     userReaction?: string;
     reactionCount: number;
     onReact: (type: string) => void;
+    compact?: boolean;
 }
 
 export const REACTIONS: { type: ReactionType; emoji: string }[] = [
@@ -20,7 +21,7 @@ export const REACTIONS: { type: ReactionType; emoji: string }[] = [
     { type: "Angry", emoji: "😡" },
 ];
 
-export default function ReactionButton({ userReaction, reactionCount, onReact }: ReactionButtonProps) {
+export default function ReactionButton({ userReaction, reactionCount, onReact, compact = false }: ReactionButtonProps) {
     const { theme } = useTheme();
     const [pickerVisible, setPickerVisible] = useState(false);
     const [pickerPosition, setPickerPosition] = useState({ x: 0, y: 0 });
@@ -51,21 +52,25 @@ export default function ReactionButton({ userReaction, reactionCount, onReact }:
     const reactionEmoji = userReaction ? REACTIONS.find(r => r.type === userReaction)?.emoji : null;
     const reactionType = userReaction ? REACTIONS.find(r => r.type === userReaction)?.type : null;
 
+    // Sizes based on compact mode
+    const emojiSize = compact ? 12 : 16;
+    const iconSize = compact ? 14 : 22;
+
     return (
         <>
             <View ref={buttonRef} collapsable={false}>
                 <TouchableOpacity
                     onPress={handlePress}
                     onLongPress={handleLongPress}
-                    style={{ flexDirection: 'row', alignItems: 'center' }}
+                    style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: compact ? 2 : 0 }}
                 >
                     {reactionEmoji ? (
-                        <Text style={{ fontSize: 16, marginBottom: 2, color: theme.colors.text }}>{reactionEmoji}</Text>
+                        <Text style={{ fontSize: emojiSize, marginBottom: compact ? 0 : 2, color: theme.colors.text }}>{reactionEmoji}</Text>
                     ) : (
                         <Ionicons
                             name="add-circle-outline"
-                            size={22}
-                            color={theme.colors.text + '77'}
+                            size={iconSize}
+                            color={theme.colors.text + '66'}
                         />
                     )}
                 </TouchableOpacity>
