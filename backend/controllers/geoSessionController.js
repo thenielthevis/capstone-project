@@ -73,7 +73,7 @@ const updateUserDailyBurnedCalories = async (userId, caloriesBurned) => {
 exports.createGeoSession = async (req, res) => {
   try {
     const user_id = req.user.id;
-    const {
+    let {
       activity_type,
       distance_km,
       moving_time_sec,
@@ -84,6 +84,21 @@ exports.createGeoSession = async (req, res) => {
       ended_at
     } = req.body;
 
+    // Parse route_coordinates if it comes as a string (FormData)
+    if (typeof route_coordinates === 'string') {
+      try {
+        route_coordinates = JSON.parse(route_coordinates);
+      } catch (e) {
+        console.error("Error parsing route_coordinates:", e);
+        route_coordinates = [];
+      }
+    }
+
+    let preview_image = null;
+    if (req.file && req.file.path) {
+      preview_image = req.file.path;
+    }
+
     const newGeoSession = new GeoSession({
       user_id,
       activity_type,
@@ -93,7 +108,8 @@ exports.createGeoSession = async (req, res) => {
       route_coordinates,
       avg_pace,
       started_at,
-      ended_at
+      ended_at,
+      preview_image
     });
     const savedGeoSession = await newGeoSession.save();
 

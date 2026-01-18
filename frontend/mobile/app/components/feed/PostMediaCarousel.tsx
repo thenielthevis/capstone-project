@@ -10,6 +10,16 @@ export default function PostMediaCarousel({ post }: { post: any }) {
     const SCREEN_WIDTH = Dimensions.get('window').width;
     const [activeIndex, setActiveIndex] = useState(0);
 
+    const onViewableItemsChanged = React.useRef(({ viewableItems }: any) => {
+        if (viewableItems.length > 0) {
+            setActiveIndex(viewableItems[0].index);
+        }
+    }).current;
+
+    const viewabilityConfig = React.useRef({
+        itemVisiblePercentThreshold: 50
+    }).current;
+
     const mediaItems: any[] = [];
     if (post.reference) {
         mediaItems.push({ type: 'reference', data: post.reference });
@@ -29,10 +39,8 @@ export default function PostMediaCarousel({ post }: { post: any }) {
                     horizontal
                     pagingEnabled
                     showsHorizontalScrollIndicator={false}
-                    onMomentumScrollEnd={(ev) => {
-                        const newIndex = Math.floor(ev.nativeEvent.contentOffset.x / SCREEN_WIDTH);
-                        setActiveIndex(newIndex);
-                    }}
+                    onViewableItemsChanged={onViewableItemsChanged}
+                    viewabilityConfig={viewabilityConfig}
                     renderItem={({ item, index }) => (
                         <View style={{ width: SCREEN_WIDTH, height: 350 }}>
                             {item.type === 'reference' ? (
@@ -67,7 +75,7 @@ export default function PostMediaCarousel({ post }: { post: any }) {
                         </View>
                     )}
                 />
-                {/* Indicator 1/10 */}
+                {/* Indicator */}
                 {mediaItems.length > 1 && (
                     <View style={{
                         position: 'absolute',
@@ -79,7 +87,10 @@ export default function PostMediaCarousel({ post }: { post: any }) {
                         borderRadius: 16
                     }}>
                         <Text style={{ fontFamily: theme.fonts.bodyBold, color: '#fff', fontSize: 12 }}>
-                            {activeIndex + 1} / {mediaItems.length}
+                            {mediaItems[activeIndex].type === 'reference'
+                                ? "Session"
+                                : `${post.reference ? activeIndex : activeIndex + 1} / ${post.images?.length || 0}`
+                            }
                         </Text>
                     </View>
                 )}

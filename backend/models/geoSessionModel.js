@@ -15,6 +15,12 @@ const GeoSessionSchema = new mongoose.Schema(
       default: null,
     },
 
+    // Static map preview image URL (Cloudinary)
+    preview_image: {
+      type: String,
+      default: null,
+    },
+
     // Optional: Link to group chat for group program tracking
     group_id: {
       type: mongoose.Schema.Types.ObjectId,

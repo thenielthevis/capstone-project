@@ -85,59 +85,48 @@ export default function SessionPreview({ reference, style, extraParams }: Sessio
                 className="mr-3 overflow-hidden rounded-xl bg-gray-100 relative"
                 style={[{ width: 300, height: 256, backgroundColor: theme.colors.surface }, style]}
             >
-                {/* Map View */}
-                {coordinates.length > 0 ? (
-                    <MapLibreGL.MapView
-                        style={{ flex: 1 }}
-                        mapStyle={
-                            theme.mode === "dark"
-                                ? "https://api.maptiler.com/maps/019b1d6d-f87f-771b-88b8-776fa8f37312/style.json?key=" + MAPTILER_KEY
-                                : `https://api.maptiler.com/maps/streets-v4/style.json?key=${MAPTILER_KEY}`
-                        }
-                        logoEnabled={false}
-                        attributionEnabled={false}
-                        scrollEnabled={false}
-                        pitchEnabled={false}
-                        rotateEnabled={false}
-                        zoomEnabled={false}
-                    >
-                        <MapLibreGL.Camera
-                            defaultSettings={!cameraBounds ? {
-                                centerCoordinate: [0, 0],
-                                zoomLevel: 1,
-                            } : undefined}
-                            bounds={cameraBounds}
-                            animationDuration={0}
-                        />
-                        <MapLibreGL.ShapeSource id="routeSource" shape={{
-                            type: 'Feature',
-                            geometry: {
-                                type: 'LineString',
-                                coordinates: coordinates,
-                            },
-                            properties: {}
-                        }}>
-                            <MapLibreGL.LineLayer
-                                id="routeFill"
-                                style={{
-                                    lineColor: theme.colors.primary,
-                                    lineWidth: 6,
-                                    lineCap: 'round',
-                                    lineJoin: 'round',
-                                    lineOpacity: 0.8,
-                                }}
-                            />
-                        </MapLibreGL.ShapeSource>
-                    </MapLibreGL.MapView>
+                {/* Map View or Static Preview */}
+                {session.preview_image ? (
+                    <Image
+                        source={{ uri: session.preview_image }}
+                        style={{ flex: 1, width: '100%', height: '100%' }}
+                        resizeMode="cover"
+                    />
                 ) : (
-                    <View className="flex-1 items-center justify-center">
-                        <Ionicons name="map" size={48} color={theme.colors.text + '33'} />
-                        <Text style={{ color: theme.colors.text + '77' }} className="mt-2">No Map Data</Text>
-                    </View>
+                    coordinates.length > 0 ? (
+                        <MapLibreGL.MapView
+                            style={{ flex: 1 }}
+                            mapStyle={
+                                theme.mode === "dark"
+                                    ? "https://api.maptiler.com/maps/019b1d6d-f87f-771b-88b8-776fa8f37312/style.json?key=" + MAPTILER_KEY
+                                    : `https://api.maptiler.com/maps/streets-v4/style.json?key=${MAPTILER_KEY}`
+                            }
+                            logoEnabled={false}
+                            attributionEnabled={false}
+                            scrollEnabled={false}
+                            pitchEnabled={false}
+                            rotateEnabled={false}
+                            zoomEnabled={false}
+                            compassEnabled={false}
+                        >
+                            <MapLibreGL.Camera
+                                defaultSettings={!cameraBounds ? { centerCoordinate: [0, 0], zoomLevel: 1 } : undefined}
+                                bounds={cameraBounds}
+                                animationDuration={0}
+                            />
+                            <MapLibreGL.ShapeSource id="routeSource" shape={{ type: 'Feature', geometry: { type: 'LineString', coordinates: coordinates }, properties: {} }}>
+                                <MapLibreGL.LineLayer id="routeFill" style={{ lineColor: theme.colors.primary, lineWidth: 4, lineCap: 'round', lineJoin: 'round', lineOpacity: 0.8 }} />
+                            </MapLibreGL.ShapeSource>
+                        </MapLibreGL.MapView>
+                    ) : (
+                        <View className="flex-1 items-center justify-center bg-gray-200">
+                            <Ionicons name="map-outline" size={48} color={theme.colors.text + '33'} />
+                        </View>
+                    )
                 )}
 
                 {/* Overlay Info */}
-                <View className="absolute bottom-0 left-0 right-0 p-3" style={{ backgroundColor: theme.colors.surface + 'EE' }}>
+                <View className="absolute bottom-0 left-0 right-0 p-3" style={{ backgroundColor: theme.colors.surface + 'CC' }}>
                     <View className="flex-row items-center justify-between">
                         <View>
                             <Text style={{ fontFamily: theme.fonts.heading, color: theme.colors.text }}>
@@ -147,13 +136,8 @@ export default function SessionPreview({ reference, style, extraParams }: Sessio
                                 {new Date(session.started_at).toLocaleDateString()} • {new Date(session.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </Text>
                         </View>
-                        <View className="items-end">
-                            <Text style={{ fontFamily: theme.fonts.bodyBold, color: theme.colors.text }}>
-                                {session.distance_km?.toFixed(2)} km
-                            </Text>
-                            <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '99', fontSize: 12 }}>
-                                {Math.floor((session.moving_time_sec || 0) / 60)} min
-                            </Text>
+                        <View className="bg-primary/20 p-2 rounded-full" style={{ backgroundColor: theme.colors.primary + '20' }}>
+                            <Ionicons name="location" size={16} color={theme.colors.primary} />
                         </View>
                     </View>
                 </View>
@@ -183,7 +167,7 @@ export default function SessionPreview({ reference, style, extraParams }: Sessio
                 </View>
 
                 {/* Bottom Info */}
-                <View className="absolute bottom-0 left-0 right-0 p-3" style={{ backgroundColor: theme.colors.surface + 'EE' }}>
+                <View className="absolute bottom-0 left-0 right-0 p-3" style={{ backgroundColor: theme.colors.surface + 'CC' }}>
                     <Text style={{ fontFamily: theme.fonts.heading, color: theme.colors.text, fontSize: 16 }}>
                         {session.foodName}
                     </Text>
@@ -227,9 +211,6 @@ export default function SessionPreview({ reference, style, extraParams }: Sessio
                         <View className="p-2 rounded-lg" style={{ backgroundColor: theme.colors.primary + '20' }}>
                             <Ionicons name="barbell" size={24} color={theme.colors.primary} />
                         </View>
-                        <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '77' }}>
-                            {new Date(session.performed_at).toLocaleDateString()}
-                        </Text>
                     </View>
 
                     <Text style={{ fontFamily: theme.fonts.heading, color: theme.colors.text, fontSize: 20, marginBottom: 8 }}>

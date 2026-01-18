@@ -458,19 +458,42 @@ export default function TestMap() {
           longitude: lon,
         }));
 
-        // Create geo session with activity data
-        const sessionPayload = {
-          activity_type: getActivityId(activityType), // Map activity type to ID
-          distance_km: contextDistance,
-          avg_pace: avgPace,
-          moving_time_sec: contextTime,
-          route_coordinates: routeForSave,
-          calories_burned: caloriesBurned,
-          started_at: new Date(Date.now() - contextTime * 1000).toISOString(),
-          ended_at: new Date().toISOString(),
-        };
+        // Capture map snapshot (URI)
+        let snapshotUri = null;
+        if (mapRef.current) {
+          try {
+            snapshotUri = await mapRef.current.takeSnap(true); // true = write to disk
+            console.log('[Activity] Map Snapshot taken:', snapshotUri);
+          } catch (e) {
+            console.warn('[Activity] Failed to take map snapshot', e);
+          }
+        }
 
-        const response = await createGeoSession(sessionPayload);
+        const formData = new FormData();
+        formData.append("activity_type", getActivityId(activityType));
+        formData.append("distance_km", contextDistance.toString());
+        formData.append("avg_pace", avgPace.toString());
+        formData.append("moving_time_sec", contextTime.toString());
+        formData.append("calories_burned", caloriesBurned.toString());
+        formData.append("started_at", new Date(Date.now() - contextTime * 1000).toISOString());
+        formData.append("ended_at", new Date().toISOString());
+
+        // Complex objects must be stringified for FormData
+        formData.append("route_coordinates", JSON.stringify(routeForSave));
+
+        if (snapshotUri) {
+          const filename = snapshotUri.split('/').pop() || "map_snapshot.png";
+          const match = /\.(\w+)$/.exec(filename);
+          const type = match ? `image/${match[1]}` : `image/png`;
+
+          formData.append("preview_image", {
+            uri: snapshotUri,
+            name: filename,
+            type,
+          } as any);
+        }
+
+        const response = await createGeoSession(formData);
         console.log('[Activity] Session saved successfully, calories burned:', caloriesBurned);
 
         // Refresh calorie balance after saving

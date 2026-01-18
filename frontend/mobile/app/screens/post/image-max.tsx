@@ -180,7 +180,7 @@ export default function ImageMax() {
                   marginBottom: 12
                 }}
                 onPress={() => {
-                  router.push({
+                  router.replace({
                     pathname: "/components/feed/SessionDetails",
                     params: {
                       sessionType: post.reference.item_type,

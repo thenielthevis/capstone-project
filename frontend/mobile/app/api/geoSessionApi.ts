@@ -12,7 +12,11 @@ export type GeoSessionPayload = {
     ended_at: string;
 };
 
-export const createGeoSession = async (payload: GeoSessionPayload) => {
-    const { data } = await axiosInstance.post("/geo-sessions/createGeoSession", payload);
+export const createGeoSession = async (payload: any) => {
+    const { data } = await axiosInstance.post("/geo-sessions/createGeoSession", payload, {
+        headers: {
+            "Content-Type": "multipart/form-data",
+        },
+    });
     return data;
 };

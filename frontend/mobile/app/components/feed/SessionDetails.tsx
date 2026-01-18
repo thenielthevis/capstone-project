@@ -122,7 +122,7 @@ export default function SessionDetails() {
 
     const handleOpenImages = () => {
         if (images && images.length > 0 && postId) {
-            router.push({
+            router.replace({
                 pathname: '/screens/post/image-max',
                 params: {
                     images: params.images, // Pass as is (string)
@@ -190,11 +190,17 @@ export default function SessionDetails() {
                             </View>
                         )}
                     </TouchableOpacity>
-                    {/* Back Button Overlay */}
-                    <SafeAreaView style={{ position: 'absolute', top: 0, left: 0 }}>
-                        <TouchableOpacity onPress={() => router.back()} style={{ marginLeft: 16, marginTop: 8, padding: 8, backgroundColor: theme.colors.background, borderRadius: 20 }}>
+                    {/* Header Overlay */}
+                    <SafeAreaView style={{ position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16 }}>
+                        <TouchableOpacity onPress={() => router.back()} style={{ padding: 8, backgroundColor: theme.colors.background, borderRadius: 20 }}>
                             <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
                         </TouchableOpacity>
+                        {images.length > 0 && (
+                            <TouchableOpacity onPress={handleOpenImages} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.background, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20 }}>
+                                <Ionicons name="images" size={16} color={theme.colors.primary} style={{ marginRight: 4 }} />
+                                <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: 12, color: theme.colors.primary }}>View Images</Text>
+                            </TouchableOpacity>
+                        )}
                     </SafeAreaView>
                 </View>
             );
@@ -206,10 +212,16 @@ export default function SessionDetails() {
                     <TouchableOpacity activeOpacity={images.length > 0 ? 0.9 : 1} onPress={handleOpenImages} style={{ flex: 1, height: '55%' }}>
                         <Image source={{ uri: session.imageUrl || 'https://via.placeholder.com/400' }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
                     </TouchableOpacity>
-                    <SafeAreaView style={{ position: 'absolute', top: 0, left: 0 }}>
-                        <TouchableOpacity onPress={() => router.back()} style={{ marginLeft: 16, marginTop: 8, padding: 8, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20 }}>
+                    <SafeAreaView style={{ position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16 }}>
+                        <TouchableOpacity onPress={() => router.back()} style={{ padding: 8, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20 }}>
                             <Ionicons name="arrow-back" size={24} color="#FFF" />
                         </TouchableOpacity>
+                        {images.length > 0 && (
+                            <TouchableOpacity onPress={handleOpenImages} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20 }}>
+                                <Ionicons name="images" size={16} color="#FFF" style={{ marginRight: 4 }} />
+                                <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: 12, color: "#FFF" }}>View Images</Text>
+                            </TouchableOpacity>
+                        )}
                     </SafeAreaView>
                 </View>
             );
@@ -223,10 +235,16 @@ export default function SessionDetails() {
                             <Ionicons name="barbell" size={120} color={theme.colors.primary} />
                         </View>
                     </View>
-                    <SafeAreaView style={{ position: 'absolute', top: 0, left: 0 }}>
-                        <TouchableOpacity onPress={() => router.back()} style={{ marginLeft: 16, marginTop: 8, padding: 8, backgroundColor: theme.colors.background, borderRadius: 20 }}>
+                    <SafeAreaView style={{ position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16 }}>
+                        <TouchableOpacity onPress={() => router.back()} style={{ padding: 8, backgroundColor: theme.colors.background, borderRadius: 20 }}>
                             <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
                         </TouchableOpacity>
+                        {images.length > 0 && (
+                            <TouchableOpacity onPress={handleOpenImages} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.background, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20 }}>
+                                <Ionicons name="images" size={16} color={theme.colors.primary} style={{ marginRight: 4 }} />
+                                <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: 12, color: theme.colors.primary }}>View Images</Text>
+                            </TouchableOpacity>
+                        )}
                     </SafeAreaView>
                 </View>
             );
