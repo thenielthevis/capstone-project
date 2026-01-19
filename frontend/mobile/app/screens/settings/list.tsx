@@ -62,7 +62,7 @@ const SettingsItem = ({
     }}>
       <MaterialCommunityIcons name={icon as any} size={22} color={iconColor} />
     </View>
-    
+
     <View style={{ flex: 1 }}>
       <Text style={{
         fontFamily: theme.fonts.bodyBold,
@@ -82,7 +82,7 @@ const SettingsItem = ({
         </Text>
       )}
     </View>
-    
+
     {rightElement}
     {showChevron && !rightElement && (
       <Ionicons name="chevron-forward" size={20} color={theme.colors.text + '44'} />
@@ -121,7 +121,7 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <ScrollView 
+      <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
@@ -133,8 +133,8 @@ export default function SettingsScreen() {
           paddingTop: 8,
           paddingBottom: 24,
         }}>
-          <TouchableOpacity 
-            onPress={() => router.back()} 
+          <TouchableOpacity
+            onPress={() => router.back()}
             activeOpacity={0.7}
             style={{
               width: 40,
@@ -165,6 +165,17 @@ export default function SettingsScreen() {
           title="Appearance"
           subtitle="Theme, colors & display"
           onPress={() => router.push("/screens/settings/appearance")}
+          theme={theme}
+        />
+
+        {/* Permissions Section */}
+        <SectionHeader title="Permissions" theme={theme} />
+        <SettingsItem
+          icon="lock-outline"
+          iconColor="#c2c2c0ff"
+          title="App Permissions"
+          subtitle="Manage app permissions"
+          onPress={() => router.push("/screens/settings/permissions")}
           theme={theme}
         />
 
@@ -210,8 +221,8 @@ export default function SettingsScreen() {
         />
 
         {/* App Info */}
-        <View style={{ 
-          alignItems: 'center', 
+        <View style={{
+          alignItems: 'center',
           marginTop: 32,
           paddingVertical: 20,
         }}>
