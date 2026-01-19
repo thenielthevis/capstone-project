@@ -88,7 +88,7 @@ export default function PostMediaCarousel({ post }: { post: any }) {
                     }}>
                         <Text style={{ fontFamily: theme.fonts.bodyBold, color: '#fff', fontSize: 12 }}>
                             {mediaItems[activeIndex].type === 'reference'
-                                ? "Session"
+                                ? "Cover"
                                 : `${post.reference ? activeIndex : activeIndex + 1} / ${post.images?.length || 0}`
                             }
                         </Text>

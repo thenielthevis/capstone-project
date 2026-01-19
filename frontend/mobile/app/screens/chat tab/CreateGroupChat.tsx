@@ -156,7 +156,7 @@ export default function CreateGroupChat() {
         flexDirection: "row",
         alignItems: "center",
         padding: 16,
-        backgroundColor: theme.colors.surface,
+        backgroundColor: theme.colors.background,
         borderBottomWidth: 1,
         borderBottomColor: theme.colors.background,
       }}
@@ -213,7 +213,7 @@ export default function CreateGroupChat() {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: theme.colors.background }}
+      style={{ flex: 1, backgroundColor: theme.colors.surface }}
       edges={["top"]}
     >
       {/* Header */}
@@ -259,7 +259,7 @@ export default function CreateGroupChat() {
           }}
         >
           {creating ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator size="small" color={theme.colors.primary} />
           ) : (
             <Text
               style={{
@@ -278,7 +278,7 @@ export default function CreateGroupChat() {
       <View
         style={{
           padding: 16,
-          backgroundColor: theme.colors.surface,
+          backgroundColor: theme.colors.background,
         }}
       >
         <Text
@@ -314,7 +314,7 @@ export default function CreateGroupChat() {
           style={{
             paddingHorizontal: 16,
             paddingTop: 12,
-            backgroundColor: theme.colors.surface,
+            backgroundColor: theme.colors.background,
           }}
         >
           <Text
@@ -342,7 +342,7 @@ export default function CreateGroupChat() {
       <View
         style={{
           padding: 16,
-          backgroundColor: theme.colors.surface,
+          backgroundColor: theme.colors.background,
           borderBottomWidth: 1,
           borderBottomColor: theme.colors.background,
         }}
@@ -402,6 +402,7 @@ export default function CreateGroupChat() {
 
       {/* Search Results */}
       <FlatList
+        style={{ backgroundColor: theme.colors.background }}
         data={users}
         renderItem={renderUserItem}
         keyExtractor={(item) => item._id}

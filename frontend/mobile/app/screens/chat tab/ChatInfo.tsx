@@ -10,11 +10,11 @@ import {
   Alert,
   ScrollView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
 import { useUser } from "../../context/UserContext";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons, MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { SafeAreaView } from "react-native-safe-area-context";
 import {
   fetchChats,
   renameGroupChat,
@@ -189,7 +189,7 @@ export default function ChatInfo() {
 
   // Helper to get current user ID
   const getCurrentUserId = () => user?.id || user?._id;
-  
+
   const isAdmin = chat?.groupAdmin?._id === getCurrentUserId();
 
   const handleChangeGroupPhoto = async () => {
@@ -200,7 +200,7 @@ export default function ChatInfo() {
 
     try {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
+
       if (!permissionResult.granted) {
         Alert.alert("Permission Required", "Please allow access to your photos to change the group photo.");
         return;
@@ -219,7 +219,7 @@ export default function ChatInfo() {
           // Upload to cloudinary or your backend
           // For now, we'll use the local URI (you should upload to your server)
           const imageUri = result.assets[0].uri;
-          
+
           // Create form data for upload
           const formData = new FormData();
           formData.append("file", {
@@ -466,55 +466,42 @@ export default function ChatInfo() {
 
   if (loading) {
     return (
-      <SafeAreaView
-        style={{ flex: 1, backgroundColor: theme.colors.background }}
-        edges={["top"]}
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
       >
-        <View
-          style={{
-            flex: 1,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-        </View>
-      </SafeAreaView>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </View>
     );
   }
 
   if (!chat) {
     return (
-      <SafeAreaView
-        style={{ flex: 1, backgroundColor: theme.colors.background }}
-        edges={["top"]}
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
       >
-        <View
+        <Text
           style={{
-            flex: 1,
-            alignItems: "center",
-            justifyContent: "center",
+            fontFamily: theme.fonts.body,
+            fontSize: theme.fontSizes.lg,
+            color: theme.colors.text + "60",
           }}
         >
-          <Text
-            style={{
-              fontFamily: theme.fonts.body,
-              fontSize: theme.fontSizes.lg,
-              color: theme.colors.text + "60",
-            }}
-          >
-            Chat not found
-          </Text>
-        </View>
-      </SafeAreaView>
+          Chat not found
+        </Text>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: theme.colors.background }}
-      edges={["top"]}
-    >
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.surface }}>
       {/* Header */}
       <View
         style={{
@@ -680,10 +667,10 @@ export default function ChatInfo() {
                 {chat.isGroupChat
                   ? chat.chatName
                   : (() => {
-                      const currentUserId = getCurrentUserId();
-                      const otherUser = chat.users.find((u) => u._id !== currentUserId);
-                      return otherUser?.username || "Unknown User";
-                    })()}
+                    const currentUserId = getCurrentUserId();
+                    const otherUser = chat.users.find((u) => u._id !== currentUserId);
+                    return otherUser?.username || "Unknown User";
+                  })()}
               </Text>
               {chat.isGroupChat && isAdmin && (
                 <Ionicons

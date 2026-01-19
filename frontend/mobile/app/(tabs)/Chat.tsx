@@ -126,7 +126,7 @@ export default function ChatTab() {
         style={{
           flexDirection: "row",
           padding: 16,
-          backgroundColor: theme.colors.surface,
+          backgroundColor: theme.colors.background,
           borderBottomWidth: 1,
           borderBottomColor: theme.colors.background,
         }}
@@ -294,19 +294,9 @@ export default function ChatTab() {
       <View
         style={{
           padding: 16,
-          backgroundColor: theme.colors.surface,
+          backgroundColor: theme.colors.background,
         }}
       >
-        <Text
-          style={{
-            fontFamily: theme.fonts.heading,
-            fontSize: theme.fontSizes.xl,
-            color: theme.colors.text,
-            marginBottom: 12,
-          }}
-        >
-          Messages
-        </Text>
 
         {/* Search Bar */}
         <View
@@ -353,7 +343,7 @@ export default function ChatTab() {
       <View
         style={{
           flexDirection: "row",
-          backgroundColor: theme.colors.surface,
+          backgroundColor: theme.colors.background,
           borderBottomWidth: 1,
           borderBottomColor: theme.colors.background,
         }}
@@ -385,6 +375,8 @@ export default function ChatTab() {
             refreshing={refreshing}
             onRefresh={onRefresh}
             tintColor={theme.colors.primary}
+            colors={[theme.colors.primary]}
+            progressBackgroundColor={theme.colors.surface}
           />
         }
         ListEmptyComponent={

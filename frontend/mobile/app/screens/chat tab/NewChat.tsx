@@ -73,7 +73,7 @@ export default function NewChat() {
         flexDirection: "row",
         alignItems: "center",
         padding: 16,
-        backgroundColor: theme.colors.surface,
+        backgroundColor: theme.colors.background,
         borderBottomWidth: 1,
         borderBottomColor: theme.colors.background,
       }}
@@ -123,7 +123,7 @@ export default function NewChat() {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: theme.colors.background }}
+      style={{ flex: 1, backgroundColor: theme.colors.surface }}
       edges={["top"]}
     >
       {/* Header */}
@@ -159,7 +159,7 @@ export default function NewChat() {
       <View
         style={{
           padding: 16,
-          backgroundColor: theme.colors.surface,
+          backgroundColor: theme.colors.background,
         }}
       >
         <View
@@ -224,6 +224,7 @@ export default function NewChat() {
             flex: 1,
             alignItems: "center",
             justifyContent: "center",
+            backgroundColor: theme.colors.background,
           }}
         >
           <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -240,6 +241,7 @@ export default function NewChat() {
         </View>
       ) : (
         <FlatList
+          style={{ backgroundColor: theme.colors.background }}
           data={users}
           renderItem={renderUserItem}
           keyExtractor={(item) => item._id}

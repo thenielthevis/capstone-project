@@ -8,7 +8,6 @@ import { postApi } from "../api/postApi";
 import { useRouter } from "expo-router";
 import { useUser } from "../context/UserContext";
 import ReactionButton, { REACTIONS } from "../components/ReactionButton";
-import SessionPreview from "../components/feed/SessionPreview";
 import ReportModal from "../components/Modals/ReportModal";
 import { BottomSheetModal, BottomSheetModalProvider, BottomSheetBackdrop, BottomSheetView } from "@gorhom/bottom-sheet";
 import PostMediaCarousel from "../components/feed/PostMediaCarousel";

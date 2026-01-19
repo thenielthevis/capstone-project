@@ -5,7 +5,6 @@ import {
   FlatList,
   TextInput,
   TouchableOpacity,
-  KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
   Image,
@@ -19,16 +18,17 @@ import { useUser } from "../../context/UserContext";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons, MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { 
-  fetchMessages, 
+import {
+  fetchMessages,
   fetchChats,
-  sendMessage as sendMessageApi, 
+  sendMessage as sendMessageApi,
   addReaction,
   reportMessage,
   markMessagesAsRead,
   Message,
-  Chat 
+  Chat
 } from "../../api/chatApi";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { getGroupPrograms, acceptProgram, declineProgram, Program } from "../../api/programApi";
 import { showToast } from "../../components/Toast/Toast";
 import GroupProgramModal from "../../components/Modals/GroupProgramModal";
@@ -158,7 +158,7 @@ export default function ChatRoom() {
     setSending(true);
     try {
       const sentMessage = await sendMessageApi(
-        newMessage, 
+        newMessage,
         chatId,
         replyingTo?._id
       );
@@ -278,7 +278,7 @@ export default function ChatRoom() {
   // Get user's status for a program
   const getUserProgramStatus = (program: Program) => {
     const currentUserId = user?.id || user?._id;
-    const member = program.members?.find(m => 
+    const member = program.members?.find(m =>
       m.user_id?._id === currentUserId || m.user_id === currentUserId
     );
     return member?.status || null;
@@ -453,7 +453,7 @@ export default function ChatRoom() {
                     "{programName}"
                   </Text>
                 )}
-                
+
                 {/* Parse and display program details */}
                 {item.content.split('\n').slice(2).map((line, idx) => {
                   if (line.startsWith('💪') || line.startsWith('🗺️')) {
@@ -786,7 +786,7 @@ export default function ChatRoom() {
   if (loading) {
     return (
       <SafeAreaView
-        style={{ flex: 1, backgroundColor: theme.colors.background }}
+        style={{ flex: 1, backgroundColor: theme.colors.surface }}
         edges={["top"]}
       >
         <View
@@ -804,272 +804,276 @@ export default function ChatRoom() {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: theme.colors.background }}
+      style={{ flex: 1, backgroundColor: theme.colors.surface }}
       edges={["top", "bottom"]}
     >
-      {/* Header */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          padding: 12,
-          backgroundColor: theme.colors.surface,
-          borderBottomWidth: 1,
-          borderBottomColor: theme.colors.background,
-        }}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
       >
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={{ padding: 8, marginRight: 4 }}
-        >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 20,
-            backgroundColor: chat?.isGroupChat
-              ? theme.colors.primary + "20"
-              : theme.colors.secondary + "20",
-            alignItems: "center",
-            justifyContent: "center",
-            marginRight: 12,
-          }}
-          onPress={() =>
-            router.push({
-              pathname: "/screens/chat tab/ChatInfo" as any,
-              params: { chatId },
-            })
-          }
-        >
-          {getChatAvatar() ? (
-            <Image
-              source={{ uri: getChatAvatar()! }}
-              style={{ width: 40, height: 40, borderRadius: 20 }}
-            />
-          ) : chat?.isGroupChat ? (
-            <Ionicons name="people" size={20} color={theme.colors.primary} />
-          ) : (
-            <Ionicons name="person" size={20} color={theme.colors.secondary} />
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={{ flex: 1 }}
-          onPress={() =>
-            router.push({
-              pathname: "/screens/chat tab/ChatInfo" as any,
-              params: { chatId },
-            })
-          }
-        >
-          <Text
-            style={{
-              fontFamily: theme.fonts.bodyBold,
-              fontSize: theme.fontSizes.lg,
-              color: theme.colors.text,
-            }}
-            numberOfLines={1}
-          >
-            {chatName || "Chat"}
-          </Text>
-          {chat?.isGroupChat && (
-            <Text
-              style={{
-                fontFamily: theme.fonts.body,
-                fontSize: theme.fontSizes.xs,
-                color: theme.colors.text + "80",
-              }}
-            >
-              {chat.users.length} members
-            </Text>
-          )}
-        </TouchableOpacity>
-
-        {/* Create Group Program Button - Only for group chats */}
-        {chat?.isGroupChat && (
-          <TouchableOpacity
-            style={{ padding: 8, marginRight: 4 }}
-            onPress={() => setShowGroupProgramModal(true)}
-          >
-            <MaterialCommunityIcons
-              name="clipboard-plus-outline"
-              size={24}
-              color={theme.colors.primary}
-            />
-          </TouchableOpacity>
-        )}
-
-        <TouchableOpacity
-          style={{ padding: 8 }}
-          onPress={() =>
-            router.push({
-              pathname: "/screens/chat tab/ChatInfo" as any,
-              params: { chatId },
-            })
-          }
-        >
-          <Ionicons
-            name="information-circle-outline"
-            size={24}
-            color={theme.colors.text}
-          />
-        </TouchableOpacity>
-      </View>
-
-      {/* Messages List */}
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        renderItem={renderMessage}
-        keyExtractor={(item) => item._id}
-        contentContainerStyle={{ paddingVertical: 12 }}
-        onContentSizeChange={() =>
-          flatListRef.current?.scrollToEnd({ animated: false })
-        }
-        ListEmptyComponent={
-          <View
-            style={{
-              flex: 1,
-              alignItems: "center",
-              justifyContent: "center",
-              paddingVertical: 60,
-            }}
-          >
-            <Ionicons
-              name="chatbubble-ellipses-outline"
-              size={60}
-              color={theme.colors.text + "30"}
-            />
-            <Text
-              style={{
-                fontFamily: theme.fonts.body,
-                fontSize: theme.fontSizes.lg,
-                color: theme.colors.text + "60",
-                marginTop: 16,
-              }}
-            >
-              No messages yet
-            </Text>
-            <Text
-              style={{
-                fontFamily: theme.fonts.body,
-                fontSize: theme.fontSizes.sm,
-                color: theme.colors.text + "40",
-                marginTop: 8,
-              }}
-            >
-              Start the conversation!
-            </Text>
-          </View>
-        }
-      />
-
-      {/* Replying To Banner */}
-      {replyingTo && (
+        {/* Header */}
         <View
           style={{
             flexDirection: "row",
             alignItems: "center",
+            padding: 12,
             backgroundColor: theme.colors.surface,
-            paddingHorizontal: 16,
-            paddingVertical: 10,
-            borderTopWidth: 1,
-            borderTopColor: theme.colors.background,
+            borderBottomWidth: 1,
+            borderBottomColor: theme.colors.background,
           }}
         >
-          <View
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={{ padding: 8, marginRight: 4 }}
+          >
+            <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
             style={{
-              width: 3,
-              height: "100%",
-              backgroundColor: theme.colors.primary,
-              borderRadius: 2,
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: chat?.isGroupChat
+                ? theme.colors.primary + "20"
+                : theme.colors.secondary + "20",
+              alignItems: "center",
+              justifyContent: "center",
               marginRight: 12,
             }}
-          />
-          <View style={{ flex: 1 }}>
+            onPress={() =>
+              router.push({
+                pathname: "/screens/chat tab/ChatInfo" as any,
+                params: { chatId },
+              })
+            }
+          >
+            {getChatAvatar() ? (
+              <Image
+                source={{ uri: getChatAvatar()! }}
+                style={{ width: 40, height: 40, borderRadius: 20 }}
+              />
+            ) : chat?.isGroupChat ? (
+              <Ionicons name="people" size={20} color={theme.colors.primary} />
+            ) : (
+              <Ionicons name="person" size={20} color={theme.colors.secondary} />
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            onPress={() =>
+              router.push({
+                pathname: "/screens/chat tab/ChatInfo" as any,
+                params: { chatId },
+              })
+            }
+          >
             <Text
               style={{
                 fontFamily: theme.fonts.bodyBold,
-                fontSize: theme.fontSizes.xs,
-                color: theme.colors.primary,
-              }}
-            >
-              Replying to {replyingTo.sender?.username}
-            </Text>
-            <Text
-              style={{
-                fontFamily: theme.fonts.body,
-                fontSize: theme.fontSizes.sm,
-                color: theme.colors.text + "80",
+                fontSize: theme.fontSizes.lg,
+                color: theme.colors.text,
               }}
               numberOfLines={1}
             >
-              {replyingTo.content}
+              {chatName || "Chat"}
             </Text>
-          </View>
-          <TouchableOpacity onPress={() => setReplyingTo(null)}>
-            <Ionicons name="close" size={20} color={theme.colors.text + "60"} />
+            {chat?.isGroupChat && (
+              <Text
+                style={{
+                  fontFamily: theme.fonts.body,
+                  fontSize: theme.fontSizes.xs,
+                  color: theme.colors.text + "80",
+                }}
+              >
+                {chat.users.length} members
+              </Text>
+            )}
+          </TouchableOpacity>
+
+          {/* Create Group Program Button - Only for group chats */}
+          {chat?.isGroupChat && (
+            <TouchableOpacity
+              style={{ padding: 8, marginRight: 4 }}
+              onPress={() => setShowGroupProgramModal(true)}
+            >
+              <MaterialCommunityIcons
+                name="clipboard-plus-outline"
+                size={24}
+                color={theme.colors.primary}
+              />
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity
+            style={{ padding: 8 }}
+            onPress={() =>
+              router.push({
+                pathname: "/screens/chat tab/ChatInfo" as any,
+                params: { chatId },
+              })
+            }
+          >
+            <Ionicons
+              name="information-circle-outline"
+              size={24}
+              color={theme.colors.text}
+            />
           </TouchableOpacity>
         </View>
-      )}
 
-      {/* Suggestions */}
-      {showSuggestions && (
-        <View
-          style={{
-            backgroundColor: theme.colors.surface,
-            borderTopWidth: 1,
-            borderTopColor: theme.colors.background,
-            paddingVertical: 8,
-          }}
-        >
-          <FlatList
-            horizontal
-            data={SUGGESTED_MESSAGES}
-            keyExtractor={(item, index) => index.toString()}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 12 }}
-            renderItem={({ item }) => (
-              <TouchableOpacity
+        {/* Messages List */}
+        <FlatList
+          ref={flatListRef}
+          style={{ flex: 1, backgroundColor: theme.colors.background }}
+          data={messages}
+          renderItem={renderMessage}
+          keyExtractor={(item) => item._id}
+          contentContainerStyle={{ paddingVertical: 12 }}
+          onContentSizeChange={() =>
+            flatListRef.current?.scrollToEnd({ animated: false })
+          }
+          ListEmptyComponent={
+            <View
+              style={{
+                flex: 1,
+                alignItems: "center",
+                justifyContent: "center",
+                paddingVertical: 60,
+              }}
+            >
+              <Ionicons
+                name="chatbubble-ellipses-outline"
+                size={60}
+                color={theme.colors.text + "30"}
+              />
+              <Text
                 style={{
-                  backgroundColor: theme.colors.primary + "15",
-                  paddingHorizontal: 14,
-                  paddingVertical: 8,
-                  borderRadius: 16,
-                  marginRight: 8,
-                  borderWidth: 1,
-                  borderColor: theme.colors.primary + "30",
+                  fontFamily: theme.fonts.body,
+                  fontSize: theme.fontSizes.lg,
+                  color: theme.colors.text + "60",
+                  marginTop: 16,
                 }}
-                onPress={() => handleSuggestionPress(item)}
               >
-                <Text
-                  style={{
-                    fontFamily: theme.fonts.body,
-                    fontSize: theme.fontSizes.sm,
-                    color: theme.colors.primary,
-                  }}
-                >
-                  {item}
-                </Text>
-              </TouchableOpacity>
-            )}
-          />
-        </View>
-      )}
+                No messages yet
+              </Text>
+              <Text
+                style={{
+                  fontFamily: theme.fonts.body,
+                  fontSize: theme.fontSizes.sm,
+                  color: theme.colors.text + "40",
+                  marginTop: 8,
+                }}
+              >
+                Start the conversation!
+              </Text>
+            </View>
+          }
+        />
 
-      {/* Input Area */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+        {/* Replying To Banner */}
+        {replyingTo && (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: theme.colors.surface,
+              paddingHorizontal: 16,
+              paddingVertical: 10,
+              borderTopWidth: 1,
+              borderTopColor: theme.colors.background,
+            }}
+          >
+            <View
+              style={{
+                width: 3,
+                height: "100%",
+                backgroundColor: theme.colors.primary,
+                borderRadius: 2,
+                marginRight: 12,
+              }}
+            />
+            <View style={{ flex: 1 }}>
+              <Text
+                style={{
+                  fontFamily: theme.fonts.bodyBold,
+                  fontSize: theme.fontSizes.xs,
+                  color: theme.colors.primary,
+                }}
+              >
+                Replying to {replyingTo.sender?.username}
+              </Text>
+              <Text
+                style={{
+                  fontFamily: theme.fonts.body,
+                  fontSize: theme.fontSizes.sm,
+                  color: theme.colors.text + "80",
+                }}
+                numberOfLines={1}
+              >
+                {replyingTo.content}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={() => setReplyingTo(null)}>
+              <Ionicons name="close" size={20} color={theme.colors.text + "60"} />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Suggestions */}
+        {showSuggestions && (
+          <View
+            style={{
+              backgroundColor: theme.colors.surface,
+              borderTopWidth: 1,
+              borderTopColor: theme.colors.background,
+              paddingVertical: 8,
+            }}
+          >
+            <FlatList
+              horizontal
+              data={SUGGESTED_MESSAGES}
+              keyExtractor={(item, index) => index.toString()}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 12 }}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: theme.colors.primary + "15",
+                    paddingHorizontal: 14,
+                    paddingVertical: 8,
+                    borderRadius: 16,
+                    marginRight: 8,
+                    borderWidth: 1,
+                    borderColor: theme.colors.primary + "30",
+                  }}
+                  onPress={() => handleSuggestionPress(item)}
+                >
+                  <Text
+                    style={{
+                      fontFamily: theme.fonts.body,
+                      fontSize: theme.fontSizes.sm,
+                      color: theme.colors.primary,
+                    }}
+                  >
+                    {item}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        )}
+
+        {/* Input Area */}
+        {/* Input Area */}
         <View
           style={{
             flexDirection: "row",
-            alignItems: "flex-end",
+            alignItems: "center",
             padding: 12,
-            paddingBottom: Platform.OS === "ios" ? 28 : 20,
+            paddingBottom: 12,
             backgroundColor: theme.colors.surface,
             borderTopWidth: 1,
             borderTopColor: theme.colors.background,
@@ -1097,7 +1101,7 @@ export default function ChatRoom() {
             style={{
               flex: 1,
               flexDirection: "row",
-              alignItems: "flex-end",
+              alignItems: "center",
               backgroundColor: theme.colors.input,
               borderRadius: 20,
               paddingHorizontal: 16,
@@ -1146,6 +1150,7 @@ export default function ChatRoom() {
             )}
           </TouchableOpacity>
         </View>
+
       </KeyboardAvoidingView>
 
       {/* Options Modal */}
@@ -1284,24 +1289,26 @@ export default function ChatRoom() {
       </Modal>
 
       {/* Group Program Modal */}
-      {chat?.isGroupChat && (
-        <GroupProgramModal
-          visible={showGroupProgramModal}
-          onClose={() => setShowGroupProgramModal(false)}
-          groupId={chatId || ""}
-          groupName={chatName || chat?.chatName || "Group"}
-          onProgramCreated={() => {
-            // Refresh messages to show the new program announcement
-            loadMessages();
-            // Refresh programs list for accept/decline functionality
-            loadGroupPrograms();
-            // Scroll to bottom after a short delay to show the new message
-            setTimeout(() => {
-              flatListRef.current?.scrollToEnd({ animated: true });
-            }, 500);
-          }}
-        />
-      )}
+      {
+        chat?.isGroupChat && (
+          <GroupProgramModal
+            visible={showGroupProgramModal}
+            onClose={() => setShowGroupProgramModal(false)}
+            groupId={chatId || ""}
+            groupName={chatName || chat?.chatName || "Group"}
+            onProgramCreated={() => {
+              // Refresh messages to show the new program announcement
+              loadMessages();
+              // Refresh programs list for accept/decline functionality
+              loadGroupPrograms();
+              // Scroll to bottom after a short delay to show the new message
+              setTimeout(() => {
+                flatListRef.current?.scrollToEnd({ animated: true });
+              }, 500);
+            }}
+          />
+        )
+      }
 
       {/* Report Modal */}
       <ReportModal
@@ -1315,6 +1322,6 @@ export default function ChatRoom() {
         itemId={reportItemId || ""}
         itemName={reportItemName}
       />
-    </SafeAreaView>
+    </SafeAreaView >
   );
 }

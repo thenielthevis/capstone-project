@@ -11,6 +11,7 @@ import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 import { ToastProvider } from './components/Toast/Toast';
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import './globals.css';
 
 // Keep the splash screen visible while fonts and app initialize
@@ -38,24 +39,26 @@ export default function App() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <PaperProvider>
-          <ThemeProvider>
-            <UserProvider>
-              <ProgramProvider>
-                <DailyLogProvider>
-                  <Stack
-                    screenOptions={{
-                      headerShown: false,
-                    }}
-                  />
-                  <ToastProvider />
-                </DailyLogProvider>
-              </ProgramProvider>
-            </UserProvider>
-          </ThemeProvider>
-        </PaperProvider>
-      </SafeAreaProvider>
+      <KeyboardProvider>
+        <SafeAreaProvider>
+          <PaperProvider>
+            <ThemeProvider>
+              <UserProvider>
+                <ProgramProvider>
+                  <DailyLogProvider>
+                    <Stack
+                      screenOptions={{
+                        headerShown: false,
+                      }}
+                    />
+                    <ToastProvider />
+                  </DailyLogProvider>
+                </ProgramProvider>
+              </UserProvider>
+            </ThemeProvider>
+          </PaperProvider>
+        </SafeAreaProvider>
+      </KeyboardProvider>
     </GestureHandlerRootView>
   );
 }
