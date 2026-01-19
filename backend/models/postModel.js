@@ -12,6 +12,10 @@ const postSchema = new mongoose.Schema(
             default: "Untitled",
             trim: true
         },
+        tags: {
+            type: [String],
+            default: []
+        },
         content: {
             type: String,
             required: true,

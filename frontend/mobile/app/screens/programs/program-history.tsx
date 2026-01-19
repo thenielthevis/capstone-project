@@ -258,7 +258,13 @@ export default function ProgramHistory() {
                 keyExtractor={(item) => item._id}
                 contentContainerStyle={{ padding: 20, paddingTop: 0 }}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        tintColor={theme.colors.primary}
+                        colors={[theme.colors.primary]}
+                        progressBackgroundColor={theme.colors.surface}
+                    />
                 }
                 onEndReached={onLoadMore}
                 onEndReachedThreshold={0.5}

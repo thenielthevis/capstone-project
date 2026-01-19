@@ -22,6 +22,7 @@ type Post = {
   title: string;
   content: string;
   images: string[];
+  tags?: string[];
   comments?: any[];
   commentCount?: number;
   shares?: any[];
@@ -311,6 +312,40 @@ export default function Home() {
             <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text }} className="text-sm leading-5">
               {post.content}
             </Text>
+
+            {/* Tags Display */}
+            {post.tags && post.tags.length > 0 && (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  flexWrap: 'wrap',
+                  gap: 6,
+                  marginTop: 12
+                }}
+              >
+                {post.tags.map((tag, index) => (
+                  <View
+                    key={index}
+                    style={{
+                      backgroundColor: theme.colors.primary + '15',
+                      paddingHorizontal: 10,
+                      paddingVertical: 4,
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      borderColor: theme.colors.primary + '30',
+                    }}
+                  >
+                    <Text style={{
+                      fontFamily: theme.fonts.body,
+                      color: theme.colors.primary,
+                      fontSize: 11
+                    }}>
+                      {tag}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
         </TouchableOpacity>
 
@@ -512,7 +547,7 @@ export default function Home() {
               }}
               onPress={() => {
                 setFabOpen(false);
-                Alert.alert("Create Post", "Manual post creation is coming soon!");
+                router.push('/screens/post/post_session');
               }}
             >
               <Text style={{ fontFamily: theme.fonts.heading, color: "#fff", marginRight: 8 }}>Write Post</Text>
@@ -584,7 +619,8 @@ export default function Home() {
                             initialContent: post.content,
                             initialImages: post.images,
                             initialVisibility: post.visibility,
-                            title: post.title
+                            title: post.title,
+                            initialTags: post.tags ? JSON.stringify(post.tags) : undefined
                           }
                         } as any);
                       }}

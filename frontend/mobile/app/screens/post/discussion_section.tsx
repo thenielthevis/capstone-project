@@ -44,6 +44,7 @@ type Post = {
     title: string;
     content: string;
     images: string[];
+    tags?: string[];
     createdAt: string;
     reference?: {
         item_id: any;
@@ -557,6 +558,40 @@ export default function DiscussionSection() {
                         <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text }} className="text-sm leading-5">
                             {post.content}
                         </Text>
+
+                        {/* Tags Display */}
+                        {post.tags && post.tags.length > 0 && (
+                            <View
+                                style={{
+                                    flexDirection: 'row',
+                                    flexWrap: 'wrap',
+                                    gap: 6,
+                                    marginTop: 12
+                                }}
+                            >
+                                {post.tags.map((tag, index) => (
+                                    <View
+                                        key={index}
+                                        style={{
+                                            backgroundColor: theme.colors.primary + '15',
+                                            paddingHorizontal: 10,
+                                            paddingVertical: 4,
+                                            borderRadius: 12,
+                                            borderWidth: 1,
+                                            borderColor: theme.colors.primary + '30',
+                                        }}
+                                    >
+                                        <Text style={{
+                                            fontFamily: theme.fonts.body,
+                                            color: theme.colors.primary,
+                                            fontSize: 11
+                                        }}>
+                                            {tag}
+                                        </Text>
+                                    </View>
+                                ))}
+                            </View>
+                        )}
 
                         {/* Combined Horizontal Scroll for Reference and Images */}
                         {(post.reference || (post.images && post.images.length > 0)) && (

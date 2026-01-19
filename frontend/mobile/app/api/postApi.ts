@@ -9,10 +9,11 @@ export const postApi = {
         reference?: { item_id: string; item_type: "GeoSession" | "ProgramSession" | "FoodLog" | "Post" },
         title?: string,
         images?: string[], // Array of local URIs
-        visibility?: "public" | "friends" | "private"
+        visibility?: "public" | "friends" | "private",
+        tags?: string[]
     ) => {
         try {
-            console.log('[postApi] Creating post with:', { content, reference, title, visibility, imageCount: images?.length });
+            console.log('[postApi] Creating post with:', { content, reference, title, visibility, tags, imageCount: images?.length });
 
             // If no images, use simple JSON request via axios (more reliable)
             if (!images || images.length === 0) {
@@ -21,7 +22,8 @@ export const postApi = {
                     content,
                     title: title || undefined,
                     visibility: visibility || "public",
-                    reference: reference || undefined
+                    reference: reference || undefined,
+                    tags: tags || []
                 });
                 console.log('[postApi] Post created successfully:', data);
                 return data;
@@ -34,6 +36,9 @@ export const postApi = {
             if (title) formData.append("title", title);
             if (visibility) formData.append("visibility", visibility);
             if (reference) formData.append("reference", JSON.stringify(reference));
+            if (tags && tags.length > 0) {
+                formData.append("tags", JSON.stringify(tags));
+            }
 
             // Append images
             console.log('[postApi] Adding images to FormData...');
@@ -119,6 +124,7 @@ export const postApi = {
             visibility?: "public" | "friends" | "private";
             images?: string[]; // Array of local URIs for new images
             keepImages?: string[]; // Array of remote URLs to keep
+            tags?: string[];
         }
     ) => {
         try {
@@ -134,7 +140,8 @@ export const postApi = {
                     content: updates.content,
                     title: updates.title,
                     visibility: updates.visibility,
-                    keepImages: updates.keepImages
+                    keepImages: updates.keepImages,
+                    tags: updates.tags
                 });
                 return data;
             }
@@ -145,6 +152,9 @@ export const postApi = {
             if (updates.content !== undefined) formData.append("content", updates.content);
             if (updates.title !== undefined) formData.append("title", updates.title);
             if (updates.visibility !== undefined) formData.append("visibility", updates.visibility);
+            if (updates.tags && updates.tags.length > 0) {
+                formData.append("tags", JSON.stringify(updates.tags));
+            }
 
             // Handle existing images to keep
             if (updates.keepImages) {

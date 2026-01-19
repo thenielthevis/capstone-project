@@ -18,8 +18,19 @@ exports.createPost = async (req, res) => {
         console.log('[CREATE POST] req.body keys:', Object.keys(req.body));
         console.log('[CREATE POST] req.files count:', req.files ? req.files.length : 0);
 
-        let { content, title, visibility, reference } = req.body;
+        let { content, title, visibility, reference, tags } = req.body;
         const imageFiles = req.files || [];
+
+        // Parse tags if it's a string (from FormData)
+        if (tags && typeof tags === 'string') {
+            try {
+                tags = JSON.parse(tags);
+                console.log('[CREATE POST] Parsed tags:', tags);
+            } catch (e) {
+                console.error('[CREATE POST] Failed to parse tags:', e);
+                tags = [];
+            }
+        }
 
         // Parse reference if it's a string (from FormData)
         if (reference && typeof reference === 'string') {
@@ -58,7 +69,8 @@ exports.createPost = async (req, res) => {
             content,
             images: imageUrls,
             visibility: visibility || "public",
-            reference: reference || undefined
+            reference: reference || undefined,
+            tags: tags || []
         });
 
         console.log('[CREATE POST] Post document created with ID:', newPost._id);
@@ -97,8 +109,18 @@ exports.updatePost = async (req, res) => {
         console.log('[UPDATE POST] Post ID:', req.params.id);
         console.log('[UPDATE POST] req.body keys:', Object.keys(req.body));
 
-        const { content, title, visibility, keepImages } = req.body;
+        let { content, title, visibility, keepImages, tags } = req.body;
         const imageFiles = req.files || [];
+
+        // Parse tags if it's a string (from FormData)
+        if (tags && typeof tags === 'string') {
+            try {
+                tags = JSON.parse(tags);
+                console.log('[UPDATE POST] Parsed tags:', tags);
+            } catch (e) {
+                console.error('[UPDATE POST] Failed to parse tags:', e);
+            }
+        }
 
         let post = await Post.findById(req.params.id);
 
@@ -115,6 +137,7 @@ exports.updatePost = async (req, res) => {
         if (content !== undefined) post.content = content;
         if (title !== undefined) post.title = title;
         if (visibility !== undefined) post.visibility = visibility;
+        if (tags !== undefined) post.tags = tags;
 
         // Handle Images
         // 1. Start with images to keep (from client)
