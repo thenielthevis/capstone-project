@@ -12,7 +12,10 @@ import {
   X,
   Flag,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  MoreHorizontal,
+  Edit,
+  Trash2
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -20,8 +23,12 @@ import { postApi, Post } from '@/api/postApi';
 import { commentApi, Comment } from '@/api/commentApi';
 import ReactionButton from '@/components/ReactionButton';
 import SessionPreview from '@/components/feed/SessionPreview';
+import PostMediaCarousel from '@/components/feed/PostMediaCarousel';
+import ImageViewerModal from '@/components/feed/ImageViewerModal';
+import CreatePostModal from '@/components/feed/CreatePostModal';
 import Header from '@/components/Header';
 import { ReportType } from '@/api/reportApi';
+import ReportModal from '@/components/ReportModal';
 
 interface CommentWithReplies extends Comment {
   replies: CommentWithReplies[];
@@ -41,12 +48,30 @@ export default function PostDetail() {
   const [posting, setPosting] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
+  // Image viewer state
+  const [imageViewerOpen, setImageViewerOpen] = useState(false);
+
+  // Edit post state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+
+  // Report modal state
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+
   const userId = user?._id || user?.id;
 
-  const handleReport = (type: ReportType, itemId: string, itemName?: string) => {
-    const params = new URLSearchParams({ type, id: itemId });
-    if (itemName) params.append('name', itemName);
-    navigate(`/report?${params.toString()}`);
+  const handleReport = () => {
+    setReportModalOpen(true);
+  };
+
+  const handleDeletePost = async () => {
+    if (!post || !window.confirm('Are you sure you want to delete this post?')) return;
+    try {
+      await postApi.deletePost(post._id);
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Error deleting post:', error);
+    }
   };
 
   useEffect(() => {
@@ -440,10 +465,48 @@ export default function PostDetail() {
                 {getTimeAgo(post.createdAt)}
               </p>
             </div>
-            {/* Report Post Button */}
-            {post.user?._id !== userId && (
+            {/* Post Actions - Edit/Delete for owner, Report for others */}
+            {post.user?._id === userId ? (
+              <div className="relative">
+                <button 
+                  onClick={() => setShowMenu(!showMenu)}
+                  className="p-2 rounded-lg hover:opacity-80 transition"
+                >
+                  <MoreHorizontal className="w-5 h-5" style={{ color: theme.colors.textTertiary }} />
+                </button>
+                {showMenu && (
+                  <div
+                    className="absolute right-0 top-full mt-1 w-36 rounded-xl shadow-lg z-20 overflow-hidden"
+                    style={{ backgroundColor: theme.colors.surface, border: `1px solid ${theme.colors.border}` }}
+                  >
+                    <button
+                      onClick={() => {
+                        setShowMenu(false);
+                        setShowEditModal(true);
+                      }}
+                      className="w-full flex items-center gap-2 px-4 py-3 hover:opacity-80 transition text-left"
+                      style={{ color: theme.colors.text }}
+                    >
+                      <Edit className="w-4 h-4" />
+                      <span className="text-sm">Edit</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowMenu(false);
+                        handleDeletePost();
+                      }}
+                      className="w-full flex items-center gap-2 px-4 py-3 hover:opacity-80 transition text-left"
+                      style={{ color: '#ef4444' }}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span className="text-sm">Delete</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
               <button 
-                onClick={() => handleReport('post', post._id)}
+                onClick={handleReport}
                 className="p-2 rounded-lg hover:opacity-80 transition"
                 title="Report post"
               >
@@ -464,68 +527,18 @@ export default function PostDetail() {
             </p>
           </div>
 
-          {/* Session Reference Preview */}
-          {post.reference?.item_id && (
-            <div className="px-4 pb-4 flex justify-center">
-              <SessionPreview reference={post.reference as { item_id: any; item_type: 'GeoSession' | 'ProgramSession' | 'FoodLog' | 'Post' }} />
-            </div>
-          )}
-
-          {/* Post Images */}
-          {post.images && post.images.length > 0 && (
-            <div className="relative">
-              <img
-                src={post.images[currentImageIndex]}
-                alt="Post"
-                className="w-full object-contain"
-                style={{ maxHeight: 600, backgroundColor: theme.colors.surface }}
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
+          {/* Media Carousel (Session + Images) */}
+          {(post.reference?.item_id || (post.images && post.images.length > 0)) && (
+            <div className="px-4 pb-4">
+              <PostMediaCarousel 
+                post={post}
+                onImageClick={(index) => {
+                  setCurrentImageIndex(index);
+                  setImageViewerOpen(true);
                 }}
               />
-              {post.images.length > 1 && (
-                <>
-                  <div 
-                    className="absolute top-3 right-3 px-3 py-1 rounded-full text-sm font-medium"
-                    style={{ backgroundColor: 'rgba(0,0,0,0.7)', color: 'white' }}
-                  >
-                    {currentImageIndex + 1}/{post.images.length}
-                  </div>
-                  {currentImageIndex > 0 && (
-                    <button
-                      onClick={() => setCurrentImageIndex(prev => prev - 1)}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-                    >
-                      <ChevronLeft className="w-6 h-6 text-white" />
-                    </button>
-                  )}
-                  {currentImageIndex < post.images.length - 1 && (
-                    <button
-                      onClick={() => setCurrentImageIndex(prev => prev + 1)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-                    >
-                      <ChevronRight className="w-6 h-6 text-white" />
-                    </button>
-                  )}
-                  {/* Image dots */}
-                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-                    {post.images.map((_, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => setCurrentImageIndex(idx)}
-                        className="w-2 h-2 rounded-full transition-all"
-                        style={{ 
-                          backgroundColor: idx === currentImageIndex ? 'white' : 'rgba(255,255,255,0.5)',
-                          transform: idx === currentImageIndex ? 'scale(1.2)' : 'scale(1)'
-                        }}
-                      />
-                    ))}
-                  </div>
-                </>
-              )}
             </div>
+          )}
           )}
 
           {/* Interaction Bar */}
@@ -656,6 +669,45 @@ export default function PostDetail() {
           </div>
         </div>
       </div>
+
+      {/* Edit Post Modal */}
+      {post && (
+        <CreatePostModal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          onSuccess={() => {
+            fetchData();
+          }}
+          editMode
+          initialData={{
+            postId: post._id,
+            title: post.title || '',
+            content: post.content,
+            images: post.images || [],
+            visibility: post.visibility as 'public' | 'friends' | 'private',
+          }}
+        />
+      )}
+
+      {/* Image Viewer Modal */}
+      {post?.images && (
+        <ImageViewerModal
+          isOpen={imageViewerOpen}
+          onClose={() => setImageViewerOpen(false)}
+          images={post.images}
+          initialIndex={currentImageIndex}
+        />
+      )}
+
+      {/* Report Modal */}
+      {post && (
+        <ReportModal
+          isOpen={reportModalOpen}
+          onClose={() => setReportModalOpen(false)}
+          reportType="post"
+          itemId={post._id}
+        />
+      )}
     </div>
   );
 }

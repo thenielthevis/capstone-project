@@ -1,36 +1,44 @@
+import { useState } from 'react';
 import { useTheme } from '@/context/ThemeContext';
 import { MapPin, Dumbbell, Utensils } from 'lucide-react';
+import SessionDetailsModal from './SessionDetailsModal';
 
 type SessionPreviewProps = {
   reference: {
     item_id: any;
     item_type: 'GeoSession' | 'ProgramSession' | 'FoodLog' | 'Post';
   };
+  fullWidth?: boolean;
 };
 
-export default function SessionPreview({ reference }: SessionPreviewProps) {
+export default function SessionPreview({ reference, fullWidth = false }: SessionPreviewProps) {
   const { theme } = useTheme();
   const { item_id: session, item_type } = reference;
+  const [showDetails, setShowDetails] = useState(false);
 
   if (!session) return null;
 
   const handleClick = () => {
-    // Navigate to session details - can be customized based on item_type
-    console.log('Navigate to session:', item_type, session._id);
+    if (item_type !== 'Post') {
+      setShowDetails(true);
+    }
+  };
+
+  const containerStyle = {
+    width: fullWidth ? '100%' : 300,
+    height: 256,
+    backgroundColor: theme.colors.surface,
+    border: `1px solid ${theme.colors.border}`,
   };
 
   // --- GeoSession Render ---
   if (item_type === 'GeoSession') {
     return (
-      <div
-        onClick={handleClick}
-        className="rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition relative"
-        style={{
-          width: 300,
-          height: 256,
-          backgroundColor: theme.colors.surface,
-          border: `1px solid ${theme.colors.border}`,
-        }}
+      <>
+        <div
+          onClick={handleClick}
+          className="rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition relative"
+          style={containerStyle}
       >
         {/* Map Placeholder / Static Map */}
         <div
@@ -94,21 +102,24 @@ export default function SessionPreview({ reference }: SessionPreviewProps) {
           </div>
         </div>
       </div>
+      <SessionDetailsModal
+        isOpen={showDetails}
+        onClose={() => setShowDetails(false)}
+        sessionType={item_type}
+        session={session}
+      />
+      </>
     );
   }
 
   // --- FoodLog Render ---
   if (item_type === 'FoodLog') {
     return (
+      <>
       <div
         onClick={handleClick}
         className="rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition relative"
-        style={{
-          width: 300,
-          height: 256,
-          backgroundColor: theme.colors.surface,
-          border: `1px solid ${theme.colors.border}`,
-        }}
+        style={containerStyle}
       >
         {/* Food Image */}
         {session.imageUrl ? (
@@ -172,6 +183,13 @@ export default function SessionPreview({ reference }: SessionPreviewProps) {
           </div>
         </div>
       </div>
+      <SessionDetailsModal
+        isOpen={showDetails}
+        onClose={() => setShowDetails(false)}
+        sessionType={item_type}
+        session={session}
+      />
+      </>
     );
   }
 
@@ -192,15 +210,11 @@ export default function SessionPreview({ reference }: SessionPreviewProps) {
     const uniqueTypes = [...new Set(exerciseTypes)].slice(0, 3);
 
     return (
+      <>
       <div
         onClick={handleClick}
         className="rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition p-4 flex flex-col justify-between"
-        style={{
-          width: 300,
-          height: 256,
-          backgroundColor: theme.colors.surface,
-          border: `1px solid ${theme.colors.border}`,
-        }}
+        style={containerStyle}
       >
         <div>
           <div className="flex items-center justify-between mb-4">
@@ -278,6 +292,13 @@ export default function SessionPreview({ reference }: SessionPreviewProps) {
           </div>
         </div>
       </div>
+      <SessionDetailsModal
+        isOpen={showDetails}
+        onClose={() => setShowDetails(false)}
+        sessionType={item_type}
+        session={session}
+      />
+      </>
     );
   }
 

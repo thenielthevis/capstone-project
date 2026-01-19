@@ -5,9 +5,13 @@ import { useAuth } from '@/context/AuthContext';
 import Header from '@/components/Header';
 import ReactionButton, { REACTIONS } from '@/components/ReactionButton';
 import SessionPreview from '@/components/feed/SessionPreview';
+import PostMediaCarousel from '@/components/feed/PostMediaCarousel';
+import CreatePostModal from '@/components/feed/CreatePostModal';
+import ImageViewerModal from '@/components/feed/ImageViewerModal';
 import { postApi, Post } from '@/api/postApi';
 import { commentApi, Comment } from '@/api/commentApi';
 import { ReportType } from '@/api/reportApi';
+import ReportModal from '@/components/ReportModal';
 import { 
   ArrowUpCircle, 
   ArrowDownCircle, 
@@ -25,7 +29,10 @@ import {
   X,
   Send,
   Reply,
-  Flag
+  Flag,
+  MoreHorizontal,
+  Edit,
+  Trash2
 } from 'lucide-react';
 
 export default function Feed() {
@@ -39,6 +46,29 @@ export default function Feed() {
   // FAB State
   const [fabOpen, setFabOpen] = useState(false);
 
+  // Create/Edit Post Modal State
+  const [showCreatePostModal, setShowCreatePostModal] = useState(false);
+  const [editPostData, setEditPostData] = useState<{
+    postId: string;
+    title: string;
+    content: string;
+    images: string[];
+    visibility: 'public' | 'friends' | 'private';
+  } | null>(null);
+
+  // Image Viewer State
+  const [imageViewerOpen, setImageViewerOpen] = useState(false);
+  const [imageViewerImages, setImageViewerImages] = useState<string[]>([]);
+  const [imageViewerIndex, setImageViewerIndex] = useState(0);
+
+  // Post Menu State
+  const [openMenuPostId, setOpenMenuPostId] = useState<string | null>(null);
+
+  // Report Modal State
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [reportItemId, setReportItemId] = useState<string>('');
+  const [reportItemType, setReportItemType] = useState<ReportType>('post');
+
   // Comment State
   const [selectedPostForComments, setSelectedPostForComments] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -47,10 +77,39 @@ export default function Feed() {
   const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
   const [postingComment, setPostingComment] = useState(false);
 
-  const handleReport = (type: ReportType, itemId: string, itemName?: string) => {
-    const params = new URLSearchParams({ type, id: itemId });
-    if (itemName) params.append('name', itemName);
-    navigate(`/report?${params.toString()}`);
+  const handleReport = (type: ReportType, itemId: string) => {
+    setReportItemType(type);
+    setReportItemId(itemId);
+    setReportModalOpen(true);
+  };
+
+  const handleOpenImageViewer = (images: string[], index: number) => {
+    setImageViewerImages(images);
+    setImageViewerIndex(index);
+    setImageViewerOpen(true);
+  };
+
+  const handleEditPost = (post: Post) => {
+    setEditPostData({
+      postId: post._id,
+      title: post.title || '',
+      content: post.content,
+      images: post.images || [],
+      visibility: post.visibility as 'public' | 'friends' | 'private',
+    });
+    setShowCreatePostModal(true);
+    setOpenMenuPostId(null);
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    if (!window.confirm('Are you sure you want to delete this post?')) return;
+    try {
+      await postApi.deletePost(postId);
+      setPosts((prev) => prev.filter((p) => p._id !== postId));
+    } catch (error) {
+      console.error('Error deleting post:', error);
+    }
+    setOpenMenuPostId(null);
   };
 
   useEffect(() => {
@@ -297,8 +356,43 @@ export default function Feed() {
           ) : (
             <Users className="w-4 h-4 mr-2" style={{ color: theme.colors.textTertiary }} />
           )}
-          {/* Report Post Button */}
-          {post.user?._id !== (user?._id || user?.id) && (
+          {/* Post Actions Menu */}
+          {post.user?._id === (user?._id || user?.id) ? (
+            <div className="relative">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpenMenuPostId(openMenuPostId === post._id ? null : post._id);
+                }}
+                className="p-2 rounded-lg hover:opacity-80 transition"
+              >
+                <MoreHorizontal className="w-5 h-5" style={{ color: theme.colors.textTertiary }} />
+              </button>
+              {openMenuPostId === post._id && (
+                <div
+                  className="absolute right-0 top-full mt-1 w-36 rounded-xl shadow-lg z-20 overflow-hidden"
+                  style={{ backgroundColor: theme.colors.surface, border: `1px solid ${theme.colors.border}` }}
+                >
+                  <button
+                    onClick={() => handleEditPost(post)}
+                    className="w-full flex items-center gap-2 px-4 py-3 hover:opacity-80 transition text-left"
+                    style={{ color: theme.colors.text }}
+                  >
+                    <Edit className="w-4 h-4" />
+                    <span className="text-sm">Edit</span>
+                  </button>
+                  <button
+                    onClick={() => handleDeletePost(post._id)}
+                    className="w-full flex items-center gap-2 px-4 py-3 hover:opacity-80 transition text-left"
+                    style={{ color: '#ef4444' }}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span className="text-sm">Delete</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -330,28 +424,13 @@ export default function Feed() {
           </p>
         </div>
 
-        {/* Session Reference Preview */}
-        {post.reference?.item_id && (
-          <div className="px-4 pb-4 flex justify-center">
-            <SessionPreview reference={post.reference as { item_id: any; item_type: 'GeoSession' | 'ProgramSession' | 'FoodLog' | 'Post' }} />
-          </div>
-        )}
-
-        {/* Post Images */}
-        {post.images && post.images.length > 0 && (
-          <div className="flex overflow-x-auto gap-2 px-4 pb-4">
-            {post.images.map((imageUrl, index) => (
-              <img
-                key={index}
-                src={imageUrl}
-                alt={`Post image ${index + 1}`}
-                className="h-64 rounded-xl object-cover cursor-pointer hover:opacity-90 transition"
-                style={{
-                  width: post.images.length === 1 ? '100%' : '300px',
-                  maxWidth: '100%',
-                }}
-              />
-            ))}
+        {/* Media Carousel (Session + Images) */}
+        {(post.reference?.item_id || (post.images && post.images.length > 0)) && (
+          <div className="px-4 pb-4">
+            <PostMediaCarousel 
+              post={post}
+              onImageClick={(index) => handleOpenImageViewer(post.images || [], index)}
+            />
           </div>
         )}
 
@@ -557,7 +636,8 @@ export default function Feed() {
             <button
               onClick={() => {
                 setFabOpen(false);
-                alert('Create Post feature coming soon!');
+                setEditPostData(null);
+                setShowCreatePostModal(true);
               }}
               className="flex items-center gap-2 px-4 py-2 rounded-full shadow-lg transition hover:opacity-90 whitespace-nowrap"
               style={{ backgroundColor: theme.colors.secondary, color: '#FFFFFF' }}
@@ -786,6 +866,37 @@ export default function Feed() {
           </div>
         </div>
       )}
+
+      {/* Create/Edit Post Modal */}
+      <CreatePostModal
+        isOpen={showCreatePostModal}
+        onClose={() => {
+          setShowCreatePostModal(false);
+          setEditPostData(null);
+        }}
+        onSuccess={() => {
+          fetchPosts();
+          setEditPostData(null);
+        }}
+        editMode={!!editPostData}
+        initialData={editPostData || undefined}
+      />
+
+      {/* Image Viewer Modal */}
+      <ImageViewerModal
+        isOpen={imageViewerOpen}
+        onClose={() => setImageViewerOpen(false)}
+        images={imageViewerImages}
+        initialIndex={imageViewerIndex}
+      />
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={reportModalOpen}
+        onClose={() => setReportModalOpen(false)}
+        reportType={reportItemType}
+        itemId={reportItemId}
+      />
     </div>
   );
 }

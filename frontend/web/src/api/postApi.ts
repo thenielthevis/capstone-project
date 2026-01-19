@@ -102,6 +102,59 @@ export const postApi = {
     const { data } = await axiosInstance.delete(`/posts/${postId}`);
     return data;
   },
+
+  updatePost: async (
+    postId: string,
+    updates: {
+      content?: string;
+      title?: string;
+      visibility?: 'public' | 'friends' | 'private';
+      images?: File[];
+      keepImages?: string[];
+    }
+  ) => {
+    try {
+      console.log(`[postApi] Updating post ${postId} with:`, updates);
+
+      const hasNewImages = updates.images && updates.images.length > 0;
+
+      if (!hasNewImages) {
+        console.log('[postApi] No new images, using JSON update...');
+        const { data } = await axiosInstance.put(`/posts/${postId}`, {
+          content: updates.content,
+          title: updates.title,
+          visibility: updates.visibility,
+          keepImages: updates.keepImages,
+        });
+        return data;
+      }
+
+      console.log('[postApi] Has new images, using FormData...');
+      const formData = new FormData();
+      if (updates.content !== undefined) formData.append('content', updates.content);
+      if (updates.title !== undefined) formData.append('title', updates.title);
+      if (updates.visibility !== undefined) formData.append('visibility', updates.visibility);
+
+      if (updates.keepImages) {
+        updates.keepImages.forEach((img) => formData.append('keepImages[]', img));
+      }
+
+      for (let i = 0; i < (updates.images || []).length; i++) {
+        formData.append('images', updates.images![i]);
+      }
+
+      const { data } = await axiosInstance.put(`/posts/${postId}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 30000,
+      });
+      return data;
+    } catch (error: any) {
+      console.error('[postApi] Error updating post:', error);
+      throw error;
+    }
+  },
 };
 
 export default postApi;
