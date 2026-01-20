@@ -1,18 +1,21 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { 
   MapPin, Search, Calendar, Trash2, ChevronLeft, ChevronRight,
-  Filter, TrendingUp, Users, Activity, RefreshCw, Clock, Flame, Navigation, Download
+  Filter, TrendingUp, Users, Activity, RefreshCw, Clock, Flame, Navigation, Download, Plus
 } from 'lucide-react';
 import AdminSidebar from '@/components/AdminSidebar';
 import { useTheme } from '@/context/ThemeContext';
 import { adminApi, GeoSession, GeoActivityStats, GeoActivity } from '@/api/adminApi';
 import { showToast } from '@/components/Toast/Toast';
 import { exportGeoActivitiesReport, GeoSessionData, GeoActivityData } from '@/utils/pdfExport';
+import CloudinarySVG from '@/components/CloudinarySVG';
 
 export default function AdminGeoActivities() {
+  const navigate = useNavigate();
   const { theme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -256,6 +259,16 @@ export default function AdminGeoActivities() {
               </p>
             </div>
             <div className="flex gap-2">
+              <Button
+                onClick={() => navigate('/admin/geo-activities/create')}
+                style={{
+                  backgroundColor: theme.colors.success,
+                  color: '#fff',
+                }}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create Activity
+              </Button>
               <Button
                 onClick={handleExportPDF}
                 disabled={exporting}
@@ -514,12 +527,21 @@ export default function AdminGeoActivities() {
                           <div className="flex items-start justify-between">
                             <div className="flex gap-4 flex-1">
                               {/* Activity Icon */}
-                              {session.activity_type?.icon && (
-                                <img
+                              {session.activity_type?.icon ? (
+                                <CloudinarySVG
                                   src={session.activity_type.icon}
                                   alt={session.activity_type?.name || 'Activity'}
-                                  className="w-16 h-16 rounded-lg object-cover"
+                                  width={64}
+                                  height={64}
+                                  className="rounded-lg"
                                 />
+                              ) : (
+                                <div 
+                                  className="w-16 h-16 rounded-lg flex items-center justify-center"
+                                  style={{ backgroundColor: theme.colors.surface }}
+                                >
+                                  <MapPin className="w-8 h-8" style={{ color: theme.colors.textSecondary }} />
+                                </div>
                               )}
 
                               {/* Session Details */}
@@ -660,21 +682,40 @@ export default function AdminGeoActivities() {
                         <Card key={activity._id} style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}>
                           <CardContent className="pt-6">
                             <div className="flex items-start justify-between mb-4">
-                              {activity.icon && (
-                                <img
+                              {activity.icon ? (
+                                <CloudinarySVG
                                   src={activity.icon}
                                   alt={activity.name}
-                                  className="w-12 h-12 rounded-lg object-cover"
+                                  width={48}
+                                  height={48}
+                                  className="rounded-lg"
                                 />
+                              ) : (
+                                <div 
+                                  className="w-12 h-12 rounded-lg flex items-center justify-center"
+                                  style={{ backgroundColor: theme.colors.surface }}
+                                >
+                                  <MapPin className="w-6 h-6" style={{ color: theme.colors.textSecondary }} />
+                                </div>
                               )}
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDeleteActivity(activity._id)}
-                                style={{ color: theme.colors.error }}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
+                              <div className="flex gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => navigate(`/admin/geo-activities/edit/${activity._id}`)}
+                                  style={{ color: theme.colors.primary }}
+                                >
+                                  Edit
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteActivity(activity._id)}
+                                  style={{ color: theme.colors.error }}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
                             </div>
                             
                             <h3 className="font-semibold text-lg mb-2" style={{ color: theme.colors.text }}>

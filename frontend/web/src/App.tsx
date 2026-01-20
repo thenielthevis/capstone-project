@@ -12,6 +12,7 @@ import AutomatedProgram from './pages/AutomatedProgram';
 import ProgramOverview from './pages/ProgramOverview';
 import GroupProgram from './pages/GroupProgram';
 import ProgramCoach from './pages/ProgramCoach';
+import ProgramHistory from './pages/ProgramHistory';
 import Settings from './pages/Settings';
 import TermsAndConditions from './pages/TermsAndConditions';
 import AdminDashboard from './pages/AdminDashboard';
@@ -21,6 +22,7 @@ import AdminHealthReports from './pages/AdminHealthReports';
 import CreateAdmin from './pages/CreateAdmin';
 import AdminFoodLogs from './pages/AdminFoodLogs';
 import AdminGeoActivities from './pages/AdminGeoActivities';
+import GeoActivityForm from './pages/GeoActivityForm';
 import AdminWorkouts from './pages/AdminWorkouts';
 import AdminPrograms from './pages/AdminPrograms';
 import AdminAchievements from './pages/AdminAchievements';
@@ -169,6 +171,14 @@ function App() {
         }
       />
       <Route
+        path="/programs/history"
+        element={
+          <ProtectedRoute>
+            <ProgramHistory />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/settings"
         element={
           <ProtectedRoute>
@@ -237,6 +247,22 @@ function App() {
         element={
           <ProtectedRoute>
             <AdminGeoActivities />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/geo-activities/create"
+        element={
+          <ProtectedRoute>
+            <GeoActivityForm />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/geo-activities/edit/:id"
+        element={
+          <ProtectedRoute>
+            <GeoActivityForm />
           </ProtectedRoute>
         }
       />

@@ -442,6 +442,7 @@ export interface ProgramPreferences {
   selectedCategories: string[];
   selectedTypes: string[];
   selectedEquipment: string[];
+  selectedActivities?: string[]; // Selected outdoor activities by name
   goals?: string;
   frequency?: string; // e.g., "3 times per week", "daily"
   duration?: string; // e.g., "30 minutes", "1 hour"
@@ -502,12 +503,18 @@ export async function generateProgram(
     const equipmentContext = preferences.selectedEquipment.length > 0
       ? `Equipment available: ${preferences.selectedEquipment.join(', ')}`
       : 'No equipment preference';
+
+    const activitiesContext = preferences.selectedActivities && preferences.selectedActivities.length > 0
+      ? `Selected outdoor activities: ${preferences.selectedActivities.join(', ')}`
+      : '';
     
     const goalsContext = preferences.goals ? `Goals: ${preferences.goals}` : '';
     const frequencyContext = preferences.frequency ? `Frequency: ${preferences.frequency}` : '';
     const durationContext = preferences.duration ? `Duration per session: ${preferences.duration}` : '';
     const experienceContext = preferences.experienceLevel ? `Experience level: ${preferences.experienceLevel}` : '';
-    const mapBasedContext = preferences.includeMapBased ? 'Include map-based activities (running, cycling, etc.)' : 'Focus on strength/indoor workouts';
+    const mapBasedContext = preferences.includeMapBased || (preferences.selectedActivities && preferences.selectedActivities.length > 0)
+      ? 'Include map-based activities (running, cycling, etc.)' 
+      : 'Focus on strength/indoor workouts';
 
     const availableWorkoutsList = availableWorkouts.map(w => 
       `- ID: ${w._id}, Name: ${w.name}, Category: ${w.category}, Type: ${w.type}, Equipment: ${w.equipment_needed || 'none'}, Description: ${w.description || 'N/A'}`
@@ -525,6 +532,7 @@ USER PREFERENCES:
 ${categoriesContext}
 ${typesContext}
 ${equipmentContext}
+${activitiesContext}
 ${goalsContext}
 ${frequencyContext}
 ${durationContext}
