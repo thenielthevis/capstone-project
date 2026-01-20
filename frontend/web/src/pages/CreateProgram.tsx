@@ -131,7 +131,7 @@ export default function CreateProgram() {
 
       <div className="max-w-4xl mx-auto px-4 py-8">
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="rounded-lg shadow-md p-6" style={{backgroundColor: theme.colors.surface}}>
             <h2 className="text-xl font-semibold mb-4">Program Details</h2>
             <div className="space-y-4">
               <div>
@@ -161,7 +161,7 @@ export default function CreateProgram() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="rounded-lg shadow-md p-6" style={{backgroundColor: theme.colors.surface}}>
             <h2 className="text-xl font-semibold mb-4">
               Select Workouts ({selectedWorkouts.length})
             </h2>
@@ -190,7 +190,7 @@ export default function CreateProgram() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="rounded-lg shadow-md p-6" style={{backgroundColor: theme.colors.surface}}>
             <h2 className="text-xl font-semibold mb-4">
               Select Activities ({selectedGeoActivities.length})
             </h2>

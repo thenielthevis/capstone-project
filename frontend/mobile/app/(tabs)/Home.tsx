@@ -368,7 +368,7 @@ export default function Home() {
                     {REACTIONS.filter(r => post.reactions.some((pr: any) => pr.type === r.type))
                       .slice(0, 3)
                       .map((r, i) => (
-                        <Text key={r.type} style={{ fontSize: 15, marginLeft: i === 0 ? 0 : -5, zIndex: 3 - i }}>
+                        <Text key={r.type} style={{ fontSize: 15, marginLeft: i === 0 ? 0 : 0, zIndex: 3 - i }}>
                           {r.emoji}
                         </Text>
                       ))}

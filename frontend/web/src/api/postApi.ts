@@ -17,7 +17,7 @@ export interface Post {
   visibility: string;
   reference?: {
     item_id: any;
-    item_type: string;
+    item_type: 'GeoSession' | 'ProgramSession' | 'FoodLog' | 'Post';
   };
   votes: {
     upvotes: string[];

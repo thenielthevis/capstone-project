@@ -157,7 +157,7 @@ export default function AutomatedProgram() {
 
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="rounded-lg shadow-md p-6" style={{backgroundColor: theme.colors.surface}}>
             <h2 className="text-xl font-semibold mb-4">Categories</h2>
             <div className="flex flex-wrap gap-2">
               {categories.map((cat) => (
@@ -175,7 +175,7 @@ export default function AutomatedProgram() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="rounded-lg shadow-md p-6" style={{backgroundColor: theme.colors.surface}}>
             <h2 className="text-xl font-semibold mb-4">Types</h2>
             <div className="flex flex-wrap gap-2">
               {types.map((type) => (
@@ -193,7 +193,7 @@ export default function AutomatedProgram() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="rounded-lg shadow-md p-6" style={{backgroundColor: theme.colors.surface}}>
             <h2 className="text-xl font-semibold mb-4">Equipment</h2>
             <div className="flex flex-wrap gap-2">
               {equipment.map((eq) => (
@@ -211,7 +211,7 @@ export default function AutomatedProgram() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="rounded-lg shadow-md p-6" style={{backgroundColor: theme.colors.surface}}>
             <h2 className="text-xl font-semibold mb-4">Additional Preferences</h2>
             <div className="space-y-4">
               <div>
@@ -294,7 +294,7 @@ export default function AutomatedProgram() {
               {generating ? 'Generating Program...' : '✨ Generate Program with AI'}
             </button>
           ) : (
-            <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="rounded-lg shadow-md p-6" style={{backgroundColor: theme.colors.surface}}>
               <h2 className="text-2xl font-bold text-gray-900 mb-2">{generatedProgram.name}</h2>
               <p className="text-gray-600 mb-4">{generatedProgram.description}</p>
 

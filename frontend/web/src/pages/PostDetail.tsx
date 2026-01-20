@@ -1,10 +1,10 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { 
-  ArrowUp, 
-  ArrowDown, 
-  MessageCircle, 
-  Share2, 
+import {
+  ArrowUp,
+  ArrowDown,
+  MessageCircle,
+  Share2,
   User as UserIcon,
   Loader2,
   Send,
@@ -39,7 +39,7 @@ export default function PostDetail() {
   const { postId } = useParams<{ postId: string }>();
   const { user } = useAuth();
   const { theme } = useTheme();
-  
+
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -288,7 +288,7 @@ export default function PostDetail() {
       <div key={comment._id} className={depth > 0 ? 'mt-3' : 'mt-4'}>
         <div className="flex">
           {/* Avatar */}
-          <div 
+          <div
             className="w-8 h-8 rounded-full flex items-center justify-center mr-3 flex-shrink-0"
             style={{ backgroundColor: theme.colors.primary + '20' }}
           >
@@ -301,25 +301,25 @@ export default function PostDetail() {
 
           {/* Comment Content */}
           <div className="flex-1 min-w-0">
-            <div 
+            <div
               className="rounded-xl p-3"
               style={{ backgroundColor: theme.colors.surface }}
             >
               <div className="flex items-center gap-2 mb-1">
-                <span 
+                <span
                   className="text-sm font-semibold"
                   style={{ color: theme.colors.text }}
                 >
                   {comment.user?.username || comment.user?.name || 'Unknown'}
                 </span>
-                <span 
+                <span
                   className="text-xs"
                   style={{ color: theme.colors.textSecondary }}
                 >
                   · {getTimeAgo(comment.createdAt)}
                 </span>
               </div>
-              <p 
+              <p
                 className="text-sm leading-relaxed"
                 style={{ color: theme.colors.text }}
               >
@@ -329,11 +329,11 @@ export default function PostDetail() {
 
             {/* Action Bar */}
             <div className="flex items-center gap-4 mt-2 ml-3">
-              <button 
+              <button
                 onClick={() => handleVoteComment(comment._id, 'up')}
                 className="flex items-center gap-1 hover:opacity-80 transition-opacity"
               >
-                <ArrowUp 
+                <ArrowUp
                   className={`w-4 h-4 ${isUpvoted ? 'fill-current' : ''}`}
                   style={{ color: isUpvoted ? theme.colors.primary : theme.colors.textSecondary }}
                 />
@@ -342,11 +342,11 @@ export default function PostDetail() {
                 </span>
               </button>
 
-              <button 
+              <button
                 onClick={() => handleVoteComment(comment._id, 'down')}
                 className="flex items-center gap-1 hover:opacity-80 transition-opacity"
               >
-                <ArrowDown 
+                <ArrowDown
                   className={`w-4 h-4 ${isDownvoted ? 'fill-current' : ''}`}
                   style={{ color: isDownvoted ? theme.colors.primary : theme.colors.textSecondary }}
                 />
@@ -361,7 +361,7 @@ export default function PostDetail() {
                 onReact={(type) => handleReactComment(comment._id, type)}
               />
 
-              <button 
+              <button
                 onClick={() => setReplyingTo(isReplying ? null : comment._id)}
                 className="flex items-center gap-1 hover:opacity-80 transition-opacity"
               >
@@ -374,7 +374,7 @@ export default function PostDetail() {
 
             {/* Replies */}
             {comment.replies && comment.replies.length > 0 && (
-              <div 
+              <div
                 className="mt-2 pl-3 border-l-2"
                 style={{ borderColor: theme.colors.border }}
               >
@@ -389,7 +389,7 @@ export default function PostDetail() {
 
   if (loading) {
     return (
-      <div 
+      <div
         className="min-h-screen flex items-center justify-center"
         style={{ backgroundColor: theme.colors.background }}
       >
@@ -400,7 +400,7 @@ export default function PostDetail() {
 
   if (!post) {
     return (
-      <div 
+      <div
         className="min-h-screen"
         style={{ backgroundColor: theme.colors.background }}
       >
@@ -430,7 +430,7 @@ export default function PostDetail() {
   const commentTree = buildCommentTree();
 
   return (
-    <div 
+    <div
       className="min-h-screen"
       style={{ backgroundColor: theme.colors.background }}
     >
@@ -438,13 +438,13 @@ export default function PostDetail() {
 
       <div className="max-w-2xl mx-auto">
         {/* Post Content */}
-        <div 
+        <div
           className="border-b"
           style={{ borderColor: theme.colors.border }}
         >
           {/* Post Header */}
           <div className="flex items-center p-4">
-            <div 
+            <div
               className="w-10 h-10 rounded-full flex items-center justify-center mr-3 overflow-hidden"
               style={{ backgroundColor: theme.colors.primary + '20' }}
             >
@@ -455,8 +455,8 @@ export default function PostDetail() {
               )}
             </div>
             <div className="flex-1">
-              <span 
-                style={{ color: theme.colors.text }} 
+              <span
+                style={{ color: theme.colors.text }}
                 className="font-semibold"
               >
                 {post.user?.username || 'Unknown User'}
@@ -468,7 +468,7 @@ export default function PostDetail() {
             {/* Post Actions - Edit/Delete for owner, Report for others */}
             {post.user?._id === userId ? (
               <div className="relative">
-                <button 
+                <button
                   onClick={() => setShowMenu(!showMenu)}
                   className="p-2 rounded-lg hover:opacity-80 transition"
                 >
@@ -505,7 +505,7 @@ export default function PostDetail() {
                 )}
               </div>
             ) : (
-              <button 
+              <button
                 onClick={handleReport}
                 className="p-2 rounded-lg hover:opacity-80 transition"
                 title="Report post"
@@ -530,7 +530,7 @@ export default function PostDetail() {
           {/* Media Carousel (Session + Images) */}
           {(post.reference?.item_id || (post.images && post.images.length > 0)) && (
             <div className="px-4 pb-4">
-              <PostMediaCarousel 
+              <PostMediaCarousel
                 post={post}
                 onImageClick={(index) => {
                   setCurrentImageIndex(index);
@@ -538,7 +538,6 @@ export default function PostDetail() {
                 }}
               />
             </div>
-          )}
           )}
 
           {/* Interaction Bar */}
@@ -600,16 +599,16 @@ export default function PostDetail() {
         </div>
 
         {/* Comment Input - Fixed at bottom */}
-        <div 
+        <div
           className="fixed bottom-0 left-0 right-0 border-t p-4"
-          style={{ 
+          style={{
             backgroundColor: theme.colors.background,
-            borderColor: theme.colors.border 
+            borderColor: theme.colors.border
           }}
         >
           <div className="max-w-2xl mx-auto">
             {replyingTo && (
-              <div 
+              <div
                 className="flex items-center gap-2 mb-2 py-2 px-3 rounded-lg"
                 style={{ backgroundColor: theme.colors.surface }}
               >
@@ -623,7 +622,7 @@ export default function PostDetail() {
               </div>
             )}
             <div className="flex items-center gap-3">
-              <div 
+              <div
                 className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
                 style={{ backgroundColor: theme.colors.primary + '20' }}
               >
@@ -645,7 +644,7 @@ export default function PostDetail() {
                   }
                 }}
                 className="flex-1 rounded-full px-4 py-3 text-sm focus:outline-none focus:ring-2"
-                style={{ 
+                style={{
                   backgroundColor: theme.colors.surface,
                   color: theme.colors.text,
                 }}
@@ -654,7 +653,7 @@ export default function PostDetail() {
                 onClick={handlePostComment}
                 disabled={posting || !newComment.trim()}
                 className="w-10 h-10 rounded-full flex items-center justify-center transition-opacity"
-                style={{ 
+                style={{
                   backgroundColor: theme.colors.primary,
                   opacity: (!newComment.trim() || posting) ? 0.5 : 1
                 }}
