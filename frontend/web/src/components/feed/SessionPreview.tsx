@@ -3,6 +3,8 @@ import { useTheme } from '@/context/ThemeContext';
 import { MapPin, Dumbbell, Utensils } from 'lucide-react';
 import SessionDetailsModal from './SessionDetailsModal';
 
+import RouteMap from './RouteMap';
+
 type SessionPreviewProps = {
   reference: {
     item_id: any;
@@ -33,6 +35,9 @@ export default function SessionPreview({ reference, fullWidth = false }: Session
 
   // --- GeoSession Render ---
   if (item_type === 'GeoSession') {
+    const coordinates = session.route_coordinates?.map((c: any) => [c.longitude, c.latitude]) || [];
+    const staticMap = session.preview_image || session.static_map_url;
+
     return (
       <>
         <div
@@ -40,22 +45,24 @@ export default function SessionPreview({ reference, fullWidth = false }: Session
           className="rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition relative"
           style={containerStyle}
         >
-          {/* Map Placeholder / Static Map */}
+          {/* Map Preview or Static Map */}
           <div
             className="w-full h-full flex items-center justify-center"
             style={{ backgroundColor: theme.colors.background }}
           >
-            {session.static_map_url ? (
+            {staticMap ? (
               <img
-                src={session.static_map_url}
+                src={staticMap}
                 alt="Route map"
                 className="w-full h-full object-cover"
               />
+            ) : coordinates.length > 0 ? (
+              <RouteMap coordinates={coordinates} />
             ) : (
               <div className="flex flex-col items-center justify-center text-center p-4">
                 <MapPin size={48} style={{ color: theme.colors.text + '33' }} />
                 <span className="mt-2" style={{ color: theme.colors.text + '77' }}>
-                  Map Preview
+                  No map data
                 </span>
               </div>
             )}

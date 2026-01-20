@@ -239,10 +239,10 @@ export default function Dashboard() {
     return (
       <div
         key={post._id}
-        className="border-b"
+        className="mb-6 rounded-2xl border shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden"
         style={{
-          backgroundColor: theme.colors.background,
-          borderColor: theme.colors.border,
+          backgroundColor: theme.colors.surface + "90",
+          borderColor: theme.colors.border + '40',
         }}
       >
         {/* Post Header */}
@@ -490,7 +490,7 @@ export default function Dashboard() {
       <div className="flex">
         {/* Left Sidebar - hidden on mobile */}
         <aside
-          className="hidden lg:flex fixed left-0 top-0 h-full w-[220px] xl:w-[245px] border-r flex-col py-6 px-3"
+          className="hidden lg:flex fixed left-0 top-0 h-full w-[220px] xl:w-[245px] flex-col py-6 px-3"
           style={{
             backgroundColor: theme.colors.background,
             borderColor: theme.colors.border
@@ -521,7 +521,7 @@ export default function Dashboard() {
                 <button
                   key={item.title}
                   onClick={() => navigate(item.path)}
-                  className={`w-full flex items-center gap-4 px-3 py-3 rounded-lg transition-all hover:bg-opacity-10 ${isActive ? 'font-bold' : ''
+                  className={`w-full cursor-pointer flex items-center gap-4 px-3 py-3 rounded-lg transition-all hover:bg-opacity-10 ${isActive ? 'font-bold' : ''
                     }`}
                   style={{
                     color: theme.colors.text,
@@ -573,9 +573,9 @@ export default function Dashboard() {
           </div>
         </aside>
 
-        {/* Main Content */}
-        <main className="lg:ml-[220px] xl:ml-[245px] flex-1 flex justify-center">
-          <div className="w-full max-w-[630px] lg:border-r" style={{ borderColor: theme.colors.border }}>
+        {/* Main Content - Centered in viewport */}
+        <main className="w-full flex justify-center">
+          <div className="w-full max-w-[630px]">
             {/* Stories-like Quick Actions Row */}
             <div
               className="flex gap-4 p-4 overflow-x-auto border-b"
@@ -655,124 +655,132 @@ export default function Dashboard() {
             </div>
 
             {/* Posts Feed */}
-            {posts.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <Newspaper className="w-16 h-16" style={{ color: theme.colors.textTertiary }} />
-                <h3 style={{ color: theme.colors.text }} className="text-lg mt-4 font-semibold">
-                  No posts yet
-                </h3>
-                <p style={{ color: theme.colors.textSecondary }} className="text-sm mt-2 text-center px-8">
-                  Be the first to share your activities!
-                </p>
-              </div>
-            ) : (
-              <div>
-                {posts.map(post => renderPost(post))}
-              </div>
-            )}
+            <div className="pt-6 px-4">
+              {posts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <Newspaper className="w-16 h-16" style={{ color: theme.colors.textTertiary }} />
+                  <h3 style={{ color: theme.colors.text }} className="text-lg mt-4 font-semibold">
+                    No posts yet
+                  </h3>
+                  <p style={{ color: theme.colors.textSecondary }} className="text-sm mt-2 text-center px-8">
+                    Be the first to share your activities!
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  {posts.map(post => renderPost(post))}
+                </div>
+              )}
+            </div>
           </div>
+        </main>
 
-          {/* Right Sidebar */}
-          <aside className="hidden lg:block w-[320px] p-6 sticky top-0 h-screen">
-            {/* Current User */}
-            <div className="flex items-center gap-3 mb-6">
-              <div
-                className="w-11 h-11 rounded-full overflow-hidden cursor-pointer"
+        {/* Right Sidebar - Fixed to right edge */}
+        <aside
+          className="hidden xl:block fixed right-0 top-0 w-[320px] p-6 h-full"
+          style={{
+            backgroundColor: theme.colors.background,
+            borderColor: theme.colors.border
+          }}
+        >
+          {/* Current User */}
+          <div className="flex items-center gap-3 mb-6">
+            <div
+              className="w-11 h-11 rounded-full overflow-hidden cursor-pointer"
+              onClick={() => navigate('/profile')}
+            >
+              {user?.profilePicture ? (
+                <img src={user.profilePicture} alt={user?.username} className="w-full h-full object-cover" />
+              ) : (
+                <div
+                  className="w-full h-full flex items-center justify-center"
+                  style={{ backgroundColor: theme.colors.surface }}
+                >
+                  <UserIcon className="w-5 h-5" style={{ color: theme.colors.textSecondary }} />
+                </div>
+              )}
+            </div>
+            <div className="flex-1">
+              <p
+                className="text-sm font-semibold cursor-pointer hover:underline"
+                style={{ color: theme.colors.text }}
                 onClick={() => navigate('/profile')}
               >
-                {user?.profilePicture ? (
-                  <img src={user.profilePicture} alt={user?.username} className="w-full h-full object-cover" />
-                ) : (
-                  <div
-                    className="w-full h-full flex items-center justify-center"
-                    style={{ backgroundColor: theme.colors.surface }}
-                  >
-                    <UserIcon className="w-5 h-5" style={{ color: theme.colors.textSecondary }} />
-                  </div>
-                )}
-              </div>
-              <div className="flex-1">
-                <p
-                  className="text-sm font-semibold cursor-pointer hover:underline"
-                  style={{ color: theme.colors.text }}
-                  onClick={() => navigate('/profile')}
-                >
-                  {user?.username}
-                </p>
-                <p className="text-sm" style={{ color: theme.colors.textSecondary }}>
-                  {user?.email}
-                </p>
-              </div>
-              <button
-                className="text-xs font-semibold"
-                style={{ color: theme.colors.primary }}
-                onClick={handleLogout}
-              >
-                Switch
-              </button>
-            </div>
-
-            {/* Suggested Actions */}
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-semibold" style={{ color: theme.colors.textSecondary }}>
-                  Quick Actions
-                </span>
-              </div>
-
-              <div className="space-y-3">
-                {[
-                  { title: 'Complete Health Assessment', desc: 'Get personalized insights', path: '/health-assessment' },
-                  { title: 'View Predictions', desc: 'See your health risks', path: '/predictions' },
-                  { title: 'Track Food', desc: 'Log your meals', path: '/food-tracking' },
-                ].map((action) => (
-                  <button
-                    key={action.title}
-                    className="w-full flex items-center gap-3 text-left group"
-                    onClick={() => navigate(action.path)}
-                  >
-                    <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: theme.colors.surface }}
-                    >
-                      <FileText className="w-4 h-4" style={{ color: theme.colors.textSecondary }} />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium" style={{ color: theme.colors.text }}>
-                        {action.title}
-                      </p>
-                      <p className="text-xs" style={{ color: theme.colors.textSecondary }}>
-                        {action.desc}
-                      </p>
-                    </div>
-                    <span
-                      className="text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity"
-                      style={{ color: theme.colors.primary }}
-                    >
-                      Go
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="mt-8 space-y-4">
-              <div className="flex flex-wrap gap-x-2 gap-y-1">
-                <button
-                  className="text-xs hover:underline"
-                  style={{ color: theme.colors.textTertiary }}
-                  onClick={() => navigate('/settings')}
-                >
-                  Settings
-                </button>
-              </div>
-              <p className="text-xs" style={{ color: theme.colors.textTertiary }}>
-                © 2026 LIFORA
+                {user?.username}
+              </p>
+              <p className="text-sm" style={{ color: theme.colors.textSecondary }}>
+                {user?.email}
               </p>
             </div>
-          </aside>
-        </main>
+            <button
+              className="text-xs font-semibold"
+              style={{ color: theme.colors.primary }}
+              onClick={handleLogout}
+            >
+              Switch
+            </button>
+          </div>
+
+          {/* Suggested Actions */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-semibold" style={{ color: theme.colors.textSecondary }}>
+                Quick Actions
+              </span>
+            </div>
+
+            <div className="space-y-3">
+              {[
+                { title: 'Complete Health Assessment', desc: 'Get personalized insights', path: '/health-assessment' },
+                { title: 'View Predictions', desc: 'See your health risks', path: '/predictions' },
+                { title: 'Track Food', desc: 'Log your meals', path: '/food-tracking' },
+              ].map((action) => (
+                <button
+                  key={action.title}
+                  className="w-full flex items-center gap-3 text-left group cursor-pointer"
+                  onClick={() => navigate(action.path)}
+                >
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: theme.colors.surface }}
+                  >
+                    <FileText className="w-4 h-4" style={{ color: theme.colors.textSecondary }} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium" style={{ color: theme.colors.text }}>
+                      {action.title}
+                    </p>
+                    <p className="text-xs" style={{ color: theme.colors.textSecondary }}>
+                      {action.desc}
+                    </p>
+                  </div>
+                  <span
+                    className="text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity"
+                    style={{ color: theme.colors.primary }}
+                  >
+                    Go
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="mt-8 space-y-4">
+            <div className="flex flex-wrap gap-x-2 gap-y-1">
+              <button
+                className="text-xs hover:underline"
+                style={{ color: theme.colors.textTertiary }}
+                onClick={() => navigate('/settings')}
+              >
+                Settings
+              </button>
+            </div>
+            <p className="text-xs" style={{ color: theme.colors.textTertiary }}>
+              © 2026 LIFORA
+            </p>
+          </div>
+        </aside>
       </div>
 
       {/* Report Modal */}

@@ -1,10 +1,55 @@
 /* Landing Page Custom Styles */
 
+:root {
+  --color-landing-bg-dark: #0a0a0a;
+  --color-landing-surface-dark: #121212;
+  --color-landing-border-dark: rgba(255, 255, 255, 0.05);
+  --color-landing-text-muted: #a1a1a1;
+}
+
+/* Base section styles */
+section {
+  scroll-margin-top: 80px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Background Classes */
+.bg-hero-mesh {
+  background:
+    radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(249, 115, 22, 0.08) 0%, transparent 50%),
+    var(--color-surface);
+}
+
+.bg-section-primary {
+  background-color: var(--color-background);
+}
+
+.bg-section-secondary {
+  background-color: var(--color-surface);
+}
+
+.bg-section-dark {
+  background-color: var(--color-landing-bg-dark);
+}
+
+.bg-cta-gradient {
+  background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-background) 100%);
+}
+
+.bg-cta-primary {
+  background: linear-gradient(135deg, var(--color-primary-base) 0%, var(--color-secondary-base) 100%);
+}
+
 /* Animated gradient for modern hero section */
-@keyframes gradient {
-  0%, 100% {
+@keyframes gradientMove {
+
+  0%,
+  100% {
     background-position: 0% 50%;
   }
+
   50% {
     background-position: 100% 50%;
   }
@@ -12,128 +57,82 @@
 
 .animate-gradient {
   background-size: 200% 200%;
-  animation: gradient 8s ease-in-out infinite;
-}
-
-/* Hero Section Gradient Background */
-#home {
-  background: var(--gradient-hero);
-  position: relative;
-}
-
-#home::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: 
-    var(--gradient-radial-primary),
-    var(--gradient-radial-secondary);
-  pointer-events: none;
-}
-
-/* Features Section Background */
-#features {
-  background: linear-gradient(180deg, var(--color-background-tertiary) 0%, var(--color-background-primary) 100%);
+  animation: gradientMove 8s ease-in-out infinite;
 }
 
 /* Card Enhancements */
-.feature-card-hover {
-  transition: var(--transition-cubic);
+.landing-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-base);
 }
 
-.feature-card-hover:hover {
+.landing-card:hover {
   transform: translateY(-8px);
-  box-shadow: var(--shadow-card-hover);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.dark .landing-card,
+.ocean .landing-card {
+  background-color: var(--color-landing-surface-dark);
+  border-color: var(--color-landing-border-dark);
+}
+
+/* Feature Grid Card Specifics */
+.feature-card-dark {
+  background-color: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Text Refinements */
+.text-landing-muted {
+  color: var(--color-text-secondary);
+}
+
+.dark .text-landing-muted,
+.bg-section-dark .text-landing-muted {
+  color: var(--color-landing-text-muted);
 }
 
 /* Icon Container Glow */
-.icon-glow {
-  position: relative;
+.group:hover .icon-box-glow {
+  transform: scale(1.1);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
 }
 
-.icon-glow::after {
-  content: '';
-  position: absolute;
-  inset: -2px;
-  border-radius: inherit;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(96, 165, 250, 0.2));
-  opacity: 0;
-  transition: opacity var(--transition-slow);
-  z-index: -1;
-}
-
-.icon-glow:hover::after {
-  opacity: 1;
+.icon-box-glow {
+  transition: all 0.3s ease;
 }
 
 /* Gradient Text */
 .gradient-text {
-  background: var(--gradient-text);
+  background: linear-gradient(135deg, #3b82f6 0%, #f97316 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* Button Shimmer Effect */
-@keyframes shimmer {
-  0% {
-    background-position: -1000px 0;
-  }
-  100% {
-    background-position: 1000px 0;
-  }
-}
-
-.btn-shimmer {
+/* Team Member Card */
+.team-member-card {
   position: relative;
   overflow: hidden;
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
 }
 
-.btn-shimmer::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.3),
-    transparent
-  );
-  animation: shimmer 3s infinite;
-}
-
-/* Team Member Card Shadow */
-.team-card-shadow {
-  box-shadow: var(--shadow-base);
-  transition: var(--transition-all);
-}
-
-.team-card-shadow:hover {
-  box-shadow: var(--shadow-lg);
+.team-member-card:hover {
   transform: translateY(-10px) scale(1.02);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
-/* Stats Card Pulse */
-@keyframes statsPulse {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
-  }
-  50% {
-    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
-  }
+/* CTA Buttons */
+.btn-cta {
+  transition: all 0.3s ease;
+  cursor: pointer;
 }
 
-.stats-pulse {
-  animation: statsPulse 2s ease-in-out infinite;
-}
-
-/* Smooth Scroll Padding */
-section {
-  scroll-margin-top: 80px;
+.btn-cta:hover {
+  transform: scale(1.05);
+  box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3);
 }

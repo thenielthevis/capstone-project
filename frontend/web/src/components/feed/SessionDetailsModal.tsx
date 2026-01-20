@@ -3,6 +3,8 @@ import { X, MapPin, Clock, TrendingUp, Dumbbell, Scale, AlertTriangle, Lightbulb
 import CloudinaryLottie from '@/components/CloudinaryLottie';
 import CloudinarySVG from '@/components/CloudinarySVG';
 
+import RouteMap from './RouteMap';
+
 interface SessionDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -91,66 +93,75 @@ export default function SessionDetailsModal({ isOpen, onClose, sessionType, sess
 
   if (!isOpen || !session) return null;
 
-  const renderGeoSessionContent = () => (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h2 className="text-2xl font-bold" style={{ color: theme.colors.text }}>
-            {session.activity_type?.name || 'Activity'}
-          </h2>
-          <p className="text-sm" style={{ color: theme.colors.text + '99' }}>
-            {new Date(session.started_at).toLocaleDateString()}
-          </p>
+  const renderGeoSessionContent = () => {
+    const coordinates = session.route_coordinates?.map((c: any) => [c.longitude, c.latitude]) || [];
+    const staticMap = session.preview_image || session.static_map_url;
+
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex justify-between items-start">
+          <div>
+            <h2 className="text-2xl font-bold" style={{ color: theme.colors.text }}>
+              {session.activity_type?.name || 'Activity'}
+            </h2>
+            <p className="text-sm" style={{ color: theme.colors.text + '99' }}>
+              {new Date(session.started_at).toLocaleDateString()}
+            </p>
+          </div>
+          <div
+            className="p-2 rounded-full"
+            style={{ backgroundColor: theme.colors.primary + '20' }}
+          >
+            <MapPin size={24} style={{ color: theme.colors.primary }} />
+          </div>
         </div>
-        <div
-          className="p-2 rounded-full"
-          style={{ backgroundColor: theme.colors.primary + '20' }}
-        >
-          <MapPin size={24} style={{ color: theme.colors.primary }} />
+
+        {/* Map Preview */}
+        {(staticMap || coordinates.length > 0) && (
+          <div className="rounded-xl overflow-hidden h-64 border shadow-sm" style={{ borderColor: theme.colors.border }}>
+            {staticMap ? (
+              <img
+                src={staticMap}
+                alt="Route map"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <RouteMap coordinates={coordinates} interactive={true} />
+            )}
+          </div>
+        )}
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="p-4 rounded-2xl" style={{ backgroundColor: theme.colors.background }}>
+            <p className="text-sm" style={{ color: theme.colors.text + '99' }}>Distance</p>
+            <p className="text-2xl font-bold" style={{ color: theme.colors.text }}>
+              {session.distance_km?.toFixed(2)} <span className="text-sm font-normal">km</span>
+            </p>
+          </div>
+          <div className="p-4 rounded-2xl" style={{ backgroundColor: theme.colors.background }}>
+            <p className="text-sm" style={{ color: theme.colors.text + '99' }}>Duration</p>
+            <p className="text-2xl font-bold" style={{ color: theme.colors.text }}>
+              {Math.floor((session.moving_time_sec || 0) / 60)} <span className="text-sm font-normal">min</span>
+            </p>
+          </div>
+          <div className="p-4 rounded-2xl" style={{ backgroundColor: theme.colors.background }}>
+            <p className="text-sm" style={{ color: theme.colors.text + '99' }}>Avg Pace</p>
+            <p className="text-2xl font-bold" style={{ color: theme.colors.text }}>
+              {session.avg_pace?.toFixed(2)} <span className="text-sm font-normal">/km</span>
+            </p>
+          </div>
+          <div className="p-4 rounded-2xl" style={{ backgroundColor: theme.colors.background }}>
+            <p className="text-sm" style={{ color: theme.colors.text + '99' }}>Calories</p>
+            <p className="text-2xl font-bold" style={{ color: theme.colors.primary }}>
+              {session.calories_burned} <span className="text-sm font-normal">kcal</span>
+            </p>
+          </div>
         </div>
       </div>
-
-      {/* Map Preview */}
-      {session.static_map_url && (
-        <div className="rounded-xl overflow-hidden h-48">
-          <img
-            src={session.static_map_url}
-            alt="Route map"
-            className="w-full h-full object-cover"
-          />
-        </div>
-      )}
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="p-4 rounded-2xl" style={{ backgroundColor: theme.colors.background }}>
-          <p className="text-sm" style={{ color: theme.colors.text + '99' }}>Distance</p>
-          <p className="text-2xl font-bold" style={{ color: theme.colors.text }}>
-            {session.distance_km?.toFixed(2)} <span className="text-sm font-normal">km</span>
-          </p>
-        </div>
-        <div className="p-4 rounded-2xl" style={{ backgroundColor: theme.colors.background }}>
-          <p className="text-sm" style={{ color: theme.colors.text + '99' }}>Duration</p>
-          <p className="text-2xl font-bold" style={{ color: theme.colors.text }}>
-            {Math.floor((session.moving_time_sec || 0) / 60)} <span className="text-sm font-normal">min</span>
-          </p>
-        </div>
-        <div className="p-4 rounded-2xl" style={{ backgroundColor: theme.colors.background }}>
-          <p className="text-sm" style={{ color: theme.colors.text + '99' }}>Avg Pace</p>
-          <p className="text-2xl font-bold" style={{ color: theme.colors.text }}>
-            {session.avg_pace?.toFixed(2)} <span className="text-sm font-normal">/km</span>
-          </p>
-        </div>
-        <div className="p-4 rounded-2xl" style={{ backgroundColor: theme.colors.background }}>
-          <p className="text-sm" style={{ color: theme.colors.text + '99' }}>Calories</p>
-          <p className="text-2xl font-bold" style={{ color: theme.colors.primary }}>
-            {session.calories_burned} <span className="text-sm font-normal">kcal</span>
-          </p>
-        </div>
-      </div>
-    </div>
-  );
+    );
+  };
 
   const renderFoodLogContent = () => (
     <div className="space-y-6">
