@@ -36,6 +36,7 @@ import PostMediaCarousel from '@/components/feed/PostMediaCarousel';
 import ReportModal from '@/components/ReportModal';
 import Header from '@/components/Header';
 import logoImg from '@/assets/logo.png';
+import SessionDetailsModal from '@/components/feed/SessionDetailsModal';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -53,6 +54,10 @@ export default function Dashboard() {
   // Report modal state
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [reportPostId, setReportPostId] = useState<string | null>(null);
+
+  // Session details modal state
+  const [sessionModalOpen, setSessionModalOpen] = useState(false);
+  const [selectedSession, setSelectedSession] = useState<{ item_id: any; item_type: string } | null>(null);
 
   // Navigation items
   const navItems = [
@@ -369,18 +374,20 @@ export default function Dashboard() {
               )}
             </div>
           )}
-
-          {/* Media Carousel (Session + Images) */}
-          {(post.reference?.item_id || (post.images && post.images.length > 0)) && (
-            <PostMediaCarousel
-              post={post}
-              onImageClick={(index) => {
-                // Navigate to post detail on image click
-                navigate(`/post/${post._id}`);
-              }}
-            />
-          )}
         </div>
+
+        {/* Media Carousel (Session + Images) */}
+        {(post.reference?.item_id || (post.images && post.images.length > 0)) && (
+          <PostMediaCarousel
+            post={post}
+            onImageClick={() => {
+              if (post.reference && post.reference.item_type !== 'Post') {
+                setSelectedSession(post.reference);
+                setSessionModalOpen(true);
+              }
+            }}
+          />
+        )}
 
         {/* Stats Row - Only show if there are reactions or comments */}
         {(reactionCount > 0 || commentCount > 0) && (
@@ -777,6 +784,16 @@ export default function Dashboard() {
         }}
         reportType="post"
         itemId={reportPostId || ''}
+      />
+
+      <SessionDetailsModal
+        isOpen={sessionModalOpen}
+        onClose={() => {
+          setSessionModalOpen(false);
+          setSelectedSession(null);
+        }}
+        sessionType={selectedSession?.item_type as 'GeoSession' | 'ProgramSession' | 'FoodLog'}
+        session={selectedSession?.item_id}
       />
     </div>
   );

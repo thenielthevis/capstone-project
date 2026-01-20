@@ -1,5 +1,7 @@
 import { useTheme } from '@/context/ThemeContext';
 import { X, MapPin, Clock, TrendingUp, Dumbbell, Scale, AlertTriangle, Lightbulb, ChefHat, ExternalLink } from 'lucide-react';
+import CloudinaryLottie from '@/components/CloudinaryLottie';
+import CloudinarySVG from '@/components/CloudinarySVG';
 
 interface SessionDetailsModalProps {
   isOpen: boolean;
@@ -345,9 +347,18 @@ export default function SessionDetailsModal({ isOpen, onClose, sessionType, sess
     </div>
   );
 
+
   const renderProgramSessionContent = () => {
     const workouts = session.workouts || [];
     const geoActivities = session.geo_activities || [];
+    console.log('[SessionDetailsModal] Program Session:', session);
+    console.log('[SessionDetailsModal] Geo Activities:', geoActivities);
+
+    // Combine both arrays for display
+    const allActivities = [
+      ...workouts.map((w: any) => ({ ...w, _type: 'workout' })),
+      ...geoActivities.map((g: any) => ({ ...g, _type: 'geo' }))
+    ];
 
     return (
       <div className="space-y-6">
@@ -391,16 +402,28 @@ export default function SessionDetailsModal({ isOpen, onClose, sessionType, sess
           </div>
         </div>
 
-        {/* Exercises */}
-        {workouts.length > 0 && (
+        {/* Exercises List (Workouts + Geo Activities) */}
+        {allActivities.length > 0 && (
           <div>
             <h3 className="text-lg font-semibold mb-4" style={{ color: theme.colors.text }}>
               Exercises Performed
             </h3>
             <div className="space-y-3">
-              {workouts.map((item: any, index: number) => {
-                const name = item.name || item.workout_id?.name || 'Exercise';
-                const type = item.exercise_type || item.type || item.workout_id?.type;
+              {allActivities.map((item: any, index: number) => {
+                const isWorkout = item._type === 'workout';
+
+                // Determine display properties based on type
+                let name, type, icon, animationUrl;
+
+                if (isWorkout) {
+                  name = item.name || item.workout_id?.name || 'Workout';
+                  type = item.exercise_type || item.type || item.workout_id?.type || 'Strength';
+                  animationUrl = item.animation_url || item.workout_id?.animation_url;
+                } else {
+                  name = item.name || item.activity_id?.name || 'Outdoor Activity';
+                  type = 'Outdoor';
+                  icon = item.icon || item.activity_id?.icon;
+                }
 
                 return (
                   <div
@@ -412,14 +435,36 @@ export default function SessionDetailsModal({ isOpen, onClose, sessionType, sess
                     }}
                   >
                     <div className="flex items-center gap-4 mb-3">
+                      {/* Icon / Animation */}
                       <div
-                        className="w-12 h-12 rounded-xl flex items-center justify-center"
+                        className="w-14 h-14 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0"
                         style={{ backgroundColor: theme.colors.surface }}
                       >
-                        <Dumbbell size={24} style={{ color: theme.colors.primary }} />
+                        {isWorkout && animationUrl ? (
+                          <CloudinaryLottie
+                            src={animationUrl}
+                            width={56}
+                            height={56}
+                            className="w-full h-full"
+                          />
+                        ) : !isWorkout && icon ? (
+                          <CloudinarySVG
+                            src={icon}
+                            width={32}
+                            height={32}
+                            fallbackColor={theme.colors.primary}
+                          />
+                        ) : (
+                          isWorkout ? (
+                            <Dumbbell size={24} style={{ color: theme.colors.primary }} />
+                          ) : (
+                            <MapPin size={24} style={{ color: theme.colors.primary }} />
+                          )
+                        )}
                       </div>
-                      <div>
-                        <p className="font-semibold" style={{ color: theme.colors.text }}>
+
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold truncate" style={{ color: theme.colors.text }}>
                           {name}
                         </p>
                         <p className="text-sm" style={{ color: theme.colors.text + '99' }}>
@@ -428,8 +473,8 @@ export default function SessionDetailsModal({ isOpen, onClose, sessionType, sess
                       </div>
                     </div>
 
-                    {/* Sets */}
-                    {item.sets && item.sets.length > 0 && (
+                    {/* Sets (For Workouts) */}
+                    {isWorkout && item.sets && item.sets.length > 0 && (
                       <div
                         className="p-3 rounded-lg space-y-1"
                         style={{ backgroundColor: theme.colors.surface }}
@@ -459,6 +504,30 @@ export default function SessionDetailsModal({ isOpen, onClose, sessionType, sess
                             )}
                           </div>
                         ))}
+                      </div>
+                    )}
+
+                    {/* Preferences (For Geo Activities) */}
+                    {!isWorkout && item.preferences && (
+                      <div
+                        className="p-3 rounded-lg flex flex-wrap gap-4 text-sm"
+                        style={{ backgroundColor: theme.colors.surface }}
+                      >
+                        {item.preferences.distance_km && (
+                          <span style={{ color: theme.colors.text }}>
+                            Distance: <strong>{item.preferences.distance_km}km</strong>
+                          </span>
+                        )}
+                        {item.preferences.avg_pace && (
+                          <span style={{ color: theme.colors.text }}>
+                            Pace: <strong>{item.preferences.avg_pace}</strong>
+                          </span>
+                        )}
+                        {item.preferences.countdown_seconds && (
+                          <span style={{ color: theme.colors.text }}>
+                            Time: <strong>{Math.floor(item.preferences.countdown_seconds / 60)}m</strong>
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>

@@ -9,6 +9,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Constants from "expo-constants";
 import MapLibreGL from '@maplibre/maplibre-react-native';
 import LottieView from "lottie-react-native";
+import { ActivityIcon } from '../../components/ActivityIcon';
 
 const MAPTILER_KEY =
     Constants?.expoConfig?.extra?.MAPTILER_KEY ||
@@ -389,6 +390,13 @@ export default function SessionDetails() {
 
         if (sessionType === 'ProgramSession') {
             const workouts = session.workouts || [];
+            const geoActivities = session.geo_activities || [];
+
+            // Combine all items
+            const allItems = [
+                ...workouts.map((w: any) => ({ ...w, _type: 'workout' })),
+                ...geoActivities.map((g: any) => ({ ...g, _type: 'geo' }))
+            ];
 
             return (
                 <View style={{ padding: 24 }}>
@@ -410,7 +418,7 @@ export default function SessionDetails() {
                         </View>
                         <View style={{ width: 1, backgroundColor: theme.colors.text + '20' }} />
                         <View style={{ alignItems: 'center' }}>
-                            <Text style={{ fontFamily: theme.fonts.heading, fontSize: 20, color: theme.colors.text }}>{workouts.length}</Text>
+                            <Text style={{ fontFamily: theme.fonts.heading, fontSize: 20, color: theme.colors.text }}>{allItems.length}</Text>
                             <Text style={{ fontSize: 12, color: theme.colors.text + '77' }}>Exercises</Text>
                         </View>
                         <View style={{ width: 1, backgroundColor: theme.colors.text + '20' }} />
@@ -422,18 +430,35 @@ export default function SessionDetails() {
 
                     <Text style={{ fontFamily: theme.fonts.heading, fontSize: 18, color: theme.colors.text, marginBottom: 16 }}>Exercises Performed</Text>
 
-                    {workouts.map((item: any, index: number) => {
-                        const name = item.name || item.workout_id?.name || "Exercise";
-                        const type = item.exercise_type || item.type || item.workout_id?.type;
-                        const animationUrl = item.animation_url || item.workout_id?.animation_url;
+                    {allItems.map((item: any, index: number) => {
+                        const isWorkout = item._type === 'workout';
+
+                        let name, type, animationUrl, icon;
+
+                        if (isWorkout) {
+                            name = item.name || item.workout_id?.name || "Exercise";
+                            type = item.exercise_type || item.type || item.workout_id?.type;
+                            animationUrl = item.animation_url || item.workout_id?.animation_url;
+                        } else {
+                            name = item.name || item.activity_id?.name || "Activity";
+                            type = item.exercise_type || item.type || item.activity_id?.type;
+                            // icon = item.activity_id?.icon; // Unused in mobile now, prefer ActivityIcon
+                        }
 
                         return (
                             <View key={index} style={{ marginBottom: 16, padding: 16, backgroundColor: theme.colors.background, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.text + '20' }}>
                                 <View style={{ flexDirection: 'row', marginBottom: 12 }}>
                                     {/* Animation or Icon */}
                                     <View style={{ width: 64, height: 64, borderRadius: 12, overflow: 'hidden', backgroundColor: theme.colors.surface, alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
-                                        {animationUrl ? (
+                                        {isWorkout && animationUrl ? (
                                             <LottieView source={{ uri: animationUrl }} autoPlay loop style={{ width: '100%', height: '100%' }} />
+                                        ) : !isWorkout ? (
+                                            <ActivityIcon
+                                                activityName={type || 'Other Sports'}
+                                                activityType={type}
+                                                size={32}
+                                                color={theme.colors.primary}
+                                            />
                                         ) : (
                                             <Ionicons name="barbell" size={32} color={theme.colors.primary} />
                                         )}
@@ -444,8 +469,8 @@ export default function SessionDetails() {
                                     </View>
                                 </View>
 
-                                {/* Sets */}
-                                {item.sets && item.sets.length > 0 && (
+                                {/* Sets (Workouts) */}
+                                {isWorkout && item.sets && item.sets.length > 0 && (
                                     <View style={{ backgroundColor: theme.colors.surface, borderRadius: 8, padding: 12 }}>
                                         {item.sets.map((set: any, setIdx: number) => (
                                             <View key={setIdx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
@@ -455,6 +480,24 @@ export default function SessionDetails() {
                                                 {set.time_seconds ? <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text }}><Text style={{ fontFamily: theme.fonts.bodyBold }}>{set.time_seconds}</Text> sec</Text> : null}
                                             </View>
                                         ))}
+                                    </View>
+                                )}
+
+                                {/* Stats (Geo) */}
+                                {!isWorkout && (
+                                    <View style={{ backgroundColor: theme.colors.surface, borderRadius: 8, padding: 12, flexDirection: 'row', justifyContent: 'space-around' }}>
+                                        <View style={{ alignItems: 'center' }}>
+                                            <Text style={{ fontFamily: theme.fonts.heading, fontSize: 16, color: theme.colors.text }}>{item.distance_km}</Text>
+                                            <Text style={{ fontSize: 10, color: theme.colors.text + '77' }}>km</Text>
+                                        </View>
+                                        <View style={{ alignItems: 'center' }}>
+                                            <Text style={{ fontFamily: theme.fonts.heading, fontSize: 16, color: theme.colors.text }}>{Math.floor((item.moving_time_sec || 0) / 60)}</Text>
+                                            <Text style={{ fontSize: 10, color: theme.colors.text + '77' }}>min</Text>
+                                        </View>
+                                        <View style={{ alignItems: 'center' }}>
+                                            <Text style={{ fontFamily: theme.fonts.heading, fontSize: 16, color: theme.colors.text }}>{item.avg_pace || '-'}</Text>
+                                            <Text style={{ fontSize: 10, color: theme.colors.text + '77' }}>/km</Text>
+                                        </View>
                                     </View>
                                 )}
                             </View>
