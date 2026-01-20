@@ -11,6 +11,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { adminApi, Workout, WorkoutStats } from '@/api/adminApi';
 import { showToast } from '@/components/Toast/Toast';
 import { exportWorkoutsReport, WorkoutData } from '@/utils/pdfExport';
+import CloudinaryLottie from '@/components/CloudinaryLottie';
 
 export default function AdminWorkouts() {
   const { theme } = useTheme();
@@ -602,10 +603,12 @@ export default function AdminWorkouts() {
                           >
                             <td className="p-4">
                               {workout.animation_url ? (
-                                <img 
-                                  src={workout.animation_url} 
+                                <CloudinaryLottie
+                                  src={workout.animation_url}
                                   alt={workout.name}
-                                  className="w-16 h-16 object-cover rounded-lg"
+                                  width={64}
+                                  height={64}
+                                  className="rounded-lg"
                                 />
                               ) : (
                                 <div 

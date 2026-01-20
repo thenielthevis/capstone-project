@@ -81,6 +81,13 @@ export default function Programs() {
           <h1 className="text-3xl font-bold" style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}>My Programs</h1>
           <div className="flex gap-2">
             <button
+              onClick={() => navigate('/programs/history')}
+              className="px-4 py-2 rounded-lg transition hover:opacity-90"
+              style={{ backgroundColor: theme.colors.surface, color: theme.colors.text, border: `1px solid ${theme.colors.border}` }}
+            >
+              History
+            </button>
+            <button
               onClick={() => navigate('/programs/create')}
               className="px-4 py-2 rounded-lg transition hover:opacity-90"
               style={{ backgroundColor: theme.colors.primary, color: '#FFFFFF' }}

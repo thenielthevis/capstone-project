@@ -1,39 +1,65 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAllWorkouts, Workout } from '../api/workoutApi';
 import { getAllGeoActivities, GeoActivity } from '../api/geoActivityApi';
 import { createProgram } from '../api/programApi';
-import { generateProgram, ProgramPreferences } from '../services/geminiService';
+import { generateProgram, ProgramPreferences, GeneratedProgramResult } from '../services/geminiService';
 import { showToast } from '../components/Toast/Toast';
 import { useTheme } from '../context/ThemeContext';
 import Footer from '../components/Footer';
-import { ArrowLeft, Home } from 'lucide-react';
-import logoImg from '@/assets/logo.png';
+import Header from '@/components/Header';
+import { ChevronDown, ChevronUp, Filter, Settings, Sparkles, X } from 'lucide-react';
 
 export default function AutomatedProgram() {
   const navigate = useNavigate();
   const { theme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [creatingProgram, setCreatingProgram] = useState(false);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [geoActivities, setGeoActivities] = useState<GeoActivity[]>([]);
-  const [generatedProgram, setGeneratedProgram] = useState<any>(null);
+  const [generatedProgram, setGeneratedProgram] = useState<GeneratedProgramResult | null>(null);
+  const [generationError, setGenerationError] = useState<string | null>(null);
 
-  const [preferences, setPreferences] = useState<ProgramPreferences>({
-    selectedCategories: [],
-    selectedTypes: [],
-    selectedEquipment: [],
-    goals: '',
-    frequency: '',
-    duration: '',
-    experienceLevel: 'beginner',
-    includeMapBased: false
-  });
+  // Filter states
+  const [filtersVisible, setFiltersVisible] = useState(false);
+  const [preferencesVisible, setPreferencesVisible] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [selectedEquipment, setSelectedEquipment] = useState<string[]>([]);
+  const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
 
-  const categories = ['Strength', 'Cardio', 'Flexibility', 'Balance', 'Core'];
-  const types = ['Upper Body', 'Lower Body', 'Full Body', 'HIIT', 'Yoga', 'Pilates'];
-  const equipment = ['None', 'Dumbbells', 'Barbell', 'Resistance Bands', 'Kettlebell', 'Mat'];
-  const experienceLevels = ['beginner', 'intermediate', 'advanced'];
+  // Additional preferences
+  const [goals, setGoals] = useState('');
+  const [frequency, setFrequency] = useState('');
+  const [duration, setDuration] = useState('');
+  const [experienceLevel, setExperienceLevel] = useState('');
+
+  // Derived filter options from actual data
+  const categoryOptions = useMemo(() => {
+    const values = new Set(workouts.map((workout) => workout.category).filter(Boolean));
+    return Array.from(values).sort();
+  }, [workouts]);
+
+  const typeOptions = useMemo(() => {
+    const values = Array.from(new Set(workouts.map((workout) => workout.type).filter(Boolean)));
+    return values.sort();
+  }, [workouts]);
+
+  const equipmentOptions = useMemo(() => {
+    const values = Array.from(
+      new Set(
+        workouts
+          .map((workout) => getEquipmentLabel(workout.equipment_needed))
+          .filter((value) => value && value.trim().length > 0)
+      )
+    );
+    return values.sort();
+  }, [workouts]);
+
+  const activityOptions = useMemo(() => {
+    return geoActivities.map(a => a.name).sort();
+  }, [geoActivities]);
 
   useEffect(() => {
     fetchData();
@@ -59,33 +85,46 @@ export default function AutomatedProgram() {
     }
   };
 
-  const toggleSelection = (field: keyof ProgramPreferences, value: string) => {
-    setPreferences(prev => {
-      const currentArray = prev[field] as string[];
-      return {
-        ...prev,
-        [field]: currentArray.includes(value)
-          ? currentArray.filter(v => v !== value)
-          : [...currentArray, value]
-      };
-    });
+  const toggleSelection = (value: string, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
+    setter(prev => prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value]);
   };
 
   const handleGenerate = async () => {
+    if (workouts.length === 0) {
+      setGenerationError('No workouts available. Please wait for workouts to load.');
+      return;
+    }
+
+    setGenerating(true);
+    setGenerationError(null);
+    setGeneratedProgram(null);
+
     try {
-      setGenerating(true);
+      const preferences: ProgramPreferences = {
+        selectedCategories,
+        selectedTypes,
+        selectedEquipment,
+        selectedActivities,
+        goals: goals.trim() || undefined,
+        frequency: frequency.trim() || undefined,
+        duration: duration.trim() || undefined,
+        experienceLevel: experienceLevel.trim() || 'beginner',
+        includeMapBased: selectedActivities.length > 0,
+      };
+
       const result = await generateProgram(preferences, workouts, geoActivities);
       setGeneratedProgram(result);
       showToast({
         type: 'success',
-        text1: 'Success',
-        text2: 'Program generated successfully!'
+        text1: 'Program generated!',
+        text2: result.name
       });
     } catch (error: any) {
+      setGenerationError(error.message || 'Failed to generate program. Please try again.');
       showToast({
         type: 'error',
-        text1: 'Error',
-        text2: error.message || 'Failed to generate program'
+        text1: 'Generation failed',
+        text2: error.message
       });
     } finally {
       setGenerating(false);
@@ -96,7 +135,7 @@ export default function AutomatedProgram() {
     if (!generatedProgram) return;
 
     try {
-      setGenerating(true);
+      setCreatingProgram(true);
       await createProgram(generatedProgram);
       showToast({
         type: 'success',
@@ -111,7 +150,7 @@ export default function AutomatedProgram() {
         text2: error.message || 'Failed to save program'
       });
     } finally {
-      setGenerating(false);
+      setCreatingProgram(false);
     }
   };
 
@@ -125,222 +164,348 @@ export default function AutomatedProgram() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: theme.colors.background }}>
-      {/* Header */}
-      <header className="shadow-sm" style={{ backgroundColor: theme.colors.card, borderBottom: `1px solid ${theme.colors.border}` }}>
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate('/programs')}
-                className="flex items-center gap-2 transition"
-                style={{ color: theme.colors.textSecondary }}
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back
-              </button>
-              <div className="flex items-center gap-2">
-                <img src={logoImg} alt="Lifora Logo" className="w-10 h-10" />
-                <h1 className="text-2xl font-bold" style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}>AI Program Generator</h1>
-              </div>
-            </div>
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg transition"
-              style={{ color: theme.colors.textSecondary, backgroundColor: theme.colors.surface }}
-            >
-              <Home className="w-4 h-4" />
-              Dashboard
-            </button>
-          </div>
-        </div>
-      </header>
+      <Header 
+        title="AI Program Generator"
+        showBackButton
+        backTo="/programs"
+        showHomeButton
+      />
 
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="space-y-6">
-          <div className="rounded-lg shadow-md p-6" style={{backgroundColor: theme.colors.surface}}>
-            <h2 className="text-xl font-semibold mb-4">Categories</h2>
-            <div className="flex flex-wrap gap-2">
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => toggleSelection('selectedCategories', cat)}
-                  className={`px-4 py-2 rounded-lg transition ${preferences.selectedCategories.includes(cat)
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* Preferences Panel */}
+          <div className="rounded-2xl p-6" style={{ backgroundColor: theme.colors.surface, border: `1px solid ${theme.colors.border}` }}>
+            <h2 className="text-xl font-bold mb-4" style={{ color: theme.colors.primary, fontFamily: theme.fonts.heading }}>
+              Program Preferences
+            </h2>
 
-          <div className="rounded-lg shadow-md p-6" style={{backgroundColor: theme.colors.surface}}>
-            <h2 className="text-xl font-semibold mb-4">Types</h2>
-            <div className="flex flex-wrap gap-2">
-              {types.map((type) => (
-                <button
-                  key={type}
-                  onClick={() => toggleSelection('selectedTypes', type)}
-                  className={`px-4 py-2 rounded-lg transition ${preferences.selectedTypes.includes(type)
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                >
-                  {type}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="rounded-lg shadow-md p-6" style={{backgroundColor: theme.colors.surface}}>
-            <h2 className="text-xl font-semibold mb-4">Equipment</h2>
-            <div className="flex flex-wrap gap-2">
-              {equipment.map((eq) => (
-                <button
-                  key={eq}
-                  onClick={() => toggleSelection('selectedEquipment', eq)}
-                  className={`px-4 py-2 rounded-lg transition ${preferences.selectedEquipment.includes(eq)
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                >
-                  {eq}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="rounded-lg shadow-md p-6" style={{backgroundColor: theme.colors.surface}}>
-            <h2 className="text-xl font-semibold mb-4">Additional Preferences</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Experience Level
-                </label>
-                <select
-                  value={preferences.experienceLevel}
-                  onChange={(e) => setPreferences({ ...preferences, experienceLevel: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                >
-                  {experienceLevels.map((level) => (
-                    <option key={level} value={level}>
-                      {level.charAt(0).toUpperCase() + level.slice(1)}
-                    </option>
-                  ))}
-                </select>
+            {/* Activity Filters Toggle */}
+            <button
+              onClick={() => setFiltersVisible(!filtersVisible)}
+              className="w-full flex items-center justify-between p-4 rounded-xl mb-3 transition"
+              style={{ 
+                border: `1px solid ${theme.colors.primary}33`,
+                backgroundColor: filtersVisible ? theme.colors.primary + '12' : 'transparent',
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4" style={{ color: theme.colors.primary }} />
+                <span className="font-medium" style={{ color: theme.colors.primary }}>Activity Filters</span>
               </div>
+              {filtersVisible ? (
+                <ChevronUp className="w-4 h-4" style={{ color: theme.colors.primary }} />
+              ) : (
+                <ChevronDown className="w-4 h-4" style={{ color: theme.colors.primary }} />
+              )}
+            </button>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Goals (optional)
-                </label>
-                <input
-                  type="text"
-                  value={preferences.goals}
-                  onChange={(e) => setPreferences({ ...preferences, goals: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g., Build muscle, lose weight, improve endurance"
+            {filtersVisible && (
+              <div className="mb-4 pl-2">
+                {/* Workout Filters */}
+                {(categoryOptions.length > 0 || typeOptions.length > 0 || equipmentOptions.length > 0) && (
+                  <div className="mb-4">
+                    <h3 className="font-semibold mb-3" style={{ color: theme.colors.text }}>Workout Filters</h3>
+                    
+                    {categoryOptions.length > 0 && (
+                      <FilterGroup
+                        label="Category"
+                        options={categoryOptions}
+                        selected={selectedCategories}
+                        onToggle={(value) => toggleSelection(value, setSelectedCategories)}
+                        theme={theme}
+                      />
+                    )}
+                    
+                    {typeOptions.length > 0 && (
+                      <FilterGroup
+                        label="Type"
+                        options={typeOptions}
+                        selected={selectedTypes}
+                        onToggle={(value) => toggleSelection(value, setSelectedTypes)}
+                        theme={theme}
+                      />
+                    )}
+                    
+                    {equipmentOptions.length > 0 && (
+                      <FilterGroup
+                        label="Equipment"
+                        options={equipmentOptions}
+                        selected={selectedEquipment}
+                        onToggle={(value) => toggleSelection(value, setSelectedEquipment)}
+                        theme={theme}
+                      />
+                    )}
+                  </div>
+                )}
+
+                {/* Activity Filters */}
+                {activityOptions.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold mb-3" style={{ color: theme.colors.text }}>Activity Filters</h3>
+                    <FilterGroup
+                      label="Outdoor Activities"
+                      options={activityOptions}
+                      selected={selectedActivities}
+                      onToggle={(value) => toggleSelection(value, setSelectedActivities)}
+                      theme={theme}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Additional Preferences Toggle */}
+            <button
+              onClick={() => setPreferencesVisible(!preferencesVisible)}
+              className="w-full flex items-center justify-between p-4 rounded-xl mb-3 transition"
+              style={{ 
+                border: `1px solid ${theme.colors.primary}33`,
+                backgroundColor: preferencesVisible ? theme.colors.primary + '12' : 'transparent',
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <Settings className="w-4 h-4" style={{ color: theme.colors.primary }} />
+                <span className="font-medium" style={{ color: theme.colors.primary }}>Additional Preferences</span>
+              </div>
+              {preferencesVisible ? (
+                <ChevronUp className="w-4 h-4" style={{ color: theme.colors.primary }} />
+              ) : (
+                <ChevronDown className="w-4 h-4" style={{ color: theme.colors.primary }} />
+              )}
+            </button>
+
+            {preferencesVisible && (
+              <div className="mb-4 pl-2 space-y-4">
+                <LabeledInput
+                  label="Goals (optional)"
+                  value={goals}
+                  placeholder="e.g., Build muscle, lose weight"
+                  onChange={setGoals}
+                  theme={theme}
+                  quickOptions={['Build Muscle', 'Lose Weight', 'Endurance', 'Flexibility', 'Strength']}
+                />
+                <LabeledInput
+                  label="Frequency (optional)"
+                  value={frequency}
+                  placeholder="e.g., 3 times per week"
+                  onChange={setFrequency}
+                  theme={theme}
+                  quickOptions={['Daily', '3x/Week', '5x/Week', 'Weekends']}
+                />
+                <LabeledInput
+                  label="Duration per session (optional)"
+                  value={duration}
+                  placeholder="e.g., 45 minutes"
+                  onChange={setDuration}
+                  theme={theme}
+                  quickOptions={['30 mins', '45 mins', '1 hour', '90 mins']}
+                />
+                <LabeledInput
+                  label="Experience level (optional)"
+                  value={experienceLevel}
+                  placeholder="e.g., Intermediate"
+                  onChange={setExperienceLevel}
+                  theme={theme}
+                  quickOptions={['Beginner', 'Intermediate', 'Advanced']}
                 />
               </div>
+            )}
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Frequency (optional)
-                </label>
-                <input
-                  type="text"
-                  value={preferences.frequency}
-                  onChange={(e) => setPreferences({ ...preferences, frequency: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g., 3 times per week, daily"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Duration per session (optional)
-                </label>
-                <input
-                  type="text"
-                  value={preferences.duration}
-                  onChange={(e) => setPreferences({ ...preferences, duration: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g., 30 minutes, 1 hour"
-                />
-              </div>
-
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="mapBased"
-                  checked={preferences.includeMapBased}
-                  onChange={(e) => setPreferences({ ...preferences, includeMapBased: e.target.checked })}
-                  className="mr-2"
-                />
-                <label htmlFor="mapBased" className="text-sm font-medium text-gray-700">
-                  Include outdoor activities (running, cycling, etc.)
-                </label>
-              </div>
-            </div>
-          </div>
-
-          {!generatedProgram ? (
+            {/* Generate Button */}
             <button
               onClick={handleGenerate}
-              disabled={generating}
-              className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition disabled:opacity-50 font-semibold text-lg"
+              disabled={generating || workouts.length === 0}
+              className="w-full py-4 rounded-xl font-semibold text-white flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-50"
+              style={{ 
+                backgroundColor: generating || workouts.length === 0 ? theme.colors.textSecondary : theme.colors.primary,
+              }}
             >
-              {generating ? 'Generating Program...' : '✨ Generate Program with AI'}
+              {generating ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  <span>Generating...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-5 h-5" />
+                  <span>Generate Program with Gemini</span>
+                </>
+              )}
             </button>
-          ) : (
-            <div className="rounded-lg shadow-md p-6" style={{backgroundColor: theme.colors.surface}}>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">{generatedProgram.name}</h2>
-              <p className="text-gray-600 mb-4">{generatedProgram.description}</p>
 
-              <div className="mb-4">
-                <h3 className="font-semibold text-lg mb-2">Workouts ({generatedProgram.workouts.length})</h3>
-                <ul className="list-disc list-inside text-gray-700">
-                  {generatedProgram.workouts.map((w: any, i: number) => {
-                    const workout = workouts.find(wo => wo._id === w.workout_id);
-                    return <li key={i}>{workout?.name || 'Unknown'} - {w.sets.length} sets</li>;
-                  })}
-                </ul>
+            {loading && workouts.length === 0 && (
+              <div className="mt-4 text-center">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 mx-auto mb-2" style={{ borderColor: theme.colors.primary }}></div>
+                <p className="text-sm" style={{ color: theme.colors.textSecondary }}>Loading available activities...</p>
               </div>
+            )}
+          </div>
 
-              {generatedProgram.geo_activities.length > 0 && (
-                <div className="mb-4">
-                  <h3 className="font-semibold text-lg mb-2">Activities ({generatedProgram.geo_activities.length})</h3>
-                  <ul className="list-disc list-inside text-gray-700">
-                    {generatedProgram.geo_activities.map((a: any, i: number) => {
-                      const activity = geoActivities.find(ga => ga._id === a.activity_id);
-                      return <li key={i}>{activity?.name || 'Unknown'}</li>;
-                    })}
-                  </ul>
+          {/* Error Display */}
+          {generationError && (
+            <div 
+              className="rounded-2xl p-4"
+              style={{ 
+                backgroundColor: '#E4585822',
+                border: '1px solid #E45858',
+              }}
+            >
+              <h3 className="font-semibold mb-1" style={{ color: '#E45858' }}>Generation Error</h3>
+              <p className="text-sm" style={{ color: '#E45858' }}>{generationError}</p>
+            </div>
+          )}
+
+          {/* Generated Program Display */}
+          {generatedProgram && (
+            <div 
+              className="rounded-2xl p-6"
+              style={{ 
+                backgroundColor: theme.colors.surface,
+                border: `2px solid ${theme.colors.primary}`,
+              }}
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  <h2 className="text-2xl font-bold mb-2" style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}>
+                    {generatedProgram.name}
+                  </h2>
+                  <p style={{ color: theme.colors.textSecondary }}>{generatedProgram.description}</p>
                 </div>
-              )}
-
-              {generatedProgram.notes && (
-                <div className="bg-blue-50 p-4 rounded-lg mb-4">
-                  <p className="text-sm text-blue-900">{generatedProgram.notes}</p>
-                </div>
-              )}
-
-              <div className="flex gap-4">
                 <button
                   onClick={() => setGeneratedProgram(null)}
-                  className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                  className="p-1 rounded hover:bg-gray-100 transition"
                 >
-                  Generate Another
+                  <X className="w-6 h-6" style={{ color: theme.colors.textSecondary }} />
+                </button>
+              </div>
+
+              {/* Workouts */}
+              {generatedProgram.workouts.length > 0 && (
+                <div className="mb-4">
+                  <h3 className="font-semibold mb-3" style={{ color: theme.colors.primary }}>
+                    Workouts ({generatedProgram.workouts.length})
+                  </h3>
+                  <div className="space-y-2">
+                    {generatedProgram.workouts.map((workoutItem, idx) => {
+                      const workout = workouts.find((w) => w._id === workoutItem.workout_id);
+                      return (
+                        <div
+                          key={idx}
+                          className="p-3 rounded-xl"
+                          style={{ 
+                            backgroundColor: theme.colors.background,
+                            border: `1px solid ${theme.colors.border}`,
+                          }}
+                        >
+                          <p className="font-medium mb-1" style={{ color: theme.colors.text }}>
+                            • {workout?.name || `Workout ${idx + 1}`}
+                          </p>
+                          {workoutItem.sets.map((set, sIdx) => (
+                            <p
+                              key={sIdx}
+                              className="text-sm ml-4"
+                              style={{ color: theme.colors.textSecondary }}
+                            >
+                              Set {sIdx + 1}:{' '}
+                              {set.reps && `Reps: ${set.reps} `}
+                              {set.time_seconds && `Time: ${set.time_seconds}s `}
+                              {set.weight_kg && `Weight: ${set.weight_kg}kg`}
+                            </p>
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Outdoor Activities */}
+              {generatedProgram.geo_activities.length > 0 && (
+                <div className="mb-4">
+                  <h3 className="font-semibold mb-3" style={{ color: theme.colors.primary }}>
+                    Outdoor Activities ({generatedProgram.geo_activities.length})
+                  </h3>
+                  <div className="space-y-2">
+                    {generatedProgram.geo_activities.map((geoItem, idx) => {
+                      const activity = geoActivities.find((a) => a._id === geoItem.activity_id);
+                      return (
+                        <div
+                          key={idx}
+                          className="p-3 rounded-xl"
+                          style={{ 
+                            backgroundColor: theme.colors.background,
+                            border: `1px solid ${theme.colors.border}`,
+                          }}
+                        >
+                          <p className="font-medium mb-1" style={{ color: theme.colors.text }}>
+                            • {activity?.name || `Activity ${idx + 1}`}
+                          </p>
+                          {(geoItem.preferences.distance_km ||
+                            geoItem.preferences.avg_pace ||
+                            geoItem.preferences.countdown_seconds) && (
+                            <p className="text-sm ml-4" style={{ color: theme.colors.textSecondary }}>
+                              {geoItem.preferences.distance_km && `Distance: ${geoItem.preferences.distance_km}km `}
+                              {geoItem.preferences.avg_pace && `Pace: ${geoItem.preferences.avg_pace} `}
+                              {geoItem.preferences.countdown_seconds && `Countdown: ${geoItem.preferences.countdown_seconds}s`}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Notes */}
+              {generatedProgram.notes && (
+                <div 
+                  className="p-4 rounded-xl mb-4"
+                  style={{ 
+                    backgroundColor: theme.colors.primary + '12',
+                    border: `1px solid ${theme.colors.primary}33`,
+                  }}
+                >
+                  <p className="text-sm" style={{ color: theme.colors.text }}>{generatedProgram.notes}</p>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setGeneratedProgram(null)}
+                  className="flex-1 py-3 rounded-xl font-medium transition hover:opacity-90"
+                  style={{ 
+                    border: `1px solid ${theme.colors.border}`,
+                    color: theme.colors.text,
+                  }}
+                >
+                  Discard
                 </button>
                 <button
                   onClick={handleSaveProgram}
-                  disabled={generating}
-                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+                  disabled={creatingProgram}
+                  className="flex-1 py-3 rounded-xl font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                  style={{ backgroundColor: theme.colors.primary }}
                 >
-                  {generating ? 'Saving...' : 'Save Program'}
+                  {creatingProgram ? 'Saving...' : 'Create Program'}
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* Info Text */}
+          {!generatedProgram && !generating && (
+            <div 
+              className="border-2 border-dashed rounded-xl p-6 text-center"
+              style={{ 
+                borderColor: theme.colors.border,
+                backgroundColor: theme.colors.surface,
+              }}
+            >
+              <p style={{ color: theme.colors.textSecondary }}>
+                Configure your preferences above and click "Generate Program with Gemini" to create a
+                personalized workout program tailored to your goals and preferences.
+              </p>
             </div>
           )}
         </div>
@@ -348,4 +513,110 @@ export default function AutomatedProgram() {
       <Footer />
     </div>
   );
+}
+
+// Helper Components
+function FilterGroup({ 
+  label, 
+  options, 
+  selected, 
+  onToggle, 
+  theme 
+}: { 
+  label: string; 
+  options: string[]; 
+  selected: string[]; 
+  onToggle: (value: string) => void; 
+  theme: any;
+}) {
+  if (options.length === 0) return null;
+  
+  return (
+    <div className="mb-4">
+      <span className="block text-sm mb-2" style={{ color: theme.colors.textSecondary }}>
+        {label}
+      </span>
+      <div className="flex flex-wrap gap-2">
+        {options.map((option) => {
+          const active = selected.includes(option);
+          return (
+            <button
+              key={option}
+              onClick={() => onToggle(option)}
+              className="px-3 py-1.5 rounded-full text-sm transition"
+              style={{
+                border: `1px solid ${active ? theme.colors.primary : theme.colors.border}`,
+                backgroundColor: active ? theme.colors.primary + '1A' : 'transparent',
+                color: active ? theme.colors.primary : theme.colors.text,
+              }}
+            >
+              {option}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function LabeledInput({ 
+  label, 
+  value, 
+  placeholder, 
+  onChange, 
+  theme,
+  quickOptions 
+}: { 
+  label: string; 
+  value: string; 
+  placeholder: string; 
+  onChange: (value: string) => void; 
+  theme: any;
+  quickOptions?: string[];
+}) {
+  return (
+    <div>
+      <label className="block text-sm mb-2" style={{ color: theme.colors.textSecondary }}>
+        {label}
+      </label>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full px-4 py-2 rounded-xl border focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-2"
+        style={{ 
+          backgroundColor: theme.colors.background, 
+          borderColor: theme.colors.border, 
+          color: theme.colors.text 
+        }}
+      />
+      {quickOptions && (
+        <div className="flex flex-wrap gap-2">
+          {quickOptions.map((opt) => (
+            <button
+              key={opt}
+              onClick={() => onChange(opt)}
+              className="px-3 py-1.5 rounded-lg text-sm transition"
+              style={{
+                backgroundColor: value === opt ? theme.colors.primary + '22' : theme.colors.surface,
+                border: `1px solid ${value === opt ? theme.colors.primary : theme.colors.border}`,
+                color: value === opt ? theme.colors.primary : theme.colors.textSecondary,
+              }}
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function getEquipmentLabel(equipment?: string | null) {
+  const normalized = equipment?.trim();
+  if (!normalized || normalized.toLowerCase() === 'false') {
+    return 'no equipment';
+  }
+  return normalized;
 }
