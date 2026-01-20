@@ -115,7 +115,7 @@ export default function PostMediaCarousel({ post, onImageClick, onSessionClick }
           >
             <span className="text-white text-sm font-medium">
               {mediaItems[activeIndex].type === 'reference'
-                ? 'Session'
+                ? 'Cover'
                 : `${post.reference?.item_id ? activeIndex : activeIndex + 1} / ${post.images?.length || 0}`}
             </span>
           </div>

@@ -10,6 +10,7 @@ export interface Post {
   title: string;
   content: string;
   images: string[];
+  tags?: string[];
   comments?: any[];
   commentCount?: number;
   shares?: any[];

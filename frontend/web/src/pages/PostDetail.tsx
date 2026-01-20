@@ -525,6 +525,25 @@ export default function PostDetail() {
             <p style={{ color: theme.colors.text }} className="text-base leading-relaxed whitespace-pre-wrap">
               {post.content}
             </p>
+
+            {/* Tags Display */}
+            {post.tags && post.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                {post.tags.map((tag, index) => (
+                  <div
+                    key={index}
+                    className="px-2.5 py-1 rounded-full text-xs"
+                    style={{
+                      backgroundColor: theme.colors.primary + '15',
+                      color: theme.colors.primary,
+                      border: `1px solid ${theme.colors.primary}30`,
+                    }}
+                  >
+                    {tag}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Media Carousel (Session + Images) */}

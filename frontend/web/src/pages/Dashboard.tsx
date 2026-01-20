@@ -1,13 +1,13 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { 
-  LogOut, 
-  User as UserIcon, 
-  Settings as SettingsIcon, 
-  ArrowUp, 
-  ArrowDown, 
-  MessageCircle, 
-  Share2, 
+import {
+  LogOut,
+  User as UserIcon,
+  Settings as SettingsIcon,
+  ArrowUp,
+  ArrowDown,
+  MessageCircle,
+  Share2,
   Users,
   Plus,
   Loader2,
@@ -18,14 +18,22 @@ import {
   Utensils,
   Dumbbell,
   MessageSquare,
-  Home
+  Home,
+  Globe,
+  Lock,
+  Users2,
+  MoreVertical,
+  Edit,
+  Trash2,
+  Flag
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { getUserProfile } from '@/api/userApi';
 import { postApi, Post } from '@/api/postApi';
 import ReactionButton from '@/components/ReactionButton';
-import SessionPreview from '@/components/feed/SessionPreview';
+import PostMediaCarousel from '@/components/feed/PostMediaCarousel';
+import ReportModal from '@/components/ReportModal';
 import Header from '@/components/Header';
 import logoImg from '@/assets/logo.png';
 
@@ -34,10 +42,17 @@ export default function Dashboard() {
   const location = useLocation();
   const { user, setUser, logout } = useAuth();
   const { theme } = useTheme();
-  
+
   // Posts state
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Settings menu state
+  const [showMenu, setShowMenu] = useState<string | null>(null);
+
+  // Report modal state
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [reportPostId, setReportPostId] = useState<string | null>(null);
 
   // Navigation items
   const navItems = [
@@ -75,9 +90,9 @@ export default function Dashboard() {
       try {
         const response = await getUserProfile();
         if (response.profile && user) {
-          setUser({ 
-            ...user, 
-            profilePicture: response.profile.profilePicture 
+          setUser({
+            ...user,
+            profilePicture: response.profile.profilePicture
           });
         }
       } catch (error) {
@@ -170,14 +185,35 @@ export default function Dashboard() {
   };
 
   const getTimeAgo = (date: string) => {
-    const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
-    if (seconds < 60) return `${seconds}s`;
+    const now = new Date();
+    const past = new Date(date);
+    const seconds = Math.floor((now.getTime() - past.getTime()) / 1000);
+
+    if (seconds < 60) return `${seconds}s ago`;
     const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m`;
+    if (minutes < 60) return `${minutes}m ago`;
     const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h`;
-    const days = Math.floor(hours / 24);
-    return `${days}d`;
+    if (hours < 24) return `${hours}h ago`;
+
+    // If more than 24 hours, show formatted date
+    return new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).format(past);
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    if (!window.confirm('Are you sure you want to delete this post?')) return;
+    try {
+      await postApi.deletePost(postId);
+      setPosts(prev => prev.filter(p => p._id !== postId));
+      setShowMenu(null);
+    } catch (error) {
+      console.error('Error deleting post:', error);
+    }
+  };
+
+  const handleReport = (postId: string) => {
+    setReportPostId(postId);
+    setReportModalOpen(true);
+    setShowMenu(null);
   };
 
   const renderPost = (post: Post) => {
@@ -190,6 +226,10 @@ export default function Dashboard() {
     const isUpvoted = post.votes?.upvotes?.some((v: any) => v.toString() === userId);
     const isDownvoted = post.votes?.downvotes?.some((v: any) => v.toString() === userId);
     const userReaction = post.reactions?.find((r: any) => r.user === userId || r.user?._id === userId)?.type;
+    const isOwner = post.user?._id === userId;
+
+    // Determine visibility icon
+    const VisibilityIcon = post.visibility === 'public' ? Globe : post.visibility === 'private' ? Lock : Users2;
 
     return (
       <div
@@ -202,7 +242,7 @@ export default function Dashboard() {
       >
         {/* Post Header */}
         <div className="flex items-center p-3">
-          <div 
+          <div
             className="w-10 h-10 rounded-full flex items-center justify-center mr-3 overflow-hidden"
             style={{ backgroundColor: theme.colors.primary + '20' }}
           >
@@ -213,20 +253,75 @@ export default function Dashboard() {
             )}
           </div>
           <div className="flex-1">
-            <span 
-              style={{ color: theme.colors.text }} 
+            <span
+              style={{ color: theme.colors.text }}
               className="text-sm font-semibold"
             >
               {post.user?.username || 'Unknown User'}
             </span>
-            <p className="text-xs" style={{ color: theme.colors.textSecondary }}>
-              {getTimeAgo(post.createdAt)} ago
-            </p>
+            <div className="flex items-center gap-1">
+              <p className="text-xs" style={{ color: theme.colors.textSecondary }}>
+                {getTimeAgo(post.createdAt)}
+              </p>
+              <span style={{ color: theme.colors.textSecondary }}>•</span>
+              <VisibilityIcon className="w-3.5 h-3.5" style={{ color: theme.colors.textSecondary }} />
+            </div>
+          </div>
+          {/* Settings Menu */}
+          <div className="relative">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowMenu(showMenu === post._id ? null : post._id);
+              }}
+              className="p-2 rounded-lg hover:opacity-80 transition"
+            >
+              <MoreVertical className="w-5 h-5" style={{ color: theme.colors.textSecondary }} />
+            </button>
+            {showMenu === post._id && (
+              <div
+                className="absolute right-0 top-full mt-1 w-36 rounded-xl shadow-lg z-20 overflow-hidden"
+                style={{ backgroundColor: theme.colors.surface, border: `1px solid ${theme.colors.border}` }}
+              >
+                {isOwner ? (
+                  <>
+                    <button
+                      onClick={() => {
+                        setShowMenu(null);
+                        navigate(`/post/${post._id}`);
+                      }}
+                      className="w-full flex items-center gap-2 px-4 py-3 hover:opacity-80 transition text-left"
+                      style={{ color: theme.colors.text }}
+                    >
+                      <Edit className="w-4 h-4" />
+                      <span className="text-sm">Edit</span>
+                    </button>
+                    <button
+                      onClick={() => handleDeletePost(post._id)}
+                      className="w-full flex items-center gap-2 px-4 py-3 hover:opacity-80 transition text-left"
+                      style={{ color: '#ef4444' }}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span className="text-sm">Delete</span>
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => handleReport(post._id)}
+                    className="w-full flex items-center gap-2 px-4 py-3 hover:opacity-80 transition text-left"
+                    style={{ color: theme.colors.text }}
+                  >
+                    <Flag className="w-4 h-4" />
+                    <span className="text-sm">Report</span>
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
         {/* Post Content - Clickable area */}
-        <div 
+        <div
           className="cursor-pointer"
           onClick={() => navigate(`/post/${post._id}`)}
         >
@@ -243,7 +338,7 @@ export default function Dashboard() {
                   {post.content.length > 280 ? (
                     <>
                       {post.content.slice(0, 280)}...
-                      <span 
+                      <span
                         style={{ color: theme.colors.textSecondary }}
                         className="ml-1"
                       >
@@ -253,37 +348,37 @@ export default function Dashboard() {
                   ) : post.content}
                 </p>
               )}
-            </div>
-          )}
 
-          {/* Session Reference Preview */}
-          {post.reference?.item_id && (
-            <div className="px-3 pb-3 flex justify-center">
-              <SessionPreview reference={post.reference as { item_id: any; item_type: 'GeoSession' | 'ProgramSession' | 'FoodLog' | 'Post' }} />
-            </div>
-          )}
-
-          {/* Post Images */}
-          {post.images && post.images.length > 0 && (
-            <div className="relative">
-              <img
-                src={post.images[0]}
-                alt="Post"
-                className="w-full object-cover"
-                style={{ maxHeight: 500 }}
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
-              {post.images.length > 1 && (
-                <div 
-                  className="absolute top-3 right-3 px-2 py-1 rounded-full text-xs font-medium"
-                  style={{ backgroundColor: 'rgba(0,0,0,0.7)', color: 'white' }}
-                >
-                  1/{post.images.length}
+              {/* Tags Display */}
+              {post.tags && post.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-3">
+                  {post.tags.map((tag, index) => (
+                    <div
+                      key={index}
+                      className="px-2.5 py-1 rounded-full text-xs"
+                      style={{
+                        backgroundColor: theme.colors.primary + '15',
+                        color: theme.colors.primary,
+                        border: `1px solid ${theme.colors.primary}30`,
+                      }}
+                    >
+                      {tag}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
+          )}
+
+          {/* Media Carousel (Session + Images) */}
+          {(post.reference?.item_id || (post.images && post.images.length > 0)) && (
+            <PostMediaCarousel
+              post={post}
+              onImageClick={(index) => {
+                // Navigate to post detail on image click
+                navigate(`/post/${post._id}`);
+              }}
+            />
           )}
         </div>
 
@@ -293,14 +388,14 @@ export default function Dashboard() {
             <div>
               {reactionCount > 0 && `${reactionCount} reaction${reactionCount !== 1 ? 's' : ''}`}
             </div>
-            <div>
+            <button className="cursor-pointer" onClick={() => navigate(`/post/${post._id}`)}>
               {commentCount > 0 && `${commentCount} comment${commentCount !== 1 ? 's' : ''}`}
-            </div>
+            </button>
           </div>
         )}
 
         {/* Interaction Bar */}
-        <div 
+        <div
           className="flex items-center px-3 py-2 border-t"
           style={{ borderColor: theme.colors.border }}
         >
@@ -366,7 +461,7 @@ export default function Dashboard() {
   // Loading state
   if (loading) {
     return (
-      <div 
+      <div
         className="min-h-screen flex items-center justify-center"
         style={{ backgroundColor: theme.colors.background }}
       >
@@ -376,7 +471,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div 
+    <div
       className="min-h-screen"
       style={{ backgroundColor: theme.colors.background }}
     >
@@ -387,292 +482,302 @@ export default function Dashboard() {
 
       <div className="flex">
         {/* Left Sidebar - hidden on mobile */}
-        <aside 
+        <aside
           className="hidden lg:flex fixed left-0 top-0 h-full w-[220px] xl:w-[245px] border-r flex-col py-6 px-3"
-          style={{ 
+          style={{
             backgroundColor: theme.colors.background,
-            borderColor: theme.colors.border 
+            borderColor: theme.colors.border
           }}
         >
           {/* Logo */}
-          <div 
+          <div
             className="px-3 pt-4 pb-8 cursor-pointer"
-          onClick={() => navigate('/dashboard')}
-        >
-          <div className="flex items-center gap-2">
-            <img src={logoImg} alt="Lifora" className="w-8 h-8" />
-            <h1 
-              className="text-xl font-semibold hidden xl:block"
-              style={{ color: theme.colors.text }}
-            >
-              Lifora
-            </h1>
+            onClick={() => navigate('/dashboard')}
+          >
+            <div className="flex items-center gap-2">
+              <img src={logoImg} alt="Lifora" className="w-8 h-8" />
+              <h1
+                className="text-xl font-semibold hidden xl:block"
+                style={{ color: theme.colors.text }}
+              >
+                Lifora
+              </h1>
+            </div>
           </div>
-        </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path;
-            return (
-              <button
-                key={item.title}
-                onClick={() => navigate(item.path)}
-                className={`w-full flex items-center gap-4 px-3 py-3 rounded-lg transition-all hover:bg-opacity-10 ${
-                  isActive ? 'font-bold' : ''
-                }`}
-                style={{ 
-                  color: theme.colors.text,
-                  backgroundColor: isActive ? theme.colors.surface : 'transparent'
-                }}
-              >
-                <div className="relative">
-                  <Icon className={`w-6 h-6 ${isActive ? 'stroke-[2.5]' : ''}`} />
-                </div>
-                <span className="hidden xl:inline">{item.title}</span>
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* More Menu */}
-        <div className="mt-auto space-y-1">
-          {moreItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.title}
-                onClick={() => navigate(item.path)}
-                className="w-full flex items-center gap-4 px-3 py-3 rounded-lg transition-all hover:bg-opacity-10"
-                style={{ 
-                  color: theme.colors.text,
-                  backgroundColor: 'transparent'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.colors.surface}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-              >
-                <Icon className="w-6 h-6" />
-                <span className="hidden xl:inline">{item.title}</span>
-              </button>
-            );
-          })}
-          
-          {/* Logout */}
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-4 px-3 py-3 rounded-lg transition-all"
-            style={{ color: theme.colors.text }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.colors.surface}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-          >
-            <LogOut className="w-6 h-6" />
-            <span className="hidden xl:inline">Log out</span>
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="lg:ml-[220px] xl:ml-[245px] flex-1 flex justify-center">
-        <div className="w-full max-w-[630px] lg:border-r" style={{ borderColor: theme.colors.border }}>
-          {/* Stories-like Quick Actions Row */}
-          <div 
-            className="flex gap-4 p-4 overflow-x-auto border-b"
-            style={{ borderColor: theme.colors.border }}
-          >
-            {/* User's story/action */}
-            <button 
-              className="flex flex-col items-center gap-1 min-w-[66px]"
-              onClick={() => navigate('/record')}
-            >
-              <div 
-                className="w-[62px] h-[62px] rounded-full p-[2px] flex items-center justify-center"
-                style={{ 
-                  background: `linear-gradient(45deg, ${theme.colors.primary}, ${theme.colors.secondary}, ${theme.colors.accent})`
-                }}
-              >
-                <div 
-                  className="w-full h-full rounded-full flex items-center justify-center overflow-hidden"
-                  style={{ backgroundColor: theme.colors.background }}
-                >
-                  {user?.profilePicture ? (
-                    <img src={user.profilePicture} alt={user.username} className="w-14 h-14 rounded-full object-cover" />
-                  ) : (
-                    <div 
-                      className="w-14 h-14 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: theme.colors.surface }}
-                    >
-                      <Plus className="w-6 h-6" style={{ color: theme.colors.primary }} />
-                    </div>
-                  )}
-                </div>
-              </div>
-              <span className="text-xs" style={{ color: theme.colors.text }}>
-                Record
-              </span>
-            </button>
-
-            {/* Quick action circles */}
-            {[
-              { title: 'Analysis', icon: TrendingUp, color: '#0ea5e9', path: '/analysis' },
-              { title: 'Assess', icon: FileText, color: '#10b981', path: '/health-assessment' },
-              { title: 'Predict', icon: Heart, color: '#ef4444', path: '/predictions' },
-              { title: 'Food', icon: Utensils, color: '#f59e0b', path: '/food-tracking' },
-              { title: 'Programs', icon: Dumbbell, color: '#14b8a6', path: '/programs' },
-            ].map((action) => {
-              const Icon = action.icon;
+          {/* Navigation */}
+          <nav className="flex-1 space-y-1">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = location.pathname === item.path;
               return (
-                <button 
-                  key={action.title}
-                  className="flex flex-col items-center gap-1 min-w-[66px]"
-                  onClick={() => navigate(action.path)}
+                <button
+                  key={item.title}
+                  onClick={() => navigate(item.path)}
+                  className={`w-full flex items-center gap-4 px-3 py-3 rounded-lg transition-all hover:bg-opacity-10 ${isActive ? 'font-bold' : ''
+                    }`}
+                  style={{
+                    color: theme.colors.text,
+                    backgroundColor: isActive ? theme.colors.surface : 'transparent'
+                  }}
                 >
-                  <div 
-                    className="w-[62px] h-[62px] rounded-full p-[2px] flex items-center justify-center"
-                    style={{ 
-                      background: `linear-gradient(45deg, ${action.color}aa, ${action.color})`
-                    }}
-                  >
-                    <div 
-                      className="w-full h-full rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: theme.colors.background }}
-                    >
-                      <div 
-                        className="w-14 h-14 rounded-full flex items-center justify-center"
-                        style={{ backgroundColor: action.color + '20' }}
-                      >
-                        <Icon className="w-6 h-6" style={{ color: action.color }} />
-                      </div>
-                    </div>
+                  <div className="relative">
+                    <Icon className={`w-6 h-6 ${isActive ? 'stroke-[2.5]' : ''}`} />
                   </div>
-                  <span className="text-xs" style={{ color: theme.colors.text }}>
-                    {action.title}
-                  </span>
+                  <span className="hidden xl:inline">{item.title}</span>
                 </button>
               );
             })}
-          </div>
+          </nav>
 
-          {/* Posts Feed */}
-          {posts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20">
-              <Newspaper className="w-16 h-16" style={{ color: theme.colors.textTertiary }} />
-              <h3 style={{ color: theme.colors.text }} className="text-lg mt-4 font-semibold">
-                No posts yet
-              </h3>
-              <p style={{ color: theme.colors.textSecondary }} className="text-sm mt-2 text-center px-8">
-                Be the first to share your activities!
-              </p>
-            </div>
-          ) : (
-            <div>
-              {posts.map(post => renderPost(post))}
-            </div>
-          )}
-        </div>
-
-        {/* Right Sidebar */}
-        <aside className="hidden lg:block w-[320px] p-6 sticky top-0 h-screen">
-          {/* Current User */}
-          <div className="flex items-center gap-3 mb-6">
-            <div 
-              className="w-11 h-11 rounded-full overflow-hidden cursor-pointer"
-              onClick={() => navigate('/profile')}
-            >
-              {user?.profilePicture ? (
-                <img src={user.profilePicture} alt={user?.username} className="w-full h-full object-cover" />
-              ) : (
-                <div 
-                  className="w-full h-full flex items-center justify-center"
-                  style={{ backgroundColor: theme.colors.surface }}
+          {/* More Menu */}
+          <div className="mt-auto space-y-1">
+            {moreItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.title}
+                  onClick={() => navigate(item.path)}
+                  className="w-full flex items-center gap-4 px-3 py-3 rounded-lg transition-all hover:bg-opacity-10"
+                  style={{
+                    color: theme.colors.text,
+                    backgroundColor: 'transparent'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.colors.surface}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <UserIcon className="w-5 h-5" style={{ color: theme.colors.textSecondary }} />
-                </div>
-              )}
-            </div>
-            <div className="flex-1">
-              <p 
-                className="text-sm font-semibold cursor-pointer hover:underline"
-                style={{ color: theme.colors.text }}
-                onClick={() => navigate('/profile')}
-              >
-                {user?.username}
-              </p>
-              <p className="text-sm" style={{ color: theme.colors.textSecondary }}>
-                {user?.email}
-              </p>
-            </div>
-            <button 
-              className="text-xs font-semibold"
-              style={{ color: theme.colors.primary }}
+                  <Icon className="w-6 h-6" />
+                  <span className="hidden xl:inline">{item.title}</span>
+                </button>
+              );
+            })}
+
+            {/* Logout */}
+            <button
               onClick={handleLogout}
+              className="w-full flex items-center gap-4 px-3 py-3 rounded-lg transition-all"
+              style={{ color: theme.colors.text }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.colors.surface}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
             >
-              Switch
+              <LogOut className="w-6 h-6" />
+              <span className="hidden xl:inline">Log out</span>
             </button>
           </div>
+        </aside>
 
-          {/* Suggested Actions */}
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-semibold" style={{ color: theme.colors.textSecondary }}>
-                Quick Actions
-              </span>
-            </div>
-            
-            <div className="space-y-3">
-              {[
-                { title: 'Complete Health Assessment', desc: 'Get personalized insights', path: '/health-assessment' },
-                { title: 'View Predictions', desc: 'See your health risks', path: '/predictions' },
-                { title: 'Track Food', desc: 'Log your meals', path: '/food-tracking' },
-              ].map((action) => (
-                <button
-                  key={action.title}
-                  className="w-full flex items-center gap-3 text-left group"
-                  onClick={() => navigate(action.path)}
+        {/* Main Content */}
+        <main className="lg:ml-[220px] xl:ml-[245px] flex-1 flex justify-center">
+          <div className="w-full max-w-[630px] lg:border-r" style={{ borderColor: theme.colors.border }}>
+            {/* Stories-like Quick Actions Row */}
+            <div
+              className="flex gap-4 p-4 overflow-x-auto border-b"
+              style={{ borderColor: theme.colors.border }}
+            >
+              {/* User's story/action */}
+              <button
+                className="flex flex-col items-center gap-1 min-w-[66px]"
+                onClick={() => navigate('/record')}
+              >
+                <div
+                  className="w-[62px] h-[62px] rounded-full p-[2px] flex items-center justify-center"
+                  style={{
+                    background: `linear-gradient(45deg, ${theme.colors.primary}, ${theme.colors.secondary}, ${theme.colors.accent})`
+                  }}
                 >
-                  <div 
-                    className="w-8 h-8 rounded-full flex items-center justify-center"
+                  <div
+                    className="w-full h-full rounded-full flex items-center justify-center overflow-hidden"
+                    style={{ backgroundColor: theme.colors.background }}
+                  >
+                    {user?.profilePicture ? (
+                      <img src={user.profilePicture} alt={user.username} className="w-14 h-14 rounded-full object-cover" />
+                    ) : (
+                      <div
+                        className="w-14 h-14 rounded-full flex items-center justify-center"
+                        style={{ backgroundColor: theme.colors.surface }}
+                      >
+                        <Plus className="w-6 h-6" style={{ color: theme.colors.primary }} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <span className="text-xs" style={{ color: theme.colors.text }}>
+                  Record
+                </span>
+              </button>
+
+              {/* Quick action circles */}
+              {[
+                { title: 'Analysis', icon: TrendingUp, color: '#0ea5e9', path: '/analysis' },
+                { title: 'Assess', icon: FileText, color: '#10b981', path: '/health-assessment' },
+                { title: 'Predict', icon: Heart, color: '#ef4444', path: '/predictions' },
+                { title: 'Food', icon: Utensils, color: '#f59e0b', path: '/food-tracking' },
+                { title: 'Programs', icon: Dumbbell, color: '#14b8a6', path: '/programs' },
+              ].map((action) => {
+                const Icon = action.icon;
+                return (
+                  <button
+                    key={action.title}
+                    className="flex flex-col items-center gap-1 min-w-[66px]"
+                    onClick={() => navigate(action.path)}
+                  >
+                    <div
+                      className="w-[62px] h-[62px] rounded-full p-[2px] flex items-center justify-center"
+                      style={{
+                        background: `linear-gradient(45deg, ${action.color}aa, ${action.color})`
+                      }}
+                    >
+                      <div
+                        className="w-full h-full rounded-full flex items-center justify-center"
+                        style={{ backgroundColor: theme.colors.background }}
+                      >
+                        <div
+                          className="w-14 h-14 rounded-full flex items-center justify-center"
+                          style={{ backgroundColor: action.color + '20' }}
+                        >
+                          <Icon className="w-6 h-6" style={{ color: action.color }} />
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-xs" style={{ color: theme.colors.text }}>
+                      {action.title}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Posts Feed */}
+            {posts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20">
+                <Newspaper className="w-16 h-16" style={{ color: theme.colors.textTertiary }} />
+                <h3 style={{ color: theme.colors.text }} className="text-lg mt-4 font-semibold">
+                  No posts yet
+                </h3>
+                <p style={{ color: theme.colors.textSecondary }} className="text-sm mt-2 text-center px-8">
+                  Be the first to share your activities!
+                </p>
+              </div>
+            ) : (
+              <div>
+                {posts.map(post => renderPost(post))}
+              </div>
+            )}
+          </div>
+
+          {/* Right Sidebar */}
+          <aside className="hidden lg:block w-[320px] p-6 sticky top-0 h-screen">
+            {/* Current User */}
+            <div className="flex items-center gap-3 mb-6">
+              <div
+                className="w-11 h-11 rounded-full overflow-hidden cursor-pointer"
+                onClick={() => navigate('/profile')}
+              >
+                {user?.profilePicture ? (
+                  <img src={user.profilePicture} alt={user?.username} className="w-full h-full object-cover" />
+                ) : (
+                  <div
+                    className="w-full h-full flex items-center justify-center"
                     style={{ backgroundColor: theme.colors.surface }}
                   >
-                    <FileText className="w-4 h-4" style={{ color: theme.colors.textSecondary }} />
+                    <UserIcon className="w-5 h-5" style={{ color: theme.colors.textSecondary }} />
                   </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium" style={{ color: theme.colors.text }}>
-                      {action.title}
-                    </p>
-                    <p className="text-xs" style={{ color: theme.colors.textSecondary }}>
-                      {action.desc}
-                    </p>
-                  </div>
-                  <span 
-                    className="text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity"
-                    style={{ color: theme.colors.primary }}
-                  >
-                    Go
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div className="mt-8 space-y-4">
-            <div className="flex flex-wrap gap-x-2 gap-y-1">
-              <button 
-                className="text-xs hover:underline"
-                style={{ color: theme.colors.textTertiary }}
-                onClick={() => navigate('/settings')}
+                )}
+              </div>
+              <div className="flex-1">
+                <p
+                  className="text-sm font-semibold cursor-pointer hover:underline"
+                  style={{ color: theme.colors.text }}
+                  onClick={() => navigate('/profile')}
+                >
+                  {user?.username}
+                </p>
+                <p className="text-sm" style={{ color: theme.colors.textSecondary }}>
+                  {user?.email}
+                </p>
+              </div>
+              <button
+                className="text-xs font-semibold"
+                style={{ color: theme.colors.primary }}
+                onClick={handleLogout}
               >
-                Settings
+                Switch
               </button>
             </div>
-            <p className="text-xs" style={{ color: theme.colors.textTertiary }}>
-              © 2026 LIFORA HEALTH
-            </p>
-          </div>
-        </aside>
-      </main>
+
+            {/* Suggested Actions */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-semibold" style={{ color: theme.colors.textSecondary }}>
+                  Quick Actions
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {[
+                  { title: 'Complete Health Assessment', desc: 'Get personalized insights', path: '/health-assessment' },
+                  { title: 'View Predictions', desc: 'See your health risks', path: '/predictions' },
+                  { title: 'Track Food', desc: 'Log your meals', path: '/food-tracking' },
+                ].map((action) => (
+                  <button
+                    key={action.title}
+                    className="w-full flex items-center gap-3 text-left group"
+                    onClick={() => navigate(action.path)}
+                  >
+                    <div
+                      className="w-8 h-8 rounded-full flex items-center justify-center"
+                      style={{ backgroundColor: theme.colors.surface }}
+                    >
+                      <FileText className="w-4 h-4" style={{ color: theme.colors.textSecondary }} />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium" style={{ color: theme.colors.text }}>
+                        {action.title}
+                      </p>
+                      <p className="text-xs" style={{ color: theme.colors.textSecondary }}>
+                        {action.desc}
+                      </p>
+                    </div>
+                    <span
+                      className="text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity"
+                      style={{ color: theme.colors.primary }}
+                    >
+                      Go
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="mt-8 space-y-4">
+              <div className="flex flex-wrap gap-x-2 gap-y-1">
+                <button
+                  className="text-xs hover:underline"
+                  style={{ color: theme.colors.textTertiary }}
+                  onClick={() => navigate('/settings')}
+                >
+                  Settings
+                </button>
+              </div>
+              <p className="text-xs" style={{ color: theme.colors.textTertiary }}>
+                © 2026 LIFORA
+              </p>
+            </div>
+          </aside>
+        </main>
       </div>
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={reportModalOpen}
+        onClose={() => {
+          setReportModalOpen(false);
+          setReportPostId(null);
+        }}
+        reportType="post"
+        itemId={reportPostId || ''}
+      />
     </div>
   );
 }
