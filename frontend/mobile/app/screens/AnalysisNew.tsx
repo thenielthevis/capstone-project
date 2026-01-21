@@ -526,7 +526,7 @@ const HEALTH_STATUS_SCIENTIFIC_REFERENCES = [
     description: "Comprehensive information on medical conditions and their management",
     url: "https://www.mayoclinic.org/diseases-conditions",
   },
- 
+
 ];
 
 // Environmental Factors - Pollution Exposure Levels
@@ -603,13 +603,13 @@ const OCCUPATION_TYPE_INFO = [
 
 // Scientific References for Environmental Factors
 const ENVIRONMENTAL_SCIENTIFIC_REFERENCES = [
- 
+
   {
     title: "WHO - Air Pollution & Health",
     description: "Global impacts of air pollution on human health",
     url: "https://www.who.int/news-room/fact-sheets/detail/ambient-(outdoor)-air-quality-and-health",
   },
- 
+
 ];
 
 const DISEASE_PREDICTION_REFERENCES = [
@@ -634,6 +634,89 @@ const DISEASE_PREDICTION_REFERENCES = [
     url: "https://www.who.int/news-room/fact-sheets/detail/asthma",
   },
 ];
+
+const DISEASE_METADATA: { [key: string]: { icon: string; description: string; color: string } } = {
+  "Diabetes": {
+    icon: "diabetes",
+    description: "Blood sugar regulation disorder affecting energy management.",
+    color: "#FF6F00"
+  },
+  "Hypertension": {
+    icon: "heart-alert",
+    description: "Elevated blood pressure affecting heart and blood vessels.",
+    color: "#F44336"
+  },
+  "Heart Disease": {
+    icon: "heart-broken",
+    description: "Cardiovascular system complications and reduced heart efficiency.",
+    color: "#E91E63"
+  },
+  "Lung Cancer": {
+    icon: "lungs",
+    description: "Malignant growth in the lungs, often linked to lifestyle/environment.",
+    color: "#607D8B"
+  },
+  "Asthma": {
+    icon: "lungs",
+    description: "Chronic respiratory airway inflammation causing breathing issues.",
+    color: "#2196F3"
+  },
+  "Arthritis": {
+    icon: "bone",
+    description: "Joint inflammation causing pain, stiffness, and mobility issues.",
+    color: "#795548"
+  },
+  "Dementia": {
+    icon: "brain",
+    description: "Decline in cognitive abilities and memory functions.",
+    color: "#673AB7"
+  },
+  "Parkinsons": {
+    icon: "brain",
+    description: "Progressive neurological disorder affecting movement control.",
+    color: "#9C27B0"
+  },
+  "Huntingtons": {
+    icon: "molecule",
+    description: "Hereditary neurodegenerative disease affecting movement and mood.",
+    color: "#3F51B5"
+  },
+  "Tuberculosis": {
+    icon: "biohazard",
+    description: "Infectious bacterial disease that primarily affects the lungs.",
+    color: "#FF9800"
+  },
+  "Osteoporosis": {
+    icon: "bone",
+    description: "Weakened bone structure increasing the risk of fractures.",
+    color: "#9E9E9E"
+  },
+  "Ischemic Heart Disease": {
+    icon: "heart-pulse",
+    description: "Reduced blood flow to the heart due to narrowed arteries.",
+    color: "#C62828"
+  },
+  "Stroke": {
+    icon: "flash-alert",
+    description: "Interrupted blood flow to the brain causing cell damage.",
+    color: "#7E57C2"
+  },
+  "Chronic Kidney Disease": {
+    icon: "kettle-steam",
+    description: "Progressive loss of kidney function over time.",
+    color: "#5C6BC0"
+  },
+  "COPD": {
+    icon: "air-filter",
+    description: "Chronic inflammatory lung disease that obstructs airflow.",
+    color: "#455A64"
+  },
+  "Anemia": {
+    icon: "water-percent",
+    description: "Lack of enough healthy red blood cells to carry oxygen.",
+    color: "#D32F2F"
+  }
+};
 
 export default function Analysis({ initialMetric, onClose }: { initialMetric?: string; onClose?: () => void }) {
   const { theme } = useTheme();
@@ -681,7 +764,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
   const [selectedHeight, setSelectedHeight] = useState(170);
   const [selectedWeight, setSelectedWeight] = useState(70);
   const [isButtonPressed, setIsButtonPressed] = useState(false);
-  
+
   // Quick Update Edit States
   const [editingQuickUpdate, setEditingQuickUpdate] = useState<string | null>(null);
   const [quickUpdateValues, setQuickUpdateValues] = useState<{ [key: string]: string }>({
@@ -695,7 +778,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
     addiction: '',
     risks: '',
   });
-  
+
   const heightScrollRef = useRef<ScrollView>(null);
   const weightScrollRef = useRef<ScrollView>(null);
   const screenWidth = Dimensions.get("window").width;
@@ -724,7 +807,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
           5: 'extremely_active',
         };
         const newActivityLevel = activityLevelMap[value as keyof typeof activityLevelMap] || 'sedentary';
-        
+
         setActivityHistory((prev) => {
           const updated = [...prev];
           const existingIdx = updated.findIndex(h => h.date === dateStr);
@@ -736,7 +819,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
           }
           return updated.length > 12 ? updated.slice(-12) : updated;
         });
-        
+
         // Update userData to reflect new activity level
         if (userData) {
           setUserData({
@@ -1009,7 +1092,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                     });
                     return;
                   }
-                  
+
                   // Route to specific handlers for metrics that need database save
                   if (metric === 'sleep') {
                     handleSleepUpdate(numValue);
@@ -1465,22 +1548,22 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
     const history = [];
     const currentBMI = userData?.physicalMetrics?.bmi || 25;
     const today = new Date();
-    
+
     for (let i = 11; i >= 0; i--) {
       const date = new Date(today);
       date.setMonth(date.getMonth() - i);
-      
+
       // Create variation in BMI with slight trend
       const variation = (Math.random() - 0.5) * 2; // -1 to 1
       const trend = (11 - i) * 0.05; // Slight upward/downward trend
       const bmi = Math.max(18, Math.min(35, currentBMI + variation + trend));
-      
+
       history.push({
         date: `${date.getMonth() + 1}/${date.getDate()}`,
         bmi: parseFloat(bmi.toFixed(1)),
       });
     }
-    
+
     setBmiHistory(history);
   };
 
@@ -1488,7 +1571,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
     // Generate simulated activity history for the past 12 months
     const history = [];
     const today = new Date();
-    
+
     // Define PAL values based on activity level
     const palValues: { [key: string]: number } = {
       sedentary: 1.25,
@@ -1497,28 +1580,28 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
       very_active: 1.85,
       extremely_active: 1.95,
     };
-    
+
     const currentPal = palValues[userData?.lifestyle?.activityLevel || 'sedentary'] || 1.5;
-    
+
     for (let i = 11; i >= 0; i--) {
       const date = new Date(today);
       date.setMonth(date.getMonth() - i);
-      
+
       // Create variation in PAL with slight trend
       const variation = (Math.random() - 0.5) * 0.3; // -0.15 to 0.15
       const trend = (11 - i) * 0.02;
       const pal = Math.max(1.2, Math.min(2.4, currentPal + variation + trend));
-      
+
       // MET is roughly 1.2 + (PAL - 1) * 30 for average person
       const met = 1.2 + (pal - 1) * 30;
-      
+
       history.push({
         date: `${date.getMonth() + 1}/${date.getDate()}`,
         pal: parseFloat(pal.toFixed(2)),
         met: parseFloat(met.toFixed(1)),
       });
     }
-    
+
     setActivityHistory(history);
   };
 
@@ -1776,7 +1859,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
     // BMI = weight (kg) / (height (m)^2)
     const heightInMeters = selectedHeight / 100;
     const bmiValue = selectedWeight / (heightInMeters * heightInMeters);
-    
+
     if (isNaN(bmiValue) || bmiValue < 10 || bmiValue > 60) {
       Toast.show({
         type: "error",
@@ -1790,12 +1873,12 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
     // Add today's entry to BMI history
     const today = new Date();
     const dateStr = `${today.getMonth() + 1}/${today.getDate()}`;
-    
+
     setBmiHistory((prevHistory) => {
       // Check if today's date already exists
       const existingIndex = prevHistory.findIndex(h => h.date === dateStr);
       let newHistory;
-      
+
       if (existingIndex >= 0) {
         // Update existing today's entry
         newHistory = [...prevHistory];
@@ -1804,12 +1887,12 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
         // Add new entry for today
         newHistory = [...prevHistory, { date: dateStr, bmi: parseFloat(bmiValue.toFixed(1)) }];
       }
-      
+
       // Keep only last 12 entries
       if (newHistory.length > 12) {
         newHistory = newHistory.slice(-12);
       }
-      
+
       return newHistory;
     });
 
@@ -1910,7 +1993,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
     // Add today's entry to activity history
     const today = new Date();
     const dateStr = `${today.getMonth() + 1}/${today.getDate()}`;
-    
+
     const activityInfo = ACTIVITY_LEVELS[newActivityLevel as keyof typeof ACTIVITY_LEVELS];
     const palValue = parseFloat(activityInfo.pal.split("-")[0]); // Get first value of PAL range
     const metValue = parseFloat(activityInfo.met.split("-")[0]); // Get first value of MET range
@@ -1918,18 +2001,18 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
     setActivityHistory((prevHistory) => {
       const existingIndex = prevHistory.findIndex(h => h.date === dateStr);
       let newHistory;
-      
+
       if (existingIndex >= 0) {
         newHistory = [...prevHistory];
         newHistory[existingIndex] = { date: dateStr, pal: palValue, met: metValue };
       } else {
         newHistory = [...prevHistory, { date: dateStr, pal: palValue, met: metValue }];
       }
-      
+
       if (newHistory.length > 12) {
         newHistory = newHistory.slice(-12);
       }
-      
+
       return newHistory;
     });
 
@@ -2025,22 +2108,22 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
     // Add today's entry to sleep history
     const today = new Date();
     const dateStr = `${today.getMonth() + 1}/${today.getDate()}`;
-    
+
     setSleepHistory((prevHistory) => {
       const existingIndex = prevHistory.findIndex(h => h.date === dateStr);
       let newHistory;
-      
+
       if (existingIndex >= 0) {
         newHistory = [...prevHistory];
         newHistory[existingIndex] = { date: dateStr, hours: parseFloat(sleepHours.toFixed(1)) };
       } else {
         newHistory = [...prevHistory, { date: dateStr, hours: parseFloat(sleepHours.toFixed(1)) }];
       }
-      
+
       if (newHistory.length > 12) {
         newHistory = newHistory.slice(-12);
       }
-      
+
       return newHistory;
     });
 
@@ -2136,22 +2219,22 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
     // Add today's entry to water history
     const today = new Date();
     const dateStr = `${today.getMonth() + 1}/${today.getDate()}`;
-    
+
     setWaterHistory((prevHistory) => {
       const existingIndex = prevHistory.findIndex(h => h.date === dateStr);
       let newHistory;
-      
+
       if (existingIndex >= 0) {
         newHistory = [...prevHistory];
         newHistory[existingIndex] = { date: dateStr, liters: parseFloat(waterLiters.toFixed(2)) };
       } else {
         newHistory = [...prevHistory, { date: dateStr, liters: parseFloat(waterLiters.toFixed(2)) }];
       }
-      
+
       if (newHistory.length > 12) {
         newHistory = newHistory.slice(-12);
       }
-      
+
       return newHistory;
     });
 
@@ -2247,22 +2330,22 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
     // Add today's entry to stress history
     const today = new Date();
     const dateStr = `${today.getMonth() + 1}/${today.getDate()}`;
-    
+
     setStressHistory((prevHistory) => {
       const existingIndex = prevHistory.findIndex(h => h.date === dateStr);
       let newHistory;
-      
+
       if (existingIndex >= 0) {
         newHistory = [...prevHistory];
         newHistory[existingIndex] = { date: dateStr, score: parseFloat(stressScore.toFixed(1)) };
       } else {
         newHistory = [...prevHistory, { date: dateStr, score: parseFloat(stressScore.toFixed(1)) }];
       }
-      
+
       if (newHistory.length > 12) {
         newHistory = newHistory.slice(-12);
       }
-      
+
       return newHistory;
     });
 
@@ -2359,22 +2442,22 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
     // Add today's entry to dietary history
     const today = new Date();
     const dateStr = `${today.getMonth() + 1}/${today.getDate()}`;
-    
+
     setDietaryHistory((prevHistory) => {
       const existingIndex = prevHistory.findIndex(h => h.date === dateStr);
       let newHistory;
-      
+
       if (existingIndex >= 0) {
         newHistory = [...prevHistory];
         newHistory[existingIndex] = { date: dateStr, mealFrequency: parseFloat(mealFrequency.toFixed(1)) };
       } else {
         newHistory = [...prevHistory, { date: dateStr, mealFrequency: parseFloat(mealFrequency.toFixed(1)) }];
       }
-      
+
       if (newHistory.length > 12) {
         newHistory = newHistory.slice(-12);
       }
-      
+
       return newHistory;
     });
 
@@ -3362,8 +3445,8 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
 
       const years = Math.floor(durationMonths / 12);
       const months = durationMonths % 12;
-      const durationText = years > 0 
-        ? `${years}y ${months}m` 
+      const durationText = years > 0
+        ? `${years}y ${months}m`
         : `${durationMonths}m`;
 
       Toast.show({
@@ -4893,7 +4976,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             </Text>
           </View>
 
-      
+
           {/* Main Activity Card */}
           <View
             style={{
@@ -5323,7 +5406,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             </Text>
           </View>
 
-            {/* Quick Update Section */}
+          {/* Quick Update Section */}
           <View
             style={{
               backgroundColor: theme.mode === 'dark' ? theme.colors.background : theme.colors.primary + '08',
@@ -7960,8 +8043,8 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               })}
             </View>
           </View>
- 
-       
+
+
           {/* Quick Update: Food Allergies */}
           <View
             style={{
@@ -7982,7 +8065,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             <Text style={{ fontSize: 11, color: theme.colors.text + '88', marginBottom: 12, ...getBodyFont() }}>
               Add or remove your food allergies
             </Text>
-            
+
             {/* Current Allergies Display */}
             {allergies.length > 0 && (
               <View style={{ marginBottom: 12 }}>
@@ -8363,7 +8446,8 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                       <TouchableOpacity
                         key={idx}
                         onPress={() => setSelectedDietaryIndex(idx)}
-                        style={{...getMinimalistButtonStyle(selectedDietaryIndex === idx),
+                        style={{
+                          ...getMinimalistButtonStyle(selectedDietaryIndex === idx),
                           minWidth: 90,
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -8472,7 +8556,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             </View>
           )}
 
-      
+
 
           {/* Nutrition Tips */}
           <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 20, borderLeftWidth: 5, borderLeftColor: "#4CAF50", zIndex: 1 }}>
@@ -8701,9 +8785,9 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             </View>
           )}
 
-       
 
-       
+
+
 
           {/* Current Conditions */}
           {currentConditions.length > 0 && (
@@ -8729,12 +8813,12 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             </View>
           )}
 
-             {/* Quick Update: Current Conditions */}
+          {/* Quick Update: Current Conditions */}
           <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FAFAFA', borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 2, borderColor: theme.colors.primary + '33', zIndex: 1 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
               <MaterialCommunityIcons name="lightning-bolt" size={18} color={theme.colors.primary} style={{ marginRight: 8 }} />
               <Text style={{ fontSize: 14, fontWeight: '700', color: theme.colors.primary, ...getHeadingFont() }}>
-              Quick Update: Current Conditions
+                Quick Update: Current Conditions
               </Text>
             </View>
             <TextInput
@@ -8798,12 +8882,12 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             </View>
           )}
 
-            {/* Quick Update: Family History */}
+          {/* Quick Update: Family History */}
           <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FAFAFA', borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 2, borderColor: theme.colors.primary + '33', zIndex: 1 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
               <MaterialCommunityIcons name="lightning-bolt" size={18} color={theme.colors.primary} style={{ marginRight: 8 }} />
               <Text style={{ fontSize: 14, fontWeight: '700', color: theme.colors.primary, ...getHeadingFont() }}>
-              Quick Update: Family History
+                Quick Update: Family History
               </Text>
             </View>
             <TextInput
@@ -8840,7 +8924,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             </TouchableOpacity>
           </View>
 
-       
+
 
           {/* Medications */}
           {medications.length > 0 && (
@@ -8859,7 +8943,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             </View>
           )}
 
-   {/* Quick Update: Current Medications */}
+          {/* Quick Update: Current Medications */}
           <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : '#FAFAFA', borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 2, borderColor: theme.colors.primary + '33', zIndex: 1 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
               <MaterialCommunityIcons name="lightning-bolt" size={18} color={theme.colors.primary} style={{ marginRight: 8 }} />
@@ -8941,7 +9025,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             </Text>
           </View>
 
-     
+
           {/* Checklist Section - BEFORE References */}
           {renderChecklist()}
 
@@ -9026,7 +9110,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
               <MaterialCommunityIcons name="lightning-bolt" size={18} color="#00897B" style={{ marginRight: 8 }} />
               <Text style={{ fontSize: 14, fontWeight: '700', color: '#00897B', ...getHeadingFont() }}>
-              Quick Update: Pollution Exposure
+                Quick Update: Pollution Exposure
               </Text>
             </View>
             <Text style={{ fontSize: 11, color: theme.colors.text + '88', marginBottom: 12, ...getBodyFont() }}>
@@ -9065,7 +9149,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
               <MaterialCommunityIcons name="lightning-bolt" size={18} color="#F57C00" style={{ marginRight: 8 }} />
               <Text style={{ fontSize: 14, fontWeight: '700', color: '#F57C00', ...getHeadingFont() }}>
-              Quick Update: Occupation Type
+                Quick Update: Occupation Type
               </Text>
             </View>
             <Text style={{ fontSize: 11, color: theme.colors.text + '88', marginBottom: 12, ...getBodyFont() }}>
@@ -9287,7 +9371,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             </View>
           </View>
 
-        
+
           {/* Checklist Section - BEFORE References */}
           {renderChecklist()}
 
@@ -9317,13 +9401,39 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
   };
 
   const renderDiseaseRisksPage = () => {
-    const diseases = [
-      { name: "Hypertension (High Blood Pressure)", icon: "heart-alert", description: "Elevated blood pressure affecting heart and blood vessels" },
-      { name: "Diabetes (Type 2)", icon: "diabetes", description: "Blood sugar regulation disorder" },
-      { name: "Heart Disease", icon: "heart-broken", description: "Cardiovascular system complications" },
-      { name: "Asthma", icon: "lungs", description: "Chronic respiratory airway inflammation" },
-      { name: "Arthritis", icon: "bone", description: "Joint inflammation and mobility issues" },
-    ];
+    // Get predictions from userData or fall back to empty array
+    const predictions = userData?.lastPrediction?.predictions || [];
+
+    // Map existing predictions to include metadata
+    const diseases = predictions.map(p => {
+      const meta = DISEASE_METADATA[p.name] || {
+        icon: "alert-circle-outline",
+        description: "Health risk area identified by the analysis model.",
+        color: theme.colors.primary
+      };
+
+      return {
+        name: formatDiseaseName(p.name),
+        icon: meta.icon,
+        description: meta.description,
+        color: meta.color
+      };
+    });
+
+    // If no predictions yet, use a friendly placeholder
+    if (diseases.length === 0 && !loading) {
+      return (
+        <View style={{ width: screenWidth, paddingHorizontal: 16, paddingVertical: 100, flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <MaterialCommunityIcons name="clipboard-text-search-outline" size={80} color={theme.colors.text + "22"} />
+          <Text style={{ fontSize: 18, color: theme.colors.text + "88", marginTop: 20, textAlign: 'center', ...getHeadingFont() }}>
+            No analysis data yet
+          </Text>
+          <Text style={{ fontSize: 14, color: theme.colors.text + "55", marginTop: 10, textAlign: 'center', ...getBodyFont() }}>
+            Complete your health assessment to see potential risks.
+          </Text>
+        </View>
+      );
+    }
 
     return (
       <View style={{ width: screenWidth, paddingHorizontal: 16, paddingVertical: 24, flex: 1 }}>
@@ -9482,8 +9592,8 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 }}
               >
                 <View style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: 4, gap: 12 }}>
-                  <View style={{ marginTop: 2 }}>{renderIcon(disease.icon, 18)}</View>
-                  <Text style={{ fontSize: 14, fontWeight: "700", color: "#E65100", flex: 1, ...getBodyBoldFont() }}>
+                  <View style={{ marginTop: 2 }}>{renderIcon(disease.icon, 18, disease.color)}</View>
+                  <Text style={{ fontSize: 14, fontWeight: "700", color: disease.color || "#E65100", flex: 1, ...getBodyBoldFont() }}>
                     {disease.name}
                   </Text>
                 </View>
@@ -9568,7 +9678,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             </Text>
           </View>
 
-         
+
           {/* Checklist Section - BEFORE References */}
           {renderChecklist()}
 

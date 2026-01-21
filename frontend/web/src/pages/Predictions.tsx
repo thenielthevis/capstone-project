@@ -86,15 +86,15 @@ export default function Predictions() {
         setRefreshTrigger(prev => prev + 1);
       }
     };
-    
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     // Also refresh on window focus
     const handleFocus = () => {
       setRefreshTrigger(prev => prev + 1);
     };
     window.addEventListener('focus', handleFocus);
-    
+
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
@@ -106,7 +106,7 @@ export default function Predictions() {
     const handleAssessmentUpdate = () => {
       setRefreshTrigger(prev => prev + 1);
     };
-    
+
     window.addEventListener('assessmentUpdated', handleAssessmentUpdate);
     return () => window.removeEventListener('assessmentUpdated', handleAssessmentUpdate);
   }, []);
@@ -119,31 +119,31 @@ export default function Predictions() {
         setLoading(true);
       }
       setError(null);
-      
+
       console.log('[Predictions] Fetching predictions with force=', force);
       // Use getCachedPredictions for non-force requests (faster, no regeneration)
       const response = force ? await predictUser(true) : await getCachedPredictions();
       console.log('[Predictions] Response received:', response.data);
       const data = response.data;
-      
+
       setPredictions(data.predictions || []);
       setProfile(data.profile || null);
       setCached(data.cached || false);
-      
+
       // Set last updated time
       if (data.lastPrediction?.predictedAt) {
         setLastUpdated(data.lastPrediction.predictedAt);
       }
-      
+
       console.log('[Predictions] State updated - predictions:', data.predictions?.length || 0, 'cached:', data.cached);
-      
+
       if (force && data.predictions?.length > 0) {
         alert('✅ Predictions regenerated successfully!');
       }
     } catch (error: any) {
       console.error('[Predictions] Error fetching predictions:', error);
       console.error('[Predictions] Error response:', error.response);
-      
+
       // Handle specific error cases
       if (error.response?.status === 401) {
         setError('Your session has expired. Please log in again.');
@@ -153,7 +153,7 @@ export default function Predictions() {
         setError('Unable to generate predictions. Please complete your health assessment with all required information (age, gender, height, weight, activity level, and sleep hours).');
       } else {
         setError(
-          error.response?.data?.message || 
+          error.response?.data?.message ||
           error.response?.data?.error ||
           'Failed to load predictions. Please complete a health assessment first.'
         );
@@ -182,9 +182,9 @@ export default function Predictions() {
 
   const isProfileComplete = (profile: UserProfile | null) => {
     if (!profile) return false;
-    return !!(profile.age && profile.gender && profile.physicalMetrics?.height?.value && 
-              profile.physicalMetrics?.weight?.value && profile.lifestyle?.activityLevel && 
-              profile.lifestyle?.sleepHours);
+    return !!(profile.age && profile.gender && profile.physicalMetrics?.height?.value &&
+      profile.physicalMetrics?.weight?.value && profile.lifestyle?.activityLevel &&
+      profile.lifestyle?.sleepHours);
   };
 
   const getSourceLabel = (source?: string) => {
@@ -206,14 +206,14 @@ export default function Predictions() {
 
   if (loading) {
     return (
-      <div 
+      <div
         className="min-h-screen flex items-center justify-center"
-        style={{ 
+        style={{
           background: `linear-gradient(135deg, ${theme.colors.surface} 0%, ${theme.colors.background} 100%)`
         }}
       >
         <div className="text-center">
-          <div 
+          <div
             className="animate-spin rounded-full h-16 w-16 border-b-2 mx-auto mb-4"
             style={{ borderColor: theme.colors.primary }}
           ></div>
@@ -224,11 +224,11 @@ export default function Predictions() {
   }
 
   return (
-    <div className="min-h-screen" style={{ 
+    <div className="min-h-screen" style={{
       background: `linear-gradient(135deg, ${theme.colors.surface} 0%, ${theme.colors.background} 100%)`
     }}>
       {/* Header */}
-      <Header 
+      <Header
         title="Lifora"
         showBackButton
         showHomeButton
@@ -284,13 +284,13 @@ export default function Predictions() {
                               {profile.physicalMetrics.bmi.toFixed(1)}
                             </div>
                           </div>
-                          
+
                           {/* BMI Status Badge */}
                           {(() => {
                             const bmi = profile.physicalMetrics.bmi;
                             let status = 'Unknown';
                             let color = 'bg-gray-100 text-gray-700';
-                            
+
                             if (bmi < 18.5) {
                               status = 'Underweight';
                               color = 'bg-blue-100 text-blue-700';
@@ -304,18 +304,18 @@ export default function Predictions() {
                               status = 'Obese';
                               color = 'bg-red-100 text-red-700';
                             }
-                            
+
                             return (
                               <>
                                 <div className={`inline-block px-4 py-2 rounded-full font-semibold text-sm mt-4 ${color}`}>
                                   {status}
                                 </div>
-                                
+
                                 {/* BMI Scale Bar */}
                                 <div className="mt-6 space-y-2 relative">
                                   <div className="h-6 bg-gradient-to-r from-blue-400 via-green-400 to-red-400 rounded-full overflow-visible relative shadow-sm">
                                     {/* Indicator */}
-                                    <div 
+                                    <div
                                       className=""
                                       style={{
                                         left: `${Math.min((bmi / 35) * 100, 100)}%`,
@@ -336,7 +336,7 @@ export default function Predictions() {
                         </div>
                       </div>
                     )}
-                    
+
                     {/* Profile Stats Grid */}
                     <div className="grid md:grid-cols-2 gap-4">
                       {/* Age */}
@@ -349,7 +349,7 @@ export default function Predictions() {
                           <p className="text-2xl font-bold text-purple-900">{profile.age || 'N/A'}</p>
                         </div>
                       </div>
-                      
+
                       {/* Gender */}
                       <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-pink-50 to-pink-100/50 rounded-lg border border-pink-200">
                         <div className="bg-pink-600 p-3 rounded-lg">
@@ -360,7 +360,7 @@ export default function Predictions() {
                           <p className="text-2xl font-bold text-pink-900 capitalize">{profile.gender || 'N/A'}</p>
                         </div>
                       </div>
-                      
+
                       {/* Height */}
                       <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-lg border border-blue-200">
                         <div className="bg-blue-600 p-3 rounded-lg">
@@ -371,7 +371,7 @@ export default function Predictions() {
                           <p className="text-2xl font-bold text-blue-900">{profile.physicalMetrics?.height?.value || 'N/A'} <span className="text-sm">cm</span></p>
                         </div>
                       </div>
-                      
+
                       {/* Weight */}
                       <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-orange-50 to-orange-100/50 rounded-lg border border-orange-200">
                         <div className="bg-orange-600 p-3 rounded-lg">
@@ -382,7 +382,7 @@ export default function Predictions() {
                           <p className="text-2xl font-bold text-orange-900">{profile.physicalMetrics?.weight?.value || 'N/A'} <span className="text-sm">kg</span></p>
                         </div>
                       </div>
-                      
+
                       {/* Activity Level */}
                       <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-green-50 to-green-100/50 rounded-lg border border-green-200">
                         <div className="bg-green-600 p-3 rounded-lg">
@@ -393,7 +393,7 @@ export default function Predictions() {
                           <p className="text-2xl font-bold text-green-900 capitalize">{profile.lifestyle?.activityLevel?.replace('_', ' ') || 'N/A'}</p>
                         </div>
                       </div>
-                      
+
                       {/* Sleep Hours */}
                       <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-indigo-50 to-indigo-100/50 rounded-lg border border-indigo-200">
                         <div className="bg-indigo-600 p-3 rounded-lg">
@@ -404,7 +404,7 @@ export default function Predictions() {
                           <p className="text-2xl font-bold text-indigo-900">{profile.lifestyle?.sleepHours || 'N/A'} <span className="text-sm">hrs</span></p>
                         </div>
                       </div>
-                      
+
                       {/* Stress Level */}
                       <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-red-50 to-red-100/50 rounded-lg border border-red-200">
                         <div className="bg-red-600 p-3 rounded-lg">
@@ -415,7 +415,7 @@ export default function Predictions() {
                           <p className="text-2xl font-bold text-red-900 capitalize">{profile.riskFactors?.stressLevel || 'N/A'}</p>
                         </div>
                       </div>
-                      
+
                       {/* Waist Circumference */}
                       {profile.physicalMetrics?.waistCircumference && (
                         <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-cyan-50 to-cyan-100/50 rounded-lg border border-cyan-200">
@@ -428,7 +428,7 @@ export default function Predictions() {
                           </div>
                         </div>
                       )}
-                      
+
                       {/* Blood Type */}
                       {profile.healthProfile?.bloodType && (
                         <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-rose-50 to-rose-100/50 rounded-lg border border-rose-200">
@@ -441,7 +441,7 @@ export default function Predictions() {
                           </div>
                         </div>
                       )}
-                      
+
                       {/* Meal Frequency */}
                       {profile.dietaryProfile?.mealFrequency && (
                         <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-amber-50 to-amber-100/50 rounded-lg border border-amber-200">
@@ -454,7 +454,7 @@ export default function Predictions() {
                           </div>
                         </div>
                       )}
-                      
+
                       {/* Daily Water Intake */}
                       {profile.dietaryProfile?.dailyWaterIntake && (
                         <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-sky-50 to-sky-100/50 rounded-lg border border-sky-200">
@@ -467,7 +467,7 @@ export default function Predictions() {
                           </div>
                         </div>
                       )}
-                      
+
                       {/* Occupation Type */}
                       {profile.environmentalFactors?.occupationType && (
                         <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-violet-50 to-violet-100/50 rounded-lg border border-violet-200">
@@ -480,7 +480,7 @@ export default function Predictions() {
                           </div>
                         </div>
                       )}
-                      
+
                       {/* Pollution Exposure */}
                       {profile.environmentalFactors?.pollutionExposure && (
                         <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-slate-50 to-slate-100/50 rounded-lg border border-slate-200">
@@ -494,7 +494,7 @@ export default function Predictions() {
                         </div>
                       )}
                     </div>
-                    
+
                     {/* Additional Profile Sections */}
                     <div className="space-y-6 border-t border-gray-200 pt-6">
                       {/* Dietary Profile */}
@@ -532,7 +532,7 @@ export default function Predictions() {
                           </div>
                         </div>
                       )}
-                      
+
                       {/* Health Profile */}
                       {(profile.healthProfile?.currentConditions?.length > 0 || profile.healthProfile?.familyHistory?.length > 0 || profile.healthProfile?.medications?.length > 0) && (
                         <div>
@@ -580,7 +580,7 @@ export default function Predictions() {
                           </div>
                         </div>
                       )}
-                      
+
                       {/* Addictions/Substance Use */}
                       {profile.riskFactors?.addictions?.length > 0 && (
                         <div>
@@ -615,7 +615,7 @@ export default function Predictions() {
               )}
 
               {/* Predictions */}
-              {predictions.filter((p) => p.probability > 0).length > 0 && isProfileComplete(profile) ? (
+              {predictions.length > 0 && isProfileComplete(profile) ? (
                 <>
                   {cached && (
                     <Card className="bg-blue-50 border-blue-200 mb-6">
@@ -646,7 +646,7 @@ export default function Predictions() {
                         Based on your health profile, here are your predicted disease risks:
                       </p>
                       <div className="space-y-4">
-                        {predictions.filter(p => p.probability > 0).map((prediction, index) => (
+                        {predictions.map((prediction, index) => (
                           <div
                             key={index}
                             className={`p-4 rounded-lg border-2 ${getRiskColor(prediction.probability)}`}
@@ -703,17 +703,17 @@ export default function Predictions() {
                     </CardContent>
                   </Card>
 
-            
+
 
                   <div className="flex gap-4">
-                    <Button 
-                      onClick={() => navigate('/health-assessment')} 
+                    <Button
+                      onClick={() => navigate('/health-assessment')}
                       className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
                     >
                       Update Assessment
                     </Button>
-                    <Button 
-                      onClick={handleRegeneratePredictions} 
+                    <Button
+                      onClick={handleRegeneratePredictions}
                       disabled={regenerating}
                       className="flex-1 bg-amber-600 hover:bg-amber-700 text-white disabled:bg-amber-400"
                     >
