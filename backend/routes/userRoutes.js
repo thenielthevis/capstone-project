@@ -26,7 +26,7 @@ const { registerUser,
 
 const { refreshGamificationStats } = require('../controllers/gamificationController');
 
-router.get('/me', userMiddleware, currentlyLoggedInUser);
+router.get('/me', auth, currentlyLoggedInUser);
 router.post('/register', registerUser);
 router.post('/login', loginUser);
 router.post('/google', googleUserController);
