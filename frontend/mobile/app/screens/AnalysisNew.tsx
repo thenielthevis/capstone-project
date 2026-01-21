@@ -6363,7 +6363,8 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
       );
     }
 
-    const predictions = userData.lastPrediction.predictions;
+    // Filter out predictions with 0% probability
+    const predictions = userData.lastPrediction.predictions.filter((pred: any) => (pred.probability || 0) > 0);
 
     return (
       <View
@@ -6414,7 +6415,6 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
 
           {predictions.map((pred, idx) => {
             const probability = pred.probability || 0;
-            const percentage = Math.round(probability * 100);
             const getRiskColor = (prob: number) => {
               if (prob >= 0.7)
                 return { bg: "#FFCDD2", border: "#F44336", text: "#C62828" };
@@ -6456,15 +6456,6 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                   >
                     {formatDiseaseName(pred.name)}
                   </Text>
-                  <Text
-                    style={{
-                      fontSize: 16,
-                      fontWeight: "900",
-                      color: color.border,
-                    }}
-                  >
-                    {percentage}%
-                  </Text>
                 </View>
 
                 <View
@@ -6478,7 +6469,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                 >
                   <View
                     style={{
-                      width: `${percentage}%`,
+                      width: `${Math.round(probability * 100)}%`,
                       height: "100%",
                       backgroundColor: color.border,
                       borderRadius: 4,
@@ -6493,9 +6484,9 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
                     fontWeight: "600",
                   }}
                 >
-                  {percentage >= 70
+                  {probability >= 0.7
                     ? "🔴 High Risk"
-                    : percentage >= 40
+                    : probability >= 0.4
                       ? "🟠 Medium Risk"
                       : "🟢 Low Risk"}
                 </Text>
@@ -9577,17 +9568,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
             </Text>
           </View>
 
-          {/* Quick Update Section */}
-          {diseaseRiskHistory.length > 0 && renderQuickUpdate(
-            'risks',
-            '❤️ 🔍',
-            diseaseRiskHistory[diseaseRiskHistory.length - 1].highRiskCount,
-            `${diseaseRiskHistory[diseaseRiskHistory.length - 1].highRiskCount} Risks`,
-            'Number of high-risk disease conditions detected. Preventive measures recommended.',
-            'Regular health screening and lifestyle modifications reduce disease risk',
-            10
-          )}
-
+         
           {/* Checklist Section - BEFORE References */}
           {renderChecklist()}
 

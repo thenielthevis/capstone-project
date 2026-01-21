@@ -19,6 +19,27 @@ from inference import load_checkpoint, predict_from_array, _debug_print
 from run_batch_predictions import process_input
 
 # ============================================================================
+# DISEASE DESCRIPTIONS MAPPING
+# ============================================================================
+DISEASE_DESCRIPTIONS = {
+    'Diabetes': 'A condition affecting blood sugar regulation, associated with diet, weight, and lifestyle factors.',
+    'Hypertension': 'High blood pressure that can increase risk of heart disease and stroke.',
+    'Ischemic Heart Disease': 'Reduced blood flow to the heart due to narrowed arteries.',
+    'Stroke': 'Interrupted blood flow to the brain caused by blockage or rupture of blood vessels.',
+    'Chronic Kidney Disease': 'Progressive loss of kidney function affecting toxin removal and fluid balance.',
+    'Lung Cancer': 'Malignant growth in the lungs, associated with environmental and lifestyle factors.',
+    'Asthma': 'Chronic inflammation of airways causing breathing difficulties and airway obstruction.',
+    'Arthritis': 'Joint inflammation causing pain, stiffness, and reduced mobility.',
+    'COPD': 'Chronic Obstructive Pulmonary Disease affecting lung function and breathing capacity.',
+    'Anemia': 'Low red blood cell count reducing oxygen-carrying capacity in the blood.',
+    'Huntingtons': 'Hereditary neurodegenerative disease affecting movement, cognition, and mood.',
+    'Heart Disease': 'General heart and cardiovascular dysfunction related to lifestyle and risk factors.',
+    'Parkinsons': 'Progressive neurological disorder affecting movement and motor control.',
+    'Dementia': 'Decline in cognitive abilities and memory, associated with aging and genetics.',
+    'Osteoporosis': 'Weakened bone structure increasing fracture risk, related to age and activity levels.'
+}
+
+# ============================================================================
 # RULE-BASED ENGINE FOR UNLIMITED DISEASES
 # ============================================================================
 
@@ -37,6 +58,16 @@ class RuleBasedEngine:
             'parkinsons': self._score_parkinsons,
             'dementia': self._score_dementia,
             'osteoporosis': self._score_osteoporosis,
+        }
+        
+        # Proper disease names mapping (lowercase key -> proper display name)
+        self.disease_names = {
+            'huntingtons': 'Huntingtons',
+            'heart_disease': 'Heart Disease',
+            'lung_cancer': 'Lung Cancer',
+            'parkinsons': 'Parkinsons',
+            'dementia': 'Dementia',
+            'osteoporosis': 'Osteoporosis',
         }
     
     def _score_huntingtons(self, data):
@@ -394,9 +425,11 @@ class RuleBasedEngine:
     def predict_all(self, data):
         """Predict risk for all rule-based diseases"""
         results = {}
-        for disease_name in self.diseases:
-            score, factors = self.predict_disease(disease_name, data)
-            results[disease_name] = {
+        for disease_key in self.diseases:
+            score, factors = self.predict_disease(disease_key, data)
+            # Use proper display name instead of lowercase key
+            proper_name = self.disease_names.get(disease_key, disease_key)
+            results[proper_name] = {
                 'probability': score,
                 'factors': factors,
                 'source': 'rule_based'
@@ -613,11 +646,15 @@ def hybrid_predict(user_data):
         is_ml_above_threshold = prediction['source'] == 'ml_model' and (prediction['probability'] * 100 >= 1)
         
         if is_existing or is_rule_based or is_custom_prediction or is_user_reported or is_ml_above_threshold:
+            # Get description from mapping, with fallback
+            description = DISEASE_DESCRIPTIONS.get(disease_name, 'Health risk indicator requiring attention.')
+            
             result.append({
                 'name': disease_name,
                 'probability': prediction['probability'],
                 'percentage': prediction['probability'] * 100,
                 'source': prediction['source'],
+                'description': description,
                 'factors': prediction.get('factors', [])
             })
     

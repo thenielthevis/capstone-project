@@ -3,6 +3,7 @@ const fs = require('fs');
 const { spawnSync } = require('child_process');
 const mongoose = require('mongoose');
 const User = require('../models/userModel');
+const { generateDiseaseDescriptions } = require('../utils/geminiJudge');
 
 // Test prediction with static data
 exports.testPrediction = async (req, res) => {
@@ -421,7 +422,7 @@ exports.predictUser = async (req, res) => {
 
   let sortedDiseases;
     if (Array.isArray(predictions)) {
-      // Python script returns array of objects with: {name, probability, source, percentage, factors}
+      // Python script returns array of objects with: {name, probability, source, percentage, factors, description}
       // Use the name from the object itself, don't try to map to config labels
       const pairs = predictions.map((p, i) => {
         // Python returns full objects with name, probability, source, etc.
@@ -431,7 +432,7 @@ exports.predictUser = async (req, res) => {
             probability: Number(p.probability),
             percentage: p.percentage || (Number(p.probability) * 100),
             source: p.source || 'model',
-            factors: p.factors || []
+            description: p.description || 'Health risk indicator requiring attention.',
           };
         }
         // Fallback for simple numeric arrays
@@ -523,6 +524,41 @@ exports.predictUser = async (req, res) => {
       profilePicture: user && user.profilePicture ? user.profilePicture : null,
       birthdate: user && user.birthdate ? user.birthdate : null,
     };
+
+    // Enhance predictions with Gemini descriptions for any missing descriptions (async, non-blocking)
+    try {
+      const diseasesWithoutDesc = sortedDiseases.filter(d => !d.description || d.description === 'Health risk indicator requiring attention.');
+      if (diseasesWithoutDesc.length > 0) {
+        const diseaseNames = diseasesWithoutDesc.map(d => d.name);
+        console.log('[predictUser] Generating descriptions for', diseaseNames.length, 'diseases via Gemini...');
+        
+        // Non-blocking async call - don't wait for it
+        generateDiseaseDescriptions(diseaseNames).then(descriptions => {
+          // Update sortedDiseases with generated descriptions
+          sortedDiseases.forEach(disease => {
+            if (descriptions[disease.name]) {
+              disease.description = descriptions[disease.name];
+            }
+          });
+          
+          // Update DB with enhanced descriptions
+          if (responseLastPrediction && Array.isArray(responseLastPrediction.predictions)) {
+            responseLastPrediction.predictions.forEach(pred => {
+              const enhanced = sortedDiseases.find(d => d.name === pred.name);
+              if (enhanced && enhanced.description) {
+                pred.description = enhanced.description;
+              }
+            });
+            
+            // Save to DB asynchronously
+            User.findByIdAndUpdate(userId, { lastPrediction: responseLastPrediction }, { new: true })
+              .catch(err => console.warn('[predictUser] Could not update descriptions in DB:', err.message));
+          }
+        }).catch(err => console.warn('[predictUser] Gemini description generation failed:', err.message));
+      }
+    } catch (geminiErr) {
+      console.warn('[predictUser] Error initiating Gemini descriptions:', geminiErr.message);
+    }
 
     // Return prediction results (include saved lastPrediction and profile)
     const resp = {

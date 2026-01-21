@@ -7,11 +7,23 @@ import { useTheme } from '@/context/ThemeContext';
 import { predictUser, getCachedPredictions } from '@/api/predictApi';
 import Header from '@/components/Header';
 
+// Utility function to normalize disease names
+const normalizeName = (name: string): string => {
+  if (!name) return 'Unknown';
+  // Replace underscores with spaces and capitalize properly
+  return name
+    .replace(/_/g, ' ')
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
+
 interface PredictionItem {
   name: string;
   probability: number;
   source?: string;
   percentage?: number;
+  description?: string;
   factors?: string[];
 }
 
@@ -634,7 +646,7 @@ export default function Predictions() {
                         Based on your health profile, here are your predicted disease risks:
                       </p>
                       <div className="space-y-4">
-                        {predictions.filter(p => Math.round(p.probability * 100) > 0).map((prediction, index) => (
+                        {predictions.filter(p => p.probability > 0).map((prediction, index) => (
                           <div
                             key={index}
                             className={`p-4 rounded-lg border-2 ${getRiskColor(prediction.probability)}`}
@@ -642,13 +654,18 @@ export default function Predictions() {
                             <div className="flex justify-between items-start mb-2">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-1">
-                                  <h3 className="font-semibold text-lg">{prediction.name}</h3>
+                                  <h3 className="font-semibold text-lg">{normalizeName(prediction.name)}</h3>
                                   {prediction.source && (
                                     <span className="text-xs px-2 py-1 rounded bg-white/50">
                                       {getSourceLabel(prediction.source)}
                                     </span>
                                   )}
                                 </div>
+                                {prediction.description && (
+                                  <p className="text-xs mb-2" style={{ color: '#666' }}>
+                                    {prediction.description}
+                                  </p>
+                                )}
                                 {prediction.factors && prediction.factors.length > 0 && (
                                   <div className="mt-2">
                                     <p className="text-xs font-medium mb-1">Contributing Factors:</p>
@@ -659,14 +676,6 @@ export default function Predictions() {
                                     </ul>
                                   </div>
                                 )}
-                              </div>
-                              <div className="text-right ml-4">
-                                <span className="text-sm font-medium block mb-1">
-                                  {getRiskLevel(prediction.probability)}
-                                </span>
-                                <span className="font-bold text-2xl">
-                                  {Math.round(prediction.probability * 100)}%
-                                </span>
                               </div>
                             </div>
                             <div className="flex items-center gap-3 mt-3">
@@ -693,6 +702,8 @@ export default function Predictions() {
                       </p>
                     </CardContent>
                   </Card>
+
+            
 
                   <div className="flex gap-4">
                     <Button 

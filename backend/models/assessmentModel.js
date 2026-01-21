@@ -52,16 +52,7 @@ const assessmentSchema = new mongoose.Schema(
     },
     category: {
       type: String,
-      enum: [
-        "mental_health",
-        "physical_health",
-        "lifestyle",
-        "nutrition",
-        "exercise",
-        "sleep",
-        "stress",
-        "general_wellbeing",
-      ],
+      enum: ["general_wellbeing", "sentiment_analysis", "health_assessment", "lifestyle_assessment"],
       default: "general_wellbeing",
     },
     difficulty: {

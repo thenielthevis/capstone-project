@@ -307,3 +307,50 @@ function getDefaultAssessmentQuestions() {
         }
     ];
 }
+
+/**
+ * Generate short disease descriptions using Gemini AI
+ * 
+ * @param {Array<string>} diseaseNames Array of disease names to generate descriptions for
+ * @returns {Promise<Object>} Object with disease names as keys and descriptions as values
+ */
+exports.generateDiseaseDescriptions = async (diseaseNames) => {
+    if (!process.env.GEMINI_API_KEY) {
+        console.warn('Gemini API key is not set. Returning default descriptions.');
+        return {};
+    }
+
+    try {
+        // Filter unique disease names
+        const uniqueDiseases = [...new Set(diseaseNames)];
+        
+        const prompt = `You are a medical AI assistant. Generate short, concise descriptions (1 sentence, max 150 characters) for the following diseases. The descriptions should be suitable for a health app UI.
+
+Format: Return ONLY a JSON object with disease names as keys and descriptions as values.
+
+Diseases: ${uniqueDiseases.join(', ')}
+
+Example format:
+{
+    "Diabetes": "A condition affecting blood sugar regulation, associated with diet, weight, and lifestyle factors.",
+    "Hypertension": "High blood pressure that can increase risk of heart disease and stroke."
+}
+
+Generate descriptions for all diseases, keeping them brief and informative.`;
+
+        const response = await model.generateContent(prompt);
+        const text = response.response.text();
+        
+        // Parse JSON response
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            const descriptions = JSON.parse(jsonMatch[0]);
+            return descriptions;
+        }
+        
+        return {};
+    } catch (err) {
+        console.error('Error generating disease descriptions:', err);
+        return {};
+    }
+};
