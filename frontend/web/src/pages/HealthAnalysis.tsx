@@ -958,7 +958,7 @@ export default function HealthAnalysis() {
               </div>
               
               <div className="space-y-3">
-                {predictions.slice(0, 5).map((prediction: any, index: number) => (
+                {predictions.filter((p: any) => p.probability > 0).slice(0, 5).map((prediction: any, index: number) => (
                   <div 
                     key={index}
                     className="flex items-center gap-3 p-3 rounded-lg"
