@@ -199,9 +199,10 @@ export default function AdminSidebar({ activeNav = 'home', onSidebarToggle }: Ad
             >
               <div className="flex items-center gap-3">
                 <div 
-                  className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
+                  className="w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm flex-shrink-0"
                   style={{ 
-                    background: `linear-gradient(135deg, ${theme.colors.primary} 0%, ${theme.colors.secondary} 100%)` 
+                    background: `linear-gradient(135deg, ${theme.colors.primary} 0%, ${theme.colors.secondary} 100%)`,
+                    color: theme.colors.text
                   }}
                 >
                   {user?.username?.charAt(0).toUpperCase() || 'A'}
