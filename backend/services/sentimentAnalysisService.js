@@ -16,7 +16,7 @@ const MODELS = {
 /**
  * Retry helper with exponential backoff
  */
-const retryWithBackoff = async (fn, maxRetries = 2, initialDelayMs = 1000) => {
+const retryWithBackoff = async (fn, maxRetries = 3, initialDelayMs = 2000) => {
   let lastError;
   
   for (let i = 0; i < maxRetries; i++) {
@@ -29,10 +29,12 @@ const retryWithBackoff = async (fn, maxRetries = 2, initialDelayMs = 1000) => {
       // Check if it's a 410 or 429 error (model loading or rate limit)
       if (error.response?.status === 410 || error.response?.status === 429) {
         if (i < maxRetries - 1) {
-          // Quick backoff: 1s, 2s for 410/429 errors
+          // Backoff: 2s, 4s, 8s for 410/429 errors
           const waitTime = initialDelayMs * Math.pow(2, i);
           console.log(`[HF] Status ${error.response.status} - Waiting ${waitTime}ms before retry ${i + 2}/${maxRetries}...`);
           await new Promise(resolve => setTimeout(resolve, waitTime));
+        } else {
+          console.log(`[HF] Status ${error.response.status} - All retries exhausted, using keyword fallback`);
         }
       } else {
         // For other errors, use fallback immediately
@@ -42,6 +44,7 @@ const retryWithBackoff = async (fn, maxRetries = 2, initialDelayMs = 1000) => {
     }
   }
   
+  // All retries failed, throw last error so caller can use fallback
   throw lastError;
 };
 
@@ -132,21 +135,75 @@ const keywordEmotionAnalysis = (text) => {
 const keywordStressAnalysis = (text) => {
   const textLower = text.toLowerCase();
   
-  const stressKeywords = ['stress', 'anxiety', 'worried', 'nervous', 'panic', 'overwhelmed', 'pressure', 'alalahanin', 'takot', 'pag-asa', 'problema'];
-  const calmKeywords = ['calm', 'peaceful', 'relax', 'rest', 'peace', 'okay', 'fine'];
+  const highStressKeywords = [
+    'stress', 'stressed', 'stressful', 'anxiety', 'anxious', 'panic', 'panicking', 'overwhelmed', 'overwhelming',
+    'depressed', 'depression', 'exhausted', 'burnout', 'burnt out', 'breakdown', 'crisis', 'disaster',
+    'terrible', 'awful', 'horrible', 'unbearable', 'miserable', 'devastated', 'desperate', 'hopeless',
+    'angry', 'anger', 'furious', 'enraged', 'livid',
+    'alalahanin', 'mabigat', 'napakahirap', 'napakabigat', 'sirang-sira', 'pagod na pagod', 'giyaw', 'kahirapan', 'galit', 'init'
+  ];
   
-  const stressCount = stressKeywords.filter(word => textLower.includes(word)).length;
+  const mediumStressKeywords = [
+    'worried', 'worry', 'concerned', 'concern', 'nervous', 'pressured', 'pressure', 'tense',
+    'tension', 'busy', 'overwhelm', 'challenge', 'challenged', 'difficult', 'struggling', 'struggle',
+    'tired', 'fatigue', 'worn out', 'uneasy', 'uncomfortable', 'irritable', 'frustrated', 'frustration',
+    'upset', 'irritated', 'annoyed', 'annoying', 'mainis', 'upset', 'mainit',
+    'alalahanin', 'takot', 'mainit', 'frustrated', 'galit', 'problema', 'kabaguhan'
+  ];
+  
+  const calmKeywords = [
+    'calm', 'peaceful', 'peace', 'relax', 'relaxed', 'rest', 'rested', 'okay', 'fine', 'good', 'great',
+    'wonderful', 'happy', 'masaya', 'okay lang', 'ayos', 'okay na', 'peaceful', 'serene', 'tranquil'
+  ];
+  
+  const highStressCount = highStressKeywords.filter(word => textLower.includes(word)).length;
+  const mediumStressCount = mediumStressKeywords.filter(word => textLower.includes(word)).length;
   const calmCount = calmKeywords.filter(word => textLower.includes(word)).length;
   
   let level = 'low';
   let score = 0.2;
   
-  if (stressCount > calmCount) {
-    level = stressCount > 3 ? 'high' : 'medium';
-    score = Math.min(stressCount * 0.2, 0.9);
+  // Simple logic: if any stress keyword found, set appropriate level
+  if (highStressCount >= 1) {
+    // Any high-stress keyword = HIGH stress
+    level = 'high';
+    score = Math.min(0.75 + (highStressCount * 0.1), 0.95);
+  } else if (mediumStressCount >= 1 && calmCount === 0) {
+    // Any medium stress keyword (like "worried", "nervous") = MEDIUM stress
+    level = 'medium';
+    score = Math.min(0.45 + (mediumStressCount * 0.1), 0.65);
+  } else if (calmCount > 0 && (highStressCount + mediumStressCount) === 0) {
+    // Only calm keywords = LOW stress
+    level = 'low';
+    score = 0.1;
+  } else {
+    level = 'low';
+    score = 0.2;
   }
   
-  return { level, score, anxiety: { level, score } };
+  // Anxiety level calculation (independent of stress)
+  const anxietyKeywords = [
+    'anxious', 'anxiety', 'panic', 'panicking', 'nervous', 'uneasy', 'worried', 'afraid', 'fear', 'scared',
+    'angry', 'anger', 'furious', 'upset', 'irritated', 'annoyed',
+    'takot', 'takot na takot', 'concerned', 'galit', 'init', 'mainit'
+  ];
+  
+  const anxietyCount = anxietyKeywords.filter(word => textLower.includes(word)).length;
+  
+  let anxietyLevel = 'low';
+  let anxietyScore = 0.2;
+  
+  if (anxietyCount >= 2) {
+    // Multiple anxiety keywords = HIGH anxiety
+    anxietyLevel = 'high';
+    anxietyScore = Math.min(0.75 + (anxietyCount * 0.1), 0.95);
+  } else if (anxietyCount >= 1) {
+    // Even 1 anxiety keyword (worried, nervous, afraid, angry, etc.) = MEDIUM anxiety
+    anxietyLevel = 'medium';
+    anxietyScore = Math.min(0.45 + (anxietyCount * 0.15), 0.65);
+  }
+  
+  return { level, score, anxiety: { level: anxietyLevel, score: anxietyScore } };
 };
 
 /**
@@ -224,6 +281,7 @@ exports.analyzeSentiment = async (text) => {
     
   } catch (error) {
     console.error('[HF] Sentiment Analysis Error - Using Fallback:', error.message);
+    console.log('[Fallback] Analyzing with keyword-based sentiment analysis');
     
     // Use keyword-based fallback immediately
     const { sentiment, positive, negative, neutral } = keywordSentimentAnalysis(text);
@@ -285,6 +343,7 @@ exports.detectEmotion = async (text) => {
     
   } catch (error) {
     console.error('[HF] Emotion Detection Error - Using Fallback:', error.message);
+    console.log('[Fallback] Analyzing with keyword-based emotion analysis');
     
     // Use keyword-based fallback immediately
     return keywordEmotionAnalysis(text);
