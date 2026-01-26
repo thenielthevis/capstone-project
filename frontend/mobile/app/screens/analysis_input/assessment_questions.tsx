@@ -8,6 +8,7 @@ import {
   SafeAreaView,
   Dimensions,
   Platform,
+  TextInput,
 } from "react-native";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
@@ -33,6 +34,28 @@ interface Question {
 
 interface AssessmentQuestionsProps {
   onClose: () => void;
+}
+
+interface SentimentResult {
+  sentiment?: {
+    primary: string;
+    positive: number;
+    negative: number;
+    neutral: number;
+    confidence: number;
+  };
+  emotion?: {
+    primary: string;
+    confidence: number;
+    breakdown: { [key: string]: number };
+  };
+  stress?: {
+    level: string;
+    score: number;
+    anxiety: { level: string; score: number };
+  };
+  batchSize?: number;
+  timestamp?: Date;
 }
 
 const getApiUrl = (): string => {
@@ -82,11 +105,18 @@ export default function AssessmentQuestions({ onClose }: AssessmentQuestionsProp
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedChoices, setSelectedChoices] = useState<{ [key: string]: string }>({});
+  const [userTextInputs, setUserTextInputs] = useState<{ [key: string]: string }>({});
   const [submitting, setSubmitting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [pressedButton, setPressedButton] = useState<string | null>(null);
+  const [sentimentResults, setSentimentResults] = useState<SentimentResult | null>(null);
+  const [showResults, setShowResults] = useState(false);
+  const [assessmentComplete, setAssessmentComplete] = useState(false);
+  const [batchedResponses, setBatchedResponses] = useState<any[]>([]);
+  const [translatingText, setTranslatingText] = useState<{ [key: string]: boolean }>({});
 
   const screenWidth = Dimensions.get("window").width;
+  const BATCH_SIZE = 10; // Max questions per batch (can be less if fewer questions available)
 
   useEffect(() => {
     loadQuestions();
@@ -143,28 +173,50 @@ export default function AssessmentQuestions({ onClose }: AssessmentQuestionsProp
   };
 
   const handleChoiceSelect = (choiceId: string) => {
-    const currentQuestion = questions[currentQuestionIndex];
+    // Allow selecting choice even if text is entered
+    // Backend will analyze both
     setSelectedChoices({
       ...selectedChoices,
-      [currentQuestion._id]: choiceId,
+      [questions[currentQuestionIndex]._id]: choiceId,
     });
+  };
+
+  const handleTextInputChange = (text: string) => {
+    const currentQuestion = questions[currentQuestionIndex];
+    setUserTextInputs({
+      ...userTextInputs,
+      [currentQuestion._id]: text,
+    });
+  };
+
+  const translateText = async (text: string, questionId: string) => {
+    // Skip translation - Hugging Face API handles multilingual text fine
+    // Send text as-is for analysis (whether Tagalog, English, or mixed)
+    return text;
   };
 
   const handleSubmitResponse = async () => {
     try {
       const currentQuestion = questions[currentQuestionIndex];
       const selectedChoiceId = selectedChoices[currentQuestion._id];
+      let userText = userTextInputs[currentQuestion._id] || "";
 
-      if (!selectedChoiceId) {
+      // Allow EITHER selected choice OR text input, or BOTH
+      if (!selectedChoiceId && !userText.trim()) {
         Toast.show({
           type: "error",
           text1: "Error",
-          text2: "Please select an answer before continuing",
+          text2: "Please select an answer or type your response",
         });
         return;
       }
 
       setSubmitting(true);
+
+      // Translate text if it's in Tagalog
+      if (userText.trim()) {
+        userText = await translateText(userText, currentQuestion._id);
+      }
 
       const token = await (async () => {
         try {
@@ -176,39 +228,61 @@ export default function AssessmentQuestions({ onClose }: AssessmentQuestionsProp
         }
       })();
 
+      const payload = {
+        assessmentId: currentQuestion._id,
+        selectedChoice: selectedChoiceId || null,
+        userTextInput: userText,
+      };
+
+      console.log("[Assessment] Submitting response:", payload);
+
       const response = await fetch(`${API_URL}/assessment/submit-response`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          assessmentId: currentQuestion._id,
-          selectedChoice: selectedChoiceId,
-          userResponse: "",
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to submit response");
+        const errorData = await response.json().catch(() => ({}));
+        console.error("[Assessment] Error response:", errorData);
+        throw new Error(errorData.message || "Failed to submit response");
       }
 
-      // Move to next question or finish
-      if (currentQuestionIndex < questions.length - 1) {
-        setCurrentQuestionIndex(currentQuestionIndex + 1);
-        setProgress((currentQuestionIndex + 1) / questions.length);
-        setSubmitting(false);
-      } else {
-        // All questions completed
-        Toast.show({
-          type: "success",
-          text1: "Success",
-          text2: "Assessment completed successfully!",
-        });
-        setTimeout(() => {
-          onClose();
-        }, 1500);
+      const responseData = await response.json();
+
+      // Add to batched responses
+      const newBatchedResponses = [
+        ...batchedResponses,
+        {
+          assessmentId: currentQuestion._id,
+          question: currentQuestion.question,
+          sentimentAnalysis: responseData.sentimentAnalysis,
+        },
+      ];
+      setBatchedResponses(newBatchedResponses);
+
+      // Check if we've answered all questions or reached batch size limit
+      const effectiveBatchSize = Math.min(BATCH_SIZE, questions.length);
+      if (newBatchedResponses.length >= effectiveBatchSize || currentQuestionIndex === questions.length - 1) {
+        // Combine all sentiment analysis from batch
+        if (newBatchedResponses.some(r => r.sentimentAnalysis)) {
+          const combinedSentiment = combineAnalysisResults(newBatchedResponses);
+          setSentimentResults(combinedSentiment);
+          setShowResults(true);
+          setSubmitting(false);
+          return;
+        }
       }
+
+      // Move to next question
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      setProgress((currentQuestionIndex + 1) / questions.length);
+      setSelectedChoices({});
+      setUserTextInputs({});
+      setSubmitting(false);
     } catch (error: any) {
       console.error("Error submitting response:", error);
       Toast.show({
@@ -220,6 +294,90 @@ export default function AssessmentQuestions({ onClose }: AssessmentQuestionsProp
     }
   };
 
+  const combineAnalysisResults = (responses: any[]) => {
+    let avgSentiment = { positive: 0, negative: 0, neutral: 0, confidence: 0 };
+    let emotions: { [key: string]: number } = {};
+    let avgStress = { level: "low", score: 0, anxiety: { level: "low", score: 0 } };
+
+    responses.forEach((r) => {
+      if (r.sentimentAnalysis) {
+        const s = r.sentimentAnalysis.sentiment;
+        if (s) {
+          avgSentiment.positive += s.positive || 0;
+          avgSentiment.negative += s.negative || 0;
+          avgSentiment.neutral += s.neutral || 0;
+          avgSentiment.confidence += s.confidence || 0;
+        }
+
+        const e = r.sentimentAnalysis.emotion;
+        if (e?.breakdown) {
+          Object.keys(e.breakdown).forEach((key) => {
+            emotions[key] = (emotions[key] || 0) + e.breakdown[key];
+          });
+        }
+
+        const st = r.sentimentAnalysis.stress;
+        if (st) {
+          avgStress.score += st.score || 0;
+          if (st.anxiety) {
+            avgStress.anxiety.score += st.anxiety.score || 0;
+          }
+        }
+      }
+    });
+
+    const count = responses.filter((r) => r.sentimentAnalysis).length || 1;
+
+    // Calculate averages
+    avgSentiment.positive /= count;
+    avgSentiment.negative /= count;
+    avgSentiment.neutral /= count;
+    avgSentiment.confidence /= count;
+
+    Object.keys(emotions).forEach((key) => {
+      emotions[key] /= count;
+    });
+
+    avgStress.score /= count;
+    avgStress.anxiety.score /= count;
+
+    // Determine primary sentiment
+    let primarySentiment = "neutral";
+    if (avgSentiment.positive > avgSentiment.negative && avgSentiment.positive > avgSentiment.neutral) {
+      primarySentiment = "positive";
+    } else if (avgSentiment.negative > avgSentiment.neutral) {
+      primarySentiment = "negative";
+    }
+
+    // Determine stress level
+    const stressLevel = avgStress.score > 0.6 ? "high" : avgStress.score > 0.3 ? "medium" : "low";
+
+    return {
+      sentiment: {
+        primary: primarySentiment,
+        positive: avgSentiment.positive,
+        negative: avgSentiment.negative,
+        neutral: avgSentiment.neutral,
+        confidence: avgSentiment.confidence,
+      },
+      emotion: {
+        primary: Object.keys(emotions).reduce((a, b) => (emotions[a] > emotions[b] ? a : b), "neutral"),
+        confidence: Math.max(...Object.values(emotions), 0.5),
+        breakdown: emotions,
+      },
+      stress: {
+        level: stressLevel,
+        score: avgStress.score,
+        anxiety: {
+          level: avgStress.anxiety.score > 0.6 ? "high" : avgStress.anxiety.score > 0.3 ? "medium" : "low",
+          score: avgStress.anxiety.score,
+        },
+      },
+      batchSize: count,
+      timestamp: new Date(),
+    };
+  };
+
   const handleSkipQuestion = () => {
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
@@ -228,6 +386,9 @@ export default function AssessmentQuestions({ onClose }: AssessmentQuestionsProp
       onClose();
     }
   };
+
+  // Calculate batch size based on actual question count (early definition for use in JSX)
+  const effectiveBatchSize = Math.min(BATCH_SIZE, questions.length);
 
   if (loading) {
     return (
@@ -250,6 +411,406 @@ export default function AssessmentQuestions({ onClose }: AssessmentQuestionsProp
           >
             Loading assessment questions...
           </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Show assessment complete screen
+  if (assessmentComplete) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 24 }}>
+          <MaterialCommunityIcons
+            name="check-circle"
+            size={80}
+            color={theme.colors.primary}
+            style={{ marginBottom: 24 }}
+          />
+          <Text
+            style={{
+              fontSize: 24,
+              fontFamily: theme.fonts.heading,
+              color: theme.colors.text,
+              marginBottom: 8,
+              textAlign: "center",
+            }}
+          >
+            Assessment Complete! ✓
+          </Text>
+          <Text
+            style={{
+              fontSize: 14,
+              color: theme.colors.text + "88",
+              textAlign: "center",
+              marginBottom: 32,
+              lineHeight: 20,
+            }}
+          >
+            Thank you for completing today's assessment. Your responses have been analyzed and saved.
+          </Text>
+          <TouchableOpacity
+            onPress={() => onClose()}
+            style={{ width: "100%", borderRadius: 12, overflow: "hidden" }}
+          >
+            <LinearGradient
+              colors={[theme.colors.primary, theme.colors.primary + "DD"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                paddingVertical: 14,
+                paddingHorizontal: 24,
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: 12,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontFamily: theme.fonts.bodyBold,
+                  color: "#fff",
+                }}
+              >
+                Close Assessment
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Show sentiment analysis results
+  if (showResults && sentimentResults) {
+    const sentiment = sentimentResults.sentiment;
+    const emotion = sentimentResults.emotion;
+    const stress = sentimentResults.stress;
+
+    const getSentimentColor = (sentimentType: string) => {
+      switch (sentimentType.toLowerCase()) {
+        case "positive":
+          return "#22C55E";
+        case "negative":
+          return "#EF4444";
+        case "neutral":
+          return "#F59E0B";
+        default:
+          return theme.colors.primary;
+      }
+    };
+
+    const getStressColor = (level: string) => {
+      switch (level.toLowerCase()) {
+        case "low":
+          return "#22C55E";
+        case "medium":
+          return "#F59E0B";
+        case "high":
+          return "#EF4444";
+        default:
+          return theme.colors.primary;
+      }
+    };
+
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+        <View
+          style={{
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            borderBottomWidth: 1,
+            borderBottomColor: theme.colors.surface,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <View>
+            <Text
+              style={{
+                fontSize: 18,
+                fontFamily: theme.fonts.heading,
+                color: theme.colors.text,
+              }}
+            >
+              Analysis Result
+            </Text>
+            <Text
+              style={{
+                fontSize: 12,
+                color: theme.colors.text + "66",
+                marginTop: 4,
+              }}
+            >
+              {sentimentResults?.batchSize || 0} questions analyzed
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => {
+              setShowResults(false);
+              setSentimentResults(null);
+            }}
+          >
+            <Ionicons name="close" size={28} color={theme.colors.text} />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingHorizontal: 16,
+            paddingVertical: 16,
+            paddingBottom: 100,
+          }}
+        >
+          {/* Sentiment Card */}
+          {sentiment && (
+            <View style={{ marginBottom: 16 }}>
+              <Text
+                style={{
+                  fontSize: 14,
+                  fontFamily: theme.fonts.bodyBold,
+                  color: theme.colors.text + "88",
+                  marginBottom: 12,
+                  textTransform: "uppercase",
+                }}
+              >
+                📊 Sentiment Analysis
+              </Text>
+              <View
+                style={{
+                  backgroundColor: theme.colors.surface,
+                  borderRadius: 12,
+                  padding: 16,
+                  borderLeftWidth: 4,
+                  borderLeftColor: getSentimentColor(sentiment.primary),
+                  alignItems: "center",
+                }}
+              >
+                <View
+                  style={{
+                    width: 60,
+                    height: 60,
+                    borderRadius: 30,
+                    backgroundColor: getSentimentColor(sentiment.primary) + "20",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: 12,
+                  }}
+                >
+                  <Text style={{ fontSize: 28 }}>
+                    {sentiment.primary === "positive"
+                      ? "😊"
+                      : sentiment.primary === "negative"
+                      ? "😞"
+                      : "😐"}
+                  </Text>
+                </View>
+                <Text
+                  style={{
+                    fontSize: 20,
+                    fontFamily: theme.fonts.heading,
+                    color: getSentimentColor(sentiment.primary),
+                    textTransform: "capitalize",
+                  }}
+                >
+                  {sentiment.primary}
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {/* Emotion Card */}
+          {emotion && (
+            <View style={{ marginBottom: 16 }}>
+              <Text
+                style={{
+                  fontSize: 14,
+                  fontFamily: theme.fonts.bodyBold,
+                  color: theme.colors.text + "88",
+                  marginBottom: 12,
+                  textTransform: "uppercase",
+                }}
+              >
+                😌 Emotion Detection
+              </Text>
+              <View
+                style={{
+                  backgroundColor: theme.colors.surface,
+                  borderRadius: 12,
+                  padding: 16,
+                  borderLeftWidth: 4,
+                  borderLeftColor: theme.colors.primary,
+                  alignItems: "center",
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 20,
+                    fontFamily: theme.fonts.heading,
+                    color: theme.colors.primary,
+                    textTransform: "capitalize",
+                  }}
+                >
+                  {emotion.primary}
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {/* Stress & Anxiety Card */}
+          {stress && (
+            <View style={{ marginBottom: 16 }}>
+              <Text
+                style={{
+                  fontSize: 14,
+                  fontFamily: theme.fonts.bodyBold,
+                  color: theme.colors.text + "88",
+                  marginBottom: 12,
+                  textTransform: "uppercase",
+                }}
+              >
+                🧠 Mental Health Indicators
+              </Text>
+              <View
+                style={{
+                  backgroundColor: theme.colors.surface,
+                  borderRadius: 12,
+                  padding: 16,
+                  borderLeftWidth: 4,
+                  borderLeftColor: getStressColor(stress.level),
+                  gap: 12,
+                }}
+              >
+                {/* Stress Level */}
+                <View>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      fontFamily: theme.fonts.bodyBold,
+                      color: theme.colors.text + "88",
+                      marginBottom: 8,
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Stress Level
+                  </Text>
+                  <View
+                    style={{
+                      backgroundColor: getStressColor(stress.level) + "20",
+                      borderRadius: 8,
+                      padding: 12,
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 16,
+                        fontFamily: theme.fonts.heading,
+                        color: getStressColor(stress.level),
+                        textTransform: "capitalize",
+                      }}
+                    >
+                      {stress.level}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Anxiety Level */}
+                <View>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      fontFamily: theme.fonts.bodyBold,
+                      color: theme.colors.text + "88",
+                      marginBottom: 8,
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Anxiety Level
+                  </Text>
+                  <View
+                    style={{
+                      backgroundColor: getStressColor(stress.anxiety.level) + "20",
+                      borderRadius: 8,
+                      padding: 12,
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 16,
+                        fontFamily: theme.fonts.heading,
+                        color: getStressColor(stress.anxiety.level),
+                        textTransform: "capitalize",
+                      }}
+                    >
+                      {stress.anxiety.level}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
+        </ScrollView>
+
+        {/* Action Button */}
+        <View
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            backgroundColor: theme.colors.background,
+            borderTopWidth: 1,
+            borderTopColor: theme.colors.surface,
+          }}
+        >
+          <TouchableOpacity
+            onPress={() => {
+              setShowResults(false);
+              setSentimentResults(null);
+              setBatchedResponses([]);
+              
+              if (currentQuestionIndex < questions.length - 1) {
+                setCurrentQuestionIndex(currentQuestionIndex + BATCH_SIZE);
+                setProgress((currentQuestionIndex + BATCH_SIZE) / questions.length);
+                setSelectedChoices({});
+                setUserTextInputs({});
+              } else {
+                setAssessmentComplete(true);
+              }
+            }}
+            style={{ borderRadius: 12, overflow: "hidden" }}
+          >
+            <LinearGradient
+              colors={[theme.colors.primary, theme.colors.primary + "DD"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                paddingVertical: 14,
+                paddingHorizontal: 24,
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: 12,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 14,
+                  fontFamily: theme.fonts.bodyBold,
+                  color: "#fff",
+                }}
+              >
+                {currentQuestionIndex === questions.length - 1
+                  ? "Complete Assessment"
+                  : `Continue (${Math.ceil((questions.length - currentQuestionIndex) / effectiveBatchSize) - 1} more batches)`}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -326,7 +887,13 @@ export default function AssessmentQuestions({ onClose }: AssessmentQuestionsProp
 
   const currentQuestion = questions[currentQuestionIndex];
   const selectedChoice = selectedChoices[currentQuestion._id];
-  const questionProgress = ((currentQuestionIndex + 1) / questions.length) * 100;
+  const userText = userTextInputs[currentQuestion._id] || "";
+  const hasAnswer = !!selectedChoice || userText.trim().length > 0;
+  const isTyping = userText.trim().length > 0;
+  
+  const batchQuestionNum = (currentQuestionIndex % BATCH_SIZE) + 1;
+  const isBatchComplete = batchedResponses.length >= effectiveBatchSize;
+  const questionProgress = isBatchComplete ? 100 : (batchedResponses.length / effectiveBatchSize) * 100;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
@@ -380,7 +947,7 @@ export default function AssessmentQuestions({ onClose }: AssessmentQuestionsProp
             textAlign: "right",
           }}
         >
-          Question {currentQuestionIndex + 1} of {questions.length}
+          {batchedResponses.length} of {effectiveBatchSize} answered
         </Text>
       </View>
 
@@ -539,6 +1106,55 @@ export default function AssessmentQuestions({ onClose }: AssessmentQuestionsProp
           ))}
         </View>
 
+        {/* Text Input Field */}
+        <View style={{ marginBottom: 24 }}>
+          <Text
+            style={{
+              fontSize: 13,
+              fontFamily: theme.fonts.bodyBold,
+              color: theme.colors.text + "88",
+              marginBottom: 8,
+            }}
+          >
+            Or type your answer here:
+          </Text>
+          <TextInput
+            style={{
+              backgroundColor: theme.colors.surface,
+              borderRadius: 12,
+              padding: 14,
+              borderWidth: 2,
+              borderColor: userTextInputs[currentQuestion._id] 
+                ? theme.colors.primary 
+                : theme.colors.surface,
+              color: theme.colors.text,
+              fontFamily: theme.fonts.body,
+              fontSize: 14,
+              minHeight: 100,
+              textAlignVertical: "top",
+            }}
+            placeholder="Share how you're feeling in your own words..."
+            placeholderTextColor={theme.colors.text + "55"}
+            multiline
+            numberOfLines={5}
+            value={userTextInputs[currentQuestion._id] || ""}
+            onChangeText={handleTextInputChange}
+            editable={!submitting}
+          />
+          {userTextInputs[currentQuestion._id] && (
+            <Text
+              style={{
+                fontSize: 11,
+                color: theme.colors.primary,
+                marginTop: 8,
+                fontFamily: theme.fonts.bodyBold,
+              }}
+            >
+              ✓ Your text will be analyzed for sentiment, emotion, and stress levels
+            </Text>
+          )}
+        </View>
+
         {/* Suggestion */}
         <View
           style={{
@@ -635,7 +1251,7 @@ export default function AssessmentQuestions({ onClose }: AssessmentQuestionsProp
 
         <TouchableOpacity
           onPress={handleSubmitResponse}
-          disabled={submitting || !selectedChoice}
+          disabled={submitting || !hasAnswer}
           onPressIn={() => setPressedButton("submit")}
           onPressOut={() => setPressedButton(null)}
           activeOpacity={1}
@@ -667,7 +1283,7 @@ export default function AssessmentQuestions({ onClose }: AssessmentQuestionsProp
                   color: "#fff",
                 }}
               >
-                Submitting...
+                Analyzing...
               </Text>
             </View>
           ) : pressedButton === "submit" ? (
@@ -709,6 +1325,7 @@ export default function AssessmentQuestions({ onClose }: AssessmentQuestionsProp
                 alignItems: "center",
                 justifyContent: "center",
                 borderRadius: 12,
+                opacity: hasAnswer ? 1 : 0.5,
               }}
             >
               <Text
