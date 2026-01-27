@@ -17,6 +17,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTheme } from "../../context/ThemeContext";
 import { useHealthCheckup } from "../../context/HealthCheckupContext";
+import { ViceLog } from "../../api/healthCheckupApi";
 import HealthMetricCard from "../../components/HealthMetricCard";
 import WaterIntakeProgress from "../../components/WaterIntakeProgress";
 // Custom Slider component since @react-native-community/slider may not be installed
@@ -119,6 +120,9 @@ export default function HealthCheckup() {
         logWeight,
         streakInfo,
         refreshStats,
+        userAddictions,
+        fetchUserAddictions,
+        logVicesUsage,
     } = useHealthCheckup();
 
     const [refreshing, setRefreshing] = useState(false);
@@ -128,6 +132,7 @@ export default function HealthCheckup() {
     const [stressModalVisible, setStressModalVisible] = useState(false);
     const [weightModalVisible, setWeightModalVisible] = useState(false);
     const [waterModalVisible, setWaterModalVisible] = useState(false);
+    const [vicesModalVisible, setVicesModalVisible] = useState(false);
 
     // Form states
     const [sleepHours, setSleepHours] = useState("");
@@ -138,10 +143,12 @@ export default function HealthCheckup() {
     const [weightValue, setWeightValue] = useState("");
     const [weightUnit, setWeightUnit] = useState<"kg" | "lbs">("kg");
     const [customWater, setCustomWater] = useState("");
+    const [vicesForm, setVicesForm] = useState<{ [substance: string]: boolean }>({});
 
     useEffect(() => {
         refreshCheckup();
         refreshStats();
+        fetchUserAddictions();
     }, []);
 
     const onRefresh = useCallback(async () => {
@@ -231,6 +238,43 @@ export default function HealthCheckup() {
         if (level <= 6) return "😐";
         if (level <= 8) return "😟";
         return "😰";
+    };
+
+    // Handle vices log
+    const handleVicesSubmit = async () => {
+        if (userAddictions.length === 0) return;
+
+        const logs: ViceLog[] = userAddictions.map(addiction => ({
+            substance: addiction.substance,
+            used: vicesForm[addiction.substance] || false,
+            notes: ''
+        }));
+
+        const success = await logVicesUsage(logs);
+        if (success) {
+            setVicesForm({});
+            setVicesModalVisible(false);
+        }
+    };
+
+    // Initialize vices form when modal opens
+    const openVicesModal = () => {
+        const initialForm: { [key: string]: boolean } = {};
+        userAddictions.forEach(addiction => {
+            const existingLog = entry?.vices?.logs?.find(log => log.substance === addiction.substance);
+            initialForm[addiction.substance] = existingLog?.used || false;
+        });
+        setVicesForm(initialForm);
+        setVicesModalVisible(true);
+    };
+
+    // Get vices status text
+    const getVicesStatusText = () => {
+        if (!entry?.vices?.completed) return "Tap to log";
+        const usedCount = entry.vices.logs.filter(l => l.used).length;
+        const totalCount = entry.vices.logs.length;
+        if (usedCount === 0) return "✓ Stayed clean today!";
+        return `${usedCount}/${totalCount} used today`;
     };
 
     return (
@@ -390,6 +434,22 @@ export default function HealthCheckup() {
                             theme={theme}
                         />
                     </View>
+
+                    {/* Vices/Addiction Card - Only show if user has addictions */}
+                    {userAddictions.length > 0 && (
+                        <View style={{ marginTop: 12 }}>
+                            <HealthMetricCard
+                                icon="smoking-off"
+                                iconColor="#dc2626"
+                                label="Vices Check"
+                                value={entry?.completedMetrics?.vices ? "Logged" : "--"}
+                                subtitle={getVicesStatusText()}
+                                isCompleted={entry?.completedMetrics?.vices || false}
+                                onPress={openVicesModal}
+                                theme={theme}
+                            />
+                        </View>
+                    )}
                 </View>
 
                 {/* Complete Daily Checkup Button */}
@@ -402,6 +462,7 @@ export default function HealthCheckup() {
                                 if (!entry?.completedMetrics?.sleep) setSleepModalVisible(true);
                                 else if (!entry?.completedMetrics?.stress) setStressModalVisible(true);
                                 else if (!entry?.completedMetrics?.weight) setWeightModalVisible(true);
+                                else if (userAddictions.length > 0 && !entry?.completedMetrics?.vices) openVicesModal();
                             }}
                             style={{
                                 backgroundColor: theme.colors.primary,
@@ -735,6 +796,89 @@ export default function HealthCheckup() {
                                 }}
                             >
                                 <Text style={{ fontFamily: theme.fonts.heading, fontSize: 16, color: "#fff" }}>Add Water</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </KeyboardAvoidingView>
+            </Modal>
+
+            {/* Vices Modal */}
+            <Modal visible={vicesModalVisible} transparent animationType="slide" onRequestClose={() => setVicesModalVisible(false)}>
+                <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+                    <View style={{ flex: 1, backgroundColor: "#00000055", justifyContent: "flex-end" }}>
+                        <View style={{ backgroundColor: theme.colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 }}>
+                            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                                <Text style={{ fontFamily: theme.fonts.heading, fontSize: 20, color: theme.colors.text }}>Daily Vice Check</Text>
+                                <TouchableOpacity onPress={() => setVicesModalVisible(false)}>
+                                    <MaterialCommunityIcons name="close" size={24} color={theme.colors.text + "77"} />
+                                </TouchableOpacity>
+                            </View>
+
+                            <Text style={{ fontFamily: theme.fonts.body, fontSize: 14, color: theme.colors.text + "77", marginBottom: 16 }}>
+                                Be honest with yourself. Tracking helps you stay accountable.
+                            </Text>
+
+                            {userAddictions.map((addiction, index) => (
+                                <TouchableOpacity
+                                    key={index}
+                                    onPress={() => setVicesForm(prev => ({ ...prev, [addiction.substance]: !prev[addiction.substance] }))}
+                                    style={{
+                                        flexDirection: "row",
+                                        alignItems: "center",
+                                        justifyContent: "space-between",
+                                        backgroundColor: theme.colors.background,
+                                        borderRadius: 12,
+                                        padding: 16,
+                                        marginBottom: 12,
+                                        borderWidth: vicesForm[addiction.substance] ? 2 : 0,
+                                        borderColor: "#dc2626",
+                                    }}
+                                >
+                                    <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+                                        <MaterialCommunityIcons
+                                            name={vicesForm[addiction.substance] ? "alert-circle" : "check-circle"}
+                                            size={24}
+                                            color={vicesForm[addiction.substance] ? "#dc2626" : "#22c55e"}
+                                        />
+                                        <View style={{ marginLeft: 12, flex: 1 }}>
+                                            <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: 16, color: theme.colors.text }}>
+                                                {addiction.substance}
+                                            </Text>
+                                            <Text style={{ fontFamily: theme.fonts.body, fontSize: 12, color: theme.colors.text + "77" }}>
+                                                Did you use this today?
+                                            </Text>
+                                        </View>
+                                    </View>
+                                    <View style={{
+                                        width: 52,
+                                        height: 28,
+                                        borderRadius: 14,
+                                        backgroundColor: vicesForm[addiction.substance] ? "#dc2626" : theme.colors.text + "22",
+                                        padding: 2,
+                                        justifyContent: "center",
+                                    }}>
+                                        <View style={{
+                                            width: 24,
+                                            height: 24,
+                                            borderRadius: 12,
+                                            backgroundColor: "#fff",
+                                            alignSelf: vicesForm[addiction.substance] ? "flex-end" : "flex-start",
+                                        }} />
+                                    </View>
+                                </TouchableOpacity>
+                            ))}
+
+                            <TouchableOpacity
+                                onPress={handleVicesSubmit}
+                                style={{
+                                    backgroundColor: "#dc2626",
+                                    borderRadius: 12,
+                                    paddingVertical: 16,
+                                    alignItems: "center",
+                                    marginTop: 8,
+                                }}
+                            >
+                                <Text style={{ fontFamily: theme.fonts.heading, fontSize: 16, color: "#fff" }}>Save Vice Log</Text>
                             </TouchableOpacity>
                         </View>
                     </View>

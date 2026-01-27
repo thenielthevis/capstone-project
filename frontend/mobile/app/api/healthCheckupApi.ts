@@ -27,6 +27,22 @@ export interface WeightData {
     unit?: 'kg' | 'lbs';
 }
 
+export interface ViceLog {
+    substance: string;
+    used: boolean;
+    notes?: string;
+}
+
+export interface VicesData {
+    logs: ViceLog[];
+}
+
+export interface UserAddiction {
+    substance: string;
+    severity: 'mild' | 'moderate' | 'severe';
+    duration: number; // in months
+}
+
 export interface HealthCheckupEntry {
     _id: string;
     user: string;
@@ -58,6 +74,11 @@ export interface HealthCheckupEntry {
         water: boolean;
         stress: boolean;
         weight: boolean;
+        vices: boolean;
+    };
+    vices: {
+        logs: Array<{ substance: string; used: boolean; notes?: string; loggedAt: string }>;
+        completed: boolean;
     };
     completedAt?: string;
     streakCount: number;
@@ -108,6 +129,7 @@ export const updateHealthCheckup = async (data: {
     water?: WaterData;
     stress?: StressData;
     weight?: WeightData;
+    vices?: VicesData;
 }): Promise<HealthCheckupResponse> => {
     const response = await axiosInstance.patch("/health-checkups/today", data);
     return response.data;
@@ -223,4 +245,17 @@ export const updateReminderSettings = async (
 ): Promise<{ success: boolean; settings: ReminderSettings; message: string }> => {
     const response = await axiosInstance.patch("/health-checkups/reminders", settings);
     return response.data;
+};
+
+// Get user's addictions for the checkup form
+export const getUserAddictions = async (): Promise<{ success: boolean; addictions: UserAddiction[] }> => {
+    const response = await axiosInstance.get("/health-checkups/addictions");
+    return response.data;
+};
+
+// Log vices for the day
+export const logVices = async (logs: ViceLog[]): Promise<HealthCheckupResponse> => {
+    return updateHealthCheckup({
+        vices: { logs }
+    });
 };

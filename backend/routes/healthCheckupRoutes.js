@@ -28,4 +28,7 @@ router.patch('/entry/:date', healthCheckupController.editPreviousEntry);
 router.get('/reminders', healthCheckupController.getReminderSettings);
 router.patch('/reminders', healthCheckupController.updateReminderSettings);
 
+// Get user's addictions for checkup form
+router.get('/addictions', healthCheckupController.getUserAddictions);
+
 module.exports = router;

@@ -40,7 +40,7 @@ exports.getTodayCheckup = async (req, res) => {
 exports.updateCheckup = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { sleep, water, stress, weight } = req.body;
+        const { sleep, water, stress, weight, vices } = req.body;
 
         let entry = await HealthCheckup.getTodayEntry(userId);
 
@@ -122,6 +122,20 @@ exports.updateCheckup = async (req, res) => {
         // Check if all metrics are complete
         if (entry.isComplete && !entry.completedAt) {
             entry.completedAt = new Date();
+        }
+
+        // Update vices data
+        if (vices !== undefined) {
+            if (vices.logs && Array.isArray(vices.logs)) {
+                entry.vices.logs = vices.logs.map(log => ({
+                    substance: log.substance,
+                    used: log.used,
+                    notes: log.notes || '',
+                    loggedAt: new Date()
+                }));
+                entry.vices.completed = true;
+                entry.completedMetrics.vices = true;
+            }
         }
 
         await entry.save();
@@ -444,6 +458,28 @@ exports.updateReminderSettings = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to update reminder settings',
+            error: error.message
+        });
+    }
+};
+
+// Get user's addictions for health checkup form
+exports.getUserAddictions = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const user = await User.findById(userId).select('riskFactors.addictions');
+
+        const addictions = user?.riskFactors?.addictions || [];
+
+        res.status(200).json({
+            success: true,
+            addictions
+        });
+    } catch (error) {
+        console.error('Error getting user addictions:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to get user addictions',
             error: error.message
         });
     }

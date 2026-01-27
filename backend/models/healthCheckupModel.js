@@ -82,12 +82,24 @@ const healthCheckupSchema = new mongoose.Schema({
             default: 'kg'
         }
     },
+    // Vices/Addiction tracking
+    vices: {
+        logs: [{
+            substance: { type: String, required: true },
+            used: { type: Boolean, required: true },
+            notes: { type: String, default: '' },
+            loggedAt: { type: Date, default: Date.now },
+            _id: false
+        }],
+        completed: { type: Boolean, default: false }
+    },
     // Completion tracking
     completedMetrics: {
         sleep: { type: Boolean, default: false },
         water: { type: Boolean, default: false },
         stress: { type: Boolean, default: false },
-        weight: { type: Boolean, default: false }
+        weight: { type: Boolean, default: false },
+        vices: { type: Boolean, default: false }
     },
     completedAt: {
         type: Date
@@ -106,19 +118,30 @@ healthCheckupSchema.index({ user: 1, date: 1 }, { unique: true });
 // Index for efficient queries
 healthCheckupSchema.index({ user: 1, createdAt: -1 });
 
-// Virtual to check if all metrics are completed
+// Virtual to check if all metrics are completed (vices is optional)
 healthCheckupSchema.virtual('isComplete').get(function () {
-    return this.completedMetrics.sleep &&
+    const baseComplete = this.completedMetrics.sleep &&
         this.completedMetrics.water &&
         this.completedMetrics.stress &&
         this.completedMetrics.weight;
+    // Vices is optional - only required if user has logged vices before
+    if (this.vices?.logs?.length > 0) {
+        return baseComplete && this.completedMetrics.vices;
+    }
+    return baseComplete;
 });
 
 // Instance method to get completion percentage
 healthCheckupSchema.methods.getCompletionPercentage = function () {
     const metrics = this.completedMetrics;
-    const completed = [metrics.sleep, metrics.water, metrics.stress, metrics.weight]
-        .filter(Boolean).length;
+    const baseMetrics = [metrics.sleep, metrics.water, metrics.stress, metrics.weight];
+    // Only include vices in calculation if user has vices logged
+    if (this.vices?.logs?.length > 0) {
+        const allMetrics = [...baseMetrics, metrics.vices];
+        const completed = allMetrics.filter(Boolean).length;
+        return (completed / 5) * 100;
+    }
+    const completed = baseMetrics.filter(Boolean).length;
     return (completed / 4) * 100;
 };
 
@@ -186,19 +209,22 @@ healthCheckupSchema.statics.getWeeklyStats = async function (userId) {
         date: { $gte: weekAgo, $lte: today }
     }).sort({ date: 1 });
 
+    // Helper function to safely calculate average
+    const safeAverage = (arr, getValue) => {
+        const validEntries = arr.filter(e => getValue(e) != null && getValue(e) > 0);
+        if (validEntries.length === 0) return 0;
+        return validEntries.reduce((sum, e) => sum + getValue(e), 0) / validEntries.length;
+    };
+
     return {
         entries,
         averages: {
-            sleep: entries.length > 0 ?
-                entries.reduce((sum, e) => sum + (e.sleep?.hours || 0), 0) / entries.filter(e => e.sleep?.hours).length : 0,
-            water: entries.length > 0 ?
-                entries.reduce((sum, e) => sum + (e.water?.amount || 0), 0) / entries.filter(e => e.water?.amount).length : 0,
-            stress: entries.length > 0 ?
-                entries.reduce((sum, e) => sum + (e.stress?.level || 0), 0) / entries.filter(e => e.stress?.level).length : 0,
-            weight: entries.length > 0 ?
-                entries.reduce((sum, e) => sum + (e.weight?.value || 0), 0) / entries.filter(e => e.weight?.value).length : 0
+            sleep: safeAverage(entries, e => e.sleep?.hours),
+            water: safeAverage(entries, e => e.water?.amount),
+            stress: safeAverage(entries, e => e.stress?.level),
+            weight: safeAverage(entries, e => e.weight?.value)
         },
-        completedDays: entries.filter(e => e.isComplete).length,
+        completedDays: entries.filter(e => e.completedMetrics?.sleep && e.completedMetrics?.water && e.completedMetrics?.stress && e.completedMetrics?.weight).length,
         totalDays: entries.length
     };
 };

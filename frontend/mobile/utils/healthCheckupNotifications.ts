@@ -124,15 +124,15 @@ export const scheduleHealthCheckupReminders = async (
         notificationIds.push(morningId);
         console.log('[HealthCheckupNotifications] Scheduled morning reminder at', settings.morningTime);
 
-        // Schedule evening reminder (for water, stress, weight)
+        // Schedule evening reminder (for water, stress, weight, vices)
         const eveningId = await Notifications.scheduleNotificationAsync({
             content: {
                 title: '🌙 Evening Check-in',
-                body: 'Time to log your water intake, stress level, and weight for today!',
+                body: 'Time to log your water intake, stress level, weight, and check your wellness goals for today!',
                 data: {
                     type: 'health_checkup_evening',
                     screen: 'HealthCheckup',
-                    metrics: ['water', 'stress', 'weight']
+                    metrics: ['water', 'stress', 'weight', 'vices']
                 },
                 sound: 'default',
             },

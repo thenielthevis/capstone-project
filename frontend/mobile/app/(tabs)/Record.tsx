@@ -1,10 +1,12 @@
 
 import React, { useEffect, useState, useCallback } from "react";
-import { View, Text, ActivityIndicator, Alert, ScrollView, Dimensions, RefreshControl } from "react-native";
+import { View, Text, ActivityIndicator, Alert, ScrollView, Dimensions, RefreshControl, TouchableOpacity } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "../context/ThemeContext";
 import { useDailyLog } from "../context/DailyLogContext";
+import { useHealthCheckup } from "../context/HealthCheckupContext";
 import { useRouter } from "expo-router";
+import { useFocusEffect } from "expo-router";
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -191,8 +193,16 @@ const QuickTip = ({ theme }: { theme: any }) => {
 export default function Record() {
   const { theme } = useTheme();
   const { entry, isLoading: contextLoading, refreshDailyLog, error } = useDailyLog();
+  const { entry: healthEntry, refreshCheckup, completionPercentage, isComplete } = useHealthCheckup();
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
+
+  // Auto-refresh health checkup data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      refreshCheckup();
+    }, [refreshCheckup])
+  );
 
   // Handle errors from context
   useEffect(() => {
@@ -223,9 +233,9 @@ export default function Record() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await refreshDailyLog();
+    await Promise.all([refreshDailyLog(), refreshCheckup()]);
     setRefreshing(false);
-  }, [refreshDailyLog]);
+  }, [refreshDailyLog, refreshCheckup]);
 
   if (contextLoading && !entry) {
     return (
@@ -466,68 +476,163 @@ export default function Record() {
 
             {/* Health Checkup Summary */}
             <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <Text style={{
-                  fontFamily: theme.fonts.heading,
-                  fontSize: 16,
-                  color: theme.colors.text,
-                }}>
-                  Health Checkup
-                </Text>
-                <View style={{
-                  backgroundColor: theme.colors.primary + '15',
-                  paddingHorizontal: 10,
-                  paddingVertical: 4,
-                  borderRadius: 12,
-                }}>
+              <TouchableOpacity
+                onPress={() => router.push('/screens/record/HealthCheckup')}
+                activeOpacity={0.7}
+              >
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                   <Text style={{
-                    fontFamily: theme.fonts.body,
-                    fontSize: 11,
-                    color: theme.colors.primary,
+                    fontFamily: theme.fonts.heading,
+                    fontSize: 16,
+                    color: theme.colors.text,
                   }}>
-                    Tap + to log
+                    Health Checkup
                   </Text>
+                  <View style={{
+                    backgroundColor: isComplete ? '#22c55e15' : theme.colors.primary + '15',
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                    borderRadius: 12,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                  }}>
+                    <Text style={{
+                      fontFamily: theme.fonts.body,
+                      fontSize: 11,
+                      color: isComplete ? '#22c55e' : theme.colors.primary,
+                    }}>
+                      {isComplete ? '✓ Complete' : `${Math.round(completionPercentage)}% Done`}
+                    </Text>
+                    <MaterialCommunityIcons
+                      name="chevron-right"
+                      size={14}
+                      color={isComplete ? '#22c55e' : theme.colors.primary}
+                      style={{ marginLeft: 2 }}
+                    />
+                  </View>
                 </View>
-              </View>
+              </TouchableOpacity>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
                 {/* Sleep Mini Card */}
-                <View style={{
-                  flex: 1,
-                  minWidth: '45%',
-                  backgroundColor: theme.colors.surface,
-                  borderRadius: 16,
-                  padding: 12,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowOpacity: 0.04,
-                  shadowRadius: 4,
-                  elevation: 1,
-                }}>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    minWidth: '45%',
+                    backgroundColor: theme.colors.surface,
+                    borderRadius: 16,
+                    padding: 12,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.04,
+                    shadowRadius: 4,
+                    elevation: 1,
+                    borderWidth: healthEntry?.completedMetrics?.sleep ? 1 : 0,
+                    borderColor: '#8b5cf6' + '40',
+                  }}
+                  onPress={() => router.push('/screens/record/HealthCheckup')}
+                  activeOpacity={0.7}
+                >
                   <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
                     <MaterialCommunityIcons name="sleep" size={16} color="#8b5cf6" />
                     <Text style={{ fontFamily: theme.fonts.body, fontSize: 12, color: theme.colors.text + '77', marginLeft: 6 }}>Sleep</Text>
+                    {healthEntry?.completedMetrics?.sleep && (
+                      <MaterialCommunityIcons name="check-circle" size={12} color="#8b5cf6" style={{ marginLeft: 'auto' }} />
+                    )}
                   </View>
-                  <Text style={{ fontFamily: theme.fonts.heading, fontSize: 18, color: theme.colors.text }}>-- hrs</Text>
-                </View>
+                  <Text style={{ fontFamily: theme.fonts.heading, fontSize: 18, color: theme.colors.text }}>
+                    {healthEntry?.sleep?.hours ? `${healthEntry.sleep.hours.toFixed(1)} hrs` : '-- hrs'}
+                  </Text>
+                </TouchableOpacity>
                 {/* Water Mini Card */}
-                <View style={{
-                  flex: 1,
-                  minWidth: '45%',
-                  backgroundColor: theme.colors.surface,
-                  borderRadius: 16,
-                  padding: 12,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowOpacity: 0.04,
-                  shadowRadius: 4,
-                  elevation: 1,
-                }}>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    minWidth: '45%',
+                    backgroundColor: theme.colors.surface,
+                    borderRadius: 16,
+                    padding: 12,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.04,
+                    shadowRadius: 4,
+                    elevation: 1,
+                    borderWidth: healthEntry?.completedMetrics?.water ? 1 : 0,
+                    borderColor: '#0ea5e9' + '40',
+                  }}
+                  onPress={() => router.push('/screens/record/HealthCheckup')}
+                  activeOpacity={0.7}
+                >
                   <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
                     <MaterialCommunityIcons name="water" size={16} color="#0ea5e9" />
                     <Text style={{ fontFamily: theme.fonts.body, fontSize: 12, color: theme.colors.text + '77', marginLeft: 6 }}>Water</Text>
+                    {healthEntry?.completedMetrics?.water && (
+                      <MaterialCommunityIcons name="check-circle" size={12} color="#0ea5e9" style={{ marginLeft: 'auto' }} />
+                    )}
                   </View>
-                  <Text style={{ fontFamily: theme.fonts.heading, fontSize: 18, color: theme.colors.text }}>-- ml</Text>
-                </View>
+                  <Text style={{ fontFamily: theme.fonts.heading, fontSize: 18, color: theme.colors.text }}>
+                    {healthEntry?.water?.amount ? `${healthEntry.water.amount} ml` : '-- ml'}
+                  </Text>
+                </TouchableOpacity>
+                {/* Stress Mini Card */}
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    minWidth: '45%',
+                    backgroundColor: theme.colors.surface,
+                    borderRadius: 16,
+                    padding: 12,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.04,
+                    shadowRadius: 4,
+                    elevation: 1,
+                    borderWidth: healthEntry?.completedMetrics?.stress ? 1 : 0,
+                    borderColor: '#f97316' + '40',
+                  }}
+                  onPress={() => router.push('/screens/record/HealthCheckup')}
+                  activeOpacity={0.7}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                    <MaterialCommunityIcons name="head-snowflake" size={16} color="#f97316" />
+                    <Text style={{ fontFamily: theme.fonts.body, fontSize: 12, color: theme.colors.text + '77', marginLeft: 6 }}>Stress</Text>
+                    {healthEntry?.completedMetrics?.stress && (
+                      <MaterialCommunityIcons name="check-circle" size={12} color="#f97316" style={{ marginLeft: 'auto' }} />
+                    )}
+                  </View>
+                  <Text style={{ fontFamily: theme.fonts.heading, fontSize: 18, color: theme.colors.text }}>
+                    {healthEntry?.stress?.level ? `${healthEntry.stress.level}/10` : '--/10'}
+                  </Text>
+                </TouchableOpacity>
+                {/* Weight Mini Card */}
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    minWidth: '45%',
+                    backgroundColor: theme.colors.surface,
+                    borderRadius: 16,
+                    padding: 12,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.04,
+                    shadowRadius: 4,
+                    elevation: 1,
+                    borderWidth: healthEntry?.completedMetrics?.weight ? 1 : 0,
+                    borderColor: '#22c55e' + '40',
+                  }}
+                  onPress={() => router.push('/screens/record/HealthCheckup')}
+                  activeOpacity={0.7}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                    <MaterialCommunityIcons name="scale-bathroom" size={16} color="#22c55e" />
+                    <Text style={{ fontFamily: theme.fonts.body, fontSize: 12, color: theme.colors.text + '77', marginLeft: 6 }}>Weight</Text>
+                    {healthEntry?.completedMetrics?.weight && (
+                      <MaterialCommunityIcons name="check-circle" size={12} color="#22c55e" style={{ marginLeft: 'auto' }} />
+                    )}
+                  </View>
+                  <Text style={{ fontFamily: theme.fonts.heading, fontSize: 18, color: theme.colors.text }}>
+                    {healthEntry?.weight?.value ? `${healthEntry.weight.value.toFixed(1)} kg` : '-- kg'}
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
 

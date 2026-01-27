@@ -8,9 +8,13 @@ import {
     logWeight as apiLogWeight,
     getWeeklyStats,
     getStreakInfo,
+    getUserAddictions as apiGetUserAddictions,
+    logVices as apiLogVices,
     HealthCheckupEntry,
     WeeklyStats,
-    StreakInfo
+    StreakInfo,
+    UserAddiction,
+    ViceLog
 } from "../api/healthCheckupApi";
 import { useUser } from "./UserContext";
 
@@ -33,6 +37,11 @@ type HealthCheckupContextType = {
     weeklyStats: WeeklyStats | null;
     streakInfo: StreakInfo | null;
     refreshStats: () => Promise<void>;
+
+    // Vices/Addictions
+    userAddictions: UserAddiction[];
+    fetchUserAddictions: () => Promise<void>;
+    logVicesUsage: (logs: ViceLog[]) => Promise<boolean>;
 };
 
 const HealthCheckupContext = createContext<HealthCheckupContextType | undefined>(undefined);
@@ -50,6 +59,9 @@ export const HealthCheckupProvider = ({ children }: { children: ReactNode }) => 
     // Stats state
     const [weeklyStats, setWeeklyStats] = useState<WeeklyStats | null>(null);
     const [streakInfo, setStreakInfo] = useState<StreakInfo | null>(null);
+
+    // Vices/Addictions state
+    const [userAddictions, setUserAddictions] = useState<UserAddiction[]>([]);
 
     // Refresh today's checkup
     const refreshCheckup = useCallback(async () => {
@@ -181,6 +193,37 @@ export const HealthCheckupProvider = ({ children }: { children: ReactNode }) => 
         }
     }, []);
 
+    // Fetch user's addictions
+    const fetchUserAddictions = useCallback(async () => {
+        if (!user) return;
+        try {
+            const response = await apiGetUserAddictions();
+            if (response.success) {
+                setUserAddictions(response.addictions);
+            }
+        } catch (err: any) {
+            console.error("[HealthCheckupContext] Error fetching addictions:", err);
+        }
+    }, [user]);
+
+    // Log vices usage
+    const logVicesUsage = useCallback(async (logs: ViceLog[]): Promise<boolean> => {
+        try {
+            const response = await apiLogVices(logs);
+            if (response.success) {
+                setEntry(response.entry);
+                setCompletionPercentage(response.completionPercentage);
+                setIsComplete(response.isComplete);
+                return true;
+            }
+            return false;
+        } catch (err: any) {
+            console.error("[HealthCheckupContext] Error logging vices:", err);
+            setError(err?.response?.data?.message || "Failed to log vices");
+            return false;
+        }
+    }, []);
+
     return (
         <HealthCheckupContext.Provider value={{
             entry,
@@ -195,7 +238,10 @@ export const HealthCheckupProvider = ({ children }: { children: ReactNode }) => 
             logWeight,
             weeklyStats,
             streakInfo,
-            refreshStats
+            refreshStats,
+            userAddictions,
+            fetchUserAddictions,
+            logVicesUsage
         }}>
             {children}
         </HealthCheckupContext.Provider>
