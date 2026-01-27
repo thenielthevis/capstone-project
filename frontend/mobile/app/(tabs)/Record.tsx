@@ -464,6 +464,73 @@ export default function Record() {
               </View>
             </View>
 
+            {/* Health Checkup Summary */}
+            <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <Text style={{
+                  fontFamily: theme.fonts.heading,
+                  fontSize: 16,
+                  color: theme.colors.text,
+                }}>
+                  Health Checkup
+                </Text>
+                <View style={{
+                  backgroundColor: theme.colors.primary + '15',
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
+                  borderRadius: 12,
+                }}>
+                  <Text style={{
+                    fontFamily: theme.fonts.body,
+                    fontSize: 11,
+                    color: theme.colors.primary,
+                  }}>
+                    Tap + to log
+                  </Text>
+                </View>
+              </View>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+                {/* Sleep Mini Card */}
+                <View style={{
+                  flex: 1,
+                  minWidth: '45%',
+                  backgroundColor: theme.colors.surface,
+                  borderRadius: 16,
+                  padding: 12,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.04,
+                  shadowRadius: 4,
+                  elevation: 1,
+                }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                    <MaterialCommunityIcons name="sleep" size={16} color="#8b5cf6" />
+                    <Text style={{ fontFamily: theme.fonts.body, fontSize: 12, color: theme.colors.text + '77', marginLeft: 6 }}>Sleep</Text>
+                  </View>
+                  <Text style={{ fontFamily: theme.fonts.heading, fontSize: 18, color: theme.colors.text }}>-- hrs</Text>
+                </View>
+                {/* Water Mini Card */}
+                <View style={{
+                  flex: 1,
+                  minWidth: '45%',
+                  backgroundColor: theme.colors.surface,
+                  borderRadius: 16,
+                  padding: 12,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.04,
+                  shadowRadius: 4,
+                  elevation: 1,
+                }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                    <MaterialCommunityIcons name="water" size={16} color="#0ea5e9" />
+                    <Text style={{ fontFamily: theme.fonts.body, fontSize: 12, color: theme.colors.text + '77', marginLeft: 6 }}>Water</Text>
+                  </View>
+                  <Text style={{ fontFamily: theme.fonts.heading, fontSize: 18, color: theme.colors.text }}>-- ml</Text>
+                </View>
+              </View>
+            </View>
+
             {/* Quick Tip */}
             <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
               <QuickTip theme={theme} />

@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { UserProvider } from './context/UserContext';
 import { ProgramProvider } from './context/ProgramContext';
 import { DailyLogProvider } from './context/DailyLogContext';
+import { HealthCheckupProvider } from './context/HealthCheckupContext';
 import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
@@ -46,12 +47,14 @@ export default function App() {
               <UserProvider>
                 <ProgramProvider>
                   <DailyLogProvider>
-                    <Stack
-                      screenOptions={{
-                        headerShown: false,
-                      }}
-                    />
-                    <ToastProvider />
+                    <HealthCheckupProvider>
+                      <Stack
+                        screenOptions={{
+                          headerShown: false,
+                        }}
+                      />
+                      <ToastProvider />
+                    </HealthCheckupProvider>
                   </DailyLogProvider>
                 </ProgramProvider>
               </UserProvider>

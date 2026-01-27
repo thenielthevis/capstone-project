@@ -36,6 +36,7 @@ const commentRoutes = require('./routes/commentRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const historyRoutes = require('./routes/historyRoutes');
 const assessmentRoutes = require('./routes/assessmentRoutes');
+const healthCheckupRoutes = require('./routes/healthCheckupRoutes');
 
 // During development allow all origins so phones/emulators can reach the server.
 // In production restrict this to a known list.
@@ -71,9 +72,11 @@ app.use('/api/comments', commentRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/history', historyRoutes);
 app.use('/api/assessment', assessmentRoutes);
+app.use('/api/health-checkups', healthCheckupRoutes);
 console.log('[APP] Registered /api/admin routes');
 console.log('[APP] Registered /api/gemini routes');
 console.log('[APP] Registered /api/assessment routes');
+console.log('[APP] Registered /api/health-checkups routes');
 console.log('[APP] Registered /api/reports routes');
 
 // Health check endpoint

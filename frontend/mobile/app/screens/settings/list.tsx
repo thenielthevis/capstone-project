@@ -167,6 +167,14 @@ export default function SettingsScreen() {
           onPress={() => router.push("/screens/settings/appearance")}
           theme={theme}
         />
+        <SettingsItem
+          icon="bell-outline"
+          iconColor="#0ea5e9"
+          title="Health Checkup Reminders"
+          subtitle="Set daily reminder times"
+          onPress={() => router.push("/screens/settings/health-checkup-reminders")}
+          theme={theme}
+        />
 
         {/* Permissions Section */}
         <SectionHeader title="Permissions" theme={theme} />

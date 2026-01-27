@@ -164,6 +164,13 @@ const userSchema = new mongoose.Schema({
             bottom: { type: String, default: "" },
             shoes: { type: String, default: "" }
         }
+    },
+    // Health Checkup Reminder Settings
+    healthCheckupReminders: {
+        enabled: { type: Boolean, default: true },
+        morningTime: { type: String, default: '08:00' }, // HH:mm format - for sleep logging
+        eveningTime: { type: String, default: '19:00' }, // HH:mm format - for water/stress/weight
+        timezone: { type: String, default: 'Asia/Manila' }
     }
 });
 

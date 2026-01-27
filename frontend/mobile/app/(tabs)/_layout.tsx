@@ -46,6 +46,12 @@ export default function HomeTabs() {
         icon: <FontAwesome6 name="person-running" size={20} color={theme.colors.primary} />,
         route: "/screens/record/Program" as Href,
       },
+      {
+        key: "health",
+        label: "Health Checkup",
+        icon: <MaterialCommunityIcons name="heart-pulse" size={20} color={theme.colors.primary} />,
+        route: "/screens/record/HealthCheckup" as Href,
+      },
     ],
     [theme.colors.primary]
   );
