@@ -9,7 +9,7 @@ router.post("/generate-daily-questions", auth, assessmentController.generateDail
 // Get active/pending assessment questions for user
 router.get("/active-questions", auth, assessmentController.getActiveQuestions);
 
-// Submit assessment response
+// Submit assessment response with sentiment analysis
 router.post("/submit-response", auth, assessmentController.submitAssessmentResponse);
 
 // Get user's assessment progress
@@ -23,5 +23,14 @@ router.get("/sentiment-trend", auth, assessmentController.analyzeSentimentTrend)
 
 // Get personalized recommendations based on assessments
 router.get("/recommendations", auth, assessmentController.getRecommendations);
+
+// NEW: Get sentiment analysis results for specific assessment
+router.get("/sentiment-analysis/:assessmentId", auth, assessmentController.getSentimentAnalysisResults);
+
+// NEW: Direct text analysis (testing endpoint)
+router.post("/analyze-text", auth, assessmentController.analyzeText);
+
+// NEW: Get user's latest sentiment analysis
+router.get("/latest-sentiment-analysis", auth, assessmentController.getLatestSentimentAnalysis);
 
 module.exports = router;

@@ -134,6 +134,9 @@ exports.generateAssessmentQuestions = async (userContext) => {
         const response = await result.response;
         const text = response.text();
 
+        console.log('[Assessment] Raw Gemini response length:', text.length);
+        console.log('[Assessment] Raw response preview:', text.substring(0, 200));
+
         // Clean markdown if present
         const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
         const questions = JSON.parse(cleaned);
@@ -143,9 +146,15 @@ exports.generateAssessmentQuestions = async (userContext) => {
             throw new Error('Invalid response format - not an array');
         }
 
-        return questions.slice(0, 10); // Ensure exactly 10 questions
+        console.log('[Assessment] Parsed questions count:', questions.length);
+        
+        if (questions.length < 10) {
+            console.warn(`[Assessment] Only got ${questions.length} questions, expected 10. Using all available.`);
+        }
+
+        return questions.slice(0, 10); // Return up to 10 questions
     } catch (error) {
-        console.error("Gemini Assessment Generation Error:", error);
+        console.error("Gemini Assessment Generation Error:", error.message);
         console.log("Falling back to default questions");
         return getDefaultAssessmentQuestions();
     }
@@ -353,5 +362,67 @@ Generate descriptions for all diseases, keeping them brief and informative.`;
     } catch (err) {
         console.error('Error generating disease descriptions:', err);
         return {};
+    }
+};
+
+/**
+ * Translate Tagalog text to English
+ * 
+ * @param {string} text Text to translate (Tagalog or mixed)
+ * @returns {Promise<string>} Translated English text
+ */
+exports.translateTagalogToEnglish = async (text) => {
+    if (!process.env.GEMINI_API_KEY) {
+        console.warn('Gemini API key is not set. Returning original text.');
+        return text;
+    }
+
+    try {
+        const prompt = `You are a professional translator. Translate the following Tagalog text to clear, natural English. If the text is already mostly English, return it as-is.
+
+TEXT TO TRANSLATE:
+${text}
+
+Return ONLY the translated text, nothing else.`;
+
+        const response = await model.generateContent(prompt);
+        const translated = response.response.text().trim();
+        
+        console.log('[Translation] Translated to English:', text.substring(0, 50), '...', 'to:', translated.substring(0, 50), '...');
+        return translated;
+    } catch (err) {
+        console.error('Error translating to English:', err);
+        return text; // Return original on error
+    }
+};
+
+/**
+ * Translate English text to Tagalog
+ * 
+ * @param {string} text Text to translate (English)
+ * @returns {Promise<string>} Translated Tagalog text
+ */
+exports.translateEnglishToTagalog = async (text) => {
+    if (!process.env.GEMINI_API_KEY) {
+        console.warn('Gemini API key is not set. Returning original text.');
+        return text;
+    }
+
+    try {
+        const prompt = `You are a professional translator. Translate the following English text to natural, clear Tagalog (Filipino). Maintain the same meaning and tone.
+
+TEXT TO TRANSLATE:
+${text}
+
+Return ONLY the translated text in Tagalog, nothing else.`;
+
+        const response = await model.generateContent(prompt);
+        const translated = response.response.text().trim();
+        
+        console.log('[Translation] Translated to Tagalog:', text.substring(0, 50), '...', 'to:', translated.substring(0, 50), '...');
+        return translated;
+    } catch (err) {
+        console.error('Error translating to Tagalog:', err);
+        return text; // Return original on error
     }
 };

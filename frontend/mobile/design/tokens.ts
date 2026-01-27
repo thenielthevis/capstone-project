@@ -49,7 +49,9 @@ export const lightTheme = {
     background: '#FFFFFF',
     surface: '#F8FAFC',
     text: '#1a1916',
+    textSecondary: '#64748B',
     input: '#F1F5F9', // light input background
+    border: '#E2E8F0',
     overlay: 'rgba(44, 62, 80, 0.4)', // semi-transparent dark overlay
     error: '#E45858',
     success: '#10B981',
@@ -95,7 +97,9 @@ export const darkTheme = {
     background: '#111827',
     surface: '#1F2937',
     text: '#F3F4F6',
+    textSecondary: '#9CA3AF',
     input: '#23272e', // dark input background
+    border: '#374151',
     overlay: 'rgba(0,0,0,0.8)', // semi-transparent black overlay
     error: '#FF6B6B',
     success: '#10B981',
@@ -146,6 +150,8 @@ export const oceanTheme = {
     input: '#F1F5F9',
     surface: '#ade8f4',
     text: '#03045e',
+    textSecondary: '#0077B6',
+    border: '#90E0EF',
     overlay: 'rgba(44, 62, 80, 0.4)',
     error: '#E45858',
     success: '#10B981',

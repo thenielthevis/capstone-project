@@ -11,8 +11,35 @@ const THEMES = {
 
 type ThemeKey = keyof typeof THEMES;
 
+// Explicit theme type definition
+interface ThemeColors {
+  primary: string;
+  secondary: string;
+  accent: string;
+  background: string;
+  surface: string;
+  text: string;
+  textSecondary: string;
+  input: string;
+  border: string;
+  overlay: string;
+  error: string;
+  success: string;
+}
+
+interface Theme {
+  mode: string;
+  colors: ThemeColors;
+  fonts: any;
+  fontSizes: any;
+  fontWeights: any;
+  semanticColors?: any;
+  gradients?: any;
+  statusBackgrounds?: any;
+}
+
 // Define a type that matches all theme objects
-type ThemeType = typeof lightTheme & typeof darkTheme & typeof oceanTheme;
+type ThemeType = Theme;
 
 type ThemeContextType = {
   themeKey: ThemeKey;
@@ -22,7 +49,7 @@ type ThemeContextType = {
 
 export const ThemeContext = createContext<ThemeContextType>({
   themeKey: 'light',
-  theme: lightTheme as ThemeType,
+  theme: lightTheme as unknown as ThemeType,
   setThemeKey: () => {},
 });
 
@@ -53,7 +80,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     await SecureStore.setItemAsync('theme', key);
   };
 
-  const theme = THEMES[themeKey] as ThemeType;
+  const theme = THEMES[themeKey] as unknown as ThemeType;
 
   return (
     <ThemeContext.Provider value={{ themeKey, theme, setThemeKey }}>

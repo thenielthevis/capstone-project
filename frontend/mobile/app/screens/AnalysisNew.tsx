@@ -1460,16 +1460,23 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
         return;
       }
 
-      const primary = `${API_URL}/predict/me`;
+      // Use POST endpoint only when force regenerating, otherwise use cached endpoint like web
+      const endpoint = forceRegenerate ? `${API_URL}/predict/me` : `${API_URL}/predict/cached`;
+      const method = forceRegenerate ? "POST" : "GET";
 
-      const response = await fetch(primary, {
-        method: "POST",
+      console.log(`[AnalysisNew] ${forceRegenerate ? 'REGENERATING' : 'LOADING'} predictions...`);
+      console.log(`[AnalysisNew] Endpoint: ${endpoint}, Method: ${method}`);
+
+      const response = await fetch(endpoint, {
+        method: method,
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: forceRegenerate ? JSON.stringify({ force: true }) : undefined,
       });
+
+      console.log(`[AnalysisNew] Response status: ${response.status}`);
 
       if (response.status === 401) {
         setError("Session expired, please sign in again");
@@ -1483,6 +1490,10 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
       }
 
       const data = await response.json();
+      console.log(`[AnalysisNew] Predictions received:`, data.predictions);
+      const validPredictionCount = data.predictions?.filter((p: any) => p.probability > 0).length || 0;
+      console.log(`[AnalysisNew] Prediction count: ${validPredictionCount}`);
+
       setUserData({
         _id: data.id || "user-1",
         username: data.username || "You",
@@ -1505,9 +1516,25 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
         dietaryProfile: data.profile?.dietaryProfile,
         environmentalFactors: data.profile?.environmentalFactors,
       });
+
+      if (forceRegenerate) {
+        const validPredictionCount = data.predictions?.filter((p: any) => p.probability > 0).length || 0;
+        Toast.show({
+          type: "success",
+          position: "top",
+          text1: "✅ Predictions Regenerated",
+          text2: `Generated ${validPredictionCount} new predictions`,
+        });
+      }
     } catch (err: any) {
       console.error("Error loading data:", err);
       setError(err.message || "Error loading data");
+      Toast.show({
+        type: "error",
+        position: "top",
+        text1: "❌ Regeneration Failed",
+        text2: err.message || "Could not regenerate predictions",
+      });
     } finally {
       setLoading(false);
     }
@@ -1781,6 +1808,14 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
   };
 
   const generateDiseaseRiskHistory = () => {
+    // Use current predictions count for today, generated history for past dates
+    const currentValidPredictions = (userData?.lastPrediction?.predictions || [])
+      .filter((p: any) => p.probability > 0)
+      .length;
+    
+    console.log('[AnalysisNew] DEBUG - Current valid predictions:', currentValidPredictions);
+    console.log('[AnalysisNew] DEBUG - All predictions:', userData?.lastPrediction?.predictions?.length || 0);
+    
     const history = [];
     const today = new Date();
     const familyHistory = userData?.healthProfile?.familyHistory || [];
@@ -1793,15 +1828,26 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
       const date = new Date(today);
       date.setMonth(date.getMonth() - i);
 
-      const variation = Math.random() > 0.7 ? (Math.random() > 0.5 ? 1 : -1) : 0;
-      const highRiskCount = Math.max(0, Math.min(10, baseHighRiskCount + variation));
+      if (i === 0) {
+        // Today: use current valid prediction count
+        history.push({
+          date: `${date.getMonth() + 1}/${date.getDate()}`,
+          highRiskCount: currentValidPredictions,
+        });
+        console.log('[AnalysisNew] DEBUG - Today\'s risk count set to:', currentValidPredictions);
+      } else {
+        // Past dates: use simulated trend based on family history
+        const variation = Math.random() > 0.7 ? (Math.random() > 0.5 ? 1 : -1) : 0;
+        const highRiskCount = Math.max(0, Math.min(10, baseHighRiskCount + variation));
 
-      history.push({
-        date: `${date.getMonth() + 1}/${date.getDate()}`,
-        highRiskCount: Math.round(highRiskCount),
-      });
+        history.push({
+          date: `${date.getMonth() + 1}/${date.getDate()}`,
+          highRiskCount: Math.round(highRiskCount),
+        });
+      }
     }
 
+    console.log('[AnalysisNew] DEBUG - Disease history:', history);
     setDiseaseRiskHistory(history);
   };
 
@@ -9403,22 +9449,28 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
   const renderDiseaseRisksPage = () => {
     // Get predictions from userData or fall back to empty array
     const predictions = userData?.lastPrediction?.predictions || [];
+    console.log('[AnalysisNew] DEBUG - All predictions:', JSON.stringify(predictions));
+    console.log('[AnalysisNew] DEBUG - Total predictions count:', predictions.length);
 
-    // Map existing predictions to include metadata
-    const diseases = predictions.map(p => {
-      const meta = DISEASE_METADATA[p.name] || {
-        icon: "alert-circle-outline",
-        description: "Health risk area identified by the analysis model.",
-        color: theme.colors.primary
-      };
+    // Filter out predictions with 0% probability and map to include metadata
+    const diseases = predictions
+      .filter(p => p.probability > 0) // Only show diseases with > 0% probability
+      .map(p => {
+        const meta = DISEASE_METADATA[p.name] || {
+          icon: "alert-circle-outline",
+          description: "Health risk area identified by the analysis model.",
+          color: theme.colors.primary
+        };
 
-      return {
-        name: formatDiseaseName(p.name),
-        icon: meta.icon,
-        description: meta.description,
-        color: meta.color
-      };
-    });
+        return {
+          name: formatDiseaseName(p.name),
+          icon: meta.icon,
+          description: meta.description,
+          color: meta.color
+        };
+      });
+    console.log('[AnalysisNew] DEBUG - Filtered diseases count:', diseases.length);
+    console.log('[AnalysisNew] DEBUG - Filtered diseases:', diseases.map(d => d.name));
 
     // If no predictions yet, use a friendly placeholder
     if (diseases.length === 0 && !loading) {
@@ -9580,7 +9632,7 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
           {/* Disease List Card */}
           <View style={{ backgroundColor: theme.mode === 'dark' ? theme.colors.surface : "#FFF3E0", borderRadius: 24, padding: 24, marginBottom: 20, borderWidth: 2, borderColor: "#FF6F00", elevation: 8, zIndex: 1 }}>
             <Text style={{ fontSize: 16, color: "#E65100", marginBottom: 16, ...getHeadingFont() }}>
-              <MaterialCommunityIcons name="magnify" size={20} color={theme.colors.text} /> Potential Conditions
+              <MaterialCommunityIcons name="magnify" size={20} color={theme.colors.text} /> Potential Conditions ({diseases.length})
             </Text>
             {diseases.map((disease, idx) => (
               <View
@@ -9677,6 +9729,29 @@ export default function Analysis({ initialMetric, onClose }: { initialMetric?: s
               • Maintain a healthy diet and exercise regularly{"\n"}• Keep your health profile updated with accurate information{"\n"}• Monitor your vital signs and health metrics{"\n"}• Reduce stress and get adequate sleep{"\n"}• Avoid harmful substances and maintain healthy habits
             </Text>
           </View>
+
+          {/* Regenerate Button */}
+          <TouchableOpacity
+            onPress={() => loadUserData(true)}
+            disabled={loading}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              backgroundColor: theme.colors.primary,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              borderRadius: 12,
+              marginBottom: 20,
+              opacity: loading ? 0.6 : 1,
+            }}
+          >
+            <MaterialCommunityIcons name="refresh" size={20} color="#fff" />
+            <Text style={{ fontSize: 14, color: "#fff", fontWeight: "600", ...getBodyBoldFont() }}>
+              {loading ? "Regenerating..." : "Regenerate Predictions"}
+            </Text>
+          </TouchableOpacity>
 
 
           {/* Checklist Section - BEFORE References */}

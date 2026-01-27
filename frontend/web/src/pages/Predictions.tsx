@@ -646,7 +646,7 @@ export default function Predictions() {
                         Based on your health profile, here are your predicted disease risks:
                       </p>
                       <div className="space-y-4">
-                        {predictions.map((prediction, index) => (
+                        {predictions.filter((p: any) => p.probability > 0).map((prediction, index) => (
                           <div
                             key={index}
                             className={`p-4 rounded-lg border-2 ${getRiskColor(prediction.probability)}`}
@@ -655,11 +655,6 @@ export default function Predictions() {
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-1">
                                   <h3 className="font-semibold text-lg">{normalizeName(prediction.name)}</h3>
-                                  {prediction.source && (
-                                    <span className="text-xs px-2 py-1 rounded bg-white/50">
-                                      {getSourceLabel(prediction.source)}
-                                    </span>
-                                  )}
                                 </div>
                                 {prediction.description && (
                                   <p className="text-xs mb-2" style={{ color: '#666' }}>
@@ -676,14 +671,6 @@ export default function Predictions() {
                                     </ul>
                                   </div>
                                 )}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-3 mt-3">
-                              <div className="flex-1 bg-white rounded-full h-3 overflow-hidden">
-                                <div
-                                  className="h-full bg-current transition-all duration-300"
-                                  style={{ width: `${prediction.probability * 100}%` }}
-                                />
                               </div>
                             </div>
                           </div>

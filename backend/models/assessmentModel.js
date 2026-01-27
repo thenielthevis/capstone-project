@@ -12,16 +12,23 @@ const assessmentSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    questionTagalog: {
+      type: String, // Tagalog translation of question
+    },
     choices: [
       {
         id: String,
         text: String,
+        textTagalog: String, // Tagalog translation of choice
         value: Number, // Score value for this choice
       },
     ],
     suggestion: {
       type: String,
       required: true,
+    },
+    suggestionTagalog: {
+      type: String, // Tagalog translation of suggestion
     },
     sentiment: {
       type: String,
@@ -39,6 +46,7 @@ const assessmentSchema = new mongoose.Schema(
         value: Number,
       },
       userResponse: String,
+      userTextInput: String, // New field for text-based response
       timestamp: {
         type: Date,
         default: Date.now,
@@ -81,6 +89,39 @@ const assessmentSchema = new mongoose.Schema(
         default: 0,
       },
       insights: String,
+    },
+    sentimentAnalysis: {
+      sentiment: {
+        primary: String, // positive, negative, neutral
+        positive: Number,
+        negative: Number,
+        neutral: Number,
+        confidence: Number,
+      },
+      emotion: {
+        primary: String, // joy, sadness, anger, fear, surprise, neutral
+        confidence: Number,
+        breakdown: {
+          joy: Number,
+          sadness: Number,
+          anger: Number,
+          fear: Number,
+          surprise: Number,
+          neutral: Number,
+        },
+      },
+      stress: {
+        level: String, // low, medium, high
+        score: Number,
+        anxiety: {
+          level: String,
+          score: Number,
+        },
+      },
+      analyzedAt: {
+        type: Date,
+        default: Date.now,
+      },
     },
   },
   { timestamps: true }
