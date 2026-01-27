@@ -109,7 +109,43 @@ const updateUserGamificationStats = async (userId) => {
         const scores = await evaluateGamification(contextData);
 
         // ---------------------------------------------------------
-        // 4. Update User Model
+        // 4. Calculate and Award Coins
+        // ---------------------------------------------------------
+        const activityCoins = Math.floor(totalCaloriesBurned / 10);
+        const nutritionCoins = Math.floor((scores.nutrition || 0) / 2);
+        const totalTargetCoins = activityCoins + nutritionCoins;
+
+        // Find or create today's entry in dailyCalorieBalance to track daily coins
+        let dailyEntry = user.dailyCalorieBalance.find(e => {
+            const entryDate = new Date(e.date);
+            entryDate.setHours(0, 0, 0, 0);
+            return entryDate.getTime() === today.getTime();
+        });
+
+        let newCoinsAwardedTotal = 0;
+        if (dailyEntry) {
+            const currentDailyCoins = dailyEntry.coins_earned || 0;
+            if (totalTargetCoins > currentDailyCoins) {
+                newCoinsAwardedTotal = totalTargetCoins - currentDailyCoins;
+                dailyEntry.coins_earned = totalTargetCoins;
+            }
+        } else {
+            // This case shouldn't normally happen as controllers call updateUserDailyCalories/Burned first
+            // but we'll handle it for robustness
+            newCoinsAwardedTotal = totalTargetCoins;
+            user.dailyCalorieBalance.push({
+                date: today,
+                goal_kcal: 2000, // Fallback
+                consumed_kcal: nutritionDigest.totalCalories,
+                burned_kcal: totalCaloriesBurned,
+                net_kcal: nutritionDigest.totalCalories - totalCaloriesBurned,
+                coins_earned: totalTargetCoins,
+                status: 'on_target'
+            });
+        }
+
+        // ---------------------------------------------------------
+        // 5. Update User Model
         // ---------------------------------------------------------
         const newBatteries = {
             activity: scores.activity || 0,
@@ -121,12 +157,18 @@ const updateUserGamificationStats = async (userId) => {
 
         user.gamification = {
             points: totalPoints,
-            coins: user.gamification.coins, // Preserve coins
+            coins: (user.gamification.coins || 0) + newCoinsAwardedTotal,
             batteries: [newBatteries]
         };
 
         await user.save();
-        return { gamification: user.gamification, reasoning: scores.reasoning };
+        return {
+            gamification: user.gamification,
+            reasoning: scores.reasoning,
+            coinsAwarded: newCoinsAwardedTotal,
+            totalTodayCoins: totalTargetCoins
+        };
+
 
     } catch (error) {
         console.error("Internal Gamification Update Error:", error);

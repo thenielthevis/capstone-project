@@ -34,20 +34,21 @@ exports.evaluateGamification = async (data) => {
         ${JSON.stringify(data, null, 2)}
         
         SCORING CRITERIA:
-        1. Activity: Based on calories burned and active time relative to implicit BMR/Maintenance (derived from user profile). >500 active cals is usually good.
-        2. Nutrition: Based on food choices (healthy/unhealthy), balance of macros, and caloric intake vs goal.
+        1. Activity: Based on calories burned and active time relative to implicit BMR/Maintenance. >500 active cals is usually good. (Impacts Coin Rewards: 1 coin per 10 kcal).
+        2. Nutrition: Based on food choices (healthy/unhealthy), balance of macros, and caloric intake vs goal. (Impacts Coin Rewards: Score / 2).
         3. Health: Based on overall BMI status, water intake, stress levels, and risk factors.
         4. Sleep: Based on sleep hours (7-9 is ideal).
 
         OUTPUT FORMAT:
-        Return ONLY a JSON object with integer scores (0-100) and a brief reasoning string.
+        Return ONLY a JSON object with integer scores (0-100) and a brief reasoning string. The reasoning should mention the coins earned if applicable.
         {
             "activity": 85,
             "nutrition": 70,
             "health": 60,
             "sleep": 90,
-            "reasoning": "Activity was high due to..."
+            "reasoning": "Great job! Your high activity earned you a lot of coins today. Your nutrition was solid as well."
         }
+
         `;
 
         const result = await model.generateContent(prompt);
@@ -323,7 +324,7 @@ exports.generateDiseaseDescriptions = async (diseaseNames) => {
     try {
         // Filter unique disease names
         const uniqueDiseases = [...new Set(diseaseNames)];
-        
+
         const prompt = `You are a medical AI assistant. Generate short, concise descriptions (1 sentence, max 150 characters) for the following diseases. The descriptions should be suitable for a health app UI.
 
 Format: Return ONLY a JSON object with disease names as keys and descriptions as values.
@@ -340,14 +341,14 @@ Generate descriptions for all diseases, keeping them brief and informative.`;
 
         const response = await model.generateContent(prompt);
         const text = response.response.text();
-        
+
         // Parse JSON response
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
             const descriptions = JSON.parse(jsonMatch[0]);
             return descriptions;
         }
-        
+
         return {};
     } catch (err) {
         console.error('Error generating disease descriptions:', err);

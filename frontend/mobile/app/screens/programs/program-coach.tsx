@@ -12,7 +12,7 @@ import { createProgramSession, ProgramSessionPayload } from "../../api/programSe
 import { getUserProfile } from "../../api/userApi";
 import { Audio } from "expo-av";
 import ProgramRest from "./program-rest";
-import BatteryAnimate from '../../components/animation/battery';
+import GamificationReward from '../../components/animation/gamification-reward';
 import GamificationLoading from '../../components/animation/gamification-loading';
 import { ActivityIcon } from "../../components/ActivityIcon";
 
@@ -57,14 +57,16 @@ export default function ProgramCoach() {
   const startTimeRef = useRef<Date | null>(null);
   const sessionResponseRef = useRef<any>(null);
 
-  // Battery animation state
-  const [showBatteryAnimation, setShowBatteryAnimation] = useState(false);
+  // Gamification animation state
+  const [showGamificationAnimation, setShowGamificationAnimation] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
-  const [batteryAnimationData, setBatteryAnimationData] = useState<{
-    previousValue: number;
-    newValue: number;
+  const [gamificationData, setGamificationData] = useState<{
+    previousBattery: number;
+    newBattery: number;
+    coinsAwarded: number;
+    totalCoins: number;
     label: string;
-  }>({ previousValue: 0, newValue: 0, label: 'Activity' });
+  }>({ previousBattery: 0, newBattery: 0, coinsAwarded: 0, totalCoins: 0, label: 'Activity' });
 
   const loadSound = async (path: any) => {
     const { sound } = await Audio.Sound.createAsync(path);
@@ -891,12 +893,16 @@ export default function ProgramCoach() {
           const newActivityValue = profileAfter.profile?.gamification?.batteries?.[0]?.activity || 0;
 
           // 5. Trigger animation
-          setBatteryAnimationData({
-            previousValue: prevActivityValue,
-            newValue: newActivityValue,
+          const coins = profileAfter.profile?.gamification?.coins || 0;
+          const coinsAwarded = Math.floor((newActivityValue - prevActivityValue) / 10);
+          setGamificationData({
+            previousBattery: prevActivityValue,
+            newBattery: newActivityValue,
+            coinsAwarded: coinsAwarded > 0 ? coinsAwarded : 0,
+            totalCoins: coins,
             label: 'Activity'
           });
-          setShowBatteryAnimation(true);
+          setShowGamificationAnimation(true);
 
         } catch (err) {
           console.warn("Failed to fetch updated profile for animation:", err);
@@ -1351,15 +1357,17 @@ export default function ProgramCoach() {
         </BottomSheetView>
       </BottomSheet>
 
-      {/* Battery Animation Overlay */}
+      {/* Gamification Animation Overlay */}
       <GamificationLoading visible={isCalculating} message="Analyzing Performance..." />
-      <BatteryAnimate
-        visible={showBatteryAnimation}
-        previousValue={batteryAnimationData.previousValue}
-        newValue={batteryAnimationData.newValue}
-        label={batteryAnimationData.label}
+      <GamificationReward
+        visible={showGamificationAnimation}
+        previousBattery={gamificationData.previousBattery}
+        newBattery={gamificationData.newBattery}
+        coinsAwarded={gamificationData.coinsAwarded}
+        totalCoins={gamificationData.totalCoins}
+        label={gamificationData.label}
         onComplete={() => {
-          setShowBatteryAnimation(false);
+          setShowGamificationAnimation(false);
           showSuccessAlert();
         }}
       />

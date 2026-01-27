@@ -126,7 +126,9 @@ const userSchema = new mongoose.Schema({
             consumed_kcal: { type: Number, default: 0 },
             burned_kcal: { type: Number, default: 0 },
             net_kcal: { type: Number, default: 0 },
+            coins_earned: { type: Number, default: 0 },
             status: { type: String, enum: ['under', 'on_target', 'over'], default: 'on_target' }
+
         }
     ],
     gamification: {

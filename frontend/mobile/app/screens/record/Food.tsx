@@ -26,7 +26,7 @@ import { foodLogApi } from '../../api/foodLogApi';
 import { useUser } from '../../context/UserContext';
 import { getUserAllergies, getTodayCalorieBalance, getUserProfile } from '../../api/userApi';
 import { sendCalorieReminder, configureNotifications } from '@/utils/calorieNotifications';
-import BatteryAnimate from '../../components/animation/battery';
+import GamificationReward from '../../components/animation/gamification-reward';
 import GamificationLoading from '../../components/animation/gamification-loading';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -335,14 +335,16 @@ export default function Food() {
   } | null>(null);
   const [allergiesLoaded, setAllergiesLoaded] = useState(false);
 
-  // Battery animation state
-  const [showBatteryAnimation, setShowBatteryAnimation] = useState(false);
+  // Gamification animation state
+  const [showGamificationAnimation, setShowGamificationAnimation] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
-  const [batteryAnimationData, setBatteryAnimationData] = useState<{
-    previousValue: number;
-    newValue: number;
+  const [gamificationData, setGamificationData] = useState<{
+    previousBattery: number;
+    newBattery: number;
+    coinsAwarded: number;
+    totalCoins: number;
     label: string;
-  }>({ previousValue: 0, newValue: 0, label: 'Nutrition' });
+  }>({ previousBattery: 0, newBattery: 0, coinsAwarded: 0, totalCoins: 0, label: 'Nutrition' });
 
   // Configure notifications on component mount
   useEffect(() => {
@@ -840,12 +842,17 @@ export default function Food() {
 
           // Show animation if value changed
           if (newNutritionValue !== previousNutritionValue) {
-            setBatteryAnimationData({
-              previousValue: previousNutritionValue,
-              newValue: newNutritionValue,
+            const coins = profileAfter.profile?.gamification?.coins || 0;
+            // Estimate coins awarded based on nutrition score change
+            const coinsAwarded = Math.floor((newNutritionValue - previousNutritionValue) / 2);
+            setGamificationData({
+              previousBattery: previousNutritionValue,
+              newBattery: newNutritionValue,
+              coinsAwarded: coinsAwarded > 0 ? coinsAwarded : 0,
+              totalCoins: coins,
               label: 'Nutrition',
             });
-            setShowBatteryAnimation(true);
+            setShowGamificationAnimation(true);
           }
         } catch (err) {
           console.warn('[Food] Could not fetch profile after save:', err);
@@ -1446,13 +1453,15 @@ export default function Food() {
           </ScrollView>
         </SafeAreaView>
 
-        {/* Battery Animation Overlay */}
-        <BatteryAnimate
-          visible={showBatteryAnimation}
-          previousValue={batteryAnimationData.previousValue}
-          newValue={batteryAnimationData.newValue}
-          label={batteryAnimationData.label}
-          onComplete={() => setShowBatteryAnimation(false)}
+        {/* Gamification Animation Overlay */}
+        <GamificationReward
+          visible={showGamificationAnimation}
+          previousBattery={gamificationData.previousBattery}
+          newBattery={gamificationData.newBattery}
+          coinsAwarded={gamificationData.coinsAwarded}
+          totalCoins={gamificationData.totalCoins}
+          label={gamificationData.label}
+          onComplete={() => setShowGamificationAnimation(false)}
         />
       </>
     );
@@ -2211,14 +2220,16 @@ export default function Food() {
                 </Text>
               </TouchableOpacity>
             </View>
-            {/* Battery Animation Overlay */}
+            {/* Gamification Animation Overlay */}
             <GamificationLoading visible={isCalculating} message="Calculating Nutrition Points..." />
-            <BatteryAnimate
-              visible={showBatteryAnimation}
-              previousValue={batteryAnimationData.previousValue}
-              newValue={batteryAnimationData.newValue}
+            <GamificationReward
+              visible={showGamificationAnimation}
+              previousBattery={gamificationData.previousBattery}
+              newBattery={gamificationData.newBattery}
+              coinsAwarded={gamificationData.coinsAwarded}
+              totalCoins={gamificationData.totalCoins}
               label="Nutrition"
-              onComplete={() => setShowBatteryAnimation(false)}
+              onComplete={() => setShowGamificationAnimation(false)}
             />
 
           </ScrollView>
@@ -3727,13 +3738,15 @@ export default function Food() {
           </View>
         </Modal>
 
-        {/* Battery Animation Overlay */}
-        <BatteryAnimate
-          visible={showBatteryAnimation}
-          previousValue={batteryAnimationData.previousValue}
-          newValue={batteryAnimationData.newValue}
-          label={batteryAnimationData.label}
-          onComplete={() => setShowBatteryAnimation(false)}
+        {/* Gamification Animation Overlay */}
+        <GamificationReward
+          visible={showGamificationAnimation}
+          previousBattery={gamificationData.previousBattery}
+          newBattery={gamificationData.newBattery}
+          coinsAwarded={gamificationData.coinsAwarded}
+          totalCoins={gamificationData.totalCoins}
+          label={gamificationData.label}
+          onComplete={() => setShowGamificationAnimation(false)}
         />
       </SafeAreaView>
     </>
