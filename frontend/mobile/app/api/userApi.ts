@@ -97,6 +97,7 @@ export interface UserProfile {
   lastPrediction: {
     disease: string[];
     probability: number;
+    predictions?: Array<{ name: string; probability: number }>;
     predictedAt: string;
     source: string;
   } | null;

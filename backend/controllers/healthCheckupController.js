@@ -40,9 +40,15 @@ exports.getTodayCheckup = async (req, res) => {
 exports.updateCheckup = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { sleep, water, stress, weight, vices } = req.body;
+        const {
+            sleep, water, stress, weight, vices,
+            bmi, activityLevel, dietary, healthStatus,
+            environmental, addictionRisk, diseaseRisk
+        } = req.body;
 
         let entry = await HealthCheckup.getTodayEntry(userId);
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
         // Update sleep data
         if (sleep !== undefined) {
@@ -62,6 +68,13 @@ exports.updateCheckup = async (req, res) => {
                 if (hours < 0) hours += 24; // Handle overnight sleep
                 entry.sleep.hours = Math.round(hours * 10) / 10;
                 entry.completedMetrics.sleep = true;
+            }
+
+            // Sync with user profile
+            if (entry.sleep.hours !== undefined) {
+                await User.findByIdAndUpdate(userId, {
+                    'lifestyle.sleepHours': entry.sleep.hours
+                });
             }
         }
 
@@ -83,7 +96,13 @@ exports.updateCheckup = async (req, res) => {
                 entry.water.amount = water.unit === 'oz' ? ozToMl(water.amount) : water.amount;
             }
             if (water.goal !== undefined) {
-                entry.water.goal = water.unit === 'oz' ? ozToMl(water.goal) : water.goal;
+                const mlGoal = water.unit === 'oz' ? ozToMl(water.goal) : water.goal;
+                entry.water.goal = mlGoal;
+
+                // Sync with user profile (convert ml to L)
+                await User.findByIdAndUpdate(userId, {
+                    'dietaryProfile.dailyWaterIntake': mlGoal / 1000
+                });
             }
             if (water.unit) entry.water.unit = water.unit;
 
@@ -96,8 +115,18 @@ exports.updateCheckup = async (req, res) => {
         // Update stress data
         if (stress !== undefined) {
             if (stress.level !== undefined) {
-                entry.stress.level = Math.min(10, Math.max(1, stress.level));
+                const level = Math.min(10, Math.max(1, stress.level));
+                entry.stress.level = level;
                 entry.completedMetrics.stress = true;
+
+                // Sync with user profile (map 1-10 to low/moderate/high)
+                let mappedLevel = 'low';
+                if (level > 7) mappedLevel = 'high';
+                else if (level > 3) mappedLevel = 'moderate';
+
+                await User.findByIdAndUpdate(userId, {
+                    'riskFactors.stressLevel': mappedLevel
+                });
             }
             if (stress.source) entry.stress.source = stress.source;
             if (stress.timeOfDay) entry.stress.timeOfDay = stress.timeOfDay;
@@ -119,11 +148,6 @@ exports.updateCheckup = async (req, res) => {
             if (weight.unit) entry.weight.unit = weight.unit;
         }
 
-        // Check if all metrics are complete
-        if (entry.isComplete && !entry.completedAt) {
-            entry.completedAt = new Date();
-        }
-
         // Update vices data
         if (vices !== undefined) {
             if (vices.logs && Array.isArray(vices.logs)) {
@@ -136,6 +160,148 @@ exports.updateCheckup = async (req, res) => {
                 entry.vices.completed = true;
                 entry.completedMetrics.vices = true;
             }
+        }
+
+        // Update BMI data
+        if (bmi !== undefined) {
+            const userUpdate = {};
+            if (bmi.value !== undefined) {
+                entry.bmi.value = bmi.value;
+                entry.completedMetrics.bmi = true;
+                userUpdate['physicalMetrics.bmi'] = bmi.value;
+            }
+            if (bmi.height !== undefined) {
+                entry.bmi.height = bmi.height;
+                userUpdate['physicalMetrics.height.value'] = bmi.height;
+            }
+            if (bmi.weight !== undefined) {
+                entry.bmi.weight = bmi.weight;
+                userUpdate['physicalMetrics.weight.value'] = bmi.weight;
+            }
+
+            // Auto-calculate BMI if height and weight provided
+            if (bmi.height && bmi.weight) {
+                const heightM = bmi.height / 100;
+                entry.bmi.value = Math.round((bmi.weight / (heightM * heightM)) * 10) / 10;
+                entry.completedMetrics.bmi = true;
+                userUpdate['physicalMetrics.bmi'] = entry.bmi.value;
+            }
+
+            if (Object.keys(userUpdate).length > 0) {
+                await User.findByIdAndUpdate(userId, { $set: userUpdate });
+            }
+        }
+
+        // Update activity level data
+        if (activityLevel !== undefined) {
+            if (activityLevel.level !== undefined) {
+                entry.activityLevel.level = activityLevel.level;
+                entry.completedMetrics.activityLevel = true;
+
+                // Sync with user profile
+                await User.findByIdAndUpdate(userId, {
+                    'lifestyle.activityLevel': activityLevel.level
+                });
+            }
+            if (activityLevel.pal !== undefined) entry.activityLevel.pal = activityLevel.pal;
+            if (activityLevel.met !== undefined) entry.activityLevel.met = activityLevel.met;
+        }
+
+        // Update dietary data
+        if (dietary !== undefined) {
+            if (dietary.mealFrequency !== undefined) {
+                entry.dietary.mealFrequency = dietary.mealFrequency;
+                entry.completedMetrics.dietary = true;
+
+                // Sync with user profile
+                await User.findByIdAndUpdate(userId, {
+                    'dietaryProfile.mealFrequency': dietary.mealFrequency
+                });
+            }
+            if (dietary.waterGoal !== undefined) entry.dietary.waterGoal = dietary.waterGoal;
+            if (dietary.calorieIntake !== undefined) entry.dietary.calorieIntake = dietary.calorieIntake;
+        }
+
+        // Update health status data
+        if (healthStatus !== undefined) {
+            if (healthStatus.score !== undefined) {
+                entry.healthStatus.score = healthStatus.score;
+                entry.completedMetrics.healthStatus = true;
+            }
+            if (healthStatus.conditionsCount !== undefined) entry.healthStatus.conditionsCount = healthStatus.conditionsCount;
+            if (healthStatus.notes !== undefined) entry.healthStatus.notes = healthStatus.notes;
+        }
+
+        // Update environmental data
+        if (environmental !== undefined) {
+            if (environmental.pollutionExposure !== undefined) {
+                entry.environmental.pollutionExposure = environmental.pollutionExposure;
+                entry.completedMetrics.environmental = true;
+
+                // Sync with user profile
+                await User.findByIdAndUpdate(userId, {
+                    'environmentalFactors.pollutionExposure': environmental.pollutionExposure
+                });
+            }
+            if (environmental.score !== undefined) entry.environmental.score = environmental.score;
+        }
+
+        // Update addiction risk data
+        if (addictionRisk !== undefined) {
+            if (addictionRisk.score !== undefined) {
+                entry.addictionRisk.score = addictionRisk.score;
+                entry.completedMetrics.addictionRisk = true;
+            }
+            if (addictionRisk.substancesCount !== undefined) entry.addictionRisk.substancesCount = addictionRisk.substancesCount;
+        }
+
+        // Update disease risk data
+        if (diseaseRisk !== undefined) {
+            if (diseaseRisk.highRiskCount !== undefined) {
+                entry.diseaseRisk.highRiskCount = diseaseRisk.highRiskCount;
+                entry.completedMetrics.diseaseRisk = true;
+            }
+            if (diseaseRisk.averageRisk !== undefined) entry.diseaseRisk.averageRisk = diseaseRisk.averageRisk;
+            if (diseaseRisk.topRisks !== undefined) entry.diseaseRisk.topRisks = diseaseRisk.topRisks;
+        }
+
+        // --- FULL PROFILE SYNCHRONIZATION ---
+        // These fields are primary to User model but can be updated here for consistency
+        const profileUpdates = {};
+
+        if (req.body.healthProfile) {
+            profileUpdates.healthProfile = {
+                ...(user.healthProfile?.toObject?.() || user.healthProfile || {}),
+                ...req.body.healthProfile
+            };
+            // Save snapshot in entry for history
+            entry.healthProfile = profileUpdates.healthProfile;
+        }
+
+        if (req.body.riskFactors) {
+            profileUpdates.riskFactors = {
+                ...(user.riskFactors?.toObject?.() || user.riskFactors || {}),
+                ...req.body.riskFactors
+            };
+            // Save snapshot in entry for history
+            entry.riskFactors = profileUpdates.riskFactors;
+        }
+
+        if (req.body.dietaryProfile) {
+            profileUpdates.dietaryProfile = {
+                ...(user.dietaryProfile?.toObject?.() || user.dietaryProfile || {}),
+                ...req.body.dietaryProfile
+            };
+        }
+
+        if (Object.keys(profileUpdates).length > 0) {
+            await User.findByIdAndUpdate(userId, { $set: profileUpdates, lastPrediction: null });
+        }
+        // ------------------------------------
+
+        // Check if all metrics are complete
+        if (entry.isComplete && !entry.completedAt) {
+            entry.completedAt = new Date();
         }
 
         await entry.save();
@@ -235,13 +401,20 @@ exports.getCheckupHistory = async (req, res) => {
             parseInt(limit)
         );
 
+        // All available metrics
+        const validMetrics = [
+            'sleep', 'water', 'stress', 'weight', 'vices',
+            'bmi', 'activityLevel', 'dietary', 'healthStatus',
+            'environmental', 'addictionRisk', 'diseaseRisk'
+        ];
+
         // If specific metric requested, filter the data
         let data = entries;
-        if (metric && ['sleep', 'water', 'stress', 'weight'].includes(metric)) {
+        if (metric && validMetrics.includes(metric)) {
             data = entries.map(e => ({
                 date: e.date,
                 [metric]: e[metric],
-                completed: e.completedMetrics[metric]
+                completed: e.completedMetrics?.[metric] || false
             }));
         }
 

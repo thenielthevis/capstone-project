@@ -93,13 +93,146 @@ const healthCheckupSchema = new mongoose.Schema({
         }],
         completed: { type: Boolean, default: false }
     },
+    // BMI tracking
+    bmi: {
+        value: {
+            type: Number,
+            min: 10,
+            max: 60
+        },
+        height: {
+            type: Number, // in cm
+            min: 50,
+            max: 300
+        },
+        weight: {
+            type: Number, // in kg
+            min: 10,
+            max: 500
+        }
+    },
+    // Activity Level tracking
+    activityLevel: {
+        level: {
+            type: String,
+            enum: ['sedentary', 'lightly_active', 'moderately_active', 'very_active', 'extremely_active']
+        },
+        pal: {
+            type: Number, // Physical Activity Level score
+            min: 1.0,
+            max: 2.5
+        },
+        met: {
+            type: Number, // Metabolic Equivalent of Task
+            min: 1.0,
+            max: 20.0
+        }
+    },
+    // Dietary Profile tracking
+    dietary: {
+        mealFrequency: {
+            type: Number,
+            min: 1,
+            max: 10
+        },
+        waterGoal: {
+            type: Number, // in ml
+            min: 0
+        },
+        calorieIntake: {
+            type: Number,
+            min: 0
+        }
+    },
+    // Health Status tracking
+    healthStatus: {
+        score: {
+            type: Number, // 0-100 health score
+            min: 0,
+            max: 100
+        },
+        conditionsCount: {
+            type: Number,
+            default: 0
+        },
+        notes: {
+            type: String,
+            maxLength: 500
+        }
+    },
+    // Environmental Factors tracking
+    environmental: {
+        pollutionExposure: {
+            type: String,
+            enum: ['low', 'moderate', 'high', 'very_high']
+        },
+        score: {
+            type: Number, // 0-100 environmental score
+            min: 0,
+            max: 100
+        }
+    },
+    // Addiction Risk tracking
+    addictionRisk: {
+        score: {
+            type: Number, // 0-100 addiction risk score
+            min: 0,
+            max: 100
+        },
+        substancesCount: {
+            type: Number,
+            default: 0
+        }
+    },
+    // Disease Risk tracking
+    diseaseRisk: {
+        highRiskCount: {
+            type: Number,
+            default: 0
+        },
+        averageRisk: {
+            type: Number, // 0-100 average risk percentage
+            min: 0,
+            max: 100
+        },
+        topRisks: [{
+            name: String,
+            probability: Number,
+            _id: false
+        }]
+    },
+    // Qualitative Snapshots (for history logs)
+    healthProfile: {
+        currentConditions: [String],
+        familyHistory: [String],
+        medications: [String],
+        bloodType: String
+    },
+    riskFactors: {
+        addictions: [{
+            substance: String,
+            severity: {
+                type: String,
+                enum: ['mild', 'moderate', 'severe']
+            },
+            duration: Number, // in months
+            _id: false
+        }]
+    },
     // Completion tracking
     completedMetrics: {
         sleep: { type: Boolean, default: false },
         water: { type: Boolean, default: false },
         stress: { type: Boolean, default: false },
         weight: { type: Boolean, default: false },
-        vices: { type: Boolean, default: false }
+        vices: { type: Boolean, default: false },
+        bmi: { type: Boolean, default: false },
+        activityLevel: { type: Boolean, default: false },
+        dietary: { type: Boolean, default: false },
+        healthStatus: { type: Boolean, default: false },
+        environmental: { type: Boolean, default: false },
+        addictionRisk: { type: Boolean, default: false },
+        diseaseRisk: { type: Boolean, default: false }
     },
     completedAt: {
         type: Date
@@ -219,10 +352,22 @@ healthCheckupSchema.statics.getWeeklyStats = async function (userId) {
     return {
         entries,
         averages: {
+            // Core metrics
             sleep: safeAverage(entries, e => e.sleep?.hours),
             water: safeAverage(entries, e => e.water?.amount),
             stress: safeAverage(entries, e => e.stress?.level),
-            weight: safeAverage(entries, e => e.weight?.value)
+            weight: safeAverage(entries, e => e.weight?.value),
+            // New metrics
+            bmi: safeAverage(entries, e => e.bmi?.value),
+            activityPal: safeAverage(entries, e => e.activityLevel?.pal),
+            activityMet: safeAverage(entries, e => e.activityLevel?.met),
+            mealFrequency: safeAverage(entries, e => e.dietary?.mealFrequency),
+            calorieIntake: safeAverage(entries, e => e.dietary?.calorieIntake),
+            healthScore: safeAverage(entries, e => e.healthStatus?.score),
+            environmentalScore: safeAverage(entries, e => e.environmental?.score),
+            addictionScore: safeAverage(entries, e => e.addictionRisk?.score),
+            diseaseRiskCount: safeAverage(entries, e => e.diseaseRisk?.highRiskCount),
+            diseaseRiskAverage: safeAverage(entries, e => e.diseaseRisk?.averageRisk)
         },
         completedDays: entries.filter(e => e.completedMetrics?.sleep && e.completedMetrics?.water && e.completedMetrics?.stress && e.completedMetrics?.weight).length,
         totalDays: entries.length

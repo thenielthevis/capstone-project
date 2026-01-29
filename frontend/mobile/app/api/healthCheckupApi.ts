@@ -43,6 +43,47 @@ export interface UserAddiction {
     duration: number; // in months
 }
 
+// New metric data interfaces
+export interface BmiData {
+    value?: number;
+    height?: number; // in cm
+    weight?: number; // in kg
+}
+
+export interface ActivityLevelData {
+    level?: 'sedentary' | 'lightly_active' | 'moderately_active' | 'very_active' | 'extremely_active';
+    pal?: number; // Physical Activity Level score
+    met?: number; // Metabolic Equivalent of Task
+}
+
+export interface DietaryData {
+    mealFrequency?: number;
+    waterGoal?: number; // in ml
+    calorieIntake?: number;
+}
+
+export interface HealthStatusData {
+    score?: number; // 0-100
+    conditionsCount?: number;
+    notes?: string;
+}
+
+export interface EnvironmentalData {
+    pollutionExposure?: 'low' | 'moderate' | 'high' | 'very_high';
+    score?: number; // 0-100
+}
+
+export interface AddictionRiskData {
+    score?: number; // 0-100
+    substancesCount?: number;
+}
+
+export interface DiseaseRiskData {
+    highRiskCount?: number;
+    averageRisk?: number; // 0-100
+    topRisks?: Array<{ name: string; probability: number }>;
+}
+
 export interface HealthCheckupEntry {
     _id: string;
     user: string;
@@ -75,11 +116,41 @@ export interface HealthCheckupEntry {
         stress: boolean;
         weight: boolean;
         vices: boolean;
+        bmi: boolean;
+        activityLevel: boolean;
+        dietary: boolean;
+        healthStatus: boolean;
+        environmental: boolean;
+        addictionRisk: boolean;
+        diseaseRisk: boolean;
     };
     vices: {
         logs: Array<{ substance: string; used: boolean; notes?: string; loggedAt: string }>;
         completed: boolean;
     };
+    bmi?: { value?: number; height?: number; weight?: number };
+    activityLevel?: { level?: string; pal?: number; met?: number };
+    dietary?: { mealFrequency?: number; waterGoal?: number; calorieIntake?: number };
+    healthStatus?: { score?: number; conditionsCount?: number; notes?: string };
+    environmental?: { pollutionExposure?: string; score?: number };
+    addictionRisk?: { score?: number; substancesCount?: number };
+    diseaseRisk?: { highRiskCount?: number; averageRisk?: number; topRisks?: Array<{ name: string; probability: number }> };
+
+    // Snapshots
+    healthProfile?: {
+        currentConditions?: string[];
+        familyHistory?: string[];
+        medications?: string[];
+        bloodType?: string;
+    };
+    riskFactors?: {
+        addictions?: Array<{
+            substance: string;
+            severity: 'mild' | 'moderate' | 'severe';
+            duration: number;
+        }>;
+    };
+
     completedAt?: string;
     streakCount: number;
     createdAt: string;
@@ -100,6 +171,16 @@ export interface WeeklyStats {
         water: number;
         stress: number;
         weight: number;
+        bmi: number;
+        activityPal: number;
+        activityMet: number;
+        mealFrequency: number;
+        calorieIntake: number;
+        healthScore: number;
+        environmentalScore: number;
+        addictionScore: number;
+        diseaseRiskCount: number;
+        diseaseRiskAverage: number;
     };
     completedDays: number;
     totalDays: number;
@@ -130,6 +211,17 @@ export const updateHealthCheckup = async (data: {
     stress?: StressData;
     weight?: WeightData;
     vices?: VicesData;
+    bmi?: BmiData;
+    activityLevel?: ActivityLevelData;
+    dietary?: DietaryData;
+    healthStatus?: HealthStatusData;
+    environmental?: EnvironmentalData;
+    addictionRisk?: AddictionRiskData;
+    diseaseRisk?: DiseaseRiskData;
+    // Profile sync fields
+    healthProfile?: any;
+    riskFactors?: any;
+    dietaryProfile?: any;
 }): Promise<HealthCheckupResponse> => {
     const response = await axiosInstance.patch("/health-checkups/today", data);
     return response.data;
@@ -188,12 +280,15 @@ export const logWeight = async (
     });
 };
 
+// All available metric types
+export type MetricType = 'sleep' | 'water' | 'stress' | 'weight' | 'vices' | 'bmi' | 'activityLevel' | 'dietary' | 'healthStatus' | 'environmental' | 'addictionRisk' | 'diseaseRisk';
+
 // Get checkup history
 export const getCheckupHistory = async (params?: {
     startDate?: string;
     endDate?: string;
     limit?: number;
-    metric?: 'sleep' | 'water' | 'stress' | 'weight';
+    metric?: MetricType;
 }): Promise<{ success: boolean; count: number; data: HealthCheckupEntry[] }> => {
     const response = await axiosInstance.get("/health-checkups/history", { params });
     return response.data;
@@ -257,5 +352,96 @@ export const getUserAddictions = async (): Promise<{ success: boolean; addiction
 export const logVices = async (logs: ViceLog[]): Promise<HealthCheckupResponse> => {
     return updateHealthCheckup({
         vices: { logs }
+    });
+};
+
+// Log BMI
+export const logBmi = async (
+    value: number,
+    height?: number,
+    weight?: number
+): Promise<HealthCheckupResponse> => {
+    return updateHealthCheckup({
+        bmi: { value, height, weight }
+    });
+};
+
+// Log BMI from height and weight (auto-calculate)
+export const logBmiFromMeasurements = async (
+    height: number, // in cm
+    weight: number  // in kg
+): Promise<HealthCheckupResponse> => {
+    return updateHealthCheckup({
+        bmi: { height, weight }
+    });
+};
+
+// Log activity level
+export const logActivityLevel = async (
+    level: 'sedentary' | 'lightly_active' | 'moderately_active' | 'very_active' | 'extremely_active',
+    pal?: number,
+    met?: number
+): Promise<HealthCheckupResponse> => {
+    return updateHealthCheckup({
+        activityLevel: { level, pal, met }
+    });
+};
+
+// Log dietary data
+export const logDietary = async (
+    mealFrequency?: number,
+    waterGoal?: number,
+    calorieIntake?: number,
+    dietaryProfile?: any
+): Promise<HealthCheckupResponse> => {
+    return updateHealthCheckup({
+        dietary: { mealFrequency, waterGoal, calorieIntake },
+        dietaryProfile
+    });
+};
+
+// Log health status
+export const logHealthStatus = async (
+    score?: number,
+    conditionsCount?: number,
+    notes?: string,
+    healthProfile?: any
+): Promise<HealthCheckupResponse> => {
+    return updateHealthCheckup({
+        healthStatus: { score, conditionsCount, notes },
+        healthProfile
+    });
+};
+
+// Log environmental data
+export const logEnvironmental = async (
+    pollutionExposure: 'low' | 'moderate' | 'high' | 'very_high',
+    score?: number
+): Promise<HealthCheckupResponse> => {
+    return updateHealthCheckup({
+        environmental: { pollutionExposure, score }
+    });
+};
+
+// Log addiction risk
+export const logAddictionRisk = async (
+    score?: number,
+    substancesCount?: number,
+    riskFactors?: any
+): Promise<HealthCheckupResponse> => {
+    return updateHealthCheckup({
+        addictionRisk: { score, substancesCount },
+        riskFactors
+    });
+};
+
+// Log disease risk
+export const logDiseaseRisk = async (
+    highRiskCount: number,
+    averageRisk?: number,
+    topRisks?: Array<{ name: string; probability: number }>
+): Promise<HealthCheckupResponse> => {
+    return updateHealthCheckup({
+        diseaseRisk: { highRiskCount, averageRisk, topRisks }
     });
 };

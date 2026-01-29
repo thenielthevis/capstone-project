@@ -20,10 +20,11 @@ import { useFocusEffect, useRouter } from "expo-router";
 import * as Notifications from 'expo-notifications';
 import Toast from "react-native-toast-message";
 import { LinearGradient } from "expo-linear-gradient";
-import Analysis from "../screens/AnalysisNew";
+import { tokenStorage } from "@/utils/tokenStorage";
+import { AnalysisProvider, useAnalysis } from "../screens/analysis/AnalysisContext";
+import AnalysisScreen from "../screens/analysis";
 import { getPredictionUpdateFlag, setPredictionUpdateFlag } from "../screens/analysis_input/prediction_input";
 import AssessmentQuestions from "../screens/analysis_input/assessment_questions";
-import { tokenStorage } from "@/utils/tokenStorage";
 
 
 const getApiUrl = (): string => {
@@ -85,26 +86,23 @@ const HEALTH_METRICS: HealthMetric[] = [
   {
     id: "bmi",
     title: "BMI Index",
-    icon: "weight-kilogram",
+    icon: "human",
     description: "Body Mass Index",
     detailKey: "BMI_Weight_Management",
-    stats: "Healthy Range",
   },
   {
     id: "activity",
     title: "Activity Level",
-    icon: "run-fast",
+    icon: "run",
     description: "Physical Activity",
     detailKey: "Physical_Activity",
-    stats: "Moderate",
   },
   {
     id: "sleep",
     title: "Sleep Quality",
-    icon: "bed",
+    icon: "sleep",
     description: "Sleep Duration",
     detailKey: "Sleep_Quality",
-    stats: "7-9 hours",
   },
   {
     id: "water",
@@ -112,47 +110,41 @@ const HEALTH_METRICS: HealthMetric[] = [
     icon: "water",
     description: "Hydration Status",
     detailKey: "Hydration_Water",
-    stats: "2L target",
   },
   {
     id: "stress",
     title: "Stress Level",
-    icon: "meditation",
+    icon: "brain",
     description: "Perceived Stress",
     detailKey: "Stress_Management",
-    stats: "Low",
   },
   {
     id: "dietary",
     title: "Dietary Profile",
-    icon: "apple",
+    icon: "food-apple",
     description: "Nutrition Habits",
     detailKey: "Dietary_Habits",
-    stats: "Balanced",
   },
   {
     id: "health",
     title: "Health Status",
-    icon: "hospital-box",
+    icon: "shield-check",
     description: "Medical Conditions",
     detailKey: "Health_Monitoring",
-    stats: "Monitored",
   },
   {
     id: "environment",
     title: "Environmental Factors",
-    icon: "earth",
+    icon: "leaf",
     description: "Air Quality & Work",
     detailKey: "Environmental_Health",
-    stats: "Clean",
   },
   {
     id: "addiction",
     title: "Addiction Risk",
-    icon: "alert-circle",
+    icon: "smoking-off",
     description: "Substance Usage",
     detailKey: "Addiction_Risk_Management",
-    stats: "Assessment",
   },
   {
     id: "risks",
@@ -160,33 +152,39 @@ const HEALTH_METRICS: HealthMetric[] = [
     icon: "heart-pulse",
     description: "Potential Conditions",
     detailKey: "Disease_Risk_Assessment",
-    stats: "Analysis",
   },
 ];
 
+// Main Component Export with Provider wrapper
 export default function AnalysisDashboard() {
+  return (
+    <AnalysisProvider>
+      <AnalysisDashboardContent />
+    </AnalysisProvider>
+  );
+}
+
+function AnalysisDashboardContent() {
   const { theme } = useTheme();
   const { user } = useUser();
+  const { userData: contextUserData, userLoading: contextLoading, refreshAll } = useAnalysis();
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [userData, setUserData] = useState<User | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [selectedMetric, setSelectedMetric] = useState<string | null>(null);
   const [showDetail, setShowDetail] = useState(false);
   const [showUpdateSuccess, setShowUpdateSuccess] = useState(false);
   const [pressedButton, setPressedButton] = useState<string | null>(null);
   const screenWidth = Dimensions.get("window").width;
   const screenHeight = Dimensions.get("window").height;
-  
+
   // BMI Quick Update Modal States
   const [showBmiModal, setShowBmiModal] = useState(false);
-  const [bmiHeight, setBmiHeight] = useState(userData?.physicalMetrics?.height?.value?.toString() || "");
-  const [bmiWeight, setBmiWeight] = useState(userData?.physicalMetrics?.weight?.value?.toString() || "");
+  const [bmiHeight, setBmiHeight] = useState(contextUserData?.physicalMetrics?.height?.toString() || "");
+  const [bmiWeight, setBmiWeight] = useState(contextUserData?.physicalMetrics?.weight?.toString() || "");
   const [bmiLoading, setBmiLoading] = useState(false);
-  
+
   // Activity Level Quick Update Modal States
   const [showActivityModal, setShowActivityModal] = useState(false);
-  const [selectedActivityLevel, setSelectedActivityLevel] = useState<string>(userData?.lifestyle?.activityLevel || "moderately_active");
+  const [selectedActivityLevel, setSelectedActivityLevel] = useState<string>(contextUserData?.lifestyle?.activityLevel || "moderately_active");
   const [activityLoading, setActivityLoading] = useState(false);
 
 
@@ -195,7 +193,7 @@ export default function AnalysisDashboard() {
   const [showAssessmentQuestions, setShowAssessmentQuestions] = useState(false);
 
   useEffect(() => {
-    loadUserData();
+    refreshAll();
   }, [user]);
 
   useFocusEffect(
@@ -204,90 +202,20 @@ export default function AnalysisDashboard() {
       if (getPredictionUpdateFlag()) {
         setShowUpdateSuccess(true);
         setPredictionUpdateFlag(false);
-        
+
         // Auto-hide the success banner after 5 seconds
         const timer = setTimeout(() => {
           setShowUpdateSuccess(false);
         }, 5000);
-        
+
         return () => clearTimeout(timer);
       }
-      
-      loadUserData();
+
+      refreshAll();
     }, [])
   );
 
-  const loadUserData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const token = await (async () => {
-        try {
-          const mod = await import("../../utils/tokenStorage");
-          const t = await mod.tokenStorage.getToken();
-          return t;
-        } catch (e) {
-          return null;
-        }
-      })();
-
-      if (!token) {
-        setError("Please sign in to view your health analysis");
-        setLoading(false);
-        return;
-      }
-
-      const primary = `${API_URL}/predict/me`;
-
-      const response = await fetch(primary, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.status === 401) {
-        setError("Session expired, please sign in again");
-        setLoading(false);
-        return;
-      }
-
-      if (!response.ok) {
-        const txt = await response.text();
-        throw new Error(txt || "Failed to load data");
-      }
-
-      const data = await response.json();
-      setUserData({
-        _id: data.id || "user-1",
-        username: data.username || "You",
-        email: data.email || "",
-        age: data.profile?.age,
-        gender: data.profile?.gender,
-        physicalMetrics: data.profile?.physicalMetrics,
-        lifestyle: data.profile?.lifestyle,
-        healthProfile: data.profile?.healthProfile,
-        riskFactors: data.profile?.riskFactors,
-        dietaryProfile: data.profile?.dietaryProfile,
-        environmentalFactors: data.profile?.environmentalFactors,
-        lastPrediction: data.predictions
-          ? {
-            disease: data.predictions.map((p: any) => p.name),
-            probability: data.predictions[0]?.probability || 0,
-            predictedAt: new Date().toISOString(),
-            source: "model",
-            predictions: data.predictions,
-          }
-          : undefined,
-      });
-    } catch (err: any) {
-      console.error("Error loading data:", err);
-      setError(err.message || "Error loading data");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // No longer using local loadUserData, using refreshAll from context
 
   const handleMetricPress = (metricId: string) => {
     setSelectedMetric(metricId);
@@ -299,28 +227,98 @@ export default function AnalysisDashboard() {
     setSelectedMetric(null);
   };
 
+  // Dynamic stats helper
+  const getMetricStats = (metricId: string): string => {
+    if (!contextUserData) return "Analysis";
+
+    switch (metricId) {
+      case "bmi": {
+        const bmi = contextUserData.physicalMetrics?.bmi;
+        if (!bmi) return "Update weight";
+        if (bmi < 18.5) return `${bmi.toFixed(1)} (Underweight)`;
+        if (bmi < 25) return `${bmi.toFixed(1)} (Healthy)`;
+        if (bmi < 30) return `${bmi.toFixed(1)} (Overweight)`;
+        return `${bmi.toFixed(1)} (Obese)`;
+      }
+      case "activity": {
+        const activity = contextUserData.lifestyle?.activityLevel;
+        if (!activity) return "Set level";
+        return activity.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+      }
+      case "sleep": {
+        const sleep = contextUserData.lifestyle?.sleepHours;
+        if (!sleep) return "Track sleep";
+        return `${sleep} hrs`;
+      }
+      case "water": {
+        const water = contextUserData.dietaryProfile?.dailyWaterIntake;
+        if (!water) return "Target: 2L";
+        return `${(water / 1000).toFixed(1)}L / 2L`;
+      }
+      case "stress": {
+        const stress = contextUserData.riskFactors?.stressLevel;
+        if (!stress) return "Rate stress";
+        return stress.charAt(0).toUpperCase() + stress.slice(1);
+      }
+      case "dietary": {
+        const meals = contextUserData.dietaryProfile?.mealFrequency;
+        if (!meals) return "Balanced";
+        return `${meals} meals/day`;
+      }
+      case "health": {
+        const blood = contextUserData.healthProfile?.bloodType;
+        if (blood && blood !== "Unknown") return `Type ${blood}`;
+        return "Monitored";
+      }
+      case "environment": {
+        const pollution = contextUserData.environmentalFactors?.pollutionExposure;
+        if (pollution) return `${pollution.charAt(0).toUpperCase() + pollution.slice(1)} Exp.`;
+        return "Clean";
+      }
+      case "addiction": {
+        const addictions = contextUserData.riskFactors?.addictions || [];
+        if (addictions.length === 0) return "No Risk";
+        const severities = { 'none': 0, 'mild': 1, 'moderate': 2, 'severe': 3 };
+        let highest = 0;
+        addictions.forEach(a => {
+          const s = severities[a.severity as keyof typeof severities] || 0;
+          if (s > highest) highest = s;
+        });
+        const labels = ['None', 'Mild', 'Moderate', 'Severe'];
+        return labels[highest];
+      }
+      case "risks": {
+        const diseases = contextUserData.lastPrediction?.disease || [];
+        if (diseases.length === 0) return "Low Risk";
+        return `${diseases.length} Predicted`;
+      }
+      default:
+        return "Analysis";
+    }
+  };
+
   // Icon helper function
   const getMetricIcon = (metricId: string) => {
-    const iconProps = { size: 32, color: theme.colors.primary };
+    const iconProps = { size: 50, color: theme.colors.primary };
     switch (metricId) {
       case "bmi":
-        return <MaterialCommunityIcons name="weight" {...iconProps} />;
+        return <MaterialCommunityIcons name="human" {...iconProps} />;
       case "activity":
         return <MaterialCommunityIcons name="run" {...iconProps} />;
       case "sleep":
-        return <MaterialCommunityIcons name="bed" {...iconProps} />;
+        return <MaterialCommunityIcons name="sleep" {...iconProps} />;
       case "water":
         return <MaterialCommunityIcons name="water" {...iconProps} />;
       case "stress":
-        return <MaterialCommunityIcons name="meditation" {...iconProps} />;
+        return <MaterialCommunityIcons name="brain" {...iconProps} />;
       case "dietary":
-        return <MaterialCommunityIcons name="leaf" {...iconProps} />;
+        return <MaterialCommunityIcons name="food-apple" {...iconProps} />;
       case "health":
-        return <Ionicons name="medical" {...iconProps} />;
+        return <MaterialCommunityIcons name="shield-check" {...iconProps} />;
       case "environment":
-        return <MaterialCommunityIcons name="earth" {...iconProps} />;
+        return <MaterialCommunityIcons name="leaf" {...iconProps} />;
       case "addiction":
-        return <MaterialCommunityIcons name="alert-circle" {...iconProps} />;
+        return <MaterialCommunityIcons name="smoking-off" {...iconProps} />;
       case "risks":
         return <MaterialCommunityIcons name="heart-pulse" {...iconProps} />;
       default:
@@ -341,86 +339,96 @@ export default function AnalysisDashboard() {
     fontFamily: theme.fonts.bodyBold,
   });
 
-  const cardSize = (screenWidth - 48) / 2;
-  const cardHeight = cardSize * 1.3;
+  const cardSize = (screenWidth - 44) / 2;
+  const cardHeight = cardSize * 1.05;
 
-  const renderMetricCard = (metric: HealthMetric) => (
-    <TouchableOpacity
-      key={metric.id}
-      onPress={() => handleMetricPress(metric.id)}
-      activeOpacity={0.7}
-      style={{
-        width: cardSize,
-        height: cardHeight,
-        marginBottom: 16,
-      }}
-    >
-      <LinearGradient
-        colors={theme.gradients[metric.id as keyof typeof theme.gradients] as [string, string, ...string[]]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+  const renderMetricCard = (metric: HealthMetric) => {
+    const statText = getMetricStats(metric.id);
+    return (
+      <TouchableOpacity
+        key={metric.id}
+        onPress={() => handleMetricPress(metric.id)}
+        activeOpacity={0.7}
         style={{
-          borderRadius: 16,
-          padding: 16,
-          elevation: 4,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.15,
-          shadowRadius: 4,
-          flex: 1,
-          justifyContent: "space-between",
+          width: cardSize,
+          height: cardHeight,
+          marginBottom: 12,
         }}
       >
-        <View style={{ marginBottom: 12 }}>
-          {getMetricIcon(metric.id)}
-        </View>
-
-        <Text
+        <LinearGradient
+          colors={theme.mode === 'dark'
+            ? [theme.colors.background, theme.colors.surface + "DD"]
+            : (theme.gradients[metric.id as keyof typeof theme.gradients] as [string, string, ...string[]])
+          }
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={{
-            fontSize: 16,
-            fontFamily: theme.fonts.heading,
-            color: theme.colors.text,
-            marginBottom: 4,
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: theme.colors.border + "AA",
+            padding: 12,
+            elevation: 4,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.15,
+            shadowRadius: 4,
+            flex: 1,
+            justifyContent: "space-between",
           }}
         >
-          {metric.title}
-        </Text>
+          <View style={{ marginBottom: 4 }}>
+            {getMetricIcon(metric.id)}
+          </View>
 
-        <Text
-          style={{
-            fontSize: 12,
-            fontFamily: theme.fonts.body,
-            color: theme.colors.text + "88",
-            marginBottom: 8,
-          }}
-        >
-          {metric.description}
-        </Text>
-
-        {metric.stats && (
-          <View
-            style={{
-              backgroundColor: "#ffffff99",
-              paddingHorizontal: 8,
-              paddingVertical: 4,
-              borderRadius: 8,
-              alignSelf: "flex-start",
-            }}
-          >
+          <View>
             <Text
               style={{
-                fontSize: 11,
-                fontFamily: theme.fonts.bodyBold,
-                color: theme.colors.primary,
+                fontSize: 14,
+                fontFamily: theme.fonts.heading,
+                color: theme.colors.text,
+                marginBottom: 2,
+              }}
+              numberOfLines={1}
+            >
+              {metric.title}
+            </Text>
+
+            <Text
+              style={{
+                fontSize: 10,
+                fontFamily: theme.fonts.body,
+                color: theme.colors.text + "88",
+                marginBottom: 6,
+              }}
+              numberOfLines={1}
+            >
+              {metric.description}
+            </Text>
+
+            <View
+              style={{
+                backgroundColor: theme.colors.background,
+                paddingHorizontal: 6,
+                paddingVertical: 3,
+                borderRadius: 6,
+                alignSelf: "flex-start",
               }}
             >
-              {metric.stats}
-            </Text>
+              <Text
+                style={{
+                  fontSize: 9,
+                  fontFamily: theme.fonts.bodyBold,
+                  color: theme.colors.primary,
+                }}
+              >
+                {statText}
+              </Text>
+            </View>
           </View>
-        )}
-      </LinearGradient>
-    </TouchableOpacity>
-  );
+        </LinearGradient>
+      </TouchableOpacity>
+    );
+  };
 
   // Standardize button styles
   const buttonStyle = {
@@ -436,7 +444,7 @@ export default function AnalysisDashboard() {
     fontFamily: theme.fonts.bodyBold,
   };
 
-  if (loading) {
+  if (contextLoading && !contextUserData) {
     return (
       <View
         style={{
@@ -460,103 +468,7 @@ export default function AnalysisDashboard() {
     );
   }
 
-  if (error) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: theme.colors.background,
-          paddingHorizontal: 24,
-        }}
-      >
-        <Text
-          style={{
-            fontSize: 18,
-            fontFamily: theme.fonts.heading,
-            color: theme.colors.text,
-            marginBottom: 8,
-            textAlign: "center",
-          }}
-        >
-          Unable to Load
-        </Text>
-        <Text
-          style={{
-            fontSize: 14,
-            color: theme.colors.text + "99",
-            textAlign: "center",
-            marginBottom: 24,
-          }}
-        >
-          {error}
-        </Text>
-        <TouchableOpacity
-          onPress={loadUserData}
-          onPressIn={() => setPressedButton("retry")}
-          onPressOut={() => setPressedButton(null)}
-          activeOpacity={1}
-          style={{
-            marginBottom: 0,
-            borderRadius: 8,
-            overflow: "hidden",
-          }}
-        >
-          {pressedButton === "retry" ? (
-            <View
-              style={{
-                paddingHorizontal: 32,
-                paddingVertical: 12,
-                alignItems: "center",
-                justifyContent: "center",
-                borderRadius: 8,
-                backgroundColor: "#FFFFFF",
-                elevation: 2,
-                shadowColor: theme.colors.primary,
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.2,
-                shadowRadius: 2,
-              }}
-            >
-              <Text
-                style={{
-                  color: "#000",
-                  fontSize: 14,
-                  fontFamily: theme.fonts.bodyBold,
-                }}
-              >
-                Retry
-              </Text>
-            </View>
-          ) : (
-            <LinearGradient
-              colors={[theme.colors.primary, theme.colors.primary + "DD"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{
-                paddingHorizontal: 32,
-                paddingVertical: 12,
-                alignItems: "center",
-                justifyContent: "center",
-                borderRadius: 8,
-              }}
-            >
-              <Text
-                style={{
-                  color: "#fff",
-                  fontSize: 14,
-                  fontFamily: theme.fonts.bodyBold,
-                }}
-              >
-                Retry
-              </Text>
-            </LinearGradient>
-          )}
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  // Error handling is now simplified or handled by context
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
@@ -614,84 +526,92 @@ export default function AnalysisDashboard() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{
             paddingHorizontal: 16,
-            paddingVertical: 16,
+            paddingBottom: 24,
           }}
         >
-          {/* Update Health Metrics Button */}
-          <TouchableOpacity
-            onPress={() => {
-              router.push("/screens/analysis_input/prediction_input");
-            }}
-            onPressIn={() => setPressedButton("updateHealth")}
-            onPressOut={() => setPressedButton(null)}
-            activeOpacity={1}
-            style={{
-              marginBottom: 24,
-              borderRadius: 16,
-              overflow: "hidden",
-            }}
-          >
-            {pressedButton === "updateHealth" ? (
-              <View
-                style={{
-                  paddingVertical: 16,
-                  paddingHorizontal: 20,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 12,
-                  backgroundColor: "#FFFFFF",
-                  borderRadius: 16,
-                  elevation: 5,
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 3 },
-                  shadowOpacity: 0.2,
-                  shadowRadius: 6,
-                }}
+          <View style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            paddingVertical: 12,
+          }}>
+            <Text style={{
+              fontSize: 24,
+              fontFamily: theme.fonts.heading,
+              color: theme.colors.text
+            }}>Analysis</Text>
+
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              {/* Update Health Metrics Icon Button */}
+              <TouchableOpacity
+                onPress={() => router.push("/screens/analysis_input/prediction_input")}
+                activeOpacity={0.7}
               >
-                <MaterialCommunityIcons name="heart-pulse" size={24} color="#000" />
-                <Text
+                <LinearGradient
+                  colors={[theme.colors.primary, theme.colors.primary + "DD"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
                   style={{
-                    fontSize: 16,
-                    fontFamily: theme.fonts.bodyBold,
-                    color: "#000",
+                    width: 34,
+                    height: 34,
+                    borderRadius: 12,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    elevation: 3,
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.2,
+                    shadowRadius: 3,
                   }}
                 >
-                  Update Health Metrics
-                </Text>
-              </View>
-            ) : (
-              <LinearGradient
-                colors={[theme.colors.primary, theme.colors.primary + "DD"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{
-                  paddingVertical: 16,
-                  paddingHorizontal: 20,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 12,
-                  elevation: 5,
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 3 },
-                  shadowOpacity: 0.2,
-                  shadowRadius: 6,
+                  <MaterialCommunityIcons name="pencil" size={24} color="#fff" />
+                </LinearGradient>
+              </TouchableOpacity>
+
+              {/* Daily Assessment Icon Button */}
+              <TouchableOpacity
+                onPress={async () => {
+                  try {
+                    const token = await tokenStorage.getToken();
+                    if (!token) {
+                      Toast.show({ type: "error", text1: "Error", text2: "Please sign in first" });
+                      return;
+                    }
+                    const response = await fetch(`${API_URL}/assessment/generate-daily-questions`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                      body: JSON.stringify({}),
+                    });
+                    if (!response.ok) throw new Error("Failed to generate questions");
+                    setShowAssessmentQuestions(true);
+                  } catch (error: any) {
+                    Toast.show({ type: "error", text1: "Error", text2: error.message || "Failed to generate assessment questions" });
+                  }
                 }}
+                activeOpacity={0.7}
               >
-                <MaterialCommunityIcons name="heart-pulse" size={24} color="#fff" />
-                <Text
+                <LinearGradient
+                  colors={["#06B6D4", "#0891B2"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
                   style={{
-                    fontSize: 16,
-                    fontFamily: theme.fonts.bodyBold,
-                    color: "#fff",
+                    width: 34,
+                    height: 34,
+                    borderRadius: 12,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    elevation: 3,
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.2,
+                    shadowRadius: 3,
                   }}
                 >
-                  Update Health Metrics
-                </Text>
-              </LinearGradient>
-            )}
-          </TouchableOpacity>
+                  <MaterialCommunityIcons name="clipboard-list" size={24} color="#fff" />
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
 
           <View
             style={{
@@ -715,15 +635,6 @@ export default function AnalysisDashboard() {
             }}
           >
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              <View style={{ width: 20, height: 20 }}>
-                <LottieView
-                  source={{ uri: "https://lottie.host/7c5e5c5e-8e5e-9f5e-ab5e-5c5e5c5e5c5e/chart.json" }}
-                  autoPlay
-                  loop
-                  resizeMode="cover"
-                  style={{ width: 20, height: 20 }}
-                />
-              </View>
               <Text
                 style={{
                   fontSize: 13,
@@ -731,7 +642,7 @@ export default function AnalysisDashboard() {
                   color: theme.colors.text,
                 }}
               >
-                Quick Tips
+                Quick Tip
               </Text>
             </View>
             <Text
@@ -747,138 +658,17 @@ export default function AnalysisDashboard() {
           </View>
         </ScrollView>
 
-     
-        {/* Daily Assessment Questions Button */}
-        <View
-          style={{
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-            borderTopWidth: 1,
-            borderTopColor: theme.colors.surface,
-          }}
-        >
-          <TouchableOpacity
-            onPress={async () => {
-              try {
-                setLoading(true);
-                const token = await tokenStorage.getToken();
-                if (!token) {
-                  Toast.show({
-                    type: "error",
-                    text1: "Error",
-                    text2: "Please sign in first",
-                  });
-                  return;
-                }
-
-                const response = await fetch(
-                  `${API_URL}/assessment/generate-daily-questions`,
-                  {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                      Authorization: `Bearer ${token}`,
-                    },
-                    body: JSON.stringify({}),
-                  }
-                );
-
-                if (!response.ok) {
-                  throw new Error("Failed to generate questions");
-                }
-
-                setShowAssessmentQuestions(true);
-              } catch (error: any) {
-                Toast.show({
-                  type: "error",
-                  text1: "Error",
-                  text2: error.message || "Failed to generate assessment questions",
-                });
-              } finally {
-                setLoading(false);
-              }
-            }}
-            onPressIn={() => setPressedButton("assessment")}
-            onPressOut={() => setPressedButton(null)}
-            activeOpacity={1}
-            style={{
-              borderRadius: 16,
-              overflow: "hidden",
-            }}
-          >
-            {pressedButton === "assessment" ? (
-              <View
-                style={{
-                  paddingVertical: 14,
-                  paddingHorizontal: 20,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 12,
-                  backgroundColor: "#FFFFFF",
-                  borderRadius: 16,
-                  elevation: 5,
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 3 },
-                  shadowOpacity: 0.2,
-                  shadowRadius: 6,
-                }}
-              >
-                <MaterialCommunityIcons name="clipboard-list" size={24} color="#000" />
-                <Text
-                  style={{
-                    fontSize: 16,
-                    fontFamily: theme.fonts.bodyBold,
-                    color: "#000",
-                  }}
-                >
-                  Daily Assessment
-                </Text>
-              </View>
-            ) : (
-              <LinearGradient
-                colors={["#06B6D4", "#0891B2"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{
-                  paddingVertical: 14,
-                  paddingHorizontal: 20,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 12,
-                  elevation: 5,
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 3 },
-                  shadowOpacity: 0.2,
-                  shadowRadius: 6,
-                }}
-              >
-                <MaterialCommunityIcons name="clipboard-list" size={24} color="#fff" />
-                <Text
-                  style={{
-                    fontSize: 16,
-                    fontFamily: theme.fonts.bodyBold,
-                    color: "#fff",
-                  }}
-                >
-                  Daily Assessment
-                </Text>
-              </LinearGradient>
-            )}
-          </TouchableOpacity>
-        </View>
-
       </SafeAreaView>
 
       {/* Full-screen Analysis Screen (replaces Modal) */}
       {showDetail && (
-        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000 }}>
-          <Analysis initialMetric={selectedMetric ?? undefined} onClose={handleCloseDetail} />
+        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000, backgroundColor: theme.colors.background }}>
+          <AnalysisScreen
+            onClose={handleCloseDetail}
+            route={{ params: { initialMetric: selectedMetric ?? undefined } }}
+          />
         </View>
       )}
-
-     
 
       {/* Assessment Questions Screen */}
       {showAssessmentQuestions && (

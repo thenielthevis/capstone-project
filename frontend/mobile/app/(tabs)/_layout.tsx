@@ -48,7 +48,7 @@ export default function HomeTabs() {
       },
       {
         key: "health",
-        label: "Health Checkup",
+        label: "Checkup",
         icon: <MaterialCommunityIcons name="heart-pulse" size={20} color={theme.colors.primary} />,
         route: "/screens/record/HealthCheckup" as Href,
       },

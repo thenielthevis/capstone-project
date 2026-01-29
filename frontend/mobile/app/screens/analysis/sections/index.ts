@@ -1,0 +1,10 @@
+export { default as BMISection } from './BMISection';
+export { default as SleepSection } from './SleepSection';
+export { default as ActivitySection } from './ActivitySection';
+export { default as WaterSection } from './WaterSection';
+export { default as StressSection } from './StressSection';
+export { default as DiseaseRiskSection } from './DiseaseRiskSection';
+export { default as DietarySection } from './DietarySection';
+export { default as HealthStatusSection } from './HealthStatusSection';
+export { default as EnvironmentalFactorsSection } from './EnvironmentalFactorsSection';
+export { default as AddictionRiskSection } from './AddictionRiskSection';

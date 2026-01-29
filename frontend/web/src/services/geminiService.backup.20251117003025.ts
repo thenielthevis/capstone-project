@@ -93,12 +93,12 @@ export async function analyzeFoodImage(
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const imagePart = await fileToGenerativePart(imageFile);
 
     const dishContext = dishName ? `\nThe user indicated this is: "${dishName}". Use this as context to help with identification.` : '';
-    const allergyContext = allergyInfo.length > 0 
-      ? `\nUser has the following allergies/dietary restrictions: ${allergyInfo.join(', ')}. Check if the food contains any of these allergens.` 
+    const allergyContext = allergyInfo.length > 0
+      ? `\nUser has the following allergies/dietary restrictions: ${allergyInfo.join(', ')}. Check if the food contains any of these allergens.`
       : '';
 
     const prompt = `Analyze this food image and provide COMPREHENSIVE nutritional and safety information.${dishContext}${allergyContext}
@@ -181,7 +181,7 @@ Be thorough and accurate. If unsure about any value, provide best estimate and n
 
     let cleanText = text.trim();
     cleanText = cleanText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-    
+
     const parsedResult = JSON.parse(cleanText);
 
     return {
@@ -235,11 +235,11 @@ export async function analyzeIngredients(
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     const dishContext = dishName ? `\nDish name: "${dishName}"` : '';
-    const allergyContext = allergyInfo.length > 0 
-      ? `\nUser allergies: ${allergyInfo.join(', ')}. Check for these allergens!` 
+    const allergyContext = allergyInfo.length > 0
+      ? `\nUser allergies: ${allergyInfo.join(', ')}. Check for these allergens!`
       : '';
 
     const prompt = `Analyze these ingredients and provide comprehensive nutritional information:
@@ -263,7 +263,7 @@ Use the exact JSON structure from previous prompts.`;
 
     let cleanText = text.trim();
     cleanText = cleanText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-    
+
     const parsedResult = JSON.parse(cleanText);
 
     return {
