@@ -101,11 +101,57 @@ export default function DailyAssessmentModal({ isOpen, onClose }: DailyAssessmen
   const [showResults, setShowResults] = useState(false);
   const [assessmentComplete, setAssessmentComplete] = useState(false);
 
+  // Daily assessment status tracking
+  const [alreadyCompletedToday, setAlreadyCompletedToday] = useState(false);
+  const [nextAvailableTime, setNextAvailableTime] = useState<Date | null>(null);
+  const [hoursUntilNext, setHoursUntilNext] = useState<number>(0);
+
   useEffect(() => {
-    if (isOpen && questions.length === 0) {
-      loadQuestions();
+    if (isOpen) {
+      checkDailyStatus();
     }
   }, [isOpen]);
+
+  const checkDailyStatus = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Please sign in first');
+        onClose();
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/assessment/daily-status`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to check daily status');
+      }
+
+      const data = await response.json();
+
+      if (data.completed) {
+        // User has already completed today's assessment
+        setAlreadyCompletedToday(true);
+        setNextAvailableTime(new Date(data.nextAvailable));
+        setHoursUntilNext(data.hoursUntilNextAvailable);
+        setLoading(false);
+      } else {
+        // User can take the assessment - load questions
+        setAlreadyCompletedToday(false);
+        await loadQuestions();
+      }
+    } catch (error: any) {
+      console.error('Error checking daily status:', error);
+      alert(error.message || 'Failed to check daily assessment status');
+      setLoading(false);
+      onClose();
+    }
+  };
 
   const loadQuestions = async () => {
     setLoading(true);
@@ -343,6 +389,58 @@ export default function DailyAssessmentModal({ isOpen, onClose }: DailyAssessmen
   const effectiveBatchSize = Math.min(BATCH_SIZE, questions.length);
   const isBatchComplete = batchedResponses.length >= effectiveBatchSize;
   const questionProgress = isBatchComplete ? 100 : (batchedResponses.length / effectiveBatchSize) * 100;
+
+  // Show "already completed today" screen
+  if (alreadyCompletedToday) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center"
+        style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+        onClick={onClose}
+      >
+        <Card
+          className="w-full max-w-2xl mx-4"
+          style={{ backgroundColor: theme.colors.surface }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <CardContent className="p-12 text-center">
+            <div className="text-6xl mb-6">🕐</div>
+            <h2 className="text-2xl font-bold mb-4" style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}>
+              Assessment Complete!
+            </h2>
+            <p className="mb-4" style={{ color: theme.colors.textSecondary }}>
+              You have completed today's daily assessment.
+              Come back tomorrow for a new assessment!
+            </p>
+            <div
+              className="p-4 rounded-lg mb-6"
+              style={{ backgroundColor: theme.colors.primary + '15' }}
+            >
+              <p className="text-sm font-medium" style={{ color: theme.colors.primary }}>
+                ⏰ Next Assessment: {hoursUntilNext > 0 ? `${hoursUntilNext} hours` : 'Tomorrow'}
+              </p>
+              {nextAvailableTime && (
+                <p className="text-xs mt-1" style={{ color: theme.colors.textSecondary }}>
+                  {nextAvailableTime.toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </p>
+              )}
+            </div>
+            <Button
+              onClick={onClose}
+              style={{ backgroundColor: theme.colors.primary, color: '#fff' }}
+            >
+              Close
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // Show assessment complete screen
   if (assessmentComplete) {
@@ -740,8 +838,8 @@ export default function DailyAssessmentModal({ isOpen, onClose }: DailyAssessmen
                         color: '#fff',
                         opacity:
                           submitting ||
-                          (!selectedChoices[questions[currentQuestionIndex]._id] &&
-                            !userTextInputs[questions[currentQuestionIndex]._id]?.trim())
+                            (!selectedChoices[questions[currentQuestionIndex]._id] &&
+                              !userTextInputs[questions[currentQuestionIndex]._id]?.trim())
                             ? 0.6
                             : 1,
                       }}

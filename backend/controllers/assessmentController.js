@@ -39,7 +39,7 @@ exports.generateDailyQuestions = async (req, res) => {
     const savedQuestions = [];
     for (const q of questions) {
       console.log("[Assessment] Saving question:", q.question.substring(0, 50));
-      
+
       // Create assessment without translations for now
       const assessment = new Assessment({
         userId,
@@ -56,7 +56,7 @@ exports.generateDailyQuestions = async (req, res) => {
       });
       const saved = await assessment.save();
       savedQuestions.push(saved);
-      
+
       // Background translation disabled - uncomment below and upgrade API tier to enable
       // translateQuestionsInBackground(saved._id, q, isTagalog, tagalogPatterns, tagalogWords);
     }
@@ -96,9 +96,9 @@ exports.getActiveQuestions = async (req, res) => {
     const questions = await Assessment.find(query)
       .sort({ createdAt: -1 })
       .limit(10);
-    
+
     console.log("[Assessment] Found", questions.length, "active questions");
-    
+
     if (questions.length > 0) {
       console.log("[Assessment] First question:", questions[0].question.substring(0, 50));
     }
@@ -167,7 +167,7 @@ exports.submitAssessmentResponse = async (req, res) => {
     // Perform sentiment analysis on what user provided
     let sentimentAnalysis = null;
     let analyzedContent = null;
-    
+
     // Priority: Text input over choice
     if (userTextInput && userTextInput.trim().length > 0) {
       // User provided text - analyze the text
@@ -245,7 +245,7 @@ exports.submitAssessmentResponse = async (req, res) => {
       assessmentId,
       timestamp: new Date(),
     };
-    
+
     if (sentimentAnalysis) {
       Object.assign(lastAssessmentData, sentimentAnalysis);
     }
@@ -293,19 +293,19 @@ exports.getUserProgress = async (req, res) => {
       completionRate:
         assessments.length > 0
           ? Math.round(
-              (completedAssessments.length / assessments.length) * 100
-            )
+            (completedAssessments.length / assessments.length) * 100
+          )
           : 0,
       averageScore:
         completedAssessments.length > 0
           ? (
-              completedAssessments.reduce((sum, a) => {
-                return (
-                  sum +
-                  (a.sentimentResult?.selectedChoice?.value || 0)
-                );
-              }, 0) / completedAssessments.length
-            ).toFixed(2)
+            completedAssessments.reduce((sum, a) => {
+              return (
+                sum +
+                (a.sentimentResult?.selectedChoice?.value || 0)
+              );
+            }, 0) / completedAssessments.length
+          ).toFixed(2)
           : 0,
       categoryBreakdown: {},
       recentResponses: completedAssessments.slice(0, 10),
@@ -430,13 +430,13 @@ exports.analyzeSentimentTrend = async (req, res) => {
         averageSentimentScore:
           assessments.length > 0
             ? (
-                assessments.reduce(
-                  (sum, a) =>
-                    sum +
-                    (a.sentimentResult?.selectedChoice?.value || 0),
-                  0
-                ) / assessments.length
-              ).toFixed(2)
+              assessments.reduce(
+                (sum, a) =>
+                  sum +
+                  (a.sentimentResult?.selectedChoice?.value || 0),
+                0
+              ) / assessments.length
+            ).toFixed(2)
             : 0,
         mostCommonSentiment:
           Object.keys(sentimentCounts).reduce((a, b) =>
@@ -606,7 +606,7 @@ async function translateQuestionsInBackground(assessmentId, question, isTagalog,
   try {
     // Translation disabled to save API quota
     console.log('[Assessment] Background translation skipped - API quota conservation mode');
-    
+
     // Uncomment below to re-enable translations (requires paid Gemini API tier)
     /*
     let questionTagalog = null;
@@ -660,6 +660,57 @@ async function translateQuestionsInBackground(assessmentId, question, isTagalog,
   }
 }
 
+// Check if user has completed today's daily assessment
+exports.checkDailyAssessmentStatus = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Get today's date at midnight (start of day)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Get tomorrow's date at midnight (end of today)
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // Check if user has completed any assessment today
+    const completedToday = await Assessment.findOne({
+      userId,
+      completedAt: {
+        $gte: today,
+        $lt: tomorrow,
+      },
+    }).sort({ completedAt: -1 });
+
+    if (completedToday) {
+      // User has already completed today's assessment
+      // Calculate when they can take it again (tomorrow at midnight)
+      const nextAvailable = new Date(tomorrow);
+
+      return res.status(200).json({
+        completed: true,
+        message: "You have already completed your daily assessment for today",
+        completedAt: completedToday.completedAt,
+        nextAvailable: nextAvailable,
+        hoursUntilNextAvailable: Math.ceil((nextAvailable - new Date()) / (1000 * 60 * 60)),
+      });
+    }
+
+    // User has not completed today's assessment
+    res.status(200).json({
+      completed: false,
+      message: "Daily assessment available",
+      nextAvailable: null,
+    });
+  } catch (error) {
+    console.error("Error checking daily assessment status:", error);
+    res.status(500).json({
+      message: "Error checking daily assessment status",
+      error: error.message,
+    });
+  }
+};
+
 // Get user's latest sentiment analysis
 exports.getLatestSentimentAnalysis = async (req, res) => {
   try {
@@ -689,6 +740,32 @@ exports.getLatestSentimentAnalysis = async (req, res) => {
     console.error("Error fetching latest sentiment analysis:", error);
     res.status(500).json({
       message: "Error fetching sentiment analysis",
+      error: error.message,
+    });
+  }
+};
+
+// Admin: Get all assessments
+exports.getAllAssessments = async (req, res) => {
+  try {
+    console.log("[Assessment] Fetching all assessments for admin");
+
+    const assessments = await Assessment.find()
+      .populate("userId", "username email age gender")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    console.log("[Assessment] Found", assessments.length, "assessments");
+
+    res.status(200).json({
+      message: "All assessments retrieved successfully",
+      data: assessments,
+      total: assessments.length,
+    });
+  } catch (error) {
+    console.error("Error fetching all assessments:", error);
+    res.status(500).json({
+      message: "Error fetching assessments",
       error: error.message,
     });
   }
