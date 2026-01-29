@@ -45,9 +45,11 @@ async function start() {
             });
 
             await new Promise((resolve, reject) => {
-                server.listen(tryPort, HOST, () => resolve());
-                // set a short timeout in case listen never completes
-                setTimeout(() => reject(new Error('listen timeout')), 3000);
+                const timeout = setTimeout(() => reject(new Error('listen timeout')), 5000);
+                server.listen(tryPort, HOST, () => {
+                    clearTimeout(timeout);
+                    resolve();
+                });
             });
 
             console.log(`🌐 Server started on ${HOST}:${tryPort}` + (attempt === 0 ? '' : ` (was ${PORT}, auto-switched)`));

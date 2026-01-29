@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -115,12 +115,76 @@ export default function AssessmentQuestions({ onClose }: AssessmentQuestionsProp
   const [batchedResponses, setBatchedResponses] = useState<any[]>([]);
   const [translatingText, setTranslatingText] = useState<{ [key: string]: boolean }>({});
 
+  // Daily assessment status tracking
+  const [alreadyCompletedToday, setAlreadyCompletedToday] = useState(false);
+  const [nextAvailableTime, setNextAvailableTime] = useState<Date | null>(null);
+  const [hoursUntilNext, setHoursUntilNext] = useState<number>(0);
+
   const screenWidth = Dimensions.get("window").width;
   const BATCH_SIZE = 10; // Max questions per batch (can be less if fewer questions available)
 
   useEffect(() => {
-    loadQuestions();
+    checkDailyStatus();
   }, []);
+
+  const checkDailyStatus = async () => {
+    setLoading(true);
+    try {
+      const token = await (async () => {
+        try {
+          const mod = await import("@/utils/tokenStorage");
+          const t = await mod.tokenStorage.getToken();
+          return t;
+        } catch (e) {
+          return null;
+        }
+      })();
+
+      if (!token) {
+        Toast.show({
+          type: "error",
+          text1: "Error",
+          text2: "Please sign in to view assessment questions",
+        });
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/assessment/daily-status`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to check daily status");
+      }
+
+      const data = await response.json();
+
+      if (data.completed) {
+        // User has already completed today's assessment
+        setAlreadyCompletedToday(true);
+        setNextAvailableTime(new Date(data.nextAvailable));
+        setHoursUntilNext(data.hoursUntilNextAvailable);
+        setLoading(false);
+      } else {
+        // User can take the assessment - load questions
+        setAlreadyCompletedToday(false);
+        await loadQuestions();
+      }
+    } catch (error: any) {
+      console.error("Error checking daily status:", error);
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: error.message || "Failed to check daily assessment status",
+      });
+      setLoading(false);
+    }
+  };
 
   const loadQuestions = async () => {
     setLoading(true);
@@ -390,6 +454,122 @@ export default function AssessmentQuestions({ onClose }: AssessmentQuestionsProp
   // Calculate batch size based on actual question count (early definition for use in JSX)
   const effectiveBatchSize = Math.min(BATCH_SIZE, questions.length);
 
+  // Show "already completed today" screen
+  if (alreadyCompletedToday) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 24 }}>
+          <View
+            style={{
+              width: 100,
+              height: 100,
+              borderRadius: 50,
+              backgroundColor: theme.colors.primary + "20",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: 24,
+            }}
+          >
+            <MaterialCommunityIcons
+              name="clock-check-outline"
+              size={50}
+              color={theme.colors.primary}
+            />
+          </View>
+          <Text
+            style={{
+              fontSize: 22,
+              fontFamily: theme.fonts.heading,
+              color: theme.colors.text,
+              marginBottom: 12,
+              textAlign: "center",
+            }}
+          >
+            Assessment Complete!
+          </Text>
+          <Text
+            style={{
+              fontSize: 14,
+              color: theme.colors.text + "88",
+              textAlign: "center",
+              marginBottom: 24,
+              lineHeight: 22,
+            }}
+          >
+            You've completed your daily assessment for today. Come back tomorrow for a new assessment!
+          </Text>
+
+          {/* Next available time card */}
+          <View
+            style={{
+              backgroundColor: theme.colors.primary + "15",
+              borderRadius: 12,
+              padding: 16,
+              width: "100%",
+              marginBottom: 32,
+              alignItems: "center",
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 14,
+                fontFamily: theme.fonts.bodyBold,
+                color: theme.colors.primary,
+                marginBottom: 4,
+              }}
+            >
+              ⏰ Next Assessment: {hoursUntilNext > 0 ? `${hoursUntilNext} hours` : "Tomorrow"}
+            </Text>
+            {nextAvailableTime && (
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: theme.colors.text + "66",
+                  textAlign: "center",
+                }}
+              >
+                {nextAvailableTime.toLocaleDateString("en-US", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </Text>
+            )}
+          </View>
+
+          <TouchableOpacity
+            onPress={() => onClose()}
+            style={{ width: "100%", borderRadius: 12, overflow: "hidden" }}
+          >
+            <LinearGradient
+              colors={[theme.colors.primary, theme.colors.primary + "DD"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                paddingVertical: 14,
+                paddingHorizontal: 24,
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: 12,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontFamily: theme.fonts.bodyBold,
+                  color: "#fff",
+                }}
+              >
+                Close
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (loading) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
@@ -421,12 +601,23 @@ export default function AssessmentQuestions({ onClose }: AssessmentQuestionsProp
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 24 }}>
-          <MaterialCommunityIcons
-            name="check-circle"
-            size={80}
-            color={theme.colors.primary}
-            style={{ marginBottom: 24 }}
-          />
+          <View
+            style={{
+              width: 100,
+              height: 100,
+              borderRadius: 50,
+              backgroundColor: theme.colors.primary + "20",
+              justifyContent: "center",
+              alignItems: "center",
+              marginBottom: 24,
+            }}
+          >
+            <MaterialCommunityIcons
+              name="check-circle"
+              size={80}
+              color={theme.colors.primary}
+            />
+          </View>
           <Text
             style={{
               fontSize: 24,
@@ -436,12 +627,12 @@ export default function AssessmentQuestions({ onClose }: AssessmentQuestionsProp
               textAlign: "center",
             }}
           >
-            Assessment Complete! ✓
+            Assessment Complete!
           </Text>
           <Text
             style={{
               fontSize: 14,
-              color: theme.colors.text + "88",
+              color: theme.colors.textSecondary,
               textAlign: "center",
               marginBottom: 32,
               lineHeight: 20,
@@ -603,8 +794,8 @@ export default function AssessmentQuestions({ onClose }: AssessmentQuestionsProp
                     {sentiment.primary === "positive"
                       ? "😊"
                       : sentiment.primary === "negative"
-                      ? "😞"
-                      : "😐"}
+                        ? "😞"
+                        : "😐"}
                   </Text>
                 </View>
                 <Text
@@ -774,7 +965,7 @@ export default function AssessmentQuestions({ onClose }: AssessmentQuestionsProp
               setShowResults(false);
               setSentimentResults(null);
               setBatchedResponses([]);
-              
+
               if (currentQuestionIndex < questions.length - 1) {
                 setCurrentQuestionIndex(currentQuestionIndex + BATCH_SIZE);
                 setProgress((currentQuestionIndex + BATCH_SIZE) / questions.length);
@@ -890,8 +1081,7 @@ export default function AssessmentQuestions({ onClose }: AssessmentQuestionsProp
   const userText = userTextInputs[currentQuestion._id] || "";
   const hasAnswer = !!selectedChoice || userText.trim().length > 0;
   const isTyping = userText.trim().length > 0;
-  
-  const batchQuestionNum = (currentQuestionIndex % BATCH_SIZE) + 1;
+
   const isBatchComplete = batchedResponses.length >= effectiveBatchSize;
   const questionProgress = isBatchComplete ? 100 : (batchedResponses.length / effectiveBatchSize) * 100;
 
@@ -1124,8 +1314,8 @@ export default function AssessmentQuestions({ onClose }: AssessmentQuestionsProp
               borderRadius: 12,
               padding: 14,
               borderWidth: 2,
-              borderColor: userTextInputs[currentQuestion._id] 
-                ? theme.colors.primary 
+              borderColor: userTextInputs[currentQuestion._id]
+                ? theme.colors.primary
                 : theme.colors.surface,
               color: theme.colors.text,
               fontFamily: theme.fonts.body,

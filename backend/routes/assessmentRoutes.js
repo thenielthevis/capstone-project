@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const assessmentController = require("../controllers/assessmentController");
 const auth = require("../middleware/auth");
+const adminMiddleware = require("../middleware/admin");
 
 // Generate daily assessment questions (10 questions)
 router.post("/generate-daily-questions", auth, assessmentController.generateDailyQuestions);
@@ -30,7 +31,13 @@ router.get("/sentiment-analysis/:assessmentId", auth, assessmentController.getSe
 // NEW: Direct text analysis (testing endpoint)
 router.post("/analyze-text", auth, assessmentController.analyzeText);
 
+// NEW: Check if user has completed today's daily assessment
+router.get("/daily-status", auth, assessmentController.checkDailyAssessmentStatus);
+
 // NEW: Get user's latest sentiment analysis
 router.get("/latest-sentiment-analysis", auth, assessmentController.getLatestSentimentAnalysis);
+
+// Admin: Get all assessments
+router.get("/all", auth, assessmentController.getAllAssessments);
 
 module.exports = router;
