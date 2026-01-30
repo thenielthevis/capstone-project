@@ -8,11 +8,14 @@ import { UserProvider } from './context/UserContext';
 import { ProgramProvider } from './context/ProgramContext';
 import { DailyLogProvider } from './context/DailyLogContext';
 import { HealthCheckupProvider } from './context/HealthCheckupContext';
+import { MoodCheckinProvider } from './context/MoodCheckinContext';
+import { FeedbackProvider } from './context/FeedbackContext';
 import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 import { ToastProvider } from './components/Toast/Toast';
 import { KeyboardProvider } from "react-native-keyboard-controller";
+import { initializeFeedbackNotifications } from './services/feedbackNotifications';
 import './globals.css';
 
 // Keep the splash screen visible while fonts and app initialize
@@ -34,6 +37,19 @@ export default function App() {
     }
   }, [fontError]);
 
+  // Initialize feedback notifications on app startup
+  useEffect(() => {
+    const initNotifications = async () => {
+      try {
+        await initializeFeedbackNotifications();
+        console.log('[App] Feedback notifications initialized');
+      } catch (error) {
+        console.error('[App] Failed to initialize notifications:', error);
+      }
+    };
+    initNotifications();
+  }, []);
+
   if (!fontsLoaded && !fontError) {
     return null;
   }
@@ -48,12 +64,16 @@ export default function App() {
                 <ProgramProvider>
                   <DailyLogProvider>
                     <HealthCheckupProvider>
-                      <Stack
-                        screenOptions={{
-                          headerShown: false,
-                        }}
-                      />
-                      <ToastProvider />
+                      <MoodCheckinProvider>
+                        <FeedbackProvider>
+                          <Stack
+                            screenOptions={{
+                              headerShown: false,
+                            }}
+                          />
+                          <ToastProvider />
+                        </FeedbackProvider>
+                      </MoodCheckinProvider>
                     </HealthCheckupProvider>
                   </DailyLogProvider>
                 </ProgramProvider>

@@ -219,6 +219,40 @@ const healthCheckupSchema = new mongoose.Schema({
             _id: false
         }]
     },
+    // Daily overall rating (1-5 scale)
+    dayRating: {
+        value: {
+            type: Number,
+            min: 1,
+            max: 5
+        },
+        notes: {
+            type: String,
+            maxLength: 200
+        },
+        ratedAt: {
+            type: Date
+        }
+    },
+    // End-of-day summary generation tracking
+    endOfDaySummary: {
+        generated: {
+            type: Boolean,
+            default: false
+        },
+        generatedAt: {
+            type: Date
+        },
+        metrics: {
+            totalMoodCheckins: { type: Number, default: 0 },
+            averageMood: { type: Number },
+            topContributingFactors: [String],
+            waterPercentage: { type: Number },
+            sleepQuality: { type: String },
+            stressLevel: { type: Number },
+            overallScore: { type: Number, min: 0, max: 100 }
+        }
+    },
     // Completion tracking
     completedMetrics: {
         sleep: { type: Boolean, default: false },
