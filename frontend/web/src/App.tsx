@@ -15,6 +15,7 @@ import ProgramCoach from './pages/ProgramCoach';
 import ProgramHistory from './pages/ProgramHistory';
 import Settings from './pages/Settings';
 import TermsAndConditions from './pages/TermsAndConditions';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminUsers from './pages/AdminUsers';
 import AdminAssessments from './pages/AdminAssessments';
@@ -43,6 +44,7 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/terms" element={<TermsAndConditions />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route
         path="/dashboard"
         element={

@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { Moon, Sun, Droplets, Check } from 'lucide-react';
+import { Moon, Sun, Droplets, Check, FileText, Shield, ChevronRight } from 'lucide-react';
 import Header from '@/components/Header';
 
 const themeOptions = [
@@ -35,16 +35,24 @@ export default function Settings() {
     navigate('/');
   };
 
+  const navigatetoTerms = () => {
+    navigate('/terms');
+  };
+
+  const navigatetoPrivacy = () => {
+    navigate('/privacy');
+  };
+
   return (
-    <div 
+    <div
       className="min-h-screen"
-      style={{ 
+      style={{
         backgroundColor: theme.colors.background,
-        color: theme.colors.text 
+        color: theme.colors.text
       }}
     >
       {/* Header */}
-      <Header 
+      <Header
         title="Settings"
         showBackButton
         showHomeButton
@@ -52,16 +60,16 @@ export default function Settings() {
 
       <main className="max-w-4xl mx-auto px-4 py-8">
         {/* User Info Section */}
-        <section 
+        <section
           className="rounded-xl p-6 mb-6 border"
-          style={{ 
+          style={{
             backgroundColor: theme.colors.card,
             borderColor: theme.colors.border
           }}
         >
-          <h2 
+          <h2
             className="text-lg font-semibold mb-4"
-            style={{ 
+            style={{
               color: theme.colors.text,
               fontFamily: theme.fonts.heading
             }}
@@ -70,13 +78,13 @@ export default function Settings() {
           </h2>
           <div className="space-y-3">
             <div>
-              <p 
+              <p
                 className="text-sm"
                 style={{ color: theme.colors.textSecondary }}
               >
                 Username
               </p>
-              <p 
+              <p
                 className="font-medium"
                 style={{ color: theme.colors.text }}
               >
@@ -84,13 +92,13 @@ export default function Settings() {
               </p>
             </div>
             <div>
-              <p 
+              <p
                 className="text-sm"
                 style={{ color: theme.colors.textSecondary }}
               >
                 Email
               </p>
-              <p 
+              <p
                 className="font-medium"
                 style={{ color: theme.colors.text }}
               >
@@ -101,23 +109,23 @@ export default function Settings() {
         </section>
 
         {/* Appearance Section */}
-        <section 
+        <section
           className="rounded-xl p-6 mb-6 border"
-          style={{ 
+          style={{
             backgroundColor: theme.colors.card,
             borderColor: theme.colors.border
           }}
         >
-          <h2 
+          <h2
             className="text-lg font-semibold mb-4"
-            style={{ 
+            style={{
               color: theme.colors.text,
               fontFamily: theme.fonts.heading
             }}
           >
             Appearance
           </h2>
-          <p 
+          <p
             className="text-sm mb-6"
             style={{ color: theme.colors.textSecondary }}
           >
@@ -128,7 +136,7 @@ export default function Settings() {
             {themeOptions.map((option) => {
               const Icon = option.icon;
               const isSelected = themeMode === option.key;
-              
+
               return (
                 <button
                   key={option.key}
@@ -140,23 +148,23 @@ export default function Settings() {
                   }}
                 >
                   <div className="flex items-center gap-4">
-                    <div 
+                    <div
                       className="p-3 rounded-lg"
                       style={{ backgroundColor: theme.colors.surface }}
                     >
-                      <Icon 
-                        size={24} 
+                      <Icon
+                        size={24}
                         style={{ color: theme.colors.primary }}
                       />
                     </div>
                     <div className="text-left">
-                      <p 
+                      <p
                         className="font-semibold text-base"
                         style={{ color: theme.colors.text }}
                       >
                         {option.label}
                       </p>
-                      <p 
+                      <p
                         className="text-sm"
                         style={{ color: theme.colors.textSecondary }}
                       >
@@ -165,8 +173,8 @@ export default function Settings() {
                     </div>
                   </div>
                   {isSelected && (
-                    <Check 
-                      size={24} 
+                    <Check
+                      size={24}
                       style={{ color: theme.colors.primary }}
                       className="flex-shrink-0"
                     />
@@ -177,17 +185,122 @@ export default function Settings() {
           </div>
         </section>
 
-        {/* Navigation Section */}
-        <section 
+        {/* Terms & Conditions, Privacy Policy Section*/}
+        <section
           className="rounded-xl p-6 mb-6 border"
-          style={{ 
+          style={{
             backgroundColor: theme.colors.card,
             borderColor: theme.colors.border
           }}
         >
-          <h2 
+          <h2
             className="text-lg font-semibold mb-4"
-            style={{ 
+            style={{
+              color: theme.colors.text,
+              fontFamily: theme.fonts.heading
+            }}
+          >
+            Legals
+          </h2>
+          <p
+            className="text-sm mb-6"
+            style={{ color: theme.colors.textSecondary }}
+          >
+            Review our terms and privacy commitments
+          </p>
+
+          <div className="space-y-3">
+            <button
+              onClick={navigatetoTerms}
+              className="w-full cursor-pointer flex items-center justify-between p-4 rounded-lg border-2 transition-all hover:scale-[1.02]"
+              style={{
+                backgroundColor: theme.colors.background,
+                borderColor: theme.colors.border,
+              }}
+            >
+              <div className="flex items-center gap-4">
+                <div
+                  className="p-3 rounded-lg"
+                  style={{ backgroundColor: theme.colors.surface }}
+                >
+                  <FileText
+                    size={24}
+                    style={{ color: theme.colors.primary }}
+                  />
+                </div>
+                <div className="text-left">
+                  <p
+                    className="font-semibold text-base"
+                    style={{ color: theme.colors.text }}
+                  >
+                    Terms & Conditions
+                  </p>
+                  <p
+                    className="text-sm"
+                    style={{ color: theme.colors.textSecondary }}
+                  >
+                    Rules and guidelines for using Lifora
+                  </p>
+                </div>
+              </div>
+              <ChevronRight
+                size={20}
+                style={{ color: theme.colors.textSecondary }}
+              />
+            </button>
+
+            <button
+              onClick={navigatetoPrivacy}
+              className="w-full cursor-pointer flex items-center justify-between p-4 rounded-lg border-2 transition-all hover:scale-[1.02]"
+              style={{
+                backgroundColor: theme.colors.background,
+                borderColor: theme.colors.border,
+              }}
+            >
+              <div className="flex items-center gap-4">
+                <div
+                  className="p-3 rounded-lg"
+                  style={{ backgroundColor: theme.colors.surface }}
+                >
+                  <Shield
+                    size={24}
+                    style={{ color: theme.colors.primary }}
+                  />
+                </div>
+                <div className="text-left">
+                  <p
+                    className="font-semibold text-base"
+                    style={{ color: theme.colors.text }}
+                  >
+                    Privacy Policy
+                  </p>
+                  <p
+                    className="text-sm"
+                    style={{ color: theme.colors.textSecondary }}
+                  >
+                    How we handle and protect your data
+                  </p>
+                </div>
+              </div>
+              <ChevronRight
+                size={20}
+                style={{ color: theme.colors.textSecondary }}
+              />
+            </button>
+          </div>
+        </section>
+
+        {/* Navigation Section */}
+        <section
+          className="rounded-xl p-6 mb-6 border"
+          style={{
+            backgroundColor: theme.colors.card,
+            borderColor: theme.colors.border
+          }}
+        >
+          <h2
+            className="text-lg font-semibold mb-4"
+            style={{
               color: theme.colors.text,
               fontFamily: theme.fonts.heading
             }}
@@ -198,7 +311,7 @@ export default function Settings() {
             <Link
               to="/dashboard"
               className="block p-3 rounded-lg transition-colors"
-              style={{ 
+              style={{
                 color: theme.colors.text,
                 backgroundColor: 'transparent'
               }}
@@ -210,7 +323,7 @@ export default function Settings() {
             <Link
               to="/health-assessment"
               className="block p-3 rounded-lg transition-colors"
-              style={{ 
+              style={{
                 color: theme.colors.text,
                 backgroundColor: 'transparent'
               }}
@@ -222,7 +335,7 @@ export default function Settings() {
             <Link
               to="/predictions"
               className="block p-3 rounded-lg transition-colors"
-              style={{ 
+              style={{
                 color: theme.colors.text,
                 backgroundColor: 'transparent'
               }}
@@ -234,7 +347,7 @@ export default function Settings() {
             <Link
               to="/food-tracking"
               className="block p-3 rounded-lg transition-colors"
-              style={{ 
+              style={{
                 color: theme.colors.text,
                 backgroundColor: 'transparent'
               }}
@@ -247,16 +360,16 @@ export default function Settings() {
         </section>
 
         {/* Danger Zone */}
-        <section 
+        <section
           className="rounded-xl p-6 border"
-          style={{ 
+          style={{
             backgroundColor: theme.colors.card,
             borderColor: theme.colors.error + '40'
           }}
         >
-          <h2 
+          <h2
             className="text-lg font-semibold mb-4"
-            style={{ 
+            style={{
               color: theme.colors.error,
               fontFamily: theme.fonts.heading
             }}
