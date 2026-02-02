@@ -7,10 +7,14 @@ import { Ionicons, MaterialCommunityIcons, MaterialIcons, FontAwesome6 } from "@
 import { postApi } from "../api/postApi";
 import { useRouter } from "expo-router";
 import { useUser } from "../context/UserContext";
+import { useMoodCheckin } from "../context/MoodCheckinContext";
+import { useFeedback } from "../context/FeedbackContext";
 import ReactionButton, { REACTIONS } from "../components/ReactionButton";
 import ReportModal from "../components/Modals/ReportModal";
 import { BottomSheetModal, BottomSheetModalProvider, BottomSheetBackdrop, BottomSheetView } from "@gorhom/bottom-sheet";
 import PostMediaCarousel from "../components/feed/PostMediaCarousel";
+import FeedbackBanner from "../components/FeedbackBanner";
+import QuickMoodCheckin from "../components/QuickMoodCheckin";
 
 type Post = {
   _id: string;
@@ -48,6 +52,8 @@ export default function Home() {
   const { theme } = useTheme();
   const { user } = useUser();
   const router = useRouter();
+  const { isCheckinDue, currentPeriod, openCheckinModal } = useMoodCheckin();
+  const { hasUrgentMessages } = useFeedback();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -491,6 +497,61 @@ export default function Home() {
           />
         }
       >
+        {/* Feedback Banner - Shows high priority messages */}
+        <FeedbackBanner />
+
+        {/* Quick Mood Check-in Widget */}
+        {isCheckinDue && (
+          <TouchableOpacity
+            onPress={openCheckinModal}
+            style={{
+              marginHorizontal: 16,
+              marginBottom: 16,
+              padding: 16,
+              backgroundColor: theme.colors.primary + '12',
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: theme.colors.primary + '30',
+              flexDirection: 'row',
+              alignItems: 'center'
+            }}
+          >
+            <View style={{
+              width: 48,
+              height: 48,
+              borderRadius: 24,
+              backgroundColor: theme.colors.primary + '20',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginRight: 14
+            }}>
+              <Text style={{ fontSize: 24 }}>😊</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{
+                fontFamily: theme.fonts.bodyBold,
+                fontSize: 15,
+                color: theme.colors.text
+              }}>
+                {currentPeriod.charAt(0).toUpperCase() + currentPeriod.slice(1)} Check-in
+              </Text>
+              <Text style={{
+                fontFamily: theme.fonts.body,
+                fontSize: 13,
+                color: theme.colors.text + 'AA',
+                marginTop: 2
+              }}>
+                How are you feeling? Tap to log your mood
+              </Text>
+            </View>
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={24}
+              color={theme.colors.primary}
+            />
+          </TouchableOpacity>
+        )}
+
         {/* Introduction Section */}
         <View className="mb-3 rounded-2xl p-5 overflow-hidden relative mx-1" style={{ backgroundColor: theme.colors.background }}>
           <View style={{ position: 'absolute', top: -30, right: -20, width: 120, height: 120, borderRadius: 60, backgroundColor: theme.colors.primary + '15' }} />
@@ -684,6 +745,9 @@ export default function Home() {
           </BottomSheetView>
         </BottomSheetModal>
       </BottomSheetModalProvider>
+
+      {/* Quick Mood Check-in Modal */}
+      <QuickMoodCheckin />
     </View>
   );
 }

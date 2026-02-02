@@ -1,5 +1,6 @@
 const HealthCheckup = require('../models/healthCheckupModel');
 const User = require('../models/userModel');
+const FeedbackTriggerEngine = require('../services/feedbackTriggerEngine');
 
 // Helper function to get start of day
 const getStartOfDay = (date = new Date()) => {
@@ -312,6 +313,20 @@ exports.updateCheckup = async (req, res) => {
         } catch (gamErr) {
             console.error('Error updating gamification:', gamErr);
         }
+
+        // Trigger feedback evaluation asynchronously (non-blocking)
+        setImmediate(async () => {
+            try {
+                const engine = new FeedbackTriggerEngine(userId);
+                await engine.initialize();
+                const messages = await engine.evaluateAllTriggers();
+                if (messages.length > 0) {
+                    console.log(`[HealthCheckup] Generated ${messages.length} feedback messages for user ${userId}`);
+                }
+            } catch (feedbackError) {
+                console.error('[HealthCheckup] Error triggering feedback evaluation:', feedbackError);
+            }
+        });
 
         res.status(200).json({
             success: true,

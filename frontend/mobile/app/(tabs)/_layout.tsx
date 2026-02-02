@@ -52,6 +52,12 @@ export default function HomeTabs() {
         icon: <MaterialCommunityIcons name="heart-pulse" size={20} color={theme.colors.primary} />,
         route: "/screens/record/HealthCheckup" as Href,
       },
+      {
+        key: "mood",
+        label: "Mood",
+        icon: <MaterialCommunityIcons name="emoticon-happy-outline" size={20} color={theme.colors.primary} />,
+        route: "/screens/InsightsScreen" as Href,
+      },
     ],
     [theme.colors.primary]
   );
