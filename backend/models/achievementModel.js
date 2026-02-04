@@ -11,7 +11,7 @@ const AchievementSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ['workout', 'nutrition', 'health', 'program', 'streak', 'milestone'],
+    enum: ['workout', 'nutrition', 'health', 'program', 'streak', 'milestone', 'social', 'leaderboard'],
     required: true,
   },
   icon: {
