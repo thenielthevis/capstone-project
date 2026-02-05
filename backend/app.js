@@ -39,6 +39,7 @@ const assessmentRoutes = require('./routes/assessmentRoutes');
 const healthCheckupRoutes = require('./routes/healthCheckupRoutes');
 const moodCheckinRoutes = require('./routes/moodCheckinRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
+const leaderboardRoutes = require('./routes/leaderboardRoutes');
 
 // During development allow all origins so phones/emulators can reach the server.
 // In production restrict this to a known list.
@@ -77,6 +78,8 @@ app.use('/api/assessment', assessmentRoutes);
 app.use('/api/health-checkups', healthCheckupRoutes);
 app.use('/api/mood-checkins', moodCheckinRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/leaderboard', leaderboardRoutes);
+console.log('[APP] Registered /api/leaderboard routes');
 console.log('[APP] Registered /api/admin routes');
 console.log('[APP] Registered /api/gemini routes');
 console.log('[APP] Registered /api/assessment routes');

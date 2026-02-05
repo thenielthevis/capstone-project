@@ -68,6 +68,31 @@ export default function Header({
 
       {/* Right icons container */}
       <View style={{ flexDirection: "row", alignItems: "center" }}>
+        {/* Leaderboard Button */}
+        <TouchableOpacity 
+          onPress={() => router.push("/screens/leaderboard/" as Href)} 
+          activeOpacity={0.7}
+          style={{
+            marginRight: 12,
+          }}
+        >
+          <View
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 16,
+              backgroundColor: '#fbbf24' + '20',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Ionicons
+              name="trophy"
+              size={18}
+              color="#fbbf24"
+            />
+          </View>
+        </TouchableOpacity>
         <TouchableOpacity onPress={handleProfilePress} activeOpacity={0.7}>
           {user?.profilePicture ? (
             <Image

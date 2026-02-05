@@ -10,6 +10,7 @@ import { DailyLogProvider } from './context/DailyLogContext';
 import { HealthCheckupProvider } from './context/HealthCheckupContext';
 import { MoodCheckinProvider } from './context/MoodCheckinContext';
 import { FeedbackProvider } from './context/FeedbackContext';
+import { LeaderboardProvider } from './context/LeaderboardContext';
 import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
@@ -66,12 +67,14 @@ export default function App() {
                     <HealthCheckupProvider>
                       <MoodCheckinProvider>
                         <FeedbackProvider>
-                          <Stack
-                            screenOptions={{
-                              headerShown: false,
-                            }}
-                          />
-                          <ToastProvider />
+                          <LeaderboardProvider>
+                            <Stack
+                              screenOptions={{
+                                headerShown: false,
+                              }}
+                            />
+                            <ToastProvider />
+                          </LeaderboardProvider>
                         </FeedbackProvider>
                       </MoodCheckinProvider>
                     </HealthCheckupProvider>
