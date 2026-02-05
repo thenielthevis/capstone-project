@@ -24,6 +24,7 @@ import { analyzeFood, analyzeIngredients, analyzeMultipleDishes, FoodAnalysisRes
 import { useTheme } from '../../context/ThemeContext';
 import { foodLogApi } from '../../api/foodLogApi';
 import { useUser } from '../../context/UserContext';
+import { tokenStorage } from '@/utils/tokenStorage';
 import { getUserAllergies, getTodayCalorieBalance, getUserProfile } from '../../api/userApi';
 import { sendCalorieReminder, configureNotifications } from '@/utils/calorieNotifications';
 import GamificationReward from '../../components/animation/gamification-reward';
@@ -284,7 +285,24 @@ const QuickActionButton = ({
 
 export default function Food() {
   const { theme } = useTheme();
-  const { user } = useUser();
+  const { user, setUser } = useUser();
+  const [guestAnalysisCount, setGuestAnalysisCount] = useState(0);
+
+  useEffect(() => {
+    const loadGuestCount = async () => {
+      if (user?.isGuest) {
+        const count = await tokenStorage.getGuestAnalysisCount();
+        setGuestAnalysisCount(count);
+      }
+    };
+    loadGuestCount();
+  }, [user]);
+
+  const incrementGuestCount = async () => {
+    const newCount = guestAnalysisCount + 1;
+    setGuestAnalysisCount(newCount);
+    await tokenStorage.saveGuestAnalysisCount(newCount);
+  };
   const router = useRouter();
   const [viewMode, setViewMode] = useState<'analyze' | 'history'>('analyze');
   const [inputMode, setInputMode] = useState<'image' | 'manual' | 'multi'>('image');
@@ -354,7 +372,7 @@ export default function Food() {
   // Load user allergies from profile on mount
   useEffect(() => {
     const loadUserAllergies = async () => {
-      if (!user || allergiesLoaded) return;
+      if (!user || user.isGuest || allergiesLoaded) return;
 
       try {
         const response = await getUserAllergies();
@@ -396,7 +414,7 @@ export default function Food() {
   // Load today's calorie balance
   useEffect(() => {
     const loadCalorieBalance = async () => {
-      if (!user) return;
+      if (!user || user.isGuest) return;
 
       try {
         const response = await getTodayCalorieBalance();
@@ -415,7 +433,7 @@ export default function Food() {
   useFocusEffect(
     useCallback(() => {
       const refreshOnFocus = async () => {
-        if (!user) return;
+        if (!user || user.isGuest) return;
         try {
           const response = await getTodayCalorieBalance();
           if (response.entry) {
@@ -685,6 +703,19 @@ export default function Food() {
     setLoading(true);
     setError(null);
 
+    if (user?.isGuest && guestAnalysisCount >= 1) {
+      setLoading(false);
+      Alert.alert(
+        "Limit Reached",
+        "You've reached your limit of 1 free analyses in guest mode. Please log in to continue tracking your meals!",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Sign In", onPress: () => { setUser(null); router.replace("/"); } }
+        ]
+      );
+      return;
+    }
+
     try {
       const allergyList = [...selectedAllergies];
       if (customAllergies.trim()) {
@@ -693,6 +724,12 @@ export default function Food() {
 
       const analysisResult = await analyzeMultipleDishes(dishesWithImages, allergyList);
       setMultiDishResult(analysisResult);
+
+      if (user?.isGuest) {
+        await incrementGuestCount();
+        setLoading(false);
+        return;
+      }
 
       // Save each dish to backend
       if (user) {
@@ -780,8 +817,11 @@ export default function Food() {
 
   // Save food log to backend
   const saveFoodLog = async (analysisResult: FoodAnalysisResult, imageBase64?: string) => {
-    if (!user) {
-      console.log('No user logged in, skipping food log save');
+    if (!user || user.isGuest) {
+      if (user?.isGuest) {
+        await incrementGuestCount();
+      }
+      console.log('No user logged in or guest mode, skipping food log save');
       return;
     }
 
@@ -882,6 +922,17 @@ export default function Food() {
     if (!result || !user) {
       Alert.alert('Error', 'No analysis result to log');
       return;
+    } else if (user?.isGuest || guestAnalysisCount >= 1) {
+      setLoading(false);
+      Alert.alert(
+        "Sign in to log food",
+        "Please log in to continue tracking your meals!",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Sign In", onPress: () => { setUser(null); router.replace("/screens/auth/login"); } }
+        ]
+      );
+      return;
     }
 
     setLoading(true);
@@ -935,6 +986,19 @@ export default function Food() {
     setLoading(true);
     setError(null);
 
+    if (user?.isGuest && guestAnalysisCount >= 1) {
+      setLoading(false);
+      Alert.alert(
+        "Limit Reached",
+        "You've reached your limit of 1 free analyses in guest mode. Please log in to continue tracking your meals!",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Sign In", onPress: () => { setUser(null); router.replace("/screens/auth/guest"); } }
+        ]
+      );
+      return;
+    }
+
     try {
       const allergyList = [...selectedAllergies];
       if (customAllergies.trim()) {
@@ -974,6 +1038,19 @@ export default function Food() {
 
     setLoading(true);
     setError(null);
+
+    if (user?.isGuest && guestAnalysisCount >= 1) {
+      setLoading(false);
+      Alert.alert(
+        "Limit Reached",
+        "You've reached your limit of 1 free analyses in guest mode. Please log in to continue tracking your meals!",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Sign In", onPress: () => { setUser(null); router.replace("/"); } }
+        ]
+      );
+      return;
+    }
 
     try {
       const allergyList = [...selectedAllergies];
@@ -1147,6 +1224,21 @@ export default function Food() {
                 {multiDishResult.mealSummary}
               </Text>
             </View>
+
+            {user?.isGuest && (
+              <View
+                className="mx-6 p-3 rounded-xl flex-row items-center mb-4"
+                style={{ backgroundColor: theme.colors.primary + '15', borderWidth: 1, borderColor: theme.colors.primary + '33' }}
+              >
+                <Ionicons name="information-circle-outline" size={20} color={theme.colors.primary} />
+                <Text
+                  className="ml-2 flex-1"
+                  style={{ fontFamily: theme.fonts.body, fontSize: 12, color: theme.colors.primary }}
+                >
+                  Guest Mode: You can analyze up to 3 meals. These sessions will not be saved. Log in to keep your history.
+                </Text>
+              </View>
+            )}
 
             {/* Total Calories */}
             <View style={{
@@ -2343,7 +2435,7 @@ export default function Food() {
           justifyContent: 'space-between',
         }}>
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => user?.isGuest ? router.replace("/screens/auth/guest") : router.back()}
             style={{
               flexDirection: 'row',
               alignItems: 'center',

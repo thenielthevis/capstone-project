@@ -4,7 +4,7 @@
  */
 
 import * as Notifications from 'expo-notifications';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { FeedbackMessage, getPriorityLabel, getCategoryIcon } from '../api/feedbackApi';
 
 // Storage keys
@@ -80,15 +80,15 @@ export const initializeFeedbackNotifications = async (): Promise<boolean> => {
  */
 export const isInQuietHours = async (): Promise<boolean> => {
     try {
-        const enabled = await AsyncStorage.getItem(STORAGE_KEYS.QUIET_HOURS_ENABLED);
+        const enabled = await SecureStore.getItemAsync(STORAGE_KEYS.QUIET_HOURS_ENABLED);
         if (enabled === 'false') return false;
 
         const startHour = parseInt(
-            await AsyncStorage.getItem(STORAGE_KEYS.QUIET_START) ||
+            await SecureStore.getItemAsync(STORAGE_KEYS.QUIET_START) ||
             String(DEFAULT_SETTINGS.quietStartHour)
         );
         const endHour = parseInt(
-            await AsyncStorage.getItem(STORAGE_KEYS.QUIET_END) ||
+            await SecureStore.getItemAsync(STORAGE_KEYS.QUIET_END) ||
             String(DEFAULT_SETTINGS.quietEndHour)
         );
 
@@ -110,11 +110,11 @@ export const isInQuietHours = async (): Promise<boolean> => {
  */
 export const hasMinIntervalPassed = async (): Promise<boolean> => {
     try {
-        const lastTime = await AsyncStorage.getItem(STORAGE_KEYS.LAST_NOTIFICATION_TIME);
+        const lastTime = await SecureStore.getItemAsync(STORAGE_KEYS.LAST_NOTIFICATION_TIME);
         if (!lastTime) return true;
 
         const minInterval = parseInt(
-            await AsyncStorage.getItem(STORAGE_KEYS.MIN_INTERVAL_MINUTES) ||
+            await SecureStore.getItemAsync(STORAGE_KEYS.MIN_INTERVAL_MINUTES) ||
             String(DEFAULT_SETTINGS.minIntervalMinutes)
         );
 
@@ -138,22 +138,22 @@ export const checkDailyLimits = async (isUrgent: boolean = false): Promise<{
 }> => {
     try {
         const today = new Date().toDateString();
-        const storedDate = await AsyncStorage.getItem(STORAGE_KEYS.NOTIFICATION_DATE);
+        const storedDate = await SecureStore.getItemAsync(STORAGE_KEYS.NOTIFICATION_DATE);
 
         // Reset counters if new day
         if (storedDate !== today) {
-            await AsyncStorage.setItem(STORAGE_KEYS.NOTIFICATION_DATE, today);
-            await AsyncStorage.setItem(STORAGE_KEYS.NOTIFICATION_COUNT, '0');
-            await AsyncStorage.setItem(STORAGE_KEYS.URGENT_COUNT, '0');
+            await SecureStore.setItemAsync(STORAGE_KEYS.NOTIFICATION_DATE, today);
+            await SecureStore.setItemAsync(STORAGE_KEYS.NOTIFICATION_COUNT, '0');
+            await SecureStore.setItemAsync(STORAGE_KEYS.URGENT_COUNT, '0');
         }
 
         const maxDaily = parseInt(
-            await AsyncStorage.getItem(STORAGE_KEYS.MAX_DAILY_NOTIFICATIONS) ||
+            await SecureStore.getItemAsync(STORAGE_KEYS.MAX_DAILY_NOTIFICATIONS) ||
             String(DEFAULT_SETTINGS.maxDailyNotifications)
         );
 
         const currentCount = parseInt(
-            await AsyncStorage.getItem(STORAGE_KEYS.NOTIFICATION_COUNT) || '0'
+            await SecureStore.getItemAsync(STORAGE_KEYS.NOTIFICATION_COUNT) || '0'
         );
 
         if (currentCount >= maxDaily) {
@@ -162,7 +162,7 @@ export const checkDailyLimits = async (isUrgent: boolean = false): Promise<{
 
         if (isUrgent) {
             const urgentCount = parseInt(
-                await AsyncStorage.getItem(STORAGE_KEYS.URGENT_COUNT) || '0'
+                await SecureStore.getItemAsync(STORAGE_KEYS.URGENT_COUNT) || '0'
             );
             if (urgentCount >= DEFAULT_SETTINGS.maxDailyUrgent) {
                 return { allowed: false, reason: 'Daily urgent notification limit reached' };
@@ -182,19 +182,19 @@ export const checkDailyLimits = async (isUrgent: boolean = false): Promise<{
 export const recordNotificationSent = async (isUrgent: boolean = false): Promise<void> => {
     try {
         const today = new Date().toDateString();
-        await AsyncStorage.setItem(STORAGE_KEYS.NOTIFICATION_DATE, today);
-        await AsyncStorage.setItem(STORAGE_KEYS.LAST_NOTIFICATION_TIME, new Date().toISOString());
+        await SecureStore.setItemAsync(STORAGE_KEYS.NOTIFICATION_DATE, today);
+        await SecureStore.setItemAsync(STORAGE_KEYS.LAST_NOTIFICATION_TIME, new Date().toISOString());
 
         const currentCount = parseInt(
-            await AsyncStorage.getItem(STORAGE_KEYS.NOTIFICATION_COUNT) || '0'
+            await SecureStore.getItemAsync(STORAGE_KEYS.NOTIFICATION_COUNT) || '0'
         );
-        await AsyncStorage.setItem(STORAGE_KEYS.NOTIFICATION_COUNT, String(currentCount + 1));
+        await SecureStore.setItemAsync(STORAGE_KEYS.NOTIFICATION_COUNT, String(currentCount + 1));
 
         if (isUrgent) {
             const urgentCount = parseInt(
-                await AsyncStorage.getItem(STORAGE_KEYS.URGENT_COUNT) || '0'
+                await SecureStore.getItemAsync(STORAGE_KEYS.URGENT_COUNT) || '0'
             );
-            await AsyncStorage.setItem(STORAGE_KEYS.URGENT_COUNT, String(urgentCount + 1));
+            await SecureStore.setItemAsync(STORAGE_KEYS.URGENT_COUNT, String(urgentCount + 1));
         }
     } catch (error) {
         console.error('[FeedbackNotifications] Error recording notification:', error);
@@ -429,31 +429,31 @@ export const updateNotificationSettings = async (settings: {
 }): Promise<void> => {
     try {
         if (settings.quietHoursEnabled !== undefined) {
-            await AsyncStorage.setItem(
+            await SecureStore.setItemAsync(
                 STORAGE_KEYS.QUIET_HOURS_ENABLED,
                 String(settings.quietHoursEnabled)
             );
         }
         if (settings.quietStartHour !== undefined) {
-            await AsyncStorage.setItem(
+            await SecureStore.setItemAsync(
                 STORAGE_KEYS.QUIET_START,
                 String(settings.quietStartHour)
             );
         }
         if (settings.quietEndHour !== undefined) {
-            await AsyncStorage.setItem(
+            await SecureStore.setItemAsync(
                 STORAGE_KEYS.QUIET_END,
                 String(settings.quietEndHour)
             );
         }
         if (settings.maxDailyNotifications !== undefined) {
-            await AsyncStorage.setItem(
+            await SecureStore.setItemAsync(
                 STORAGE_KEYS.MAX_DAILY_NOTIFICATIONS,
                 String(settings.maxDailyNotifications)
             );
         }
         if (settings.minIntervalMinutes !== undefined) {
-            await AsyncStorage.setItem(
+            await SecureStore.setItemAsync(
                 STORAGE_KEYS.MIN_INTERVAL_MINUTES,
                 String(settings.minIntervalMinutes)
             );
@@ -469,22 +469,22 @@ export const updateNotificationSettings = async (settings: {
 export const getNotificationSettings = async (): Promise<typeof DEFAULT_SETTINGS> => {
     try {
         return {
-            quietHoursEnabled: (await AsyncStorage.getItem(STORAGE_KEYS.QUIET_HOURS_ENABLED)) !== 'false',
+            quietHoursEnabled: (await SecureStore.getItemAsync(STORAGE_KEYS.QUIET_HOURS_ENABLED)) !== 'false',
             quietStartHour: parseInt(
-                await AsyncStorage.getItem(STORAGE_KEYS.QUIET_START) ||
+                await SecureStore.getItemAsync(STORAGE_KEYS.QUIET_START) ||
                 String(DEFAULT_SETTINGS.quietStartHour)
             ),
             quietEndHour: parseInt(
-                await AsyncStorage.getItem(STORAGE_KEYS.QUIET_END) ||
+                await SecureStore.getItemAsync(STORAGE_KEYS.QUIET_END) ||
                 String(DEFAULT_SETTINGS.quietEndHour)
             ),
             maxDailyNotifications: parseInt(
-                await AsyncStorage.getItem(STORAGE_KEYS.MAX_DAILY_NOTIFICATIONS) ||
+                await SecureStore.getItemAsync(STORAGE_KEYS.MAX_DAILY_NOTIFICATIONS) ||
                 String(DEFAULT_SETTINGS.maxDailyNotifications)
             ),
             maxDailyUrgent: DEFAULT_SETTINGS.maxDailyUrgent,
             minIntervalMinutes: parseInt(
-                await AsyncStorage.getItem(STORAGE_KEYS.MIN_INTERVAL_MINUTES) ||
+                await SecureStore.getItemAsync(STORAGE_KEYS.MIN_INTERVAL_MINUTES) ||
                 String(DEFAULT_SETTINGS.minIntervalMinutes)
             )
         };

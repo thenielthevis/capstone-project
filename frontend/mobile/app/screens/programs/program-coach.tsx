@@ -15,6 +15,8 @@ import ProgramRest from "./program-rest";
 import GamificationReward from '../../components/animation/gamification-reward';
 import GamificationLoading from '../../components/animation/gamification-loading';
 import { ActivityIcon } from "../../components/ActivityIcon";
+import { usePrograms } from "../../context/ProgramContext";
+import { useUser } from "../../context/UserContext";
 
 type ExerciseItem = {
   type: 'workout' | 'geo';
@@ -26,6 +28,8 @@ type ExerciseItem = {
 
 export default function ProgramCoach() {
   const { theme } = useTheme();
+  const { guestProgram } = usePrograms();
+  const { user, setUser } = useUser();
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const [loading, setLoading] = useState(true);
@@ -158,8 +162,15 @@ export default function ProgramCoach() {
   const fetchProgram = async () => {
     try {
       setLoading(true);
-      const res = await axiosInstance.get(`/programs/getUserPrograms`);
-      const found = res.data.find((p: any) => p._id === id);
+
+      let found: any = null;
+      if (id === 'guest') {
+        found = guestProgram;
+      } else {
+        const res = await axiosInstance.get(`/programs/getUserPrograms`);
+        found = res.data.find((p: any) => p._id === id);
+      }
+
       if (found) {
         setProgram(found);
         // Combine workouts and geo activities into a single exercises array
@@ -866,6 +877,28 @@ export default function ProgramCoach() {
 
   const handleFinishProgram = async () => {
     if (isRecordingSession || !isLastExerciseCompleted()) return;
+
+    if (user?.isGuest) {
+      Alert.alert(
+        "Session Complete!",
+        "Great job! Since you are in guest mode, this session will not be saved or posted. Log in to track your progress and earn rewards!",
+        [
+          {
+            text: "Go Back",
+            onPress: () => router.back(),
+            style: "cancel"
+          },
+          {
+            text: "Sign In",
+            onPress: () => {
+              setUser(null);
+              router.replace("/");
+            }
+          }
+        ]
+      );
+      return;
+    }
 
     const payload = buildProgramSessionPayload();
     if (payload.workouts.length === 0 && payload.geo_activities.length === 0) {

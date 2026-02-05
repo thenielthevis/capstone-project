@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { useUser } from './UserContext';
 import { getAllGeoActivities, GeoActivity } from "../api/geoActivityApi";
 import { saveToCache, loadFromCache, withTimeout } from "../utils/cacheStorage";
 
@@ -34,6 +35,7 @@ type ActivityMetricsContextType = {
 const ActivityMetricsContext = createContext<ActivityMetricsContextType | undefined>(undefined);
 
 export const ActivityMetricsProvider = ({ children }: { children: ReactNode }) => {
+  const { user } = useUser();
   const [speed, setSpeed] = useState<number>(0);
   const [distance, setDistance] = useState<number>(0);
   const [time, setTime] = useState<number>(0);
@@ -46,8 +48,10 @@ export const ActivityMetricsProvider = ({ children }: { children: ReactNode }) =
   const ACTIVITIES_CACHE_KEY = "offline_geo_activities";
 
   useEffect(() => {
-    initActivities();
-  }, []);
+    if (user) {
+      initActivities();
+    }
+  }, [user]);
 
   const initActivities = async () => {
     try {

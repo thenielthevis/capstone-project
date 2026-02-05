@@ -25,21 +25,21 @@ export default function LoginScreen() {
   const handleGoogleSignIn = async () => {
     setError(null);
     try {
-      await handleGoogleSignInShared({ 
-        setLoading, 
+      await handleGoogleSignInShared({
+        setLoading,
         router,
         onSuccess: async (response) => {
           if (response?.data?.token) {
-              // Save token and stored user first to avoid race where Analysis mounts before token is written
-              await tokenStorage.saveToken(response.data.token);
-              await tokenStorage.saveRefreshToken(response.data.refreshToken);
+            // Save token and stored user first to avoid race where Analysis mounts before token is written
+            await tokenStorage.saveToken(response.data.token);
+            await tokenStorage.saveRefreshToken(response.data.refreshToken);
             await tokenStorage.saveUser(response.data.user);
-              setUser(response.data.user); // Save user globally
-              console.log("User: ", response.data.user);
-              console.log("Token: ", response.data.token);
-              console.log("Refresh Token: ", response.data.refreshToken);
-              router.replace("../../(tabs)/Home");
-            }
+            setUser(response.data.user); // Save user globally
+            console.log("User: ", response.data.user);
+            console.log("Token: ", response.data.token);
+            console.log("Refresh Token: ", response.data.refreshToken);
+            router.replace("../../(tabs)/Home");
+          }
         },
         onError: (error) => {
           setError("Google Sign-In failed. Try again.");
@@ -83,7 +83,7 @@ export default function LoginScreen() {
     <View className="flex-1 justify-center items-center px-6" style={{ backgroundColor: theme.colors.background }}>
       <View className="w-full max-w-md rounded-3xl p-8" style={{ backgroundColor: theme.colors.background }}>
         <Text className="mb-2 text-center" style={{ color: theme.colors.primary, fontFamily: theme.fonts.heading, fontSize: theme.fontSizes["2xl"] }}>Sign In</Text>
-        
+
         <View className="w-full">
           <TextInput
             label="Email"
@@ -166,6 +166,7 @@ export default function LoginScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+
         </View>
       </View>
 

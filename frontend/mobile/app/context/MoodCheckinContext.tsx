@@ -87,7 +87,7 @@ export const MoodCheckinProvider = ({ children }: { children: ReactNode }) => {
 
     // Refresh today's check-ins
     const refreshTodayCheckins = useCallback(async () => {
-        if (!user) return;
+        if (!user || user.isGuest) return;
 
         setIsLoading(true);
         setError(null);
@@ -108,7 +108,7 @@ export const MoodCheckinProvider = ({ children }: { children: ReactNode }) => {
 
     // Refresh check-in history
     const refreshHistory = useCallback(async (days: number = 7) => {
-        if (!user) return;
+        if (!user || user.isGuest) return;
 
         try {
             const response = await getCheckinHistory(days);

@@ -65,7 +65,7 @@ export const HealthCheckupProvider = ({ children }: { children: ReactNode }) => 
 
     // Refresh today's checkup
     const refreshCheckup = useCallback(async () => {
-        if (!user) return;
+        if (!user || user.isGuest) return;
 
         setIsLoading(true);
         setError(null);
@@ -87,7 +87,7 @@ export const HealthCheckupProvider = ({ children }: { children: ReactNode }) => 
 
     // Refresh weekly stats and streak info
     const refreshStats = useCallback(async () => {
-        if (!user) return;
+        if (!user || user.isGuest) return;
 
         try {
             const [statsRes, streakRes] = await Promise.all([
@@ -195,7 +195,7 @@ export const HealthCheckupProvider = ({ children }: { children: ReactNode }) => 
 
     // Fetch user's addictions
     const fetchUserAddictions = useCallback(async () => {
-        if (!user) return;
+        if (!user || user.isGuest) return;
         try {
             const response = await apiGetUserAddictions();
             if (response.success) {

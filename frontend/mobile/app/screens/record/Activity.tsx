@@ -19,6 +19,7 @@ import { useActivityMetrics } from "../../context/ActivityMetricsContext";
 import { useUser } from "../../context/UserContext";
 import { createGeoSession } from "../../api/geoSessionApi";
 import { getTodayCalorieBalance } from "../../api/userApi";
+import { tokenStorage } from '@/utils/tokenStorage';
 
 Logger.setLogCallback(log => {
   const { message } = log;
@@ -36,7 +37,7 @@ const MAPTILER_KEY =
 export default function TestMap() {
   const { theme } = useTheme();
   const router = useRouter();
-  const { user } = useUser();
+  const { user, setUser } = useUser();
   const {
     speed: contextSpeed,
     distance: contextDistance,
@@ -442,6 +443,17 @@ export default function TestMap() {
 
   // Handle finish action - save activity session and update calorie balance
   const handleFinish = async () => {
+    if (user?.isGuest) {
+      Alert.alert(
+        "Guest Mode",
+        "You are in guest mode. Please log in to save your activity.",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Sign In", onPress: () => { setUser(null); router.replace("/screens/auth/guest"); } }
+        ]
+      );
+      return;
+    }
     try {
       // Get user weight for calorie calculation (default 70kg if not available)
       const userWeight = user?.physicalMetrics?.weight?.value || 70;
@@ -628,7 +640,7 @@ export default function TestMap() {
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: theme.colors.background }}>
       <View className="px-6 pt-3">
-        <TouchableOpacity onPress={() => router.back()} className="flex-row items-center mb-4">
+        <TouchableOpacity onPress={() => user?.isGuest ? router.push("/screens/auth/guest") : router.back()} className="flex-row items-center mb-4">
           <Ionicons name="chevron-back" size={theme.fontSizes.xl + 4} color={theme.colors.text} />
           <Text
             className="ml-2"

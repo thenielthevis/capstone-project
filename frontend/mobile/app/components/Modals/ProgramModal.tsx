@@ -6,7 +6,9 @@ import { createProgram } from "../../api/programApi";
 import { showToast } from "../Toast/Toast";
 import { useTheme } from "../../context/ThemeContext";
 import { useRouter } from "expo-router";
-import { Octicons  } from "@expo/vector-icons";
+import { Octicons } from "@expo/vector-icons";
+import { usePrograms } from "../../context/ProgramContext";
+import { useUser } from "../../context/UserContext";
 
 interface ProgramModalProps {
   visible: boolean;
@@ -19,6 +21,8 @@ interface ProgramModalProps {
 const ProgramModal: React.FC<ProgramModalProps> = ({ visible, onClose, selectedWorkouts, selectedGeoActivities }) => {
   const { theme } = useTheme();
   const router = useRouter();
+  const { setGuestProgram } = usePrograms();
+  const { user } = useUser();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
@@ -36,10 +40,36 @@ const ProgramModal: React.FC<ProgramModalProps> = ({ visible, onClose, selectedW
     }
     setLoading(true);
     try {
-      // Prepare payload for backend
-      const programData = {
+      // Prepare payload
+      const programData: any = {
         name,
         description,
+        workouts: selectedWorkouts.map((w) => ({
+          workout_id: w.workout, // Keep original workout object for guest mode
+          sets: w.sets,
+          notes: w.notes || "",
+        })),
+        geo_activities: selectedGeoActivities.map((g) => ({
+          activity_id: g.activity, // Keep original activity object for guest mode
+          preferences: g.preferences,
+        })),
+      };
+
+      if (user?.isGuest) {
+        // Guest mode: Save to context and navigate to coach
+        programData._id = "guest";
+        setGuestProgram(programData);
+        onClose();
+        router.push({
+          pathname: "/screens/programs/program-coach",
+          params: { id: "guest" }
+        });
+        return;
+      }
+
+      // Prepare payload for backend (IDs only)
+      const backendData = {
+        ...programData,
         workouts: selectedWorkouts.map((w) => ({
           workout_id: w.workout._id,
           sets: w.sets,
@@ -49,9 +79,9 @@ const ProgramModal: React.FC<ProgramModalProps> = ({ visible, onClose, selectedW
           activity_id: g.activity._id,
           preferences: g.preferences,
         })),
-        // user_id and group_id should be added here if available
       };
-      await createProgram(programData);
+
+      await createProgram(backendData);
       const programName = name;
       // Reset form
       setName("");
@@ -120,124 +150,124 @@ const ProgramModal: React.FC<ProgramModalProps> = ({ visible, onClose, selectedW
           <ScrollView className="mb-3">
             {/* Workouts Section */}
             {selectedWorkouts.length > 0 && (
-                <>
+              <>
                 <Text
-                    className="mb-1"
-                    style={{
+                  className="mb-1"
+                  style={{
                     fontFamily: theme.fonts.heading,
                     color: theme.colors.primary,
-                    }}
+                  }}
                 >
-                    Workouts:
+                  Workouts:
                 </Text>
                 {selectedWorkouts.map((w, idx) => (
-                    <View key={w.workout._id || idx} className="mb-2">
+                  <View key={w.workout._id || idx} className="mb-2">
                     <Text
-                        style={{
+                      style={{
                         fontFamily: theme.fonts.subheading,
                         color: theme.colors.text,
-                        }}
+                      }}
                     >
-                        • {w.workout.name}
+                      • {w.workout.name}
                     </Text>
                     {w.sets.map((set: any, sIdx: any) => (
-                        <Text
+                      <Text
                         key={sIdx}
                         className="text-xs"
                         style={{
-                            fontFamily: theme.fonts.body,
-                            color: theme.colors.text + "99",
+                          fontFamily: theme.fonts.body,
+                          color: theme.colors.text + "99",
                         }}
-                        >
+                      >
                         Set {sIdx + 1}: Reps: {set.reps}, Time: {set.time_seconds}, Weight: {set.weight_kg}
-                        </Text>
+                      </Text>
                     ))}
                     {w.notes ? (
-                        <Text
+                      <Text
                         className="text-xs"
                         style={{
-                            fontFamily: theme.fonts.body,
-                            color: theme.colors.text + "88",
+                          fontFamily: theme.fonts.body,
+                          color: theme.colors.text + "88",
                         }}
-                        >
+                      >
                         Notes: {w.notes}
-                        </Text>
+                      </Text>
                     ) : null}
-                    </View>
+                  </View>
                 ))}
-                </>
+              </>
             )}
             {/* Geo Activities Section */}
             {selectedGeoActivities.length > 0 && (
-                <>
+              <>
                 <Text
-                    className="mb-1"
-                    style={{
+                  className="mb-1"
+                  style={{
                     fontFamily: theme.fonts.heading,
                     color: theme.colors.primary,
-                    }}
+                  }}
                 >
-                    Geo Activities:
+                  Geo Activities:
                 </Text>
 
                 {selectedGeoActivities.map((g, idx) => (
-                    <View key={g.activity._id || idx} className="mb-2">
+                  <View key={g.activity._id || idx} className="mb-2">
                     <Text
-                        style={{
+                      style={{
                         fontFamily: theme.fonts.subheading,
                         color: theme.colors.text,
-                        }}
+                      }}
                     >
-                        • {g.activity.name}
+                      • {g.activity.name}
                     </Text>
                     <Text
-                        className="text-xs"
-                        style={{
+                      className="text-xs"
+                      style={{
                         fontFamily: theme.fonts.body,
                         color: theme.colors.text + "99",
-                        }}
+                      }}
                     >
-                        Distance: {g.preferences.distance_km || "-"},  
-                        Pace: {g.preferences.avg_pace || "-"},  
-                        Countdown: {g.preferences.countdown_seconds || "-"}
+                      Distance: {g.preferences.distance_km || "-"},
+                      Pace: {g.preferences.avg_pace || "-"},
+                      Countdown: {g.preferences.countdown_seconds || "-"}
                     </Text>
-                    </View>
+                  </View>
                 ))}
-                </>
+              </>
             )}
-            </ScrollView>
+          </ScrollView>
           {error ? <Text style={{ color: theme.colors.error, marginBottom: 8, fontFamily: theme.fonts.body }}>{error}</Text> : null}
           <View className="flex-row justify-end items-center">
             <TouchableOpacity
-                onPress={onClose}
-                disabled={loading}
-                className="px-3 py-2 mr-3"
+              onPress={onClose}
+              disabled={loading}
+              className="px-3 py-2 mr-3"
             >
-                <Text
+              <Text
                 style={{
-                    color: theme.colors.text + "88",
-                    fontFamily: theme.fonts.body,
+                  color: theme.colors.text + "88",
+                  fontFamily: theme.fonts.body,
                 }}
-                >
+              >
                 Cancel
-                </Text>
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-                onPress={handleCreate}
-                className="px-4 py-2 rounded-lg"
-                style={{ backgroundColor: theme.colors.primary }}
+              onPress={handleCreate}
+              className="px-4 py-2 rounded-lg"
+              style={{ backgroundColor: theme.colors.primary }}
             >
-                <Text
+              <Text
                 style={{
-                    color: "#FFFFFF",
-                    fontFamily: theme.fonts.heading,
+                  color: "#FFFFFF",
+                  fontFamily: theme.fonts.heading,
                 }}
-                >
-                {loading ? "Creating..." : "Create"}
-                </Text>
+              >
+                {loading ? "Creating..." : user?.isGuest ? "Start Now" : "Create"}
+              </Text>
             </TouchableOpacity>
-            </View>
+          </View>
         </View>
       </View>
     </Modal>

@@ -155,7 +155,7 @@ export const scheduleHealthCheckupReminders = async (
 };
 
 /**
- * Get saved reminder settings from AsyncStorage
+ * Get saved reminder settings from SecureStore
  */
 export const getSavedReminderSettings = async (): Promise<ReminderSettings> => {
     try {
@@ -170,7 +170,7 @@ export const getSavedReminderSettings = async (): Promise<ReminderSettings> => {
 };
 
 /**
- * Save reminder settings to AsyncStorage and reschedule notifications
+ * Save reminder settings to SecureStore and reschedule notifications
  */
 export const saveReminderSettings = async (settings: ReminderSettings): Promise<void> => {
     try {

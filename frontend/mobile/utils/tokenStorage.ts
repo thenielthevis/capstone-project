@@ -66,4 +66,20 @@ export const tokenStorage = {
       console.error('Error removing refresh token:', error);
     }
   },
+  async saveGuestAnalysisCount(count: number) {
+    try {
+      await SecureStore.setItemAsync('guest_analysis_count', String(count));
+    } catch (error) {
+      console.error('Error saving guest analysis count:', error);
+    }
+  },
+  async getGuestAnalysisCount() {
+    try {
+      const count = await SecureStore.getItemAsync('guest_analysis_count');
+      return count ? parseInt(count) : 0;
+    } catch (error) {
+      console.error('Error getting guest analysis count:', error);
+      return 0;
+    }
+  },
 };

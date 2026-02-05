@@ -11,12 +11,13 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import { LinearGradient } from "expo-linear-gradient";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function GuestScreen() {
   const router = useRouter();
   const { theme } = useTheme();
   const [currentFeature, setCurrentFeature] = useState(0);
-  
+
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
@@ -25,29 +26,29 @@ export default function GuestScreen() {
   const buttonAnim = useRef(new Animated.Value(0)).current;
 
   const features = [
-    { 
-      icon: "fitness-outline", 
-      title: "Smart Tracking", 
+    {
+      icon: "fitness-outline",
+      title: "Smart Tracking",
       color: "#38b6ff"
     },
-    { 
-      icon: "sparkles-outline", 
-      title: "AI Analysis", 
+    {
+      icon: "sparkles-outline",
+      title: "AI Analysis",
       color: "#8b5cf6"
     },
-    { 
-      icon: "body-outline", 
-      title: "Digital Avatar", 
+    {
+      icon: "body-outline",
+      title: "Digital Avatar",
       color: "#f59e0b"
     },
-    { 
-      icon: "camera-outline", 
-      title: "Food Scanner", 
+    {
+      icon: "camera-outline",
+      title: "Food Scanner",
       color: "#10b981"
     },
-    { 
-      icon: "people-outline", 
-      title: "Community", 
+    {
+      icon: "people-outline",
+      title: "Community",
       color: "#ec4899"
     },
   ];
@@ -111,11 +112,15 @@ export default function GuestScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        translucent
+        backgroundColor="transparent"
+      />
 
       {/* Main Content */}
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 32 }}>
-        
+
         {/* Logo & Brand */}
         <Animated.View
           style={{
@@ -141,7 +146,7 @@ export default function GuestScreen() {
               resizeMode="contain"
             />
           </View>
-          
+
           <Text
             style={{
               fontSize: 32,
@@ -153,7 +158,7 @@ export default function GuestScreen() {
           >
             LIFORA
           </Text>
-          
+
           <Text
             style={{
               fontSize: 14,
@@ -195,11 +200,11 @@ export default function GuestScreen() {
                     paddingHorizontal: 14,
                     paddingVertical: 10,
                     borderRadius: 20,
-                    backgroundColor: index === currentFeature 
+                    backgroundColor: index === currentFeature
                       ? feature.color + "18"
                       : theme.colors.surface,
                     borderWidth: 1,
-                    borderColor: index === currentFeature 
+                    borderColor: index === currentFeature
                       ? feature.color + "30"
                       : "transparent",
                   }}
@@ -243,7 +248,7 @@ export default function GuestScreen() {
       >
         <TouchableOpacity
           activeOpacity={0.9}
-          onPress={() => router.push("/screens/auth/login")}
+          onPress={() => router.push("/screens/auth/features")}
           style={{
             borderRadius: 14,
             overflow: "hidden",

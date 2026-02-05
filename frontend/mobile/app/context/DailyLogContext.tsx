@@ -28,7 +28,11 @@ export const DailyLogProvider = ({ children }: { children: ReactNode }) => {
     const [error, setError] = useState<string | null>(null);
 
     const refreshDailyLog = useCallback(async () => {
-        if (!user) return;
+        if (!user || user.isGuest) {
+            setEntry(null); // Clear entry for guests
+            setIsLoading(false);
+            return;
+        }
 
         setError(null);
         try {

@@ -506,7 +506,8 @@ export default function Home() {
             onPress={openCheckinModal}
             style={{
               marginHorizontal: 16,
-              marginBottom: 16,
+              marginTop: 10,
+              marginBottom: 10,
               padding: 16,
               backgroundColor: theme.colors.primary + '12',
               borderRadius: 16,

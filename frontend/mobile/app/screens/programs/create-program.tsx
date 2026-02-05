@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
 import { useRouter } from "expo-router";
+import { useUser } from "../../context/UserContext";
 import { Ionicons, Feather, Entypo } from "@expo/vector-icons";
 import { getAllWorkouts, Workout } from "../../api/workoutApi";
 import { getAllGeoActivities, GeoActivity } from "../../api/geoActivityApi";
@@ -51,6 +52,7 @@ let cachedGeoActivities: GeoActivity[] | null = null;
 
 export default function MyProgramScreen() {
   const { theme } = useTheme();
+  const { user } = useUser();
   const router = useRouter();
   const [modalVisible, setModalVisible] = useState(false);
   const [workouts, setWorkouts] = useState<Workout[]>(cachedWorkouts || []);
@@ -368,7 +370,7 @@ export default function MyProgramScreen() {
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: theme.colors.background }}>
       <View className="px-6 pt-3">
-        <TouchableOpacity onPress={() => router.back()} className="flex-row items-center mb-4">
+        <TouchableOpacity onPress={() => user.isGuest ? router.replace("/screens/auth/guest") : router.back()} className="flex-row items-center mb-4">
           <Ionicons name="chevron-back" size={theme.fontSizes.xl + 4} color={theme.colors.text} />
           <Text
             className="ml-2"
@@ -388,7 +390,7 @@ export default function MyProgramScreen() {
         pointerEvents="box-none"
         style={{
           position: "absolute",
-          top: FILTER_PANEL_TOP,
+          top: FILTER_PANEL_TOP - 40,
           left: 0,
           right: 0,
           paddingHorizontal: 20,
@@ -436,6 +438,20 @@ export default function MyProgramScreen() {
               }}
             />
           </View>
+          {user?.isGuest && (
+            <View
+              className="mt-3 p-3 rounded-xl flex-row items-center"
+              style={{ backgroundColor: theme.colors.primary + "15", borderWidth: 1, borderColor: theme.colors.primary + "33" }}
+            >
+              <Ionicons name="information-circle-outline" size={20} color={theme.colors.primary} />
+              <Text
+                className="ml-2 flex-1"
+                style={{ fontFamily: theme.fonts.body, fontSize: 13, color: theme.colors.primary }}
+              >
+                Guest Mode: This session will not be saved or posted. Log in to keep your progress.
+              </Text>
+            </View>
+          )}
           <View className="flex-row items-center justify-between mt-3">
             <Text
               style={{
@@ -776,7 +792,7 @@ export default function MyProgramScreen() {
               onPress={() => setModalVisible(true)}
             >
               <Text style={{ color: "#FFFFFF", fontFamily: theme.fonts.heading, fontSize: 16 }}>
-                Create Program
+                {user?.isGuest ? "Start Session" : "Create Program"}
               </Text>
             </TouchableOpacity>
           </View>

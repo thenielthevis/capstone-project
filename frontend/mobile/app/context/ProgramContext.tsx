@@ -5,8 +5,10 @@ import { useUser } from "./UserContext";
 
 type ProgramContextType = {
     programs: Program[];
+    guestProgram: any | null;
     isLoading: boolean;
     refreshPrograms: () => Promise<void>;
+    setGuestProgram: (program: any) => void;
 };
 
 const ProgramContext = createContext<ProgramContextType | undefined>(undefined);
@@ -14,41 +16,38 @@ const ProgramContext = createContext<ProgramContextType | undefined>(undefined);
 export const ProgramProvider = ({ children }: { children: ReactNode }) => {
     const { user } = useUser();
     const [programs, setPrograms] = useState<Program[]>([]);
+    const [guestProgram, setGuestProgram] = useState<any | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
     const refreshPrograms = useCallback(async () => {
-        if (!user) return;
+        if (!user || user.isGuest) {
+            setIsLoading(false);
+            return;
+        }
         try {
-            // Keep loading state true only if we don't have data yet, 
-            // or if we want to show a global spinner (optional).
-            // For pull-to-refresh, we usually handle the loading state in the UI component,
-            // but here we maintain a global isLoading for initial fetch.
-            // If programs are already loaded, we don't necessarily need to set isLoading to true 
-            // effectively blocking the UI, but let's keep it simple for now or just set it if empty.
             if (programs.length === 0) setIsLoading(true);
 
             const data = await getUserPrograms();
             setPrograms(data);
         } catch (err) {
             console.error("[ProgramContext] Error fetching programs:", err);
-            // specific error handling if needed
         } finally {
             setIsLoading(false);
         }
-    }, [user]); // programs dependency removed to avoiding loops, trigger on user change
+    }, [user, programs.length]);
 
     // Initial fetch when user is available
     useEffect(() => {
-        if (user) {
+        if (user && !user.isGuest) {
             refreshPrograms();
         } else {
             setPrograms([]);
-            setIsLoading(false); // No user, not loading
+            setIsLoading(false);
         }
     }, [user, refreshPrograms]);
 
     return (
-        <ProgramContext.Provider value={{ programs, isLoading, refreshPrograms }}>
+        <ProgramContext.Provider value={{ programs, guestProgram, isLoading, refreshPrograms, setGuestProgram }}>
             {children}
         </ProgramContext.Provider>
     );

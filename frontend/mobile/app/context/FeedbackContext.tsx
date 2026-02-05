@@ -64,7 +64,7 @@ export const FeedbackProvider = ({ children }: { children: ReactNode }) => {
         category?: FeedbackCategory;
         limit?: number;
     }) => {
-        if (!user) return;
+        if (!user || user.isGuest) return;
 
         setIsLoading(true);
         setError(null);
@@ -85,7 +85,7 @@ export const FeedbackProvider = ({ children }: { children: ReactNode }) => {
 
     // Refresh high priority messages
     const refreshHighPriority = useCallback(async () => {
-        if (!user) return;
+        if (!user || user.isGuest) return;
 
         try {
             const response = await getHighPriorityMessages();
@@ -99,7 +99,7 @@ export const FeedbackProvider = ({ children }: { children: ReactNode }) => {
 
     // Refresh insights summary
     const refreshInsights = useCallback(async () => {
-        if (!user) return;
+        if (!user || user.isGuest) return;
 
         try {
             const response = await getInsightsSummary();

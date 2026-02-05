@@ -65,7 +65,7 @@ axiosInstance.interceptors.response.use(
       await tokenStorage.removeToken();
       await tokenStorage.removeRefreshToken();
       try {
-        router.replace("/screens/auth/login");
+        router.replace("/screens/auth/guest");
       } catch (routerError) {
         console.error('[axios] Router navigation failed:', routerError);
       }
