@@ -13,6 +13,7 @@ import ProgramOverview from './pages/ProgramOverview';
 import GroupProgram from './pages/GroupProgram';
 import ProgramCoach from './pages/ProgramCoach';
 import ProgramHistory from './pages/ProgramHistory';
+import ProgramSessionDetails from './pages/ProgramSessionDetails';
 import Settings from './pages/Settings';
 import TermsAndConditions from './pages/TermsAndConditions';
 import PrivacyPolicy from './pages/PrivacyPolicy';
@@ -178,6 +179,14 @@ function App() {
         element={
           <ProtectedRoute>
             <ProgramHistory />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/programs/session/:id"
+        element={
+          <ProtectedRoute>
+            <ProgramSessionDetails />
           </ProtectedRoute>
         }
       />

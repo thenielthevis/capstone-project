@@ -127,6 +127,17 @@ export interface UserProfile {
     predictedAt: string;
     source: string;
   } | null;
+  gamification: {
+    points: number;
+    coins: number;
+    batteries: Array<{
+      sleep: number;
+      activity: number;
+      nutrition: number;
+      health: number;
+      total: number;
+    }>;
+  };
   profileCompletion: number;
 }
 

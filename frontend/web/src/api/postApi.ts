@@ -37,7 +37,8 @@ export const postApi = {
     reference?: { item_id: string; item_type: 'GeoSession' | 'ProgramSession' | 'FoodLog' | 'Post' },
     title?: string,
     images?: File[],
-    visibility?: 'public' | 'friends' | 'private'
+    visibility?: 'public' | 'friends' | 'private',
+    tags?: string[]
   ) => {
     try {
       console.log('[postApi] Creating post with:', { content, reference, title, visibility, imageCount: images?.length });
@@ -47,6 +48,7 @@ export const postApi = {
       if (title) formData.append('title', title);
       if (visibility) formData.append('visibility', visibility);
       if (reference) formData.append('reference', JSON.stringify(reference));
+      if (tags && tags.length > 0) formData.append('tags', JSON.stringify(tags));
 
       // Append images if provided
       if (images && images.length > 0) {
@@ -112,6 +114,7 @@ export const postApi = {
       visibility?: 'public' | 'friends' | 'private';
       images?: File[];
       keepImages?: string[];
+      tags?: string[];
     }
   ) => {
     try {
@@ -126,6 +129,7 @@ export const postApi = {
           title: updates.title,
           visibility: updates.visibility,
           keepImages: updates.keepImages,
+          tags: updates.tags,
         });
         return data;
       }
@@ -138,6 +142,10 @@ export const postApi = {
 
       if (updates.keepImages) {
         updates.keepImages.forEach((img) => formData.append('keepImages[]', img));
+      }
+
+      if (updates.tags) {
+        formData.append('tags', JSON.stringify(updates.tags));
       }
 
       for (let i = 0; i < (updates.images || []).length; i++) {

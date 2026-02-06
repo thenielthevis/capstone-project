@@ -9,10 +9,10 @@ import Header from '@/components/Header';
 interface Program {
   _id: string;
   name: string;
-  description: string;
+  description?: string;
   workouts: any[];
   geo_activities: any[];
-  createdAt: string;
+  created_at: string;
 }
 
 export default function Programs() {
@@ -30,7 +30,7 @@ export default function Programs() {
     try {
       setLoading(true);
       const response = await getUserPrograms();
-      setPrograms(response.programs || []);
+      setPrograms(Array.isArray(response) ? response : []);
     } catch (error: any) {
       showToast({
         type: 'error',
@@ -70,7 +70,7 @@ export default function Programs() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: theme.colors.background }}>
       {/* Header */}
-      <Header 
+      <Header
         title="My Programs"
         showBackButton
         showHomeButton

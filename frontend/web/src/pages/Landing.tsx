@@ -256,7 +256,7 @@ export default function Landing() {
                   {[
                     { title: 'Interactive Avatars', desc: 'Sync your progress with a unique 3D avatar that reflects your health status.' },
                     { title: 'Real-time GPS Tracking', desc: 'Map your outdoor activities with precision and relive your routes.' },
-                    { title: 'Instant Logging', desc: 'Log meals and workouts on the go with our optimized mobile interface.' }
+                    { title: 'Program Coach', desc: 'Get personalized workout programs tailored to your goals.' }
                   ].map((item, idx) => (
                     <div key={idx} className="flex gap-4">
                       <div className="mt-1 flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center bg-blue-500/20 text-blue-500">

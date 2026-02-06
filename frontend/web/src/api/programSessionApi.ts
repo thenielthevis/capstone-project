@@ -86,3 +86,8 @@ export const getProgramSessionsByProgramId = async (programId: string): Promise<
   const { data } = await axiosInstance.get(`/program-sessions/getProgramSessionsByProgramId/${programId}`);
   return data;
 };
+
+export const getProgramSessionById = async (sessionId: string): Promise<ProgramSession> => {
+  const { data } = await axiosInstance.get(`/program-sessions/getProgramSessionById/${sessionId}`);
+  return data;
+};

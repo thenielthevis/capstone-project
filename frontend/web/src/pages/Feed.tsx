@@ -1,10 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import Header from '@/components/Header';
 import ReactionButton, { REACTIONS } from '@/components/ReactionButton';
-import SessionPreview from '@/components/feed/SessionPreview';
 import PostMediaCarousel from '@/components/feed/PostMediaCarousel';
 import CreatePostModal from '@/components/feed/CreatePostModal';
 import ImageViewerModal from '@/components/feed/ImageViewerModal';
@@ -12,13 +11,13 @@ import { postApi, Post } from '@/api/postApi';
 import { commentApi, Comment } from '@/api/commentApi';
 import { ReportType } from '@/api/reportApi';
 import ReportModal from '@/components/ReportModal';
-import { 
-  ArrowUpCircle, 
-  ArrowDownCircle, 
-  MessageCircle, 
-  Share2, 
-  Globe, 
-  Lock, 
+import {
+  ArrowUpCircle,
+  ArrowDownCircle,
+  MessageCircle,
+  Share2,
+  Globe,
+  Lock,
   Users,
   User,
   Plus,
@@ -38,7 +37,7 @@ import {
 export default function Feed() {
   const { theme } = useTheme();
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -60,6 +59,9 @@ export default function Feed() {
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [imageViewerImages, setImageViewerImages] = useState<string[]>([]);
   const [imageViewerIndex, setImageViewerIndex] = useState(0);
+
+  // Session Posting Reference
+  const [postReference, setPostReference] = useState<any>(null);
 
   // Post Menu State
   const [openMenuPostId, setOpenMenuPostId] = useState<string | null>(null);
@@ -115,6 +117,40 @@ export default function Feed() {
   useEffect(() => {
     fetchPosts();
   }, []);
+
+  useEffect(() => {
+    const shouldPost = searchParams.get('post') === 'true';
+    const itemId = searchParams.get('id');
+    const itemType = searchParams.get('type') as any;
+
+    if (shouldPost && itemId && itemType) {
+      setPostReference({
+        item_id: itemId,
+        item_type: itemType,
+        title: searchParams.get('title') || '',
+        subtitle: searchParams.get('subtitle') || '',
+        image: searchParams.get('image') || ''
+      });
+      setShowCreatePostModal(true);
+    }
+  }, [searchParams]);
+
+  const handleClosePostModal = () => {
+    setShowCreatePostModal(false);
+    setEditPostData(null);
+    setPostReference(null);
+    // Clear query params
+    if (searchParams.get('post') === 'true') {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('post');
+      newParams.delete('id');
+      newParams.delete('type');
+      newParams.delete('title');
+      newParams.delete('subtitle');
+      newParams.delete('image');
+      setSearchParams(newParams);
+    }
+  };
 
   const fetchPosts = async () => {
     try {
@@ -242,11 +278,11 @@ export default function Feed() {
       );
       setNewComment('');
       setReplyingTo(null);
-      
+
       // Refresh comments
       const commentsData = await commentApi.getCommentsByPost(selectedPostForComments._id);
       setComments(commentsData);
-      
+
       // Update comment count in posts
       setPosts((prevPosts) =>
         prevPosts.map((p) =>
@@ -427,7 +463,7 @@ export default function Feed() {
         {/* Media Carousel (Session + Images) */}
         {(post.reference?.item_id || (post.images && post.images.length > 0)) && (
           <div className="px-4 pb-4">
-            <PostMediaCarousel 
+            <PostMediaCarousel
               post={post}
               onImageClick={(index) => handleOpenImageViewer(post.images || [], index)}
             />
@@ -529,7 +565,7 @@ export default function Feed() {
           />
 
           {/* Comments */}
-          <button 
+          <button
             onClick={() => handleOpenComments(post)}
             className="flex items-center gap-1 flex-1 transition hover:opacity-80"
           >
@@ -660,22 +696,22 @@ export default function Feed() {
 
       {/* Comments Modal */}
       {selectedPostForComments && (
-        <div 
+        <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
           onClick={handleCloseComments}
         >
-          <div 
+          <div
             className="w-full max-w-2xl max-h-[90vh] rounded-2xl overflow-hidden flex flex-col"
             style={{ backgroundColor: theme.colors.background }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div 
+            <div
               className="flex items-center justify-between p-4 border-b flex-shrink-0"
               style={{ backgroundColor: theme.colors.surface, borderColor: theme.colors.border }}
             >
-              <h3 
+              <h3
                 className="text-lg font-semibold"
                 style={{ fontFamily: theme.fonts.heading, color: theme.colors.text }}
               >
@@ -718,14 +754,14 @@ export default function Feed() {
                     const reactionCount = comment.reactions?.length || 0;
 
                     return (
-                      <div 
+                      <div
                         key={comment._id}
                         className="p-4 rounded-xl"
                         style={{ backgroundColor: theme.colors.surface }}
                       >
                         {/* Comment Header */}
                         <div className="flex items-start gap-3 mb-2">
-                          <div 
+                          <div
                             className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
                             style={{ backgroundColor: theme.colors.primary + '20' }}
                           >
@@ -741,20 +777,20 @@ export default function Feed() {
                           </div>
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <p 
+                              <p
                                 className="font-semibold text-sm"
                                 style={{ color: theme.colors.text }}
                               >
                                 {comment.user?.username || 'Unknown User'}
                               </p>
-                              <p 
+                              <p
                                 className="text-xs"
                                 style={{ color: theme.colors.textTertiary }}
                               >
                                 {getTimeAgo(comment.createdAt)}
                               </p>
                             </div>
-                            <p 
+                            <p
                               className="text-sm mt-1"
                               style={{ color: theme.colors.text }}
                             >
@@ -817,7 +853,7 @@ export default function Feed() {
 
             {/* Reply Preview */}
             {replyingTo && (
-              <div 
+              <div
                 className="flex items-center justify-between px-4 py-2 border-t flex-shrink-0"
                 style={{ backgroundColor: theme.colors.surface, borderColor: theme.colors.border }}
               >
@@ -837,7 +873,7 @@ export default function Feed() {
             )}
 
             {/* Comment Input */}
-            <div 
+            <div
               className="flex items-center gap-3 p-4 border-t flex-shrink-0"
               style={{ backgroundColor: theme.colors.surface, borderColor: theme.colors.border }}
             >
@@ -870,16 +906,13 @@ export default function Feed() {
       {/* Create/Edit Post Modal */}
       <CreatePostModal
         isOpen={showCreatePostModal}
-        onClose={() => {
-          setShowCreatePostModal(false);
-          setEditPostData(null);
-        }}
+        onClose={handleClosePostModal}
         onSuccess={() => {
-          fetchPosts();
-          setEditPostData(null);
+          onRefresh();
         }}
         editMode={!!editPostData}
         initialData={editPostData || undefined}
+        reference={postReference}
       />
 
       {/* Image Viewer Modal */}

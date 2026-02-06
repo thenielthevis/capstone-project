@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Edit2, Trash2, Plus, ChevronUp, ChevronDown, Save, Play } from 'lucide-react';
+import { Edit2, Trash2, Plus, ChevronUp, ChevronDown, Save, Play, Repeat, Timer, Dumbbell, MapPin, Check, X, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { getProgramById, updateProgram, deleteProgram } from '../api/programApi';
 import { getAllWorkouts, Workout } from '../api/workoutApi';
 import { getAllGeoActivities, GeoActivity } from '../api/geoActivityApi';
@@ -10,6 +11,8 @@ import { showToast } from '../components/Toast/Toast';
 import { useTheme } from '../context/ThemeContext';
 import Footer from '../components/Footer';
 import Header from '@/components/Header';
+import CloudinaryLottie from '../components/CloudinaryLottie';
+import CloudinarySVG from '../components/CloudinarySVG';
 
 interface ProgramWorkout {
   workout_id: any;
@@ -41,6 +44,10 @@ export default function ProgramOverview() {
   const [availableGeoActivities, setAvailableGeoActivities] = useState<GeoActivity[]>([]);
   const [showAddWorkoutModal, setShowAddWorkoutModal] = useState(false);
   const [showAddGeoModal, setShowAddGeoModal] = useState(false);
+
+  // States for in-place editing
+  const [editedWorkoutSets, setEditedWorkoutSets] = useState<any[]>([]);
+  const [editedGeoPreferences, setEditedGeoPreferences] = useState<any>({});
 
   useEffect(() => {
     if (id) {
@@ -171,7 +178,7 @@ export default function ProgramOverview() {
   const addGeoActivity = (activity: GeoActivity) => {
     setGeoActivities([...geoActivities, {
       activity_id: activity,
-      preferences: { distance_km: '5', avg_pace: '6:00', countdown_seconds: '1800' }
+      preferences: { distance_km: "5", avg_pace: "6:00", countdown_seconds: "1800" }
     }]);
     setShowAddGeoModal(false);
   };
@@ -243,7 +250,7 @@ export default function ProgramOverview() {
         {/* Program Description */}
         <Card className="mb-6">
           <CardContent className="pt-6">
-            <p className="text-gray-600">{program.description}</p>
+            <p style={{ color: theme.colors.text }}>{program.description}</p>
           </CardContent>
         </Card>
 
@@ -263,69 +270,213 @@ export default function ProgramOverview() {
               <p className="text-gray-500 text-center py-8">No workouts in this program</p>
             ) : (
               <div className="space-y-4">
-                {workouts.map((workout, index) => (
-                  <div
-                    key={index}
-                    className="border border-gray-200 rounded-lg p-4 bg-white"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <div className="flex flex-col gap-1">
-                          <button
-                            onClick={() => moveWorkout(index, 'up')}
-                            disabled={index === 0}
-                            className="p-1 hover:bg-gray-100 rounded disabled:opacity-30"
+                {workouts.map((workout, index) => {
+                  const isEditing = editingWorkoutIndex === index;
+                  const sets = isEditing ? editedWorkoutSets : (workout.sets || []);
+
+                  return (
+                    <div
+                      key={index}
+                      className="border border-gray-200 rounded-2xl p-6 bg-white shadow-sm transition-all"
+                      style={{ borderColor: isEditing ? theme.colors.primary : `${theme.colors.primary}33` }}
+                    >
+                      <div className="flex flex-col md:flex-row gap-6">
+                        {/* Reorder/Animation Area */}
+                        <div className="flex gap-4">
+                          <div className="flex flex-col justify-center gap-1">
+                            <button
+                              onClick={() => moveWorkout(index, 'up')}
+                              disabled={index === 0 || isEditing}
+                              className="p-1.5 hover:bg-gray-100 rounded-lg disabled:opacity-30 transition-colors"
+                            >
+                              <ChevronUp className="w-5 h-5 text-gray-500" />
+                            </button>
+                            <button
+                              onClick={() => moveWorkout(index, 'down')}
+                              disabled={index === workouts.length - 1 || isEditing}
+                              className="p-1.5 hover:bg-gray-100 rounded-lg disabled:opacity-30 transition-colors"
+                            >
+                              <ChevronDown className="w-5 h-5 text-gray-500" />
+                            </button>
+                          </div>
+                          <div
+                            className="w-24 h-24 rounded-2xl flex items-center justify-center overflow-hidden border"
+                            style={{
+                              backgroundColor: workout.workout_id?.animation_url ? '#F9FAFB' : `${theme.colors.primary}12`,
+                              borderColor: workout.workout_id?.animation_url ? '#E5E7EB' : 'transparent'
+                            }}
                           >
-                            <ChevronUp className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => moveWorkout(index, 'down')}
-                            disabled={index === workouts.length - 1}
-                            className="p-1 hover:bg-gray-100 rounded disabled:opacity-30"
-                          >
-                            <ChevronDown className="w-4 h-4" />
-                          </button>
+                            {workout.workout_id?.animation_url ? (
+                              <CloudinaryLottie src={workout.workout_id.animation_url} width="100%" height="100%" />
+                            ) : (
+                              <Dumbbell className="w-10 h-10" style={{ color: theme.colors.primary }} />
+                            )}
+                          </div>
                         </div>
-                        <div>
-                          <h4 className="font-semibold text-lg text-gray-900">
-                            {workout.workout_id?.name || 'Unknown Workout'}
-                          </h4>
-                          <p className="text-sm text-gray-600">
-                            {workout.workout_id?.type} • {workout.workout_id?.category}
-                          </p>
+
+                        {/* Content Area */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h4 className="font-bold text-xl text-gray-900 truncate">
+                                {workout.workout_id?.name || 'Unknown Workout'}
+                              </h4>
+                              <p className="text-gray-500 text-sm mt-1">
+                                {workout.workout_id?.type} {workout.workout_id?.category && `• ${workout.workout_id.category}`}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {!isEditing ? (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      setEditingWorkoutIndex(index);
+                                      setEditedWorkoutSets(JSON.parse(JSON.stringify(workout.sets || [])));
+                                    }}
+                                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                                    title="Edit Workout"
+                                  >
+                                    <Edit2 className="w-5 h-5" style={{ color: theme.colors.primary }} />
+                                  </button>
+                                  <button
+                                    onClick={() => removeWorkout(index)}
+                                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                                    title="Delete Workout"
+                                  >
+                                    <Trash2 className="w-5 h-5 text-red-500" />
+                                  </button>
+                                </>
+                              ) : (
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => {
+                                      const newWorkouts = [...workouts];
+                                      newWorkouts[index] = { ...newWorkouts[index], sets: editedWorkoutSets };
+                                      setWorkouts(newWorkouts);
+                                      setEditingWorkoutIndex(null);
+                                    }}
+                                    className="p-2 bg-green-50 hover:bg-green-100 rounded-full transition-colors"
+                                    title="Done Editing"
+                                  >
+                                    <Check className="w-5 h-5 text-green-600" />
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingWorkoutIndex(null)}
+                                    className="p-2 bg-red-50 hover:bg-red-100 rounded-full transition-colors"
+                                    title="Cancel Editing"
+                                  >
+                                    <X className="w-5 h-5 text-red-600" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Sets Section */}
+                          <div className="mt-4">
+                            <h5 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                              <Repeat className="w-4 h-4" /> Sets
+                            </h5>
+
+                            {isEditing ? (
+                              <div className="space-y-3">
+                                {sets.map((set, setIdx) => (
+                                  <div key={setIdx} className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                    <div className="grid grid-cols-3 gap-3 mb-3">
+                                      <div>
+                                        <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Reps</label>
+                                        <Input
+                                          type="number"
+                                          value={set.reps || ''}
+                                          onChange={(e) => {
+                                            const newSets = [...editedWorkoutSets];
+                                            newSets[setIdx] = { ...newSets[setIdx], reps: parseInt(e.target.value) || 0 };
+                                            setEditedWorkoutSets(newSets);
+                                          }}
+                                          className="h-9"
+                                          placeholder="Reps"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Time (s)</label>
+                                        <Input
+                                          type="number"
+                                          value={set.time_seconds || ''}
+                                          onChange={(e) => {
+                                            const newSets = [...editedWorkoutSets];
+                                            newSets[setIdx] = { ...newSets[setIdx], time_seconds: parseInt(e.target.value) || 0 };
+                                            setEditedWorkoutSets(newSets);
+                                          }}
+                                          className="h-9"
+                                          placeholder="Sec"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Weight (kg)</label>
+                                        <Input
+                                          type="number"
+                                          value={set.weight_kg || ''}
+                                          onChange={(e) => {
+                                            const newSets = [...editedWorkoutSets];
+                                            newSets[setIdx] = { ...newSets[setIdx], weight_kg: parseInt(e.target.value) || 0 };
+                                            setEditedWorkoutSets(newSets);
+                                          }}
+                                          className="h-9"
+                                          placeholder="kg"
+                                        />
+                                      </div>
+                                    </div>
+                                    <button
+                                      onClick={() => {
+                                        const newSets = editedWorkoutSets.filter((_, i) => i !== setIdx);
+                                        setEditedWorkoutSets(newSets.length > 0 ? newSets : [{ reps: 0, time_seconds: 0, weight_kg: 0 }]);
+                                      }}
+                                      className="text-xs text-red-500 font-medium flex items-center gap-1 hover:underline"
+                                    >
+                                      <Trash2 className="w-3 h-3" /> Remove Set
+                                    </button>
+                                  </div>
+                                ))}
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-full border-dashed"
+                                  onClick={() => setEditedWorkoutSets([...editedWorkoutSets, { reps: 10, time_seconds: 0, weight_kg: 0 }])}
+                                >
+                                  <Plus className="w-4 h-4 mr-2" /> Add Set
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {sets.map((set, setIdx) => (
+                                  <div key={setIdx} className="flex items-center gap-4 bg-gray-50 p-2 px-3 rounded-lg text-sm border border-gray-100">
+                                    <span className="font-bold text-gray-400">#{setIdx + 1}</span>
+                                    {set.reps > 0 && (
+                                      <span className="flex items-center gap-1 text-gray-700">
+                                        <Repeat className="w-3 h-3 text-gray-400" /> {set.reps}
+                                      </span>
+                                    )}
+                                    {set.time_seconds > 0 && (
+                                      <span className="flex items-center gap-1 text-gray-700">
+                                        <Timer className="w-3 h-3 text-gray-400" /> {set.time_seconds}s
+                                      </span>
+                                    )}
+                                    {set.weight_kg > 0 && (
+                                      <span className="flex items-center gap-1 text-gray-700">
+                                        <Dumbbell className="w-3 h-3 text-gray-400" /> {set.weight_kg}kg
+                                      </span>
+                                    )}
+                                  </div>
+                                ))}
+                                {sets.length === 0 && <p className="text-gray-400 text-xs py-2 italic">No sets defined</p>}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setEditingWorkoutIndex(index === editingWorkoutIndex ? null : index)}
-                          className="p-2 hover:bg-gray-100 rounded"
-                        >
-                          <Edit2 className="w-4 h-4 text-blue-600" />
-                        </button>
-                        <button
-                          onClick={() => removeWorkout(index)}
-                          className="p-2 hover:bg-gray-100 rounded"
-                        >
-                          <Trash2 className="w-4 h-4 text-red-600" />
-                        </button>
                       </div>
                     </div>
-                    {workout.sets && workout.sets.length > 0 && (
-                      <div className="mt-3">
-                        <p className="text-sm font-medium text-gray-700 mb-2">Sets:</p>
-                        <div className="space-y-1">
-                          {workout.sets.map((set, setIdx) => (
-                            <div key={setIdx} className="text-sm text-gray-600 flex gap-4">
-                              {set.reps && <span>Reps: {set.reps}</span>}
-                              {set.time_seconds && <span>Time: {set.time_seconds}s</span>}
-                              {set.weight_kg && <span>Weight: {set.weight_kg}kg</span>}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>
@@ -347,68 +498,176 @@ export default function ProgramOverview() {
               <p className="text-gray-500 text-center py-8">No activities in this program</p>
             ) : (
               <div className="space-y-4">
-                {geoActivities.map((activity, index) => (
-                  <div
-                    key={index}
-                    className="border border-gray-200 rounded-lg p-4 bg-white"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <div className="flex flex-col gap-1">
-                          <button
-                            onClick={() => moveGeoActivity(index, 'up')}
-                            disabled={index === 0}
-                            className="p-1 hover:bg-gray-100 rounded disabled:opacity-30"
+                {geoActivities.map((activity, index) => {
+                  const isEditing = editingGeoIndex === index;
+                  const prefs = isEditing ? editedGeoPreferences : (activity.preferences || {});
+
+                  return (
+                    <div
+                      key={index}
+                      className="border border-gray-200 rounded-2xl p-6 bg-white shadow-sm transition-all"
+                      style={{ borderColor: isEditing ? theme.colors.primary : `${theme.colors.primary}33` }}
+                    >
+                      <div className="flex flex-col md:flex-row gap-6">
+                        {/* Reorder/Animation Area */}
+                        <div className="flex gap-4">
+                          <div className="flex flex-col justify-center gap-1">
+                            <button
+                              onClick={() => moveGeoActivity(index, 'up')}
+                              disabled={index === 0 || isEditing}
+                              className="p-1.5 hover:bg-gray-100 rounded-lg disabled:opacity-30 transition-colors"
+                            >
+                              <ChevronUp className="w-5 h-5 text-gray-500" />
+                            </button>
+                            <button
+                              onClick={() => moveGeoActivity(index, 'down')}
+                              disabled={index === geoActivities.length - 1 || isEditing}
+                              className="p-1.5 hover:bg-gray-100 rounded-lg disabled:opacity-30 transition-colors"
+                            >
+                              <ChevronDown className="w-5 h-5 text-gray-500" />
+                            </button>
+                          </div>
+                          <div
+                            className="w-24 h-24 rounded-2xl flex items-center justify-center overflow-hidden border"
+                            style={{
+                              backgroundColor: '#F9FAFB',
+                              borderColor: '#E5E7EB'
+                            }}
                           >
-                            <ChevronUp className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => moveGeoActivity(index, 'down')}
-                            disabled={index === geoActivities.length - 1}
-                            className="p-1 hover:bg-gray-100 rounded disabled:opacity-30"
-                          >
-                            <ChevronDown className="w-4 h-4" />
-                          </button>
+                            <CloudinarySVG
+                              src={activity.activity_id?.icon}
+                              width={48}
+                              height={48}
+                              fallbackColor={theme.colors.primary}
+                            />
+                          </div>
                         </div>
-                        <div>
-                          <h4 className="font-semibold text-lg text-gray-900">
-                            {activity.activity_id?.name || 'Unknown Activity'}
-                          </h4>
-                          {activity.activity_id?.description && (
-                            <p className="text-sm text-gray-600">{activity.activity_id.description}</p>
-                          )}
+
+                        {/* Content Area */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h4 className="font-bold text-xl text-gray-900 truncate">
+                                {activity.activity_id?.name || 'Unknown Activity'}
+                              </h4>
+                              <p className="text-gray-500 text-sm mt-1">
+                                {activity.activity_id?.type} {activity.activity_id?.met && `• MET ${activity.activity_id.met}`}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {!isEditing ? (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      setEditingGeoIndex(index);
+                                      setEditedGeoPreferences(JSON.parse(JSON.stringify(activity.preferences || {})));
+                                    }}
+                                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                                    title="Edit Activity"
+                                  >
+                                    <Edit2 className="w-5 h-5" style={{ color: theme.colors.primary }} />
+                                  </button>
+                                  <button
+                                    onClick={() => removeGeoActivity(index)}
+                                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                                    title="Delete Activity"
+                                  >
+                                    <Trash2 className="w-5 h-5 text-red-500" />
+                                  </button>
+                                </>
+                              ) : (
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => {
+                                      const newGeo = [...geoActivities];
+                                      newGeo[index] = { ...newGeo[index], preferences: editedGeoPreferences };
+                                      setGeoActivities(newGeo);
+                                      setEditingGeoIndex(null);
+                                    }}
+                                    className="p-2 bg-green-50 hover:bg-green-100 rounded-full transition-colors"
+                                    title="Done Editing"
+                                  >
+                                    <Check className="w-5 h-5 text-green-600" />
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingGeoIndex(null)}
+                                    className="p-2 bg-red-50 hover:bg-red-100 rounded-full transition-colors"
+                                    title="Cancel Editing"
+                                  >
+                                    <X className="w-5 h-5 text-red-600" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Preferences Section */}
+                          <div className="mt-4">
+                            <h5 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                              <MapPin className="w-4 h-4" /> Preferences
+                            </h5>
+
+                            {isEditing ? (
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div>
+                                  <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Distance (km)</label>
+                                  <Input
+                                    type="number"
+                                    value={prefs.distance_km || ''}
+                                    onChange={(e) => setEditedGeoPreferences({ ...editedGeoPreferences, distance_km: e.target.value })}
+                                    className="h-9"
+                                    placeholder="km"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Avg Pace</label>
+                                  <Input
+                                    type="text"
+                                    value={prefs.avg_pace || ''}
+                                    onChange={(e) => setEditedGeoPreferences({ ...editedGeoPreferences, avg_pace: e.target.value })}
+                                    className="h-9"
+                                    placeholder="m/km"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Timer (s)</label>
+                                  <Input
+                                    type="number"
+                                    value={prefs.countdown_seconds || ''}
+                                    onChange={(e) => setEditedGeoPreferences({ ...editedGeoPreferences, countdown_seconds: e.target.value })}
+                                    className="h-9"
+                                    placeholder="sec"
+                                  />
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex flex-wrap gap-2">
+                                {prefs.distance_km && (
+                                  <span className="flex items-center gap-1 bg-gray-50 p-2 px-3 rounded-lg text-sm border border-gray-100 text-gray-700">
+                                    <MapPin className="w-3 h-3 text-gray-400" /> {prefs.distance_km} km
+                                  </span>
+                                )}
+                                {prefs.avg_pace && (
+                                  <span className="flex items-center gap-1 bg-gray-50 p-2 px-3 rounded-lg text-sm border border-gray-100 text-gray-700">
+                                    <Timer className="w-3 h-3 text-gray-400" /> {prefs.avg_pace}
+                                  </span>
+                                )}
+                                {prefs.countdown_seconds && (
+                                  <span className="flex items-center gap-1 bg-gray-50 p-2 px-3 rounded-lg text-sm border border-gray-100 text-gray-700">
+                                    <Clock className="w-3 h-3 text-gray-400" /> {prefs.countdown_seconds}s
+                                  </span>
+                                )}
+                                {!prefs.distance_km && !prefs.avg_pace && !prefs.countdown_seconds && (
+                                  <p className="text-gray-400 text-xs py-2 italic">No preferences defined</p>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setEditingGeoIndex(index === editingGeoIndex ? null : index)}
-                          className="p-2 hover:bg-gray-100 rounded"
-                        >
-                          <Edit2 className="w-4 h-4 text-blue-600" />
-                        </button>
-                        <button
-                          onClick={() => removeGeoActivity(index)}
-                          className="p-2 hover:bg-gray-100 rounded"
-                        >
-                          <Trash2 className="w-4 h-4 text-red-600" />
-                        </button>
                       </div>
                     </div>
-                    {activity.preferences && (
-                      <div className="mt-3 flex gap-4 text-sm text-gray-600">
-                        {activity.preferences.distance_km && (
-                          <span>Distance: {activity.preferences.distance_km} km</span>
-                        )}
-                        {activity.preferences.avg_pace && (
-                          <span>Pace: {activity.preferences.avg_pace}</span>
-                        )}
-                        {activity.preferences.countdown_seconds && (
-                          <span>Timer: {activity.preferences.countdown_seconds}s</span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>
