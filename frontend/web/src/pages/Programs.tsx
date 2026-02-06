@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getUserPrograms, deleteProgram } from '../api/programApi';
 import { showToast } from '../components/Toast/Toast';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import Footer from '../components/Footer';
 import Header from '@/components/Header';
 
@@ -18,13 +19,19 @@ interface Program {
 export default function Programs() {
   const navigate = useNavigate();
   const { theme } = useTheme();
+  const { user } = useAuth();
   const [programs, setPrograms] = useState<Program[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchPrograms();
-  }, []);
+    if (user && !user.isGuest) {
+      fetchPrograms();
+    } else {
+      setPrograms([]);
+      setLoading(false);
+    }
+  }, [user]);
 
   const fetchPrograms = async () => {
     try {
@@ -76,7 +83,7 @@ export default function Programs() {
         showHomeButton
       />
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl min-h-screen mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold" style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}>My Programs</h1>
           <div className="flex gap-2">

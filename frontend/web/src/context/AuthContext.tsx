@@ -9,6 +9,7 @@ interface User {
   role?: string;
   profilePicture?: string;
   googleId?: string;
+  isGuest?: boolean;
 }
 
 interface AuthContextType {
@@ -18,6 +19,7 @@ interface AuthContextType {
   setUser: (user: User | null) => void;
   setToken: (token: string | null) => void;
   login: (user: User, token: string) => void;
+  loginAsGuest: () => void;
   logout: () => void;
   isLoading: boolean;
 }
@@ -34,12 +36,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const initAuth = () => {
       const storedUser = getUser();
       const storedToken = getToken();
-      
+
       if (storedUser && storedToken) {
         setUserState(storedUser);
         setTokenState(storedToken);
       }
-      
+
       setIsLoading(false);
     };
 
@@ -67,6 +69,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     saveToken(newToken);
   };
 
+  const loginAsGuest = () => {
+    const guestUser: User = {
+      id: 'guest_' + Math.random().toString(36).substr(2, 9),
+      username: 'Guest User',
+      email: 'guest@lifora.com',
+      role: 'user',
+      isGuest: true,
+    };
+    const guestToken = 'guest_token_' + Date.now();
+
+    setUserState(guestUser);
+    setTokenState(guestToken);
+    saveUserStorage(guestUser);
+    saveToken(guestToken);
+  };
+
   const logout = () => {
     setUserState(null);
     setTokenState(null);
@@ -80,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser,
     setToken,
     login,
+    loginAsGuest,
     logout,
     isLoading,
   };

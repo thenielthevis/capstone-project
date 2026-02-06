@@ -42,6 +42,11 @@ axiosInstance.interceptors.response.use(
     });
     if (error.response?.status === 401) {
       // Token expired or invalid
+      const token = getToken();
+      if (token && token.startsWith('guest_token_')) {
+        console.warn('[axiosInstance] 401 Unauthorized for guest session - suppressing redirect');
+        return Promise.reject(error);
+      }
       console.warn('[axiosInstance] 401 Unauthorized - clearing auth and redirecting to login');
       localStorage.removeItem('token');
       localStorage.removeItem('user');

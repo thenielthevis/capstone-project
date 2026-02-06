@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/context/ThemeContext';
+import { useAuth } from '@/context/AuthContext';
 import './Landing.css';
 import {
   MapPin,
@@ -10,33 +11,36 @@ import {
   TrendingUp,
   Award,
   Menu,
-  X
+  X,
+  PlayCircle
 } from 'lucide-react';
 import MobileMockupCarousel from '@/components/landing/MobileMockupCarousel';
 
 // Data for Features Section
 const featuresData = [
   {
-    title: "Smart Tracking",
-    description: "GPS-powered activity monitoring to track your wellness journey wherever you go.",
+    title: "Program Coach",
+    description: "Curated health programs and AI coaching to help you reach your fitness goals.",
     icon: MapPin,
-    img: "/src/assets/features/gamified.gif"
+    img: "/src/assets/features/gamified.gif",
+    guestPath: "/programs/create"
   },
   {
     title: "AI Insights",
-    description: "Personalized health analytics powered by artificial intelligence to guide your progress.",
+    description: "Get personalized feedback and trend analysis powered by advanced AI.",
     icon: TrendingUp,
     img: "/src/assets/features/nutrition.gif"
   },
   {
-    title: "Smart Recognition",
+    title: "Food Recognition",
     description: "Automatic food & activity logging using advanced image recognition technology.",
     icon: Camera,
-    img: "/src/assets/features/assessment.gif"
+    img: "/src/assets/features/assessment.gif",
+    guestPath: "/food-tracking"
   },
   {
-    title: "Community Support",
-    description: "Connect with like-minded individuals and achieve your goals together.",
+    title: "Social Wellness",
+    description: "Connect, share achievements, and participate in challenges with friends.",
     icon: Users,
     img: "/src/assets/features/assessment.gif"
   }
@@ -61,8 +65,15 @@ const images = {
 
 export default function Landing() {
   const { theme } = useTheme();
+  const { loginAsGuest } = useAuth();
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState('home');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const handleTryAsGuest = (path: string) => {
+    loginAsGuest();
+    navigate(path);
+  };
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
@@ -229,9 +240,22 @@ export default function Landing() {
                     </div>
                   </div>
                   <h3 className="text-xl font-bold mb-3 text-white">{feature.title}</h3>
-                  <p className="leading-relaxed text-landing-muted">
+                  <p className="leading-relaxed text-landing-muted mb-6">
                     {feature.description}
                   </p>
+
+                  {feature.guestPath && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleTryAsGuest(feature.guestPath!)}
+                      className="w-full cursor-pointer flex items-center justify-center gap-2 group-hover:bg-white group-hover:text-black transition-all border-white/20 text-white"
+                      style={{ borderRadius: '12px' }}
+                    >
+                      <PlayCircle className="w-4 h-4" />
+                      Try as Guest
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>

@@ -10,6 +10,7 @@ export interface User {
   role?: string;
   profilePicture?: string;
   googleId?: string;
+  isGuest?: boolean;
 }
 
 export interface AuthResponse {
@@ -115,7 +116,7 @@ export const saveUser = (user: User): void => {
 export const getUser = (): User | null => {
   const userData = localStorage.getItem('user');
   if (!userData) return null;
-  
+
   try {
     return JSON.parse(userData);
   } catch (error) {
@@ -143,7 +144,7 @@ export const logout = (): void => {
 export const getAuthHeader = (): Record<string, string> => {
   const token = getToken();
   if (!token) return {};
-  
+
   return {
     'Authorization': `Bearer ${token}`,
   };

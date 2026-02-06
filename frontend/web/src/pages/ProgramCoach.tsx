@@ -7,6 +7,7 @@ import { getProgramById } from '../api/programApi';
 import { createProgramSession, ProgramSessionPayload } from '../api/programSessionApi';
 import { showToast } from '../components/Toast/Toast';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import ProgramRest from './ProgramRest';
 import CloudinaryLottie from '../components/CloudinaryLottie';
 import CloudinarySVG from '../components/CloudinarySVG';
@@ -29,6 +30,7 @@ export default function ProgramCoach() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { theme } = useTheme();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [program, setProgram] = useState<any>(null);
   const [exercises, setExercises] = useState<ExerciseItem[]>([]);
@@ -100,7 +102,19 @@ export default function ProgramCoach() {
   const fetchProgram = async () => {
     try {
       setLoading(true);
-      const res = await getProgramById(id!);
+
+      let res;
+      if (id === 'guest') {
+        const stored = localStorage.getItem('guestProgram');
+        if (stored) {
+          res = JSON.parse(stored);
+        } else {
+          throw new Error('Guest program not found');
+        }
+      } else {
+        res = await getProgramById(id!);
+      }
+
       setProgram(res);
 
       if (res) {
@@ -233,7 +247,6 @@ export default function ProgramCoach() {
             exerciseTimer.current = null;
           }
           playSound('bell');
-          speak("Set complete.");
           handleSetFinished();
           return 0;
         }
@@ -254,7 +267,27 @@ export default function ProgramCoach() {
       finishProgram();
     } else {
       setShowRest(true);
-      setRestTime(30);
+      const restDuration = 30;
+      setRestTime(restDuration);
+
+      // Audio Guidance mirroring mobile behavior
+      let speech = `Set complete. Rest for ${restDuration} seconds.`;
+
+      // Check if up next is a new exercise
+      if (isLastSet && currentIndex < exercises.length - 1) {
+        const nextEx = exercises[currentIndex + 1];
+        const nextName = nextEx.type === 'workout' ? nextEx.workout_id?.name : nextEx.activity_id?.name;
+        const nextDesc = nextEx.type === 'workout' ? nextEx.workout_id?.description : nextEx.activity_id?.description;
+
+        if (nextName) {
+          speech += ` Up next, ${nextName}.`;
+        }
+        if (nextDesc) {
+          speech += ` ${nextDesc}`;
+        }
+      }
+
+      speak(speech);
     }
   };
 
@@ -305,7 +338,6 @@ export default function ProgramCoach() {
 
   const handleDoneSet = () => {
     playSound('bell');
-    speak("Set complete.");
     handleSetFinished();
   };
 
@@ -362,7 +394,12 @@ export default function ProgramCoach() {
   };
 
   const saveSession = async () => {
-    if (saving) return;
+    if (saving || (user && user.isGuest)) {
+      if (user?.isGuest) {
+        console.log('[ProgramCoach] Guest mode detected, skipping session save to backend');
+      }
+      return;
+    }
     try {
       setSaving(true);
       const payload: ProgramSessionPayload = {
@@ -468,14 +505,14 @@ export default function ProgramCoach() {
             <Button
               className="w-full h-14 rounded-2xl text-xl font-bold"
               style={{ backgroundColor: theme.colors.primary }}
-              onClick={() => navigate('/programs')}
+              onClick={() => user?.isGuest ? navigate('/programs/create') : navigate('/programs')}
             >
               Back to Programs
             </Button>
             <Button
               variant="outline"
               className="w-full h-14 rounded-2xl text-xl font-bold"
-              onClick={() => navigate('/dashboard')}
+              onClick={() => user?.isGuest ? navigate('/') : navigate('/dashboard')}
             >
               Go Home
             </Button>
@@ -490,7 +527,7 @@ export default function ProgramCoach() {
       {/* Header */}
       <header className="p-6 flex items-center justify-between">
         <button
-          onClick={() => navigate(`/programs/overview/${id}`)}
+          onClick={() => id === 'guest' ? navigate('/programs/create') : navigate(`/programs/overview/${id}`)}
           className="p-3 rounded-full transition"
           style={{ color: theme.colors.text, backgroundColor: `${theme.colors.text}10` }}
         >

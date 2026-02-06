@@ -5,9 +5,10 @@ import { getAllGeoActivities, GeoActivity } from '../api/geoActivityApi';
 import { createProgram } from '../api/programApi';
 import { showToast } from '../components/Toast/Toast';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import Footer from '../components/Footer';
 import Header from '@/components/Header';
-import { Search, Filter, ChevronDown, ChevronUp, X, Plus, Minus, Trash2, MapPin, Dumbbell } from 'lucide-react';
+import { Search, Filter, ChevronDown, ChevronUp, Plus, Trash2, MapPin, Dumbbell, Info } from 'lucide-react';
 import CloudinaryLottie from '@/components/CloudinaryLottie';
 import CloudinarySVG from '@/components/CloudinarySVG';
 
@@ -36,11 +37,12 @@ type SelectedGeoActivity = {
 export default function CreateProgram() {
   const navigate = useNavigate();
   const { theme } = useTheme();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [geoActivities, setGeoActivities] = useState<GeoActivity[]>([]);
-  
+
   const [programName, setProgramName] = useState('');
   const [programDescription, setProgramDescription] = useState('');
   const [selectedWorkouts, setSelectedWorkouts] = useState<SelectedWorkout[]>([]);
@@ -279,6 +281,32 @@ export default function CreateProgram() {
 
     try {
       setSubmitting(true);
+
+      if (user?.isGuest) {
+        // Guest mode: Save to localStorage and navigate to coach
+        const guestProgramData = {
+          _id: 'guest',
+          name: programName,
+          description: programDescription,
+          workouts: selectedWorkouts.map(item => ({
+            workout_id: item.workout, // Keep original workout object for guest mode
+            sets: item.sets.map(set => ({
+              reps: set.reps ? parseInt(set.reps) : undefined,
+              time_seconds: set.time_seconds ? parseInt(set.time_seconds) : undefined,
+              weight_kg: set.weight_kg ? parseFloat(set.weight_kg) : undefined,
+            }))
+          })),
+          geo_activities: selectedGeoActivities.map(item => ({
+            activity_id: item.activity, // Keep original activity object for guest mode
+            preferences: item.preferences
+          }))
+        };
+
+        localStorage.setItem('guestProgram', JSON.stringify(guestProgramData));
+        navigate('/programs/coach/guest');
+        return;
+      }
+
       const programData = {
         name: programName,
         description: programDescription,
@@ -324,7 +352,7 @@ export default function CreateProgram() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: theme.colors.background }}>
-      <Header 
+      <Header
         title="Create Program"
         showBackButton
         backTo="/programs"
@@ -340,7 +368,23 @@ export default function CreateProgram() {
               <h2 className="text-xl font-bold mb-4" style={{ color: theme.colors.primary, fontFamily: theme.fonts.heading }}>
                 Build your own program
               </h2>
-              
+
+              {/* Guest Mode Warning */}
+              {user?.isGuest && (
+                <div
+                  className="mb-6 p-4 rounded-xl flex items-center gap-3"
+                  style={{
+                    backgroundColor: theme.colors.primary + '15',
+                    border: `1px solid ${theme.colors.primary}33`
+                  }}
+                >
+                  <Info className="w-5 h-5 flex-shrink-0" style={{ color: theme.colors.primary }} />
+                  <p className="text-sm" style={{ color: theme.colors.primary }}>
+                    Guest Mode: This session will not be saved or posted. Log in to keep your progress.
+                  </p>
+                </div>
+              )}
+
               {/* Search Input */}
               <div className="relative mb-4">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5" style={{ color: theme.colors.textSecondary }} />
@@ -362,7 +406,7 @@ export default function CreateProgram() {
                 <button
                   onClick={() => setFiltersVisible(!filtersVisible)}
                   className="flex items-center gap-2 px-4 py-2 rounded-full border transition"
-                  style={{ 
+                  style={{
                     borderColor: theme.colors.primary,
                     backgroundColor: filtersVisible ? theme.colors.primary + '15' : 'transparent',
                     color: theme.colors.primary
@@ -493,12 +537,12 @@ export default function CreateProgram() {
               </h2>
 
               {selectedWorkouts.length === 0 && selectedGeoActivities.length === 0 ? (
-                <div 
+                <div
                   className="border-2 border-dashed rounded-xl p-6 text-center"
                   style={{ borderColor: theme.colors.border }}
                 >
                   <p style={{ color: theme.colors.textSecondary }}>
-                    Add workouts or outdoor sessions from the left panel to personalize your plan. 
+                    Add workouts or outdoor sessions from the left panel to personalize your plan.
                     Strength sessions let you define sets, while geo activities can include target distance, pace, or a run timer.
                   </p>
                 </div>
@@ -506,7 +550,7 @@ export default function CreateProgram() {
                 <div className="space-y-4 max-h-[600px] overflow-y-auto">
                   {/* Selected Workouts */}
                   {selectedWorkouts.map((item) => (
-                    <div 
+                    <div
                       key={item.workout._id}
                       className="rounded-xl p-4"
                       style={{ backgroundColor: theme.colors.background, border: `1px solid ${theme.colors.primary}33` }}
@@ -524,7 +568,7 @@ export default function CreateProgram() {
                       </div>
 
                       {item.sets.map((set, idx) => (
-                        <div 
+                        <div
                           key={idx}
                           className="mt-3 p-3 rounded-lg"
                           style={{ backgroundColor: theme.colors.surface, border: `1px solid ${theme.colors.border}` }}
@@ -591,7 +635,7 @@ export default function CreateProgram() {
 
                   {/* Selected Geo Activities */}
                   {selectedGeoActivities.map((item) => (
-                    <div 
+                    <div
                       key={item.activity._id}
                       className="rounded-xl p-4"
                       style={{ backgroundColor: theme.colors.background, border: `1px solid ${theme.colors.primary}33` }}
@@ -607,7 +651,7 @@ export default function CreateProgram() {
                           <Trash2 className="w-5 h-5 text-red-500" />
                         </button>
                       </div>
-                      
+
                       <p className="text-sm mb-3" style={{ color: theme.colors.primary }}>
                         Optional targets (leave blank for a free run)
                       </p>
@@ -660,7 +704,7 @@ export default function CreateProgram() {
                   className="mt-6 w-full py-4 rounded-xl font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
                   style={{ backgroundColor: theme.colors.primary }}
                 >
-                  {submitting ? 'Creating...' : 'Create Program'}
+                  {submitting ? 'Creating...' : user?.isGuest ? 'Start Session' : 'Create Program'}
                 </button>
               )}
             </div>
@@ -673,21 +717,21 @@ export default function CreateProgram() {
 }
 
 // Helper Components
-function FilterGroup({ 
-  label, 
-  options, 
-  selected, 
-  onToggle, 
-  theme 
-}: { 
-  label: string; 
-  options: string[]; 
-  selected: string[]; 
-  onToggle: (value: string) => void; 
+function FilterGroup({
+  label,
+  options,
+  selected,
+  onToggle,
+  theme
+}: {
+  label: string;
+  options: string[];
+  selected: string[];
+  onToggle: (value: string) => void;
   theme: any;
 }) {
   if (options.length === 0) return null;
-  
+
   return (
     <div className="mb-4">
       <span className="block text-sm mb-2" style={{ color: theme.colors.textSecondary }}>
@@ -716,23 +760,23 @@ function FilterGroup({
   );
 }
 
-function WorkoutCard({ 
-  workout, 
-  selected, 
-  onToggle, 
-  theme 
-}: { 
-  workout: Workout; 
-  selected: boolean; 
-  onToggle: () => void; 
+function WorkoutCard({
+  workout,
+  selected,
+  onToggle,
+  theme
+}: {
+  workout: Workout;
+  selected: boolean;
+  onToggle: () => void;
   theme: any;
 }) {
   const equipmentLabel = getEquipmentLabel(workout.equipment_needed);
-  
+
   return (
-    <div 
+    <div
       className="rounded-xl p-4 transition"
-      style={{ 
+      style={{
         backgroundColor: theme.colors.background,
         border: `1px solid ${selected ? theme.colors.primary : theme.colors.border}`,
       }}
@@ -748,14 +792,14 @@ function WorkoutCard({
             className="rounded-lg flex-shrink-0"
           />
         ) : (
-          <div 
+          <div
             className="w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0"
             style={{ backgroundColor: theme.colors.surface }}
           >
             <Dumbbell className="w-6 h-6" style={{ color: theme.colors.textSecondary }} />
           </div>
         )}
-        
+
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-2">
             <h4 className="font-semibold truncate flex-1 mr-2" style={{ color: theme.colors.text }}>
@@ -789,23 +833,23 @@ function WorkoutCard({
   );
 }
 
-function GeoActivityCard({ 
-  activity, 
-  selected, 
-  onToggle, 
-  theme 
-}: { 
-  activity: GeoActivity; 
-  selected: boolean; 
-  onToggle: () => void; 
+function GeoActivityCard({
+  activity,
+  selected,
+  onToggle,
+  theme
+}: {
+  activity: GeoActivity;
+  selected: boolean;
+  onToggle: () => void;
   theme: any;
 }) {
   const tags = ['outdoor', activity.met ? `MET ${activity.met}` : null].filter(Boolean) as string[];
 
   return (
-    <div 
+    <div
       className="rounded-xl p-4 transition"
-      style={{ 
+      style={{
         backgroundColor: theme.colors.background,
         border: `1px solid ${selected ? theme.colors.primary : theme.colors.border}`,
       }}
@@ -821,14 +865,14 @@ function GeoActivityCard({
             className="rounded-lg flex-shrink-0"
           />
         ) : (
-          <div 
+          <div
             className="w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0"
             style={{ backgroundColor: theme.colors.surface }}
           >
             <MapPin className="w-6 h-6" style={{ color: theme.colors.textSecondary }} />
           </div>
         )}
-        
+
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-2">
             <h4 className="font-semibold truncate flex-1 mr-2" style={{ color: theme.colors.text }}>
@@ -864,9 +908,9 @@ function GeoActivityCard({
 
 function Tag({ label, theme }: { label: string; theme: any }) {
   return (
-    <span 
+    <span
       className="px-2 py-0.5 rounded-lg text-xs"
-      style={{ 
+      style={{
         backgroundColor: theme.colors.primary + '15',
         color: theme.colors.primary,
       }}

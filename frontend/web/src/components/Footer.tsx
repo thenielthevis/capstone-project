@@ -8,8 +8,8 @@ export default function Footer() {
     <footer 
       className="py-6 mt-auto"
       style={{ 
-        backgroundColor: theme.colors.secondary,
-        color: '#FFFFFF'
+        backgroundColor: theme.colors.surface,
+        color: theme.colors.text
       }}
     >
       <div className="max-w-6xl mx-auto px-4">
