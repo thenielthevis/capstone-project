@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { Provider as PaperProvider } from "react-native-paper";
 import { ThemeProvider } from "./context/ThemeContext"; // if you use a custom theme provider
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -17,10 +17,26 @@ import * as SplashScreen from 'expo-splash-screen';
 import { ToastProvider } from './components/Toast/Toast';
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { initializeFeedbackNotifications } from './services/feedbackNotifications';
+import { initializeNotificationRouter } from './services/notificationRouter';
 import './globals.css';
 
 // Keep the splash screen visible while fonts and app initialize
 SplashScreen.preventAutoHideAsync();
+
+// Inner component that initializes notification router (needs access to router context)
+function NotificationRouterInitializer() {
+  const router = useRouter();
+
+  useEffect(() => {
+    // Initialize notification router with the router instance
+    const cleanup = initializeNotificationRouter(router);
+    console.log('[App] Notification router initialized');
+    
+    return cleanup;
+  }, [router]);
+
+  return null;
+}
 
 export default function App() {
   const [fontsLoaded, fontError] = useFonts({
@@ -73,6 +89,7 @@ export default function App() {
                                 headerShown: false,
                               }}
                             />
+                            <NotificationRouterInitializer />
                             <ToastProvider />
                           </LeaderboardProvider>
                         </FeedbackProvider>

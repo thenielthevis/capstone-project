@@ -6,6 +6,7 @@ import { loginUser, handleGoogleSignInShared } from "../../../utils/auth";
 import { useUser } from "../../context/UserContext";
 import { tokenStorage } from "@/utils/tokenStorage";
 import { useTheme } from "../../context/ThemeContext";
+import { executePendingNavigation } from "../../services/notificationRouter";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -38,7 +39,12 @@ export default function LoginScreen() {
             console.log("User: ", response.data.user);
             console.log("Token: ", response.data.token);
             console.log("Refresh Token: ", response.data.refreshToken);
-            router.replace("../../(tabs)/Home");
+            
+            // Check for pending notification navigation (e.g., user tapped notification before logging in)
+            const hasPendingNav = await executePendingNavigation(router);
+            if (!hasPendingNav) {
+              router.replace("../../(tabs)/Home");
+            }
           }
         },
         onError: (error) => {
@@ -68,7 +74,12 @@ export default function LoginScreen() {
         await tokenStorage.saveToken(response.data.token);
         await tokenStorage.saveUser(response.data.user);
         setUser(response.data.user);
-        router.replace("../../(tabs)/Home");
+        
+        // Check for pending notification navigation (e.g., user tapped notification before logging in)
+        const hasPendingNav = await executePendingNavigation(router);
+        if (!hasPendingNav) {
+          router.replace("../../(tabs)/Home");
+        }
       } else {
         setError("Invalid email or password.");
       }

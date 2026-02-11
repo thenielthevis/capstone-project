@@ -6,6 +6,7 @@ import { registerUser, handleGoogleSignInShared } from "../../../utils/auth";
 import { useTheme } from "../../context/ThemeContext";
 import { TextInput, Button, IconButton } from "react-native-paper";
 import { useUser } from "../../context/UserContext";
+import { executePendingNavigation } from "../../services/notificationRouter";
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -34,7 +35,12 @@ export default function RegisterScreen() {
           setUser(response.data.user); // Save user globally
           await tokenStorage.saveToken(response.data.token);
           await tokenStorage.saveUser(response.data.user);
-          router.replace("../../(tabs)/Home");
+          
+          // Check for pending notification navigation (e.g., user tapped notification before logging in)
+          const hasPendingNav = await executePendingNavigation(router);
+          if (!hasPendingNav) {
+            router.replace("../../(tabs)/Home");
+          }
         }
       },
       onError: (error) => {
