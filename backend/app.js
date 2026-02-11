@@ -55,7 +55,9 @@ const leaderboardRoutes = require('./routes/leaderboardRoutes');
 
 const corsOptions = {
     origin: process.env.NODE_ENV === 'production'
-        ? (process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : true)
+        ? (process.env.FRONTEND_URL
+            ? process.env.FRONTEND_URL.split(',').map(url => url.replace(/\/$/, '').trim())
+            : true)
         : true,
     methods: ['GET', 'POST', 'DELETE', 'PUT', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Expires', 'Pragma'],
