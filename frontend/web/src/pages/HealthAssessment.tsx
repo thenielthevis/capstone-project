@@ -26,6 +26,7 @@ export default function HealthAssessment() {
     sex: '',
     height: '',
     weight: '',
+    targetWeight: '',
     waistCircumference: '',
     activityLevel: '',
     sleepHours: '',
@@ -65,6 +66,7 @@ export default function HealthAssessment() {
             sex: profile.gender || '',
             height: profile.physicalMetrics?.height?.value ? String(profile.physicalMetrics.height.value) : '',
             weight: profile.physicalMetrics?.weight?.value ? String(profile.physicalMetrics.weight.value) : '',
+            targetWeight: profile.physicalMetrics?.targetWeight?.value ? String(profile.physicalMetrics.targetWeight.value) : '',
             waistCircumference: profile.physicalMetrics?.waistCircumference ? String(profile.physicalMetrics.waistCircumference) : '',
             activityLevel: profile.lifestyle?.activityLevel || '',
             sleepHours: profile.lifestyle?.sleepHours ? String(profile.lifestyle.sleepHours) : '',
@@ -147,6 +149,7 @@ export default function HealthAssessment() {
       physicalMetrics: {
         height: { value: Number(formData.height) },
         weight: { value: Number(formData.weight) },
+        targetWeight: formData.targetWeight ? { value: Number(formData.targetWeight) } : undefined,
         waistCircumference: Number(formData.waistCircumference) || 0,
       },
       lifestyle: {

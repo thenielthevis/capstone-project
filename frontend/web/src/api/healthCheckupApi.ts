@@ -281,11 +281,19 @@ export const logStress = async (
 // Log weight
 export const logWeight = async (
     value: number,
+    targetWeight?: number,
     unit: 'kg' | 'lbs' = 'kg'
 ): Promise<HealthCheckupResponse> => {
-    return updateHealthCheckup({
+    const payload: any = {
         weight: { value, unit }
-    });
+    };
+    
+    // If target weight is provided, also update user profile
+    if (targetWeight !== undefined) {
+        payload.targetWeight = targetWeight;
+    }
+    
+    return updateHealthCheckup(payload);
 };
 
 // Log vices for the day

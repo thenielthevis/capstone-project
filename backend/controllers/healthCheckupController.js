@@ -20,10 +20,12 @@ exports.getTodayCheckup = async (req, res) => {
     try {
         const userId = req.user.id;
         const entry = await HealthCheckup.getTodayEntry(userId);
+        const user = await User.findById(userId).select('physicalMetrics');
 
         res.status(200).json({
             success: true,
             entry,
+            userProfile: user,
             completionPercentage: entry.getCompletionPercentage(),
             isComplete: entry.isComplete
         });
@@ -44,7 +46,7 @@ exports.updateCheckup = async (req, res) => {
         const {
             sleep, water, stress, weight, vices,
             bmi, activityLevel, dietary, healthStatus,
-            environmental, addictionRisk, diseaseRisk
+            environmental, addictionRisk, diseaseRisk, targetWeight
         } = req.body;
 
         let entry = await HealthCheckup.getTodayEntry(userId);
@@ -147,6 +149,13 @@ exports.updateCheckup = async (req, res) => {
                 });
             }
             if (weight.unit) entry.weight.unit = weight.unit;
+        }
+
+        // Update target weight if provided
+        if (targetWeight !== undefined && targetWeight > 0) {
+            await User.findByIdAndUpdate(userId, {
+                'physicalMetrics.targetWeight.value': targetWeight
+            });
         }
 
         // Update vices data

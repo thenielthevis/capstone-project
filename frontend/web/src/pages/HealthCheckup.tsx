@@ -71,6 +71,7 @@ export default function HealthCheckup() {
   const [stressSource, setStressSource] = useState<string>('');
   const [stressNotes, setStressNotes] = useState<string>('');
   const [weight, setWeight] = useState<string>('');
+  const [targetWeight, setTargetWeight] = useState<string>('');
   const [viceLogs, setViceLogs] = useState<{ substance: string; used: boolean; notes: string }[]>([]);
 
   // Active modal
@@ -210,10 +211,10 @@ export default function HealthCheckup() {
     setSaving(true);
     setError(null);
     try {
-      const response = await healthCheckupApi.logWeight(parseFloat(weight));
+      const response = await healthCheckupApi.logWeight(parseFloat(weight), targetWeight ? parseFloat(targetWeight) : undefined);
       setEntry(response.entry);
       setCompletionPercentage(response.completionPercentage);
-      setSuccess('Weight logged!');
+      setSuccess('Weight and target logged!');
       setActiveModal(null);
     } catch (err) {
       setError('Failed to save weight');
@@ -665,7 +666,7 @@ export default function HealthCheckup() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm mb-2" style={{ color: theme.colors.textSecondary }}>
-                      Weight (kg)
+                      Current Weight (kg)
                     </label>
                     <input
                       type="number"
@@ -683,6 +684,35 @@ export default function HealthCheckup() {
                       }}
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm mb-2" style={{ color: theme.colors.textSecondary }}>
+                      Target Weight (kg) <span style={{ color: theme.colors.textTertiary }}>Optional</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={targetWeight}
+                      onChange={(e) => setTargetWeight(e.target.value)}
+                      placeholder="e.g., 65.0"
+                      className="w-full p-3 rounded-lg"
+                      style={{
+                        backgroundColor: theme.colors.surface,
+                        borderWidth: 1,
+                        borderColor: theme.colors.border,
+                        color: theme.colors.text
+                      }}
+                    />
+                  </div>
+                  {targetWeight && weight && (
+                    <div className="p-3 rounded-lg" style={{ backgroundColor: theme.colors.surface }}>
+                      <p className="text-sm" style={{ color: theme.colors.textSecondary }}>
+                        Remaining: <span style={{ color: theme.colors.primary, fontWeight: 'bold' }}>
+                          {(parseFloat(weight) - parseFloat(targetWeight)).toFixed(1)}kg
+                        </span>
+                      </p>
+                    </div>
+                  )}
                   <button
                     onClick={saveWeight}
                     disabled={saving || !weight}
