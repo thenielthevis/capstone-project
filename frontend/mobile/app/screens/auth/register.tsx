@@ -1,16 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, ActivityIndicator, Image, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 import { tokenStorage } from "@/utils/tokenStorage";
 import { registerUser, handleGoogleSignInShared } from "../../../utils/auth";
 import { useTheme } from "../../context/ThemeContext";
-import { TextInput, Button, IconButton } from "react-native-paper";
 import { useUser } from "../../context/UserContext";
+import { TextInput, Button, IconButton } from "react-native-paper";
+import { executePendingNavigation } from "../../services/notificationRouter";
 
 export default function RegisterScreen() {
   const router = useRouter();
   const { theme } = useTheme();
-  const { setUser } = useUser();
+  const { setUser, user } = useUser();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,6 +20,17 @@ export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Check if user is already authenticated and redirect
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = await tokenStorage.getToken();
+      if (token && user) {
+        router.replace('../../(tabs)/Home');
+      }
+    };
+    checkAuth();
+  }, [user, router]);
 
   // Email validation helper
   const isValidEmail = (email: string) =>
@@ -34,7 +46,12 @@ export default function RegisterScreen() {
           setUser(response.data.user); // Save user globally
           await tokenStorage.saveToken(response.data.token);
           await tokenStorage.saveUser(response.data.user);
-          router.replace("../../(tabs)/Home");
+          
+          // Check for pending notification navigation (e.g., user tapped notification before logging in)
+          const hasPendingNav = await executePendingNavigation(router);
+          if (!hasPendingNav) {
+            router.replace("../../(tabs)/Home");
+          }
         }
       },
       onError: (error) => {

@@ -10,12 +10,15 @@ import {
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
+import { useUser } from "../../context/UserContext";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { tokenStorage } from "../../../utils/tokenStorage";
 
 export default function GuestScreen() {
   const router = useRouter();
   const { theme } = useTheme();
+  const { user } = useUser();
   const [currentFeature, setCurrentFeature] = useState(0);
 
   // Animations
@@ -24,6 +27,17 @@ export default function GuestScreen() {
   const logoScale = useRef(new Animated.Value(0.8)).current;
   const featureAnim = useRef(new Animated.Value(0)).current;
   const buttonAnim = useRef(new Animated.Value(0)).current;
+
+  // Check if user is already authenticated and redirect
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = await tokenStorage.getToken();
+      if (token && user) {
+        router.replace('../../(tabs)/Home');
+      }
+    };
+    checkAuth();
+  }, [user, router]);
 
   const features = [
     {

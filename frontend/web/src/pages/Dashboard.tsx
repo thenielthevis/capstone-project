@@ -25,7 +25,9 @@ import {
   MoreVertical,
   Edit,
   Trash2,
-  Flag
+  Flag,
+  Smile,
+  Activity
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -71,6 +73,8 @@ export default function Dashboard() {
   const moreItems = [
     { title: 'Health Assessment', icon: FileText, path: '/health-assessment' },
     { title: 'Predictions', icon: Heart, path: '/predictions' },
+    { title: 'Mood Check-in', icon: Smile, path: '/mood-checkin' },
+    { title: 'Health Check-up', icon: Activity, path: '/health-checkup' },
     { title: 'Food Tracking', icon: Utensils, path: '/food-tracking' },
     { title: 'Programs', icon: Dumbbell, path: '/programs' },
     { title: 'Settings', icon: SettingsIcon, path: '/settings' },

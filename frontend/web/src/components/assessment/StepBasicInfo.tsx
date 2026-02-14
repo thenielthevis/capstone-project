@@ -105,6 +105,24 @@ const StepBasicInfo: React.FC<StepBasicInfoProps> = ({ formData, setFormData }) 
         </div>
 
         <div>
+          <label className="block text-sm font-medium mb-2" style={{ color: theme.colors.text }}>Target Weight (kg)</label>
+          <input
+            type="number"
+            value={formData.targetWeight}
+            onChange={(e) => setFormData({ ...formData, targetWeight: e.target.value })}
+            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
+            style={{
+              backgroundColor: theme.colors.input,
+              borderColor: theme.colors.border,
+              color: theme.colors.text
+            }}
+            placeholder="Enter target weight in kg (optional)"
+            min="20"
+            max="500"
+          />
+        </div>
+
+        <div>
           <label className="block text-sm font-medium mb-2" style={{ color: theme.colors.text }}>Waist Circumference (cm)</label>
           <input
             type="number"
