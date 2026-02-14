@@ -33,6 +33,7 @@ interface UserProfile {
   physicalMetrics: {
     height: { value: number | null };
     weight: { value: number | null };
+    targetWeight?: { value: number | null };
     bmi: number | null;
     waistCircumference: number | null;
   };
@@ -382,6 +383,19 @@ export default function Predictions() {
                           <p className="text-2xl font-bold text-orange-900">{profile.physicalMetrics?.weight?.value || 'N/A'} <span className="text-sm">kg</span></p>
                         </div>
                       </div>
+
+                      {/* Target Weight */}
+                      {profile.physicalMetrics?.targetWeight?.value && (
+                        <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-teal-50 to-teal-100/50 rounded-lg border border-teal-200">
+                          <div className="bg-teal-600 p-3 rounded-lg">
+                            <Weight className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-teal-600 font-semibold uppercase tracking-wide">Target Weight</p>
+                            <p className="text-2xl font-bold text-teal-900">{profile.physicalMetrics.targetWeight.value} <span className="text-sm">kg</span></p>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Activity Level */}
                       <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-green-50 to-green-100/50 rounded-lg border border-green-200">
