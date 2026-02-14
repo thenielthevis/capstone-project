@@ -189,6 +189,13 @@ const userSchema = new mongoose.Schema({
             }
         }
     },
+    // Inventory of owned equipment items (recipe names)
+    inventory: {
+        hair: { type: [String], default: [] },
+        top: { type: [String], default: [] },
+        bottom: { type: [String], default: [] },
+        shoes: { type: [String], default: [] }
+    },
     // Health Checkup Reminder Settings
     healthCheckupReminders: {
         enabled: { type: Boolean, default: true },

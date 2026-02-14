@@ -889,35 +889,95 @@ exports.updateAvatarConfig = async (req, res) => {
 exports.purchaseItem = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { itemName, cost } = req.body;
+        const { recipeName } = req.body;
+
+        if (!recipeName) {
+            return res.status(400).json({ message: 'recipeName is required' });
+        }
+
+        // 1. Validate the item against the static catalog
+        const { findItemByRecipeName } = require('../data/equipmentItems');
+        const result = findItemByRecipeName(recipeName);
+        if (!result) {
+            return res.status(400).json({ message: `Item "${recipeName}" does not exist in the shop catalog.` });
+        }
+        const { category, item } = result;
 
         const user = await User.findById(userId);
         if (!user) return res.status(404).json({ message: 'User not found' });
 
-        // Safety Check: Ensure user has enough coins on the server side
-        if (user.gamification.coins < cost) {
-            return res.status(400).json({ 
-                message: 'Insufficient coins', 
-                currentBalance: user.gamification.coins 
+        // 2. Check if the user already owns this item
+        if (!user.inventory) {
+            user.inventory = { hair: [], top: [], bottom: [], shoes: [] };
+        }
+        if (user.inventory[category] && user.inventory[category].includes(recipeName)) {
+            return res.status(400).json({ message: 'You already own this item.' });
+        }
+
+        // 3. Check if the user has enough coins (server-side price)
+        const cost = item.price;
+        if ((user.gamification?.coins || 0) < cost) {
+            return res.status(400).json({
+                message: 'Insufficient coins',
+                required: cost,
+                currentBalance: user.gamification?.coins || 0
             });
         }
 
-        // Deduct Coins
+        // 4. Deduct coins and add item to inventory
         user.gamification.coins -= cost;
-
-        // Add item to inventory (if your schema supports user.inventory)
-        // user.inventory.push(itemName); 
+        user.inventory[category].push(recipeName);
+        user.markModified('inventory');
 
         await user.save();
 
-        console.log(`[BACKEND] Purchase Success: ${user.username} bought ${itemName} for ${cost} coins.`);
-        
+        console.log(`[BACKEND] Purchase Success: ${user.username} bought "${item.displayName}" (${recipeName}) for ${cost} coins.`);
+
         res.status(200).json({
             message: 'Purchase successful',
-            newCoinBalance: user.gamification.coins
+            purchasedItem: {
+                recipeName: item.recipeName,
+                displayName: item.displayName,
+                category,
+                price: cost
+            },
+            newCoinBalance: user.gamification.coins,
+            inventory: user.inventory
         });
     } catch (error) {
         console.error('purchaseItem error:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+// GET: Get the equipment shop catalog with ownership status
+exports.getShopCatalog = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { EQUIPMENT_CATALOG } = require('../data/equipmentItems');
+
+        const user = await User.findById(userId).select('gamification.coins inventory');
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        const inventory = user.inventory || { hair: [], top: [], bottom: [], shoes: [] };
+
+        // Build catalog with ownership flag
+        const catalog = {};
+        for (const [category, items] of Object.entries(EQUIPMENT_CATALOG)) {
+            catalog[category] = items.map(item => ({
+                ...item,
+                owned: (inventory[category] || []).includes(item.recipeName)
+            }));
+        }
+
+        res.status(200).json({
+            message: 'Shop catalog fetched successfully',
+            coins: user.gamification?.coins || 0,
+            catalog,
+            inventory
+        });
+    } catch (error) {
+        console.error('getShopCatalog error:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
