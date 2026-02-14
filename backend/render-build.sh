@@ -12,6 +12,6 @@ if [ ! -d ".venv" ]; then
 fi
 
 # Upgrade pip and install Python requirements
-echo "Installing Python dependencies..."
+echo "Installing Python dependencies (using optimized requirements)..."
 .venv/bin/pip install --upgrade pip
-.venv/bin/pip install -r ml_models/utils/requirements.txt
+.venv/bin/pip install --no-cache-dir -r ml_models/utils/requirements-render.txt

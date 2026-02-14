@@ -1,0 +1,10 @@
+# Lightweight requirements for inference on Render
+--find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+torch==2.5.1+cpu
+numpy==1.26.4
+pandas==2.2.3
+scikit-learn
+scipy
+python-dateutil==2.9.0
+pytz==2024.2
+six==1.16.0
