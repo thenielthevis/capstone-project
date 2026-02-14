@@ -12,7 +12,9 @@ process.on('unhandledRejection', (reason, promise) => {
     console.error('Unhandled Rejection at:', promise, 'reason:', reason && reason.stack ? reason.stack : reason);
 });
 
-// Start the server (bind to all interfaces for LAN testing)
+// Start the server
+// NOTE: HOST '0.0.0.0' is standard for cloud hosting (e.g., Render, Docker) 
+// to ensure the server is accessible via the platform's load balancer.
 const PORT = parseInt(process.env.PORT, 10) || 5000;
 const HOST = process.env.HOST || '0.0.0.0';
 

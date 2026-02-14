@@ -1,24 +1,27 @@
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import avatarPortrait from '../../assets/mockups/avatar-portrait.png';
+import geoPortrait from '../../assets/mockups/geo-portrait.png';
+import exercisePortrait from '../../assets/mockups/exercise-portrait.png';
 
 const mockups = [
     {
         id: 1,
         title: 'Avatar Customization',
         description: 'Express yourself with a fully customizable 3D avatar that grows with you.',
-        image: '/src/assets/mockups/avatar-portrait.png',
+        image: avatarPortrait,
     },
     {
         id: 2,
         title: 'Precision Tracking',
         description: 'Track your runs and walks with high-fidelity GPS mapping and real-time stats.',
-        image: '/src/assets/mockups/geo-portrait.png',
+        image: geoPortrait,
     },
     {
         id: 3,
         title: 'Guided Exercises',
         description: 'Follow professional workout programs with clear instructions and progress tracking.',
-        image: '/src/assets/mockups/exercise-portrait.png',
+        image: exercisePortrait,
     },
 ];
 

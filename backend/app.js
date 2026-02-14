@@ -5,11 +5,23 @@ const express = require('express');
 const app = express();
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
-// Simple request logger for debugging network issues
+app.use(helmet());
+
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    message: 'Too many requests from this IP, please try again after 15 minutes'
+});
+app.use('/api', limiter);
+
 app.use((req, res, next) => {
     try {
-        const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+        const ip = req.ip || req.get('x-forwarded-for') || req.connection?.remoteAddress || 'unknown';
         const timestamp = new Date().toISOString();
         console.log(`[${timestamp}] ${req.method} ${req.originalUrl} from ${ip}`);
     } catch (e) {
@@ -41,16 +53,17 @@ const moodCheckinRoutes = require('./routes/moodCheckinRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
 const leaderboardRoutes = require('./routes/leaderboardRoutes');
 
-// During development allow all origins so phones/emulators can reach the server.
-// In production restrict this to a known list.
-app.use(
-    cors({
-        origin: true, // reflect request origin — permissive for dev
-        methods: ['GET', 'POST', 'DELETE', 'PUT', 'PATCH', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Expires', 'Pragma'],
-        credentials: true,
-    })
-);
+const corsOptions = {
+    origin: process.env.NODE_ENV === 'production'
+        ? (process.env.FRONTEND_URL
+            ? process.env.FRONTEND_URL.split(',').map(url => url.replace(/\/$/, '').trim())
+            : true)
+        : true,
+    methods: ['GET', 'POST', 'DELETE', 'PUT', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Expires', 'Pragma'],
+    credentials: true,
+};
+app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -100,20 +113,23 @@ app.get('/', (req, res) => {
 // 404 handler
 app.use((req, res) => {
     console.log(`[404] ${req.method} ${req.originalUrl} - Route not found`);
-    console.log(`[404] Available routes: /api/users, /api/predict, /api/geo, /api/workouts, /api/workout-sessions, /api/geo-sessions, /api/food-logs, /api/programs, /api/admin`);
     res.status(404).json({
-        message: 'Route not found',
-        path: req.originalUrl,
-        method: req.method
+        status: 'error',
+        message: 'Endpoint not found'
     });
 });
 
 // Global error handler
 app.use((err, req, res, next) => {
     console.error('[Error]', err.stack);
-    res.status(err.status || 500).json({
-        message: err.message || 'Internal server error',
-        error: process.env.NODE_ENV === 'development' ? err : {}
+
+    const statusCode = err.status || 500;
+    const isDev = process.env.NODE_ENV === 'development';
+
+    res.status(statusCode).json({
+        status: 'error',
+        message: statusCode === 500 && !isDev ? 'Internal server error' : err.message,
+        ...(isDev && { stack: err.stack, error: err })
     });
 });
 

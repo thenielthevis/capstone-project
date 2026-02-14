@@ -36,6 +36,8 @@ import HealthAnalysis from './pages/HealthAnalysis';
 import AnalysisDetail from './pages/AnalysisDetail';
 import Profile from './pages/Profile';
 import PostDetail from './pages/PostDetail';
+import MoodCheckin from './pages/MoodCheckin';
+import HealthCheckup from './pages/HealthCheckup';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -203,6 +205,22 @@ function App() {
         element={
           <ProtectedRoute>
             <Profile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mood-checkin"
+        element={
+          <ProtectedRoute>
+            <MoodCheckin />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/health-checkup"
+        element={
+          <ProtectedRoute>
+            <HealthCheckup />
           </ProtectedRoute>
         }
       />
