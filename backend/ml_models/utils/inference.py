@@ -8,7 +8,7 @@ import torch.nn as nn
 
 # base folder: backend/ml_models
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-MODEL_PATH = os.path.join(BASE_DIR, "trained_models", "disease_prediction_model (1).pth")
+MODEL_PATH = os.path.join(BASE_DIR, "trained_models", "disease_prediction_model.pth")
 
 # fallback defaults
 model = None

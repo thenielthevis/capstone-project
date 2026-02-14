@@ -38,7 +38,8 @@ exports.testPrediction = async (req, res) => {
       };
 
       // Run Python script for prediction
-      const pythonProcess = spawnSync('python', [
+      const pythonPath = process.env.PYTHON_PATH || 'python';
+      const pythonProcess = spawnSync(pythonPath, [
         path.join(__dirname, '..', 'ml_models', 'utils', 'test_prediction.py')
       ], {
         encoding: 'utf-8'
@@ -54,7 +55,7 @@ exports.testPrediction = async (req, res) => {
       const predictions = [];
       const lines = output.split('\n');
       let foundResults = false;
-      
+
       for (const line of lines) {
         if (line.includes('Prediction Results:')) {
           foundResults = true;
@@ -109,25 +110,25 @@ exports.getCachedPrediction = async (req, res) => {
     if (!authUserId) return res.status(400).json({ error: 'authentication required' });
 
     console.log('[getCachedPrediction] fetching cached prediction for userId=', authUserId);
-    
+
     // Find user and get their last prediction
     const user = await User.findById(authUserId)
       .select('_id username email age gender profilePicture birthdate physicalMetrics lifestyle dietaryProfile healthProfile environmentalFactors riskFactors lastPrediction')
       .exec();
-    
+
     if (!user) {
       return res.status(404).json({ error: 'user not found' });
     }
 
     // Check if user has existing predictions
-    const hasExistingPrediction = user.lastPrediction && 
-                                  Array.isArray(user.lastPrediction.predictions) && 
-                                  user.lastPrediction.predictions.length > 0;
-    
+    const hasExistingPrediction = user.lastPrediction &&
+      Array.isArray(user.lastPrediction.predictions) &&
+      user.lastPrediction.predictions.length > 0;
+
     if (!hasExistingPrediction) {
-      return res.status(404).json({ 
-        error: 'No predictions available', 
-        message: 'Please complete a health assessment first to generate predictions' 
+      return res.status(404).json({
+        error: 'No predictions available',
+        message: 'Please complete a health assessment first to generate predictions'
       });
     }
 
@@ -144,7 +145,7 @@ exports.getCachedPrediction = async (req, res) => {
       profilePicture: user.profilePicture || null,
       birthdate: user.birthdate || null,
     };
-    
+
     // Map predictions
     const sortedDiseases = (user.lastPrediction.predictions || []).map((p) => ({
       name: p.name || 'Unknown',
@@ -152,7 +153,7 @@ exports.getCachedPrediction = async (req, res) => {
       source: p.source || 'model',
       percentage: p.percentage || (Number(p.probability) * 100)
     }));
-    
+
     return res.json({
       id: String(user._id),
       username: user.username,
@@ -258,7 +259,7 @@ exports.predictUser = async (req, res) => {
     // BUT: Only return cached prediction if it's from TODAY (not from previous days)
     const forceRegenerate = !isGetRequest && ((req.query && String(req.query.force) === 'true') || (req.body && req.body.force === true));
     const hasExistingPrediction = user.lastPrediction && Array.isArray(user.lastPrediction.predictions) && user.lastPrediction.predictions.length > 0;
-    
+
     // Check if the existing prediction is from TODAY
     const isPredictionFromToday = () => {
       if (!user.lastPrediction?.predictedAt) return false;
@@ -266,28 +267,28 @@ exports.predictUser = async (req, res) => {
       const today = new Date();
       // Compare year, month, and day only (ignore time)
       return predDate.getFullYear() === today.getFullYear() &&
-             predDate.getMonth() === today.getMonth() &&
-             predDate.getDate() === today.getDate();
+        predDate.getMonth() === today.getMonth() &&
+        predDate.getDate() === today.getDate();
     };
-    
+
     const predictionIsFromToday = isPredictionFromToday();
-    
+
     console.log('[predictUser] method=', req.method, 'isGetRequest=', isGetRequest, 'forceRegenerate=', forceRegenerate, 'hasExistingPrediction=', hasExistingPrediction, 'predictionIsFromToday=', predictionIsFromToday);
     console.log('[predictUser] req.body=', req.body);
     console.log('[predictUser] req.query=', req.query);
-    
+
     // For GET requests OR if user has predictions and no force regenerate
     if (isGetRequest || (hasExistingPrediction && !forceRegenerate && predictionIsFromToday)) {
       console.log('[predictUser] returning cached prediction', isGetRequest ? '(GET request)' : '(has today prediction, no force)');
-      
+
       // If GET request and no existing prediction, return error
       if (isGetRequest && !hasExistingPrediction) {
-        return res.status(404).json({ 
-          error: 'No predictions available', 
-          message: 'Please complete a health assessment first to generate predictions' 
+        return res.status(404).json({
+          error: 'No predictions available',
+          message: 'Please complete a health assessment first to generate predictions'
         });
       }
-      
+
       // Build profile object to return so frontend can render user info from DB (use schema field names)
       const profile = {
         age: (user && user.age) ? user.age : null,
@@ -301,13 +302,13 @@ exports.predictUser = async (req, res) => {
         profilePicture: user && user.profilePicture ? user.profilePicture : null,
         birthdate: user && user.birthdate ? user.birthdate : null,
       };
-      
+
       // Map lastPrediction.predictions array into sortedDiseases format for response
       const sortedDiseases = (user.lastPrediction.predictions || []).map((p) => ({
         name: p.name || 'Unknown',
         probability: Number(p.probability) || 0
       }));
-      
+
       return res.json({
         id: String(user._id),
         username: user.username,
@@ -367,7 +368,8 @@ exports.predictUser = async (req, res) => {
     // Uses hybrid_prediction.py which combines:
     // - ML predictions for trained diseases (Diabetes, Hypertension, CKD, etc.)
     // - Rule-based scoring for unlimited new diseases (Huntington's, Heart Disease, etc.)
-    const pythonProcess = spawnSync('python', [
+    const pythonPath = process.env.PYTHON_PATH || 'python';
+    const pythonProcess = spawnSync(pythonPath, [
       path.join(__dirname, '..', 'ml_models', 'utils', 'hybrid_prediction.py'),
       JSON.stringify(healthData)
     ], {
@@ -415,12 +417,12 @@ exports.predictUser = async (req, res) => {
       const keys = Object.keys(predictions);
       const allNumericKeys = keys.length > 0 && keys.every(k => /^\d+$/.test(k));
       if (allNumericKeys) {
-        const arr = keys.sort((a,b) => Number(a) - Number(b)).map(k => predictions[k]);
+        const arr = keys.sort((a, b) => Number(a) - Number(b)).map(k => predictions[k]);
         predictions = arr;
       }
     }
 
-  let sortedDiseases;
+    let sortedDiseases;
     if (Array.isArray(predictions)) {
       // Python script returns array of objects with: {name, probability, source, percentage, factors, description}
       // Use the name from the object itself, don't try to map to config labels
@@ -443,7 +445,7 @@ exports.predictUser = async (req, res) => {
       sortedDiseases = pairs;
     } else {
       sortedDiseases = Object.entries(predictions)
-        .sort(([,a], [,b]) => b - a)
+        .sort(([, a], [, b]) => b - a)
         .map(([disease, prob]) => ({ name: disease, probability: prob }));
     }
 
@@ -454,13 +456,13 @@ exports.predictUser = async (req, res) => {
       const filteredByDisplay = (Array.isArray(sortedDiseases) ? sortedDiseases : []).filter(d => {
         const p = Number(d.probability) || 0;
         const source = d.source || '';
-        
+
         // Always keep: custom predictions, user-reported, existing conditions, rule-based
         const shouldKeepAll = ['custom_prediction', 'user_reported', 'existing_condition', 'rule_based'].includes(source);
         if (shouldKeepAll) {
           return true;
         }
-        
+
         // For ML predictions only: filter out if rounds to 0%
         return Math.round(p * 100) > 0;
       });
@@ -475,14 +477,14 @@ exports.predictUser = async (req, res) => {
       console.warn('Could not filter small probabilities by display threshold:', filErr && filErr.message ? filErr.message : filErr);
     }
 
-  // Update user's lastPrediction
-  // Persist user's lastPrediction (write full object safely and return updated doc)
-  let updatedAuth = null;
-  let responseLastPrediction = null;
-  let lastPredictionAuth = null;
+    // Update user's lastPrediction
+    // Persist user's lastPrediction (write full object safely and return updated doc)
+    let updatedAuth = null;
+    let responseLastPrediction = null;
+    let lastPredictionAuth = null;
     try {
       const validAuth = Array.isArray(sortedDiseases) && sortedDiseases.length > 0 && sortedDiseases.every(d => d && typeof d.probability === 'number' && Number.isFinite(d.probability));
-        if (validAuth) {
+      if (validAuth) {
         lastPredictionAuth = {
           // `predictions` is extra metadata (not in schema) but useful to return; schema will store defined fields
           predictions: sortedDiseases.map(d => ({ name: d.name, probability: Number(d.probability), source: d.source || 'model', percentage: d.percentage || Number(d.probability) * 100 })),
@@ -501,8 +503,8 @@ exports.predictUser = async (req, res) => {
         } catch (upErr) {
           console.error('[predictUser] DB update error for user', String(userId), upErr && upErr.message ? upErr.message : upErr);
         }
-  // Prepare a response-lastPrediction regardless of DB write success
-  responseLastPrediction = updatedAuth && updatedAuth.lastPrediction ? updatedAuth.lastPrediction : lastPredictionAuth;
+        // Prepare a response-lastPrediction regardless of DB write success
+        responseLastPrediction = updatedAuth && updatedAuth.lastPrediction ? updatedAuth.lastPrediction : lastPredictionAuth;
       } else {
         console.warn('predictUser: prediction array not valid, skipping DB write', sortedDiseases && sortedDiseases.length);
       }
@@ -531,7 +533,7 @@ exports.predictUser = async (req, res) => {
       if (diseasesWithoutDesc.length > 0) {
         const diseaseNames = diseasesWithoutDesc.map(d => d.name);
         console.log('[predictUser] Generating descriptions for', diseaseNames.length, 'diseases via Gemini...');
-        
+
         // Non-blocking async call - don't wait for it
         generateDiseaseDescriptions(diseaseNames).then(descriptions => {
           // Update sortedDiseases with generated descriptions
@@ -540,7 +542,7 @@ exports.predictUser = async (req, res) => {
               disease.description = descriptions[disease.name];
             }
           });
-          
+
           // Update DB with enhanced descriptions
           if (responseLastPrediction && Array.isArray(responseLastPrediction.predictions)) {
             responseLastPrediction.predictions.forEach(pred => {
@@ -549,7 +551,7 @@ exports.predictUser = async (req, res) => {
                 pred.description = enhanced.description;
               }
             });
-            
+
             // Save to DB asynchronously
             User.findByIdAndUpdate(userId, { lastPrediction: responseLastPrediction }, { new: true })
               .catch(err => console.warn('[predictUser] Could not update descriptions in DB:', err.message));
@@ -599,24 +601,24 @@ exports.predictUserByEmail = async (req, res) => {
     const { email } = req.body || {};
     if (!email) return res.status(400).json({ error: 'email required' });
 
-  console.log('[predictUserByEmail] email=', email);
-  // Select full profile fields for the dev-by-email flow as well
-  const user = await User.findOne({ email }).select('_id username email age gender profilePicture physicalMetrics lifestyle dietaryProfile healthProfile environmentalFactors riskFactors lastPrediction').exec();
-  console.log('[predictUserByEmail] fetched user summary=', user ? { id: String(user._id), username: user.username, email: user.email, age: user.age, hasPhysicalMetrics: !!user.physicalMetrics, hasDietaryProfile: !!user.dietaryProfile, hasHealthProfile: !!user.healthProfile } : null);
-  // Also print the full sanitized user document to the server console to help debugging
-  try {
-    const userObj = user && user.toObject ? user.toObject() : (user ? JSON.parse(JSON.stringify(user)) : null);
-    if (userObj) {
-      delete userObj.password;
-      delete userObj.__v;
-      console.log('[predictUserByEmail] raw user document:\n', JSON.stringify(userObj, null, 2));
+    console.log('[predictUserByEmail] email=', email);
+    // Select full profile fields for the dev-by-email flow as well
+    const user = await User.findOne({ email }).select('_id username email age gender profilePicture physicalMetrics lifestyle dietaryProfile healthProfile environmentalFactors riskFactors lastPrediction').exec();
+    console.log('[predictUserByEmail] fetched user summary=', user ? { id: String(user._id), username: user.username, email: user.email, age: user.age, hasPhysicalMetrics: !!user.physicalMetrics, hasDietaryProfile: !!user.dietaryProfile, hasHealthProfile: !!user.healthProfile } : null);
+    // Also print the full sanitized user document to the server console to help debugging
+    try {
+      const userObj = user && user.toObject ? user.toObject() : (user ? JSON.parse(JSON.stringify(user)) : null);
+      if (userObj) {
+        delete userObj.password;
+        delete userObj.__v;
+        console.log('[predictUserByEmail] raw user document:\n', JSON.stringify(userObj, null, 2));
+      }
+    } catch (logErr) {
+      console.warn('[predictUserByEmail] could not stringify raw user document', logErr && logErr.message ? logErr.message : logErr);
     }
-  } catch (logErr) {
-    console.warn('[predictUserByEmail] could not stringify raw user document', logErr && logErr.message ? logErr.message : logErr);
-  }
     if (!user) return res.status(404).json({ error: 'user not found' });
 
-  let responseLastPrediction = null;
+    let responseLastPrediction = null;
 
     // Prepare comprehensive health data for prediction (HYBRID system: ML + Rules)
     const healthData = {
@@ -647,7 +649,8 @@ exports.predictUserByEmail = async (req, res) => {
     };
 
     // Run Python script for HYBRID prediction (ML + Rule-based)
-    const pythonProcess = spawnSync('python', [
+    const pythonPath = process.env.PYTHON_PATH || 'python';
+    const pythonProcess = spawnSync(pythonPath, [
       path.join(__dirname, '..', 'ml_models', 'utils', 'hybrid_prediction.py'),
       JSON.stringify(healthData)
     ], {
@@ -674,7 +677,7 @@ exports.predictUserByEmail = async (req, res) => {
       const keys = Object.keys(predictions);
       const allNumericKeys = keys.length > 0 && keys.every(k => /^\d+$/.test(k));
       if (allNumericKeys) {
-        const arr = keys.sort((a,b)=>Number(a)-Number(b)).map(k => predictions[k]);
+        const arr = keys.sort((a, b) => Number(a) - Number(b)).map(k => predictions[k]);
         predictions = arr;
       }
     }
@@ -694,7 +697,7 @@ exports.predictUserByEmail = async (req, res) => {
       sortedDiseases = pairs;
     } else {
       sortedDiseases = Object.entries(predictions)
-        .sort(([,a], [,b]) => b - a)
+        .sort(([, a], [, b]) => b - a)
         .map(([disease, prob]) => ({ name: disease, probability: prob }));
     }
 
@@ -738,9 +741,9 @@ exports.predictUserByEmail = async (req, res) => {
         } catch (upErr) {
           console.error('[predictUserByEmail] DB update error for user', String(user._id), upErr && upErr.message ? upErr.message : upErr);
         }
-  // Prepare response lastPrediction independently of DB write success
-  responseLastPrediction = lastPrediction;
-  if (updated && updated.lastPrediction) responseLastPrediction = updated.lastPrediction;
+        // Prepare response lastPrediction independently of DB write success
+        responseLastPrediction = lastPrediction;
+        if (updated && updated.lastPrediction) responseLastPrediction = updated.lastPrediction;
       } else {
         console.warn('predictUserByEmail: prediction array not valid, skipping DB write', sortedDiseases && sortedDiseases.length);
       }
@@ -748,21 +751,21 @@ exports.predictUserByEmail = async (req, res) => {
       console.error('predictUserByEmail DB write error', dbErr && dbErr.message ? dbErr.message : dbErr);
     }
 
-  // build profile for dev endpoint as well (always return an object)
-  const profile = {
-    age: (user && user.age) ? user.age : null,
-    gender: (user && user.gender) ? user.gender : null,
-    physicalMetrics: user && user.physicalMetrics ? user.physicalMetrics : { height: { value: null }, weight: { value: null }, bmi: null, waistCircumference: null },
-    lifestyle: user && user.lifestyle ? user.lifestyle : { activityLevel: null, sleepHours: null },
-    riskFactors: user && user.riskFactors ? user.riskFactors : { addictions: [], stressLevel: null },
-    dietaryProfile: user && user.dietaryProfile ? user.dietaryProfile : { preferences: [], allergies: [], dailyWaterIntake: null, mealFrequency: null },
-    healthProfile: user && user.healthProfile ? user.healthProfile : { currentConditions: [], familyHistory: [], medications: [], bloodType: null },
-    environmentalFactors: user && user.environmentalFactors ? user.environmentalFactors : { pollutionExposure: null, occupationType: null },
-    profilePicture: user && user.profilePicture ? user.profilePicture : null,
-    birthdate: user && user.birthdate ? user.birthdate : null,
-  };
+    // build profile for dev endpoint as well (always return an object)
+    const profile = {
+      age: (user && user.age) ? user.age : null,
+      gender: (user && user.gender) ? user.gender : null,
+      physicalMetrics: user && user.physicalMetrics ? user.physicalMetrics : { height: { value: null }, weight: { value: null }, bmi: null, waistCircumference: null },
+      lifestyle: user && user.lifestyle ? user.lifestyle : { activityLevel: null, sleepHours: null },
+      riskFactors: user && user.riskFactors ? user.riskFactors : { addictions: [], stressLevel: null },
+      dietaryProfile: user && user.dietaryProfile ? user.dietaryProfile : { preferences: [], allergies: [], dailyWaterIntake: null, mealFrequency: null },
+      healthProfile: user && user.healthProfile ? user.healthProfile : { currentConditions: [], familyHistory: [], medications: [], bloodType: null },
+      environmentalFactors: user && user.environmentalFactors ? user.environmentalFactors : { pollutionExposure: null, occupationType: null },
+      profilePicture: user && user.profilePicture ? user.profilePicture : null,
+      birthdate: user && user.birthdate ? user.birthdate : null,
+    };
 
-  return res.json({ id: String(user._id), username: user.username, email: user.email, profile, predictions: sortedDiseases, lastPrediction: typeof responseLastPrediction !== 'undefined' ? responseLastPrediction : (updated && updated.lastPrediction ? updated.lastPrediction : null) });
+    return res.json({ id: String(user._id), username: user.username, email: user.email, profile, predictions: sortedDiseases, lastPrediction: typeof responseLastPrediction !== 'undefined' ? responseLastPrediction : (updated && updated.lastPrediction ? updated.lastPrediction : null) });
   } catch (err) {
     console.error('predictUserByEmail error', err);
     return res.status(500).json({ error: 'prediction failed', details: err && err.message });

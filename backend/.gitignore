@@ -35,6 +35,7 @@ dist/
 *.pth
 *.pt
 ml_models/trained_models/
+!ml_models/trained_models/disease_prediction_model.pth
 trained_models/
 
 # Logs
