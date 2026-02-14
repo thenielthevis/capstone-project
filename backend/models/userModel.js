@@ -160,9 +160,33 @@ const userSchema = new mongoose.Schema({
         },
         equipment: {
             hair: { type: String, default: "" },
+            hairColor: {
+                r: { type: Number, default: 1 },
+                g: { type: Number, default: 1 },
+                b: { type: Number, default: 1 },
+                a: { type: Number, default: 1 }
+            },
             top: { type: String, default: "" },
+            topColor: {
+                r: { type: Number, default: 1 },
+                g: { type: Number, default: 1 },
+                b: { type: Number, default: 1 },
+                a: { type: Number, default: 1 }
+            },
             bottom: { type: String, default: "" },
-            shoes: { type: String, default: "" }
+            bottomColor: {
+                r: { type: Number, default: 1 },
+                g: { type: Number, default: 1 },
+                b: { type: Number, default: 1 },
+                a: { type: Number, default: 1 }
+            },
+            shoes: { type: String, default: "" },
+            shoesColor: {
+                r: { type: Number, default: 1 },
+                g: { type: Number, default: 1 },
+                b: { type: Number, default: 1 },
+                a: { type: Number, default: 1 }
+            }
         }
     },
     // Health Checkup Reminder Settings

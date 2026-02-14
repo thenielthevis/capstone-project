@@ -21,6 +21,7 @@ const { registerUser,
     updateProfilePicture,
     searchUsers,
     getAllUsersForChat,
+    purchaseItem,
     updateAvatarConfig
 } = require('../controllers/userControllers');
 
@@ -47,6 +48,8 @@ router.get('/daily-calorie-balance/today', auth, getTodayCalorieBalance);
 
 // Gamification Route
 router.post('/gamification/refresh', auth, refreshGamificationStats);
+// Purchase route
+router.post('/purchase', auth, purchaseItem);
 
 // User Profile Routes
 router.get('/profile', auth, getUserProfile);

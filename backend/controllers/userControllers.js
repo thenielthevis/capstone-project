@@ -805,6 +805,7 @@ exports.updateAvatarConfig = async (req, res) => {
 
         console.log(`[BACKEND] --- AVATAR SAVE START ---`);
         console.log(`[BACKEND] User ID: ${userId}`);
+        console.log(`[BACKEND] Equipment received:`, equipment);
 
         const user = await User.findById(userId);
         if (!user) {
@@ -836,11 +837,35 @@ exports.updateAvatarConfig = async (req, res) => {
             };
         }
 
-        // Update Equipment
+        // Update Equipment - DEEP MERGE each item's color
         if (equipment) {
-            user.avatarConfig.equipment = {
-                ...(user.avatarConfig.equipment || {}),
-                ...equipment
+            if (!user.avatarConfig.equipment) {
+                user.avatarConfig.equipment = {};
+            }
+
+            // Deep merge for each equipment piece
+            user.avatarConfig.equipment.hair = equipment.hair || user.avatarConfig.equipment.hair;
+            user.avatarConfig.equipment.hairColor = {
+                ...(user.avatarConfig.equipment.hairColor || {}),
+                ...equipment.hairColor
+            };
+
+            user.avatarConfig.equipment.top = equipment.top || user.avatarConfig.equipment.top;
+            user.avatarConfig.equipment.topColor = {
+                ...(user.avatarConfig.equipment.topColor || {}),
+                ...equipment.topColor
+            };
+
+            user.avatarConfig.equipment.bottom = equipment.bottom || user.avatarConfig.equipment.bottom;
+            user.avatarConfig.equipment.bottomColor = {
+                ...(user.avatarConfig.equipment.bottomColor || {}),
+                ...equipment.bottomColor
+            };
+
+            user.avatarConfig.equipment.shoes = equipment.shoes || user.avatarConfig.equipment.shoes;
+            user.avatarConfig.equipment.shoesColor = {
+                ...(user.avatarConfig.equipment.shoesColor || {}),
+                ...equipment.shoesColor
             };
         }
 
@@ -848,7 +873,7 @@ exports.updateAvatarConfig = async (req, res) => {
         user.markModified('avatarConfig');
 
         const savedUser = await user.save();
-        console.log(`[BACKEND] Save successful. Fields in DB: ${JSON.stringify(savedUser.avatarConfig)}`);
+        console.log(`[BACKEND] Save successful. Equipment in DB:`, JSON.stringify(savedUser.avatarConfig.equipment));
 
         res.status(200).json({
             message: 'Avatar configuration updated successfully',
@@ -856,6 +881,43 @@ exports.updateAvatarConfig = async (req, res) => {
         });
     } catch (error) {
         console.error('[BACKEND] updateAvatarConfig error:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+// POST: Process item purchase and deduct coins
+exports.purchaseItem = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { itemName, cost } = req.body;
+
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        // Safety Check: Ensure user has enough coins on the server side
+        if (user.gamification.coins < cost) {
+            return res.status(400).json({ 
+                message: 'Insufficient coins', 
+                currentBalance: user.gamification.coins 
+            });
+        }
+
+        // Deduct Coins
+        user.gamification.coins -= cost;
+
+        // Add item to inventory (if your schema supports user.inventory)
+        // user.inventory.push(itemName); 
+
+        await user.save();
+
+        console.log(`[BACKEND] Purchase Success: ${user.username} bought ${itemName} for ${cost} coins.`);
+        
+        res.status(200).json({
+            message: 'Purchase successful',
+            newCoinBalance: user.gamification.coins
+        });
+    } catch (error) {
+        console.error('purchaseItem error:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
