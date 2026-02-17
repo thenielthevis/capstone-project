@@ -22,6 +22,13 @@ exports.evaluateGamification = async (data) => {
             nutrition: 50,
             health: 50,
             sleep: 50,
+            responsive_dna: {
+                height: 0.5,
+                upperBodyWeight: 0.5,
+                lowerBodyWeight: 0.5,
+                upperBodyMuscle: 0.5,
+                lowerBodyMuscle: 0.5
+            },
             notes: "Gemini API key missing. Default scores returned."
         };
     }
@@ -29,6 +36,7 @@ exports.evaluateGamification = async (data) => {
     try {
         const prompt = `
         You are a health and fitness AI expert. Judge the user's daily performance on a scale of 0 to 100 for four categories: Activity, Nutrition, Health, and Sleep.
+        Additionally, you must compute the user's avatar "responsive_dna" values (each 0.0 to 1.0) that reflect how the user's 3D avatar body should look based on their real-world BMI, exercise habits, and nutrition.
         
         CONTEXT DATA:
         ${JSON.stringify(data, null, 2)}
@@ -39,13 +47,34 @@ exports.evaluateGamification = async (data) => {
         3. Health: Based on overall BMI status, water intake, stress levels, and risk factors.
         4. Sleep: Based on sleep hours (7-9 is ideal).
 
+        RESPONSIVE DNA CRITERIA (each value 0.0 to 1.0, where 0.5 is the neutral/average state):
+        These values control a 3D humanoid avatar's body proportions. They should realistically reflect the user's current physical state.
+        - height: Based on the user's actual height if available. 0.5 = average (~170cm). Scale proportionally.
+        - upperBodyWeight: Reflects upper body fat/mass. High BMI (>30) → closer to 1.0 (heavier). Low BMI (<18.5) → closer to 0.0 (thinner). High calorie surplus from food logs → slightly increase. Active exercise → slightly decrease.
+        - lowerBodyWeight: Same logic as upperBodyWeight but for lower body.
+        - upperBodyMuscle: Reflects upper body muscularity. Frequent/intense exercise (especially strength, gym programs) → increase toward 1.0. Sedentary + high BMI → low values (fat, not muscle). Good protein intake → slight increase.
+        - lowerBodyMuscle: Same logic as upperBodyMuscle but for lower body. Running/walking/cycling activities boost this more.
+
+        IMPORTANT DNA RULES:
+        - A user with high BMI but NO exercise should have HIGH weight values but LOW muscle values (overweight, not muscular).
+        - A user with normal BMI and regular exercise should have MODERATE weight and MODERATE-HIGH muscle values (fit).
+        - A user with low BMI should have LOW weight and LOW-MODERATE muscle values (thin).
+        - Changes should be gradual — prefer small adjustments from the current values provided in context.
+
         OUTPUT FORMAT:
-        Return ONLY a JSON object with integer scores (0-100) and a brief reasoning string. The reasoning should mention the coins earned if applicable.
+        Return ONLY a JSON object with integer scores (0-100), responsive_dna (floats 0.0-1.0), and a brief reasoning string. The reasoning should mention the coins earned if applicable.
         {
             "activity": 85,
             "nutrition": 70,
             "health": 60,
             "sleep": 90,
+            "responsive_dna": {
+                "height": 0.5,
+                "upperBodyWeight": 0.55,
+                "lowerBodyWeight": 0.55,
+                "upperBodyMuscle": 0.6,
+                "lowerBodyMuscle": 0.65
+            },
             "reasoning": "Great job! Your high activity earned you a lot of coins today. Your nutrition was solid as well."
         }
 
@@ -57,7 +86,22 @@ exports.evaluateGamification = async (data) => {
 
         // Clean markdown if present
         const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-        return JSON.parse(cleaned);
+        const parsed = JSON.parse(cleaned);
+
+        // Ensure responsive_dna values are clamped between 0 and 1
+        if (parsed.responsive_dna) {
+            for (const key of ['height', 'upperBodyWeight', 'lowerBodyWeight', 'upperBodyMuscle', 'lowerBodyMuscle']) {
+                if (typeof parsed.responsive_dna[key] === 'number') {
+                    parsed.responsive_dna[key] = Math.max(0, Math.min(1, parsed.responsive_dna[key]));
+                } else {
+                    parsed.responsive_dna[key] = 0.5; // fallback to neutral
+                }
+            }
+        } else {
+            parsed.responsive_dna = { height: 0.5, upperBodyWeight: 0.5, lowerBodyWeight: 0.5, upperBodyMuscle: 0.5, lowerBodyMuscle: 0.5 };
+        }
+
+        return parsed;
 
     } catch (error) {
         console.error("Gemini Evaluation Error:", error);
@@ -65,7 +109,14 @@ exports.evaluateGamification = async (data) => {
             activity: 0,
             nutrition: 0,
             health: 0,
-            sleep: 0, // Should probably be based on simple heuristic if logic fails
+            sleep: 0,
+            responsive_dna: {
+                height: 0.5,
+                upperBodyWeight: 0.5,
+                lowerBodyWeight: 0.5,
+                upperBodyMuscle: 0.5,
+                lowerBodyMuscle: 0.5
+            },
             reasoning: "AI Evaluation failed. Please try again."
         };
     }

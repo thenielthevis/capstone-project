@@ -21,7 +21,7 @@ exports.calculateGoalKcal = ({ weight, height, age, gender, activityLevel, targe
     if (targetWeight && Math.abs(targetWeight - weight) > 1) {
         const diff = targetWeight - weight;
         // If target is lower, deficit; if higher, surplus
-        maintenance += diff > 0 ? 250 : -250; // mild adjustment
+        maintenance += diff > 0 ? 500 : -500; // mild adjustment
     }
     return Math.round(maintenance);
 };

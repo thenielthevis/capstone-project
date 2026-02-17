@@ -92,6 +92,8 @@ const updateUserGamificationStats = async (userId) => {
                 age: user.age,
                 gender: user.gender,
                 bmi: user.physicalMetrics?.bmi,
+                height: user.physicalMetrics?.height?.value,
+                weight: user.physicalMetrics?.weight?.value,
                 activityLevel: user.lifestyle?.activityLevel,
                 healthConditions: user.healthProfile?.currentConditions
             },
@@ -102,6 +104,13 @@ const updateUserGamificationStats = async (userId) => {
             nutrition: nutritionDigest,
             sleep: {
                 averageHours: user.lifestyle?.sleepHours || 7 // Default to 7 if not set
+            },
+            currentResponsiveDna: user.avatarConfig?.responsive_dna || {
+                height: 0.5,
+                upperBodyWeight: 0.5,
+                lowerBodyWeight: 0.5,
+                upperBodyMuscle: 0.5,
+                lowerBodyMuscle: 0.5
             }
         };
 
@@ -161,9 +170,42 @@ const updateUserGamificationStats = async (userId) => {
             batteries: [newBatteries]
         };
 
+        // ---------------------------------------------------------
+        // 6. Update Responsive DNA on Avatar (smoothed)
+        // ---------------------------------------------------------
+        if (scores.responsive_dna) {
+            if (!user.avatarConfig) {
+                user.avatarConfig = {};
+            }
+
+            const current = user.avatarConfig.responsive_dna || {
+                height: 0.5, upperBodyWeight: 0.5, lowerBodyWeight: 0.5,
+                upperBodyMuscle: 0.5, lowerBodyMuscle: 0.5
+            };
+            const ai = scores.responsive_dna;
+
+            // Limit change to ±0.05 per refresh so the avatar evolves gradually
+            const MAX_DELTA = 0.05;
+            const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
+            const smooth = (key) => {
+                const delta = clamp(ai[key] - current[key], -MAX_DELTA, MAX_DELTA);
+                return clamp(current[key] + delta, 0, 1);
+            };
+
+            user.avatarConfig.responsive_dna = {
+                height: smooth('height'),
+                upperBodyWeight: smooth('upperBodyWeight'),
+                lowerBodyWeight: smooth('lowerBodyWeight'),
+                upperBodyMuscle: smooth('upperBodyMuscle'),
+                lowerBodyMuscle: smooth('lowerBodyMuscle')
+            };
+            user.markModified('avatarConfig');
+        }
+
         await user.save();
         return {
             gamification: user.gamification,
+            responsive_dna: user.avatarConfig?.responsive_dna,
             reasoning: scores.reasoning,
             coinsAwarded: newCoinsAwardedTotal,
             totalTodayCoins: totalTargetCoins
@@ -192,6 +234,7 @@ exports.refreshGamificationStats = async (req, res) => {
         res.status(200).json({
             message: "Gamification stats updated successfully",
             gamification: result.gamification,
+            responsive_dna: result.responsive_dna,
             aiReasoning: result.reasoning
         });
 
