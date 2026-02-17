@@ -331,9 +331,26 @@ export default function Food() {
 
   // Camera states
   const [showCamera, setShowCamera] = useState(false);
+  const [isCameraReady, setIsCameraReady] = useState(false);
   const [facing, setFacing] = useState<CameraType>('back');
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
+  const cameraReadyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Fallback: auto-dismiss loading overlay after timeout in case onCameraReady doesn't fire
+  useEffect(() => {
+    if (showCamera && !isCameraReady) {
+      cameraReadyTimeoutRef.current = setTimeout(() => {
+        setIsCameraReady(true);
+      }, 1500);
+    }
+    return () => {
+      if (cameraReadyTimeoutRef.current) {
+        clearTimeout(cameraReadyTimeoutRef.current);
+        cameraReadyTimeoutRef.current = null;
+      }
+    };
+  }, [showCamera, isCameraReady]);
 
   // History states
   const [foodHistory, setFoodHistory] = useState<any[]>([]);
@@ -559,6 +576,7 @@ export default function Food() {
         }
 
         setShowCamera(false);
+        setIsCameraReady(false);
       }
     } catch (err) {
       console.error('Error capturing photo:', err);
@@ -572,6 +590,7 @@ export default function Food() {
 
   const closeCamera = () => {
     setShowCamera(false);
+    setIsCameraReady(false);
     // Reset multi-dish camera state if closing without capturing
     setCurrentMultiDishId(null);
     setAddingAdditionalImage(false);
@@ -2329,7 +2348,7 @@ export default function Food() {
           {/* Camera Modal */}
           <Modal
             visible={showCamera}
-            animationType="slide"
+            animationType="none"
             onRequestClose={closeCamera}
           >
             <View style={{ flex: 1, backgroundColor: '#000' }}>
@@ -2337,7 +2356,16 @@ export default function Food() {
                 ref={cameraRef}
                 style={{ flex: 1 }}
                 facing={facing}
+                onCameraReady={() => setIsCameraReady(true)}
               />
+
+              {/* Loading indicator while camera initializes */}
+              {!isCameraReady && (
+                <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
+                  <ActivityIndicator size="large" color="#FFFFFF" />
+                  <Text style={{ color: '#FFFFFF', marginTop: 12, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm }}>Starting camera...</Text>
+                </View>
+              )}
 
               <SafeAreaView style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
                 <View style={{
@@ -2388,11 +2416,12 @@ export default function Food() {
               }}>
                 <TouchableOpacity
                   onPress={capturePhoto}
+                  disabled={!isCameraReady}
                   style={{
                     width: 80,
                     height: 80,
                     borderRadius: 40,
-                    backgroundColor: '#FFFFFF',
+                    backgroundColor: isCameraReady ? '#FFFFFF' : 'rgba(255,255,255,0.4)',
                     borderWidth: 4,
                     borderColor: 'rgba(255,255,255,0.5)',
                     alignItems: 'center',
@@ -2403,7 +2432,7 @@ export default function Food() {
                     width: 64,
                     height: 64,
                     borderRadius: 32,
-                    backgroundColor: '#FFFFFF',
+                    backgroundColor: isCameraReady ? '#FFFFFF' : 'rgba(255,255,255,0.4)',
                   }} />
                 </TouchableOpacity>
                 <Text style={{
@@ -2488,14 +2517,14 @@ export default function Food() {
           contentContainerStyle={{ paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            viewMode === 'history' ? (
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                tintColor={theme.colors.primary}
-              />
-            ) : undefined
-          }
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.colors.primary}
+            colors={[theme.colors.primary]}
+            progressBackgroundColor={theme.colors.surface}
+          />
+        }
         >
           {/* Mini Calorie Progress Bar */}
           {calorieBalance && viewMode === 'analyze' && (
@@ -3739,7 +3768,7 @@ export default function Food() {
         {/* Camera Modal */}
         <Modal
           visible={showCamera}
-          animationType="slide"
+          animationType="none"
           onRequestClose={closeCamera}
         >
           <View style={{ flex: 1, backgroundColor: '#000' }}>
@@ -3747,7 +3776,16 @@ export default function Food() {
               ref={cameraRef}
               style={{ flex: 1 }}
               facing={facing}
+              onCameraReady={() => setIsCameraReady(true)}
             />
+
+            {/* Loading indicator while camera initializes */}
+            {!isCameraReady && (
+              <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
+                <ActivityIndicator size="large" color="#FFFFFF" />
+                <Text style={{ color: '#FFFFFF', marginTop: 12, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm }}>Starting camera...</Text>
+              </View>
+            )}
 
             {/* Top controls */}
             <SafeAreaView style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
@@ -3800,11 +3838,12 @@ export default function Food() {
             }}>
               <TouchableOpacity
                 onPress={capturePhoto}
+                disabled={!isCameraReady}
                 style={{
                   width: 80,
                   height: 80,
                   borderRadius: 40,
-                  backgroundColor: '#FFFFFF',
+                  backgroundColor: isCameraReady ? '#FFFFFF' : 'rgba(255,255,255,0.4)',
                   borderWidth: 4,
                   borderColor: 'rgba(255,255,255,0.5)',
                   alignItems: 'center',
@@ -3815,7 +3854,7 @@ export default function Food() {
                   width: 64,
                   height: 64,
                   borderRadius: 32,
-                  backgroundColor: '#FFFFFF',
+                  backgroundColor: isCameraReady ? '#FFFFFF' : 'rgba(255,255,255,0.4)',
                 }} />
               </TouchableOpacity>
               <Text style={{
