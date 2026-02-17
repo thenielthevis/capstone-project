@@ -36,6 +36,7 @@ import { postApi, Post } from '@/api/postApi';
 import ReactionButton from '@/components/ReactionButton';
 import PostMediaCarousel from '@/components/feed/PostMediaCarousel';
 import ReportModal from '@/components/ReportModal';
+import GamificationStats from '@/components/GamificationStats';
 import Header from '@/components/Header';
 import logoImg from '@/assets/logo.png';
 import SessionDetailsModal from '@/components/feed/SessionDetailsModal';
@@ -49,6 +50,9 @@ export default function Dashboard() {
   // Posts state
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Gamification state
+  const [gamification, setGamification] = useState<any>(null);
 
   // Settings menu state
   const [showMenu, setShowMenu] = useState<string | null>(null);
@@ -103,6 +107,10 @@ export default function Dashboard() {
             ...user,
             profilePicture: response.profile.profilePicture
           });
+          // Also set gamification data
+          if (response.profile.gamification) {
+            setGamification(response.profile.gamification);
+          }
         }
       } catch (error) {
         console.error('Error fetching user profile:', error);
@@ -724,6 +732,17 @@ export default function Dashboard() {
               Switch
             </button>
           </div>
+
+          {/* Gamification Stats */}
+          {gamification && (
+            <div className="mb-4 mx-[-6px] px-0">
+              <GamificationStats
+                points={gamification.points}
+                coins={gamification.coins}
+                batteries={gamification.batteries}
+              />
+            </div>
+          )}
 
           {/* Suggested Actions */}
           <div className="mb-4">

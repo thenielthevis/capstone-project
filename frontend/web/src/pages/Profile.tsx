@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import Header from '@/components/Header';
+import GamificationStats from '@/components/GamificationStats';
 import { getUserProfile, updateProfilePicture, UserProfile } from '@/api/userApi';
 import {
   User,
@@ -381,6 +382,15 @@ export default function Profile() {
             Refresh
           </button>
         </div>
+
+        {/* Gamification Stats */}
+        {profile?.gamification && (
+          <GamificationStats
+            points={profile.gamification.points}
+            coins={profile.gamification.coins}
+            batteries={profile.gamification.batteries}
+          />
+        )}
 
         {/* Physical Stats */}
         <ProfileSection title="Physical Stats" icon={Activity} iconColor="#3b82f6">
