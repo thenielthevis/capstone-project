@@ -20,6 +20,9 @@ import { useHealthCheckup } from "../../context/HealthCheckupContext";
 import { ViceLog } from "../../api/healthCheckupApi";
 import HealthMetricCard from "../../components/HealthMetricCard";
 import WaterIntakeProgress from "../../components/WaterIntakeProgress";
+import GamificationReward from "../../components/animation/gamification-reward";
+import GamificationLoading from "../../components/animation/gamification-loading";
+
 // Custom Slider component since @react-native-community/slider may not be installed
 interface SliderProps {
     value: number;
@@ -110,7 +113,8 @@ export default function HealthCheckup() {
     const router = useRouter();
     const {
         entry,
-        isLoading,
+        isLoading: contextLoading,
+        error: contextError,
         completionPercentage,
         isComplete,
         refreshCheckup,
@@ -123,7 +127,53 @@ export default function HealthCheckup() {
         userAddictions,
         fetchUserAddictions,
         logVicesUsage,
+        gamificationResult,
+        clearGamificationResult,
+        lastAnimationInfo
     } = useHealthCheckup();
+
+    // Gamification animation state
+    const [showGamificationAnimation, setShowGamificationAnimation] = useState(false);
+    const [gamificationData, setGamificationData] = useState<{
+        previousBattery: number;
+        newBattery: number;
+        coinsAwarded: number;
+        totalCoins: number;
+        label: string;
+    }>({ previousBattery: 0, newBattery: 0, coinsAwarded: 0, totalCoins: 0, label: 'Health' });
+
+    // Handle gamification animation when result changes
+    useEffect(() => {
+        if (gamificationResult && lastAnimationInfo) {
+            const { gamification, coinsAwarded } = gamificationResult;
+
+            // Find today's battery stats
+            // In the backend, we ensure one exists for today. 
+            // batteries[0] is usually the most recent.
+            const todayBattery = gamification.batteries[0];
+
+            let newBatteryValue = 0;
+            let label = "Health";
+
+            if (lastAnimationInfo.type === 'sleep') {
+                newBatteryValue = todayBattery?.sleep || 0;
+                label = "Sleep";
+            } else {
+                newBatteryValue = todayBattery?.health || 0;
+                label = "Health";
+            }
+
+            setGamificationData({
+                previousBattery: lastAnimationInfo.prevValue,
+                newBattery: newBatteryValue,
+                coinsAwarded: coinsAwarded,
+                totalCoins: gamification.coins,
+                label: label
+            });
+            setShowGamificationAnimation(true);
+            clearGamificationResult();
+        }
+    }, [gamificationResult, lastAnimationInfo, clearGamificationResult]);
 
     const [refreshing, setRefreshing] = useState(false);
 
@@ -149,7 +199,7 @@ export default function HealthCheckup() {
         refreshCheckup();
         refreshStats();
         fetchUserAddictions();
-    }, []);
+    }, [refreshCheckup, refreshStats, fetchUserAddictions]);
 
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
@@ -885,6 +935,18 @@ export default function HealthCheckup() {
                     </View>
                 </KeyboardAvoidingView>
             </Modal>
+
+            {/* Gamification Animations */}
+            <GamificationReward
+                visible={showGamificationAnimation}
+                previousBattery={gamificationData.previousBattery}
+                newBattery={gamificationData.newBattery}
+                coinsAwarded={gamificationData.coinsAwarded}
+                totalCoins={gamificationData.totalCoins}
+                label={gamificationData.label}
+                onComplete={() => setShowGamificationAnimation(false)}
+            />
+            <GamificationLoading visible={contextLoading} />
         </SafeAreaView>
     );
 }

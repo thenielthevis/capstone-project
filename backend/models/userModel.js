@@ -161,18 +161,16 @@ const userSchema = new mongoose.Schema({
         },
         dna: {
             height: { type: Number, default: 0.5 },
-            upperBodyWeight: { type: Number, default: 0.5 },
-            lowerBodyWeight: { type: Number, default: 0.5 },
-            upperBodyMuscle: { type: Number, default: 0.5 },
-            lowerBodyMuscle: { type: Number, default: 0.5 }
+            upperbody: { type: Number, default: 0.5 },
+            lowerbody: { type: Number, default: 0.5 },
+            arms: { type: Number, default: 0.5 },
         },
         responsive_dna: {
             height: { type: Number, default: 0.5 },
             race: { type: String },
-            upperBodyWeight: { type: Number, default: 0.5 },
-            lowerBodyWeight: { type: Number, default: 0.5 },
-            upperBodyMuscle: { type: Number, default: 0.5 },
-            lowerBodyMuscle: { type: Number, default: 0.5 }
+            upperbody: { type: Number, default: 0.5 },
+            lowerbody: { type: Number, default: 0.5 },
+            arms: { type: Number, default: 0.5 },
         },
         equipment: {
             hair: { type: String, default: "" },

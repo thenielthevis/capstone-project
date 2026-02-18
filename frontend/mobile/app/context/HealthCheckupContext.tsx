@@ -11,6 +11,7 @@ import {
     getUserAddictions as apiGetUserAddictions,
     logVices as apiLogVices,
     HealthCheckupEntry,
+    HealthCheckupResponse,
     WeeklyStats,
     StreakInfo,
     UserAddiction,
@@ -42,6 +43,14 @@ type HealthCheckupContextType = {
     userAddictions: UserAddiction[];
     fetchUserAddictions: () => Promise<void>;
     logVicesUsage: (logs: ViceLog[]) => Promise<boolean>;
+
+    // Gamification
+    gamificationResult: HealthCheckupResponse['gamification'] | null;
+    clearGamificationResult: () => void;
+    lastAnimationInfo: {
+        type: 'health' | 'sleep';
+        prevValue: number;
+    } | null;
 };
 
 const HealthCheckupContext = createContext<HealthCheckupContextType | undefined>(undefined);
@@ -62,6 +71,15 @@ export const HealthCheckupProvider = ({ children }: { children: ReactNode }) => 
 
     // Vices/Addictions state
     const [userAddictions, setUserAddictions] = useState<UserAddiction[]>([]);
+
+    // Gamification state
+    const [gamificationResult, setGamificationResult] = useState<HealthCheckupResponse['gamification'] | null>(null);
+    const [lastAnimationInfo, setLastAnimationInfo] = useState<{ type: 'health' | 'sleep', prevValue: number } | null>(null);
+
+    const clearGamificationResult = useCallback(() => {
+        setGamificationResult(null);
+        setLastAnimationInfo(null);
+    }, []);
 
     // Refresh today's checkup
     const refreshCheckup = useCallback(async () => {
@@ -108,12 +126,18 @@ export const HealthCheckupProvider = ({ children }: { children: ReactNode }) => 
 
     // Add water intake
     const addWater = useCallback(async (amount: number, unit: 'ml' | 'oz' = 'ml'): Promise<boolean> => {
+        setIsLoading(true);
+        const prevValue = user?.gamification?.batteries[0]?.health || 0;
         try {
             const response = await apiAddWater(amount, unit);
             if (response.success) {
                 setEntry(response.entry);
                 setCompletionPercentage(response.completionPercentage);
                 setIsComplete(response.isComplete);
+                if (response.gamification) {
+                    setLastAnimationInfo({ type: 'health', prevValue });
+                    setGamificationResult(response.gamification);
+                }
                 return true;
             }
             return false;
@@ -121,20 +145,28 @@ export const HealthCheckupProvider = ({ children }: { children: ReactNode }) => 
             console.error("[HealthCheckupContext] Error adding water:", err);
             setError(err?.response?.data?.message || "Failed to add water");
             return false;
+        } finally {
+            setIsLoading(false);
         }
-    }, []);
+    }, [user]);
 
     // Log sleep
     const logSleep = useCallback(async (
         hours: number,
         quality?: 'poor' | 'fair' | 'good' | 'excellent'
     ): Promise<boolean> => {
+        setIsLoading(true);
+        const prevValue = user?.gamification?.batteries[0]?.sleep || 0;
         try {
             const response = await apiLogSleep(hours, quality);
             if (response.success) {
                 setEntry(response.entry);
                 setCompletionPercentage(response.completionPercentage);
                 setIsComplete(response.isComplete);
+                if (response.gamification) {
+                    setLastAnimationInfo({ type: 'sleep', prevValue });
+                    setGamificationResult(response.gamification);
+                }
                 return true;
             }
             return false;
@@ -142,8 +174,10 @@ export const HealthCheckupProvider = ({ children }: { children: ReactNode }) => 
             console.error("[HealthCheckupContext] Error logging sleep:", err);
             setError(err?.response?.data?.message || "Failed to log sleep");
             return false;
+        } finally {
+            setIsLoading(false);
         }
-    }, []);
+    }, [user]);
 
     // Log stress
     const logStress = useCallback(async (
@@ -151,6 +185,8 @@ export const HealthCheckupProvider = ({ children }: { children: ReactNode }) => 
         source?: string,
         notes?: string
     ): Promise<boolean> => {
+        setIsLoading(true);
+        const prevValue = user?.gamification?.batteries[0]?.health || 0;
         try {
             const response = await apiLogStress(
                 level,
@@ -162,6 +198,10 @@ export const HealthCheckupProvider = ({ children }: { children: ReactNode }) => 
                 setEntry(response.entry);
                 setCompletionPercentage(response.completionPercentage);
                 setIsComplete(response.isComplete);
+                if (response.gamification) {
+                    setLastAnimationInfo({ type: 'health', prevValue });
+                    setGamificationResult(response.gamification);
+                }
                 return true;
             }
             return false;
@@ -169,20 +209,28 @@ export const HealthCheckupProvider = ({ children }: { children: ReactNode }) => 
             console.error("[HealthCheckupContext] Error logging stress:", err);
             setError(err?.response?.data?.message || "Failed to log stress");
             return false;
+        } finally {
+            setIsLoading(false);
         }
-    }, []);
+    }, [user]);
 
     // Log weight
     const logWeight = useCallback(async (
         value: number,
         unit: 'kg' | 'lbs' = 'kg'
     ): Promise<boolean> => {
+        setIsLoading(true);
+        const prevValue = user?.gamification?.batteries[0]?.health || 0;
         try {
             const response = await apiLogWeight(value, unit);
             if (response.success) {
                 setEntry(response.entry);
                 setCompletionPercentage(response.completionPercentage);
                 setIsComplete(response.isComplete);
+                if (response.gamification) {
+                    setLastAnimationInfo({ type: 'health', prevValue });
+                    setGamificationResult(response.gamification);
+                }
                 return true;
             }
             return false;
@@ -190,8 +238,10 @@ export const HealthCheckupProvider = ({ children }: { children: ReactNode }) => 
             console.error("[HealthCheckupContext] Error logging weight:", err);
             setError(err?.response?.data?.message || "Failed to log weight");
             return false;
+        } finally {
+            setIsLoading(false);
         }
-    }, []);
+    }, [user]);
 
     // Fetch user's addictions
     const fetchUserAddictions = useCallback(async () => {
@@ -208,12 +258,18 @@ export const HealthCheckupProvider = ({ children }: { children: ReactNode }) => 
 
     // Log vices usage
     const logVicesUsage = useCallback(async (logs: ViceLog[]): Promise<boolean> => {
+        setIsLoading(true);
+        const prevValue = user?.gamification?.batteries[0]?.health || 0;
         try {
             const response = await apiLogVices(logs);
             if (response.success) {
                 setEntry(response.entry);
                 setCompletionPercentage(response.completionPercentage);
                 setIsComplete(response.isComplete);
+                if (response.gamification) {
+                    setLastAnimationInfo({ type: 'health', prevValue });
+                    setGamificationResult(response.gamification);
+                }
                 return true;
             }
             return false;
@@ -221,8 +277,10 @@ export const HealthCheckupProvider = ({ children }: { children: ReactNode }) => 
             console.error("[HealthCheckupContext] Error logging vices:", err);
             setError(err?.response?.data?.message || "Failed to log vices");
             return false;
+        } finally {
+            setIsLoading(false);
         }
-    }, []);
+    }, [user]);
 
     return (
         <HealthCheckupContext.Provider value={{
@@ -241,7 +299,10 @@ export const HealthCheckupProvider = ({ children }: { children: ReactNode }) => 
             refreshStats,
             userAddictions,
             fetchUserAddictions,
-            logVicesUsage
+            logVicesUsage,
+            gamificationResult,
+            clearGamificationResult,
+            lastAnimationInfo
         }}>
             {children}
         </HealthCheckupContext.Provider>
