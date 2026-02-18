@@ -16,8 +16,10 @@ import DietaryPreferencesInfoModal from "@/app/components/Modals/DietaryPreferen
 import AllergiesInfoModal from "@/app/components/Modals/AllergiesInfoModal";
 import SubstanceInfoModal from "@/app/components/Modals/SubstanceInfoModal";
 import MedicationInfoModal from "@/app/components/Modals/MedicationsInfoModal";
+import PermissionModal from "@/app/components/Modals/PermissionModal";
 import { submitHealthAssessment } from "../../api/userApi";
 import { tokenStorage } from "@/utils/tokenStorage";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 
 // Configure notifications behavior
 Notifications.setNotificationHandler({
@@ -61,6 +63,7 @@ export default function PredictionInputScreen() {
   const [showAllergiesModal, setShowAllergiesModal] = useState(false);
   const [showSubstanceModal, setShowSubstanceModal] = useState(false);
   const [showMedicationModal, setShowMedicationModal] = useState(false);
+  const [showPermissionModal, setShowPermissionModal] = useState(true);
   const [currentConditionsInput, setCurrentConditionsInput] = useState("");
   const [formData, setFormData] = useState({
     // Basic Info
@@ -121,7 +124,7 @@ export default function PredictionInputScreen() {
         const data = await response.json();
         if (data.profile) {
           const profile = data.profile;
-          
+
           // Pre-populate form with existing data
           setFormData(prev => ({
             ...prev,
@@ -167,12 +170,12 @@ export default function PredictionInputScreen() {
   }, []);
 
   // Add new step for Addictions
-  const steps = [ "Basic Information", "Health Profile", "Lifestyle", "Addictions", "Environment", ];
+  const steps = ["Basic Information", "Health Profile", "Lifestyle", "Addictions", "Environment",];
 
   const geneticalConditionsList = [
-  "Diabetes", "Huntington's Disease", "Heart Disease", "Sickle Cell Disease", "Down Syndrome", "Cystic Fibrosis", ];
+    "Diabetes", "Huntington's Disease", "Heart Disease", "Sickle Cell Disease", "Down Syndrome", "Cystic Fibrosis",];
 
-  const medicationsList = [ "Aspirin", "Ibuprofen", "Paracetamol", "Amoxicillin", "Metformin", "Atorvastatin", "Amlodipine", "Losartan", "Omeprazole", "Cetirizine", "Salbutamol", "Hydrochlorothiazide", "Loperamide", "Vitamin D", ];
+  const medicationsList = ["Aspirin", "Ibuprofen", "Paracetamol", "Amoxicillin", "Metformin", "Atorvastatin", "Amlodipine", "Losartan", "Omeprazole", "Cetirizine", "Salbutamol", "Hydrochlorothiazide", "Loperamide", "Vitamin D",];
 
   // Most common allergies and addiction substances
   const commonAllergies = [
@@ -336,59 +339,59 @@ export default function PredictionInputScreen() {
   }
 
   const handleSubmit = async () => {
-  try {
-    setLoading(true);
-    const token = await tokenStorage.getToken();
-    if (!token) {
-      setLoading(false);
-      router.replace('/(tabs)/Analysis');
-      return;
-    }
+    try {
+      setLoading(true);
+      const token = await tokenStorage.getToken();
+      if (!token) {
+        setLoading(false);
+        router.replace('/(tabs)/Analysis');
+        return;
+      }
 
-    const mappedData = mapFormDataToBackend(formData);
-    
-    // Step 1: Update user health assessment in database
-    console.log("Submitting health assessment with data:", mappedData);
-    const response = await submitHealthAssessment(mappedData, token);
-    console.log("Health assessment submitted:", response.data);
-    
-    // Step 2: Trigger prediction update by calling /predict/me with force=true
-    console.log("Triggering prediction update with force regeneration...");
-    const predictResponse = await fetch(`${API_URL}/predict/me`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ force: true })
-    });
+      const mappedData = mapFormDataToBackend(formData);
 
-    if (!predictResponse.ok) {
-      console.error('Prediction update failed');
+      // Step 1: Update user health assessment in database
+      console.log("Submitting health assessment with data:", mappedData);
+      const response = await submitHealthAssessment(mappedData, token);
+      console.log("Health assessment submitted:", response.data);
+
+      // Step 2: Trigger prediction update by calling /predict/me with force=true
+      console.log("Triggering prediction update with force regeneration...");
+      const predictResponse = await fetch(`${API_URL}/predict/me`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ force: true })
+      });
+
+      if (!predictResponse.ok) {
+        console.error('Prediction update failed');
+        setLoading(false);
+        // Navigate to Analysis tab instead of going back
+        router.replace('/(tabs)/Analysis');
+        return;
+      }
+
+      const predictData = await predictResponse.json();
+      console.log("New predictions generated:", predictData);
+
+      // Send success notification
+      await sendSuccessNotification();
+
       setLoading(false);
+      // Set flag to show notification in Analysis screen
+      setPredictionUpdateFlag(true);
       // Navigate to Analysis tab instead of going back
       router.replace('/(tabs)/Analysis');
-      return;
-    }
 
-    const predictData = await predictResponse.json();
-    console.log("New predictions generated:", predictData);
-    
-    // Send success notification
-    await sendSuccessNotification();
-    
-    setLoading(false);
-    // Set flag to show notification in Analysis screen
-    setPredictionUpdateFlag(true);
-    // Navigate to Analysis tab instead of going back
-    router.replace('/(tabs)/Analysis');
-    
-  } catch (error) {
-    console.error("Error submitting health assessment:", error);
-    setLoading(false);
-    router.replace('/(tabs)/Analysis');
-  }
-};
+    } catch (error) {
+      console.error("Error submitting health assessment:", error);
+      setLoading(false);
+      router.replace('/(tabs)/Analysis');
+    }
+  };
 
   return (
     <View className="relative h-full">
@@ -400,76 +403,83 @@ export default function PredictionInputScreen() {
           </Text>
         </View>
       ) : (
-      <ScrollView 
-        className="flex-1 px-4 py-6" 
-        style={{ backgroundColor: theme.colors.background }}
-      >
-        <View className="flex-row items-center mt-8">
-          <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
-            <Ionicons name="chevron-back" size={theme.fontSizes.xl + 4} color={theme.colors.text} />
-          </TouchableOpacity>
-          <Text
-            className="ml-2"
-            style={{
-              color: theme.colors.text,
-              fontFamily: theme.fonts.heading,
-              fontSize: theme.fontSizes.xl,
-              lineHeight: theme.fontSizes.xl * 1.2,
-            }}
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+        >
+          <ScrollView
+            className="flex-1 px-4 py-6"
+            style={{ backgroundColor: theme.colors.background }}
           >
-            Health Assessment
-          </Text>
-        </View>
-        {renderStepIndicator()}
-        
-        <View className="mb-4">
-          {renderStepContent()}
-        </View>
+            <View className="flex-row items-center mt-8">
+              <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
+                <Ionicons name="chevron-back" size={theme.fontSizes.xl + 4} color={theme.colors.text} />
+              </TouchableOpacity>
+              <Text
+                className="ml-2"
+                style={{
+                  color: theme.colors.text,
+                  fontFamily: theme.fonts.heading,
+                  fontSize: theme.fontSizes.xl,
+                  lineHeight: theme.fontSizes.xl * 1.2,
+                }}
+              >
+                Health Assessment
+              </Text>
+            </View>
+            {renderStepIndicator()}
 
-        <View className="flex-row justify-between mb-10">
-          <Button
-            mode="outlined"
-            onPress={() => setCurrentStep(current => current - 1)}
-            disabled={currentStep === 0}
-            style={{ borderColor: theme.colors.primary }}
-            textColor={theme.colors.primary}
-          >
-            Previous
-          </Button>
-          <Button
-            mode="contained"
-            textColor={theme.colors.background}
-            onPress={async () => {
-              if (currentStep === steps.length - 1) {
-                // Submit form: schedule notification immediately on button press,
-                // then perform the async submit flow which will navigate back when done.
-                console.log(formData);
-                try {
-                  await sendSuccessNotification();
-                } catch (e) {
-                  console.error('Notification scheduling failed:', e);
-                }
+            <View className="mb-4">
+              {renderStepContent()}
+            </View>
 
-                await handleSubmit();
-              } else {
-                setCurrentStep(current => current + 1);
-              }
-            }}
-            style={{ backgroundColor: theme.colors.primary }}
-          >
-            {currentStep === steps.length - 1 ? "Submit" : "Next"}
-          </Button>
-        </View>
-      </ScrollView>
+            <View className="flex-row justify-between mb-10">
+              <Button
+                mode="outlined"
+                onPress={() => setCurrentStep(current => current - 1)}
+                disabled={currentStep === 0}
+                style={{ borderColor: theme.colors.primary }}
+                textColor={theme.colors.primary}
+              >
+                Previous
+              </Button>
+              <Button
+                mode="contained"
+                textColor={theme.colors.background}
+                onPress={async () => {
+                  if (currentStep === steps.length - 1) {
+                    // Submit form: schedule notification immediately on button press,
+                    // then perform the async submit flow which will navigate back when done.
+                    console.log(formData);
+                    try {
+                      await sendSuccessNotification();
+                    } catch (e) {
+                      console.error('Notification scheduling failed:', e);
+                    }
+
+                    await handleSubmit();
+                  } else {
+                    setCurrentStep(current => current + 1);
+                  }
+                }}
+                style={{ backgroundColor: theme.colors.primary }}
+              >
+                {currentStep === steps.length - 1 ? "Submit" : "Next"}
+              </Button>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       )}
 
       {/* Place your modal here, outside the ScrollView */}
-      <GeneticalConditionsInfoModal visible={showGeneticalModal} onClose={() => setShowGeneticalModal(false)} conditions={geneticalConditionsList}/>
+      <GeneticalConditionsInfoModal visible={showGeneticalModal} onClose={() => setShowGeneticalModal(false)} conditions={geneticalConditionsList} />
       <ActivityLevelInfoModal visible={showActivityModal} onClose={() => setShowActivityModal(false)} />
       <DietaryPreferencesInfoModal visible={showDietaryModal} onClose={() => setShowDietaryModal(false)} />
       <AllergiesInfoModal visible={showAllergiesModal} onClose={() => setShowAllergiesModal(false)} />
       <SubstanceInfoModal visible={showSubstanceModal} onClose={() => setShowSubstanceModal(false)} />
-      <MedicationInfoModal visible={showMedicationModal} onClose={() => setShowMedicationModal(false)} medications={medicationsList}/>
+      <MedicationInfoModal visible={showMedicationModal} onClose={() => setShowMedicationModal(false)} medications={medicationsList} />
+      <PermissionModal visible={showPermissionModal} onAccept={() => setShowPermissionModal(false)} />
     </View>
   );
 }
