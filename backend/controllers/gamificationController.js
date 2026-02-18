@@ -194,6 +194,7 @@ const updateUserGamificationStats = async (userId) => {
 
             user.avatarConfig.responsive_dna = {
                 height: smooth('height'),
+                race: user.gender === 'female' ? 'HumanFemale' : 'HumanMale',
                 upperBodyWeight: smooth('upperBodyWeight'),
                 lowerBodyWeight: smooth('lowerBodyWeight'),
                 upperBodyMuscle: smooth('upperBodyMuscle'),

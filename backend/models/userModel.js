@@ -160,6 +160,7 @@ const userSchema = new mongoose.Schema({
         },
         responsive_dna: {
             height: { type: Number, default: 0.5 },
+            race: { type: String },
             upperBodyWeight: { type: Number, default: 0.5 },
             lowerBodyWeight: { type: Number, default: 0.5 },
             upperBodyMuscle: { type: Number, default: 0.5 },
