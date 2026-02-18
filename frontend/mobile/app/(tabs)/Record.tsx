@@ -153,6 +153,7 @@ const QuickTip = ({ theme }: { theme: any }) => {
     { icon: 'target', text: 'Stay within your calorie goal for best results' },
     { icon: 'water', text: 'Remember to stay hydrated throughout the day' },
     { icon: 'walk', text: 'Regular activity helps maintain a healthy balance' },
+    { icon: 'arm-flex', text: 'Protein helps build muscle and keeps you feeling full longer' },
   ];
 
   const randomTip = tips[Math.floor(Math.random() * tips.length)];
@@ -409,6 +410,115 @@ export default function Record() {
                 theme={theme}
               />
             </View>
+
+            {/* Protein Tracker Card */}
+            {(entry.goal_protein_g > 0 || entry.consumed_protein_g > 0) && (
+              <View style={{
+                marginHorizontal: 20,
+                marginTop: 20,
+                backgroundColor: theme.colors.surface,
+                borderRadius: 20,
+                padding: 20,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.04,
+                shadowRadius: 8,
+                elevation: 2,
+              }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <View style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 18,
+                      backgroundColor: '#3b82f615',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginRight: 10,
+                    }}>
+                      <MaterialCommunityIcons name="arm-flex" size={18} color="#3b82f6" />
+                    </View>
+                    <Text style={{
+                      fontFamily: theme.fonts.heading,
+                      fontSize: 16,
+                      color: theme.colors.text,
+                    }}>
+                      Protein Tracker
+                    </Text>
+                  </View>
+                  <View style={{
+                    backgroundColor: (entry.protein_status === 'under' ? '#f97316' :
+                      entry.protein_status === 'over' ? '#ef4444' : '#22c55e') + '15',
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                    borderRadius: 12,
+                  }}>
+                    <Text style={{
+                      fontFamily: theme.fonts.body,
+                      fontSize: 11,
+                      color: entry.protein_status === 'under' ? '#f97316' :
+                        entry.protein_status === 'over' ? '#ef4444' : '#22c55e',
+                    }}>
+                      {entry.protein_status === 'under' ? 'Need More' :
+                        entry.protein_status === 'over' ? 'Over Goal' : 'On Target'}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Protein numbers */}
+                <View style={{ flexDirection: 'row', alignItems: 'baseline', marginBottom: 12 }}>
+                  <Text style={{
+                    fontFamily: theme.fonts.heading,
+                    fontSize: 32,
+                    color: '#3b82f6',
+                  }}>
+                    {entry.consumed_protein_g || 0}
+                  </Text>
+                  <Text style={{
+                    fontFamily: theme.fonts.body,
+                    fontSize: 14,
+                    color: theme.colors.text + '77',
+                    marginLeft: 4,
+                  }}>
+                    / {entry.goal_protein_g || 0}g
+                  </Text>
+                </View>
+
+                {/* Protein progress bar */}
+                <View style={{
+                  height: 12,
+                  backgroundColor: theme.colors.background,
+                  borderRadius: 6,
+                  overflow: 'hidden',
+                }}>
+                  <View
+                    style={{
+                      width: `${Math.min(100, Math.round(((entry.consumed_protein_g || 0) / (entry.goal_protein_g || 1)) * 100))}%`,
+                      height: '100%',
+                      backgroundColor: '#3b82f6',
+                      borderRadius: 6,
+                    }}
+                  />
+                </View>
+
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
+                  <Text style={{
+                    fontFamily: theme.fonts.body,
+                    fontSize: 11,
+                    color: theme.colors.text + '66',
+                  }}>
+                    {Math.min(100, Math.round(((entry.consumed_protein_g || 0) / (entry.goal_protein_g || 1)) * 100))}% of daily goal
+                  </Text>
+                  <Text style={{
+                    fontFamily: theme.fonts.body,
+                    fontSize: 11,
+                    color: theme.colors.text + '66',
+                  }}>
+                    {Math.max(0, (entry.goal_protein_g || 0) - (entry.consumed_protein_g || 0))}g remaining
+                  </Text>
+                </View>
+              </View>
+            )}
 
             {/* Progress Bar Section */}
             <View style={{

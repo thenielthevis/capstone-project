@@ -13,9 +13,11 @@ import StepEnvironment from '@/components/assessment/StepEnvironment';
 import { submitHealthAssessment } from '@/api/userApi';
 import { predictUser, getCachedPredictions } from '@/api/predictApi';
 import PermissionModal from '@/components/modals/PermissionModal';
+import { useAuth } from '@/context/AuthContext';
 
 export default function HealthAssessment() {
   const { theme } = useTheme();
+  const { user, setUser } = useAuth();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -208,6 +210,11 @@ export default function HealthAssessment() {
       } catch (predictError) {
         console.error('[HealthAssessment] Error generating predictions:', predictError);
         alert('Health data saved, but prediction update failed. You can manually regenerate predictions from the Predictions page.');
+      }
+
+      // Mark assessment as completed in auth context
+      if (user) {
+        setUser({ ...user, hasCompletedAssessment: true });
       }
 
       navigate('/predictions');

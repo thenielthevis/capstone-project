@@ -70,7 +70,7 @@ const MiniCalorieProgress = ({
   calorieBalance,
   theme
 }: {
-  calorieBalance: { consumed_kcal: number; goal_kcal: number; burned_kcal: number; status: string } | null;
+  calorieBalance: { consumed_kcal: number; goal_kcal: number; burned_kcal: number; status: string; consumed_protein_g?: number; goal_protein_g?: number; protein_status?: string } | null;
   theme: any;
 }) => {
   if (!calorieBalance) return null;
@@ -79,6 +79,11 @@ const MiniCalorieProgress = ({
   const statusColor = calorieBalance.status === 'under' ? '#22c55e' :
     calorieBalance.status === 'over' ? '#ef4444' : theme.colors.primary;
   const remaining = Math.max(0, calorieBalance.goal_kcal - calorieBalance.consumed_kcal + calorieBalance.burned_kcal);
+
+  const proteinConsumed = calorieBalance.consumed_protein_g || 0;
+  const proteinGoal = calorieBalance.goal_protein_g || 0;
+  const proteinPercentage = proteinGoal > 0 ? Math.min((proteinConsumed / proteinGoal) * 100, 100) : 0;
+  const proteinRemaining = Math.max(0, proteinGoal - proteinConsumed);
 
   return (
     <View style={{
@@ -165,6 +170,46 @@ const MiniCalorieProgress = ({
         }}>
           {remaining} kcal remaining
         </Text>
+
+        {/* Protein mini progress */}
+        {proteinGoal > 0 && (
+          <View style={{ marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: theme.colors.background }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <MaterialCommunityIcons name="arm-flex" size={14} color="#3b82f6" />
+                <Text style={{
+                  fontFamily: theme.fonts.bodyBold,
+                  fontSize: 12,
+                  color: theme.colors.text,
+                  marginLeft: 4,
+                }}>
+                  {proteinConsumed}g / {proteinGoal}g protein
+                </Text>
+              </View>
+              <Text style={{
+                fontFamily: theme.fonts.body,
+                fontSize: 10,
+                color: '#3b82f6',
+              }}>
+                {proteinRemaining}g left
+              </Text>
+            </View>
+            <View style={{
+              height: 4,
+              backgroundColor: theme.colors.background,
+              borderRadius: 2,
+              marginTop: 6,
+              overflow: 'hidden',
+            }}>
+              <View style={{
+                width: `${proteinPercentage}%`,
+                height: '100%',
+                backgroundColor: '#3b82f6',
+                borderRadius: 2,
+              }} />
+            </View>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -367,6 +412,9 @@ export default function Food() {
     burned_kcal: number;
     net_kcal: number;
     status: string;
+    goal_protein_g?: number;
+    consumed_protein_g?: number;
+    protein_status?: string;
   } | null>(null);
   const [allergiesLoaded, setAllergiesLoaded] = useState(false);
 

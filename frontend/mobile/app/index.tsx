@@ -15,7 +15,13 @@ export default function Index() {
         const token = await tokenStorage.getToken();
         if (token) {
           setIsAuthenticated(true);
-          router.replace('../(tabs)/Home');
+          // Check if user has completed the initial health assessment
+          const storedUser = await tokenStorage.getUser();
+          if (storedUser && storedUser.hasCompletedAssessment === false) {
+            router.replace('/screens/analysis_input/prediction_input' as any);
+          } else {
+            router.replace('../(tabs)/Home');
+          }
         } else {
           setIsAuthenticated(false);
         }

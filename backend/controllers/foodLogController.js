@@ -3,8 +3,26 @@ const User = require('../models/userModel');
 const { uploadProfilePicture } = require('../utils/cloudinary');
 const mongoose = require('mongoose');
 
-// Helper function to update user's daily calorie balance
-async function updateUserDailyCalories(userId, calories) {
+// Helper function to calculate daily protein goal based on user metrics
+function calculateProteinGoal(user) {
+  const weight = user.physicalMetrics?.weight?.value;
+  const activityLevel = user.lifestyle?.activityLevel;
+  if (!weight) return 50; // Default 50g if no weight data
+
+  // Protein recommendations: 0.8g/kg sedentary, up to 2.0g/kg very active
+  const proteinFactors = {
+    sedentary: 0.8,
+    lightly_active: 1.0,
+    moderately_active: 1.2,
+    very_active: 1.6,
+    extremely_active: 2.0
+  };
+  const factor = proteinFactors[activityLevel] || 0.8;
+  return Math.round(weight * factor);
+}
+
+// Helper function to update user's daily calorie & protein balance
+async function updateUserDailyCalories(userId, calories, proteinGrams = 0) {
   try {
     const user = await User.findById(userId);
     if (!user) return;
@@ -18,6 +36,8 @@ async function updateUserDailyCalories(userId, calories) {
       entryDate.setHours(0, 0, 0, 0);
       return entryDate.getTime() === today.getTime();
     });
+
+    const goal_protein_g = calculateProteinGoal(user);
 
     if (!entry) {
       // Calculate goal_kcal if no entry exists
@@ -51,20 +71,28 @@ async function updateUserDailyCalories(userId, calories) {
         }
       }
 
+      // Determine protein status
+      let protein_status = 'on_target';
+      if (proteinGrams < goal_protein_g * 0.8) protein_status = 'under';
+      else if (proteinGrams > goal_protein_g * 1.2) protein_status = 'over';
+
       user.dailyCalorieBalance.push({
         date: today,
         goal_kcal,
         consumed_kcal: calories,
         burned_kcal: 0,
         net_kcal: calories,
-        status: calories < goal_kcal - 100 ? 'under' : (calories > goal_kcal + 100 ? 'over' : 'on_target')
+        status: calories < goal_kcal - 100 ? 'under' : (calories > goal_kcal + 100 ? 'over' : 'on_target'),
+        goal_protein_g,
+        consumed_protein_g: proteinGrams,
+        protein_status
       });
     } else {
       // Update existing entry
       entry.consumed_kcal = (entry.consumed_kcal || 0) + calories;
       entry.net_kcal = entry.consumed_kcal - (entry.burned_kcal || 0);
 
-      // Update status
+      // Update calorie status
       if (entry.net_kcal < entry.goal_kcal - 100) {
         entry.status = 'under';
       } else if (entry.net_kcal > entry.goal_kcal + 100) {
@@ -72,10 +100,21 @@ async function updateUserDailyCalories(userId, calories) {
       } else {
         entry.status = 'on_target';
       }
+
+      // Update protein tracking
+      entry.goal_protein_g = goal_protein_g;
+      entry.consumed_protein_g = (entry.consumed_protein_g || 0) + proteinGrams;
+      if (entry.consumed_protein_g < entry.goal_protein_g * 0.8) {
+        entry.protein_status = 'under';
+      } else if (entry.consumed_protein_g > entry.goal_protein_g * 1.2) {
+        entry.protein_status = 'over';
+      } else {
+        entry.protein_status = 'on_target';
+      }
     }
 
     await user.save();
-    console.log('[UPDATE DAILY CALORIES] Updated daily calorie balance for user:', userId);
+    console.log('[UPDATE DAILY CALORIES] Updated daily calorie & protein balance for user:', userId);
   } catch (error) {
     console.error('[UPDATE DAILY CALORIES] Error:', error.message);
   }
@@ -151,8 +190,9 @@ exports.createFoodLog = async (req, res) => {
     const savedLog = await newFoodLog.save();
     console.log('[CREATE FOOD LOG] Food log saved successfully:', savedLog._id);
 
-    // Automatically update user's daily calorie balance
-    await updateUserDailyCalories(userId, foodData.calories);
+    // Automatically update user's daily calorie & protein balance
+    const proteinGrams = foodData.nutrients?.protein || 0;
+    await updateUserDailyCalories(userId, foodData.calories, proteinGrams);
 
     // Trigger Gamification Calculation (Nutrition Battery)
     try {

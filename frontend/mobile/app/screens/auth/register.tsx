@@ -50,7 +50,12 @@ export default function RegisterScreen() {
           // Check for pending notification navigation (e.g., user tapped notification before logging in)
           const hasPendingNav = await executePendingNavigation(router);
           if (!hasPendingNav) {
-            router.replace("../../(tabs)/Home");
+            // Redirect new users to the health assessment before allowing app access
+            if (!response.data.user.hasCompletedAssessment) {
+              router.replace("/screens/analysis_input/prediction_input" as any);
+            } else {
+              router.replace("../../(tabs)/Home");
+            }
           }
         }
       },

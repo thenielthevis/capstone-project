@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
-import { getUserProfile } from '@/api/userApi';
+import { getUserProfile, getTodayCalorieBalance, createOrUpdateDailyCalorieBalance, DailyBalanceEntry } from '@/api/userApi';
 import { postApi, Post } from '@/api/postApi';
 import ReactionButton from '@/components/ReactionButton';
 import PostMediaCarousel from '@/components/feed/PostMediaCarousel';
@@ -64,6 +64,9 @@ export default function Dashboard() {
   // Session details modal state
   const [sessionModalOpen, setSessionModalOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState<{ item_id: any; item_type: string } | null>(null);
+
+  // Daily balance state
+  const [dailyBalance, setDailyBalance] = useState<DailyBalanceEntry | null>(null);
 
   // Navigation items
   const navItems = [
@@ -121,6 +124,27 @@ export default function Dashboard() {
       fetchUserProfile();
     }
   }, []);
+
+  // Fetch daily calorie/protein balance
+  useEffect(() => {
+    const fetchDailyBalance = async () => {
+      if (!user || (user as any).isGuest) return;
+      try {
+        const response = await getTodayCalorieBalance();
+        if (response.entry) {
+          setDailyBalance(response.entry);
+        } else {
+          try {
+            const createResp = await createOrUpdateDailyCalorieBalance();
+            if (createResp.entry) setDailyBalance(createResp.entry);
+          } catch { /* metrics not set */ }
+        }
+      } catch (error) {
+        console.error('Error fetching daily balance:', error);
+      }
+    };
+    fetchDailyBalance();
+  }, [user]);
 
   useEffect(() => {
     fetchPosts();
@@ -741,6 +765,72 @@ export default function Dashboard() {
                 coins={gamification.coins}
                 batteries={gamification.batteries}
               />
+            </div>
+          )}
+
+          {/* Daily Calorie & Protein Tracker */}
+          {dailyBalance && (
+            <div
+              className="mb-4 rounded-xl p-4 cursor-pointer hover:shadow-md transition-shadow"
+              style={{ backgroundColor: theme.colors.surface, border: `1px solid ${theme.colors.border}` }}
+              onClick={() => navigate('/food-tracking')}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-semibold" style={{ color: theme.colors.text }}>Today's Nutrition</span>
+                <span
+                  className="text-xs px-2 py-0.5 rounded-full"
+                  style={{
+                    backgroundColor: (dailyBalance.status === 'under' ? '#22c55e' :
+                      dailyBalance.status === 'over' ? '#ef4444' : theme.colors.primary) + '15',
+                    color: dailyBalance.status === 'under' ? '#22c55e' :
+                      dailyBalance.status === 'over' ? '#ef4444' : theme.colors.primary
+                  }}
+                >
+                  {dailyBalance.status === 'under' ? 'On Track' :
+                    dailyBalance.status === 'over' ? 'Over' : 'On Target'}
+                </span>
+              </div>
+
+              {/* Calories mini bar */}
+              <div className="mb-3">
+                <div className="flex justify-between items-baseline mb-1">
+                  <span className="text-xs font-medium" style={{ color: theme.colors.text }}>Calories</span>
+                  <span className="text-xs" style={{ color: theme.colors.textSecondary }}>
+                    {dailyBalance.consumed_kcal} / {dailyBalance.goal_kcal} kcal
+                  </span>
+                </div>
+                <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme.colors.background }}>
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${Math.min(100, Math.round((dailyBalance.consumed_kcal / (dailyBalance.goal_kcal || 1)) * 100))}%`,
+                      backgroundColor: dailyBalance.status === 'under' ? '#22c55e' :
+                        dailyBalance.status === 'over' ? '#ef4444' : theme.colors.primary
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Protein mini bar */}
+              {(dailyBalance.goal_protein_g > 0) && (
+                <div>
+                  <div className="flex justify-between items-baseline mb-1">
+                    <span className="text-xs font-medium" style={{ color: theme.colors.text }}>Protein</span>
+                    <span className="text-xs" style={{ color: theme.colors.textSecondary }}>
+                      {dailyBalance.consumed_protein_g || 0} / {dailyBalance.goal_protein_g}g
+                    </span>
+                  </div>
+                  <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme.colors.background }}>
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${Math.min(100, Math.round(((dailyBalance.consumed_protein_g || 0) / (dailyBalance.goal_protein_g || 1)) * 100))}%`,
+                        backgroundColor: '#3b82f6'
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

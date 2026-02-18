@@ -9,6 +9,10 @@ type DailyEntry = {
     goal_kcal: number;
     net_kcal: number;
     burned_kcal: number;
+    // Protein tracking
+    goal_protein_g: number;
+    consumed_protein_g: number;
+    protein_status: string;
     // Add other entry fields as needed
 };
 

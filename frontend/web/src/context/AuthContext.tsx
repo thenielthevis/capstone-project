@@ -10,6 +10,7 @@ interface User {
   profilePicture?: string;
   googleId?: string;
   isGuest?: boolean;
+  hasCompletedAssessment?: boolean;
 }
 
 interface AuthContextType {

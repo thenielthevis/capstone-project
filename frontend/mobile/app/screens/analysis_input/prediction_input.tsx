@@ -20,6 +20,7 @@ import PermissionModal from "@/app/components/Modals/PermissionModal";
 import { submitHealthAssessment } from "../../api/userApi";
 import { tokenStorage } from "@/utils/tokenStorage";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
+import { useUser } from "../../context/UserContext";
 
 // Configure notifications behavior
 Notifications.setNotificationHandler({
@@ -53,6 +54,7 @@ const API_URL = ENV_API
 
 export default function PredictionInputScreen() {
   const { theme } = useTheme();
+  const { user, setUser } = useUser();
   const [currentStep, setCurrentStep] = useState(0);
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -369,8 +371,11 @@ export default function PredictionInputScreen() {
       if (!predictResponse.ok) {
         console.error('Prediction update failed');
         setLoading(false);
-        // Navigate to Analysis tab instead of going back
-        router.replace('/(tabs)/Analysis');
+        // Assessment was already saved — mark as completed even if prediction fails
+        const storedU = await tokenStorage.getUser();
+        if (storedU) { storedU.hasCompletedAssessment = true; await tokenStorage.saveUser(storedU); }
+        if (user) { setUser({ ...user, hasCompletedAssessment: true }); }
+        router.replace('/(tabs)/Home');
         return;
       }
 
@@ -381,15 +386,28 @@ export default function PredictionInputScreen() {
       await sendSuccessNotification();
 
       setLoading(false);
+      // Update the stored user so the assessment gate won't redirect again
+      const storedUser = await tokenStorage.getUser();
+      if (storedUser) {
+        storedUser.hasCompletedAssessment = true;
+        await tokenStorage.saveUser(storedUser);
+      }
+      if (user) {
+        setUser({ ...user, hasCompletedAssessment: true });
+      }
       // Set flag to show notification in Analysis screen
       setPredictionUpdateFlag(true);
-      // Navigate to Analysis tab instead of going back
-      router.replace('/(tabs)/Analysis');
+      // Navigate to Home tab (or Analysis for returning users)
+      router.replace('/(tabs)/Home');
 
     } catch (error) {
       console.error("Error submitting health assessment:", error);
       setLoading(false);
-      router.replace('/(tabs)/Analysis');
+      // Even on error, check if the assessment was already saved
+      const storedU = await tokenStorage.getUser();
+      if (storedU) { storedU.hasCompletedAssessment = true; await tokenStorage.saveUser(storedU); }
+      if (user) { setUser({ ...user, hasCompletedAssessment: true }); }
+      router.replace('/(tabs)/Home');
     }
   };
 

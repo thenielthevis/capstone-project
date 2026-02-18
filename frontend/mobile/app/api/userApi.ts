@@ -27,7 +27,7 @@ export const getTodayCalorieBalance = async () => {
 };
 
 // Update daily calories (add consumed or burned)
-export const updateDailyCalories = async (data: { consumed_kcal?: number; burned_kcal?: number }) => {
+export const updateDailyCalories = async (data: { consumed_kcal?: number; burned_kcal?: number; consumed_protein_g?: number }) => {
   const response = await axiosInstance.patch("/users/daily-calorie-balance", data);
   return response.data;
 };

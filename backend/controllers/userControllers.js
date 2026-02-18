@@ -83,7 +83,8 @@ exports.loginUser = async (req, res) => {
                     id: user._id,
                     username: user.username,
                     email: user.email,
-                    role: user.role
+                    role: user.role,
+                    hasCompletedAssessment: user.hasCompletedAssessment || false
                 }
             });
     } catch (error) {
@@ -138,7 +139,8 @@ exports.googleUserController = async (req, res) => {
                 email: user.email,
                 username: user.username,
                 role: user.role,
-                profilePicture: user.profilePicture
+                profilePicture: user.profilePicture,
+                hasCompletedAssessment: user.hasCompletedAssessment || false
             }
         });
     } catch (error) {
@@ -329,6 +331,8 @@ exports.submitHealthAssessment = async (req, res) => {
                 healthProfile,
                 environmentalFactors,
                 riskFactors,
+                // Mark the initial assessment as completed
+                hasCompletedAssessment: true,
                 // IMPORTANT: Clear lastPrediction so next /predict/me call regenerates with new data
                 lastPrediction: null
             },
@@ -339,11 +343,28 @@ exports.submitHealthAssessment = async (req, res) => {
             return res.status(404).json({ message: "User not found" });
         }
 
-        res.status(200).json({ message: "Health assessment submitted", user: updatedUser });
+        res.status(200).json({ message: "Health assessment submitted", user: updatedUser, hasCompletedAssessment: true });
     } catch (error) {
         res.status(500).json({ message: "Server error", error: error.message });
     }
 };
+
+// Helper function to calculate daily protein goal based on user metrics
+function calculateProteinGoal(user) {
+    const weight = user.physicalMetrics?.weight?.value;
+    const activityLevel = user.lifestyle?.activityLevel;
+    if (!weight) return 50; // Default 50g if no weight data
+
+    const proteinFactors = {
+        sedentary: 0.8,
+        lightly_active: 1.0,
+        moderately_active: 1.2,
+        very_active: 1.6,
+        extremely_active: 2.0
+    };
+    const factor = proteinFactors[activityLevel] || 0.8;
+    return Math.round(weight * factor);
+}
 
 // Create or update today's dailyCalorieBalance entry for the user
 exports.createOrUpdateDailyCalorieBalance = async (req, res) => {
@@ -372,6 +393,7 @@ exports.createOrUpdateDailyCalorieBalance = async (req, res) => {
             activityLevel,
             targetWeight
         });
+        const goal_protein_g = calculateProteinGoal(user);
 
         // Find today's entry
         let entry = user.dailyCalorieBalance.find(e => {
@@ -381,6 +403,15 @@ exports.createOrUpdateDailyCalorieBalance = async (req, res) => {
         });
         if (entry) {
             entry.goal_kcal = goal_kcal;
+            entry.goal_protein_g = goal_protein_g;
+            // Recalculate protein status
+            if (entry.consumed_protein_g < goal_protein_g * 0.8) {
+                entry.protein_status = 'under';
+            } else if (entry.consumed_protein_g > goal_protein_g * 1.2) {
+                entry.protein_status = 'over';
+            } else {
+                entry.protein_status = 'on_target';
+            }
         } else {
             user.dailyCalorieBalance.push({
                 date: today,
@@ -388,7 +419,10 @@ exports.createOrUpdateDailyCalorieBalance = async (req, res) => {
                 consumed_kcal: 0,
                 burned_kcal: 0,
                 net_kcal: 0,
-                status: 'on_target'
+                status: 'on_target',
+                goal_protein_g,
+                consumed_protein_g: 0,
+                protein_status: 'under'
             });
         }
         await user.save();
@@ -460,11 +494,11 @@ exports.getTodayCalorieBalance = async (req, res) => {
     }
 };
 
-// PATCH: Update today's calories and automate net_kcal
+// PATCH: Update today's calories/protein and automate net_kcal
 exports.updateDailyCalories = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { consumed_kcal, burned_kcal } = req.body;
+        const { consumed_kcal, burned_kcal, consumed_protein_g } = req.body;
         const user = await User.findById(userId);
         if (!user) return res.status(404).json({ message: 'User not found' });
 
@@ -480,15 +514,26 @@ exports.updateDailyCalories = async (req, res) => {
         }
         if (typeof consumed_kcal === 'number') entry.consumed_kcal = consumed_kcal;
         if (typeof burned_kcal === 'number') entry.burned_kcal = burned_kcal;
+        if (typeof consumed_protein_g === 'number') entry.consumed_protein_g = consumed_protein_g;
         // Always recalculate net_kcal
         entry.net_kcal = calculateNetCalories(entry.consumed_kcal, entry.burned_kcal);
-        // Update status
+        // Update calorie status
         if (entry.net_kcal < entry.goal_kcal - 100) {
             entry.status = 'under';
         } else if (entry.net_kcal > entry.goal_kcal + 100) {
             entry.status = 'over';
         } else {
             entry.status = 'on_target';
+        }
+        // Update protein status
+        if (entry.goal_protein_g > 0) {
+            if (entry.consumed_protein_g < entry.goal_protein_g * 0.8) {
+                entry.protein_status = 'under';
+            } else if (entry.consumed_protein_g > entry.goal_protein_g * 1.2) {
+                entry.protein_status = 'over';
+            } else {
+                entry.protein_status = 'on_target';
+            }
         }
         await user.save();
         res.status(200).json({ message: 'Calories updated', entry });
@@ -608,6 +653,9 @@ exports.getUserProfile = async (req, res) => {
 
                 // Gamification
                 gamification: user.gamification,
+
+                // Assessment flag
+                hasCompletedAssessment: user.hasCompletedAssessment || false,
 
                 // Profile Stats
                 profileCompletion,

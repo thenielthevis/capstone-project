@@ -23,6 +23,8 @@ export default function Login() {
     if (isAuthenticated && user) {
       if (user.role === 'admin') {
         navigate('/admin/dashboard', { replace: true });
+      } else if (user.hasCompletedAssessment === false) {
+        navigate('/health-assessment', { replace: true });
       } else {
         navigate('/dashboard', { replace: true });
       }
@@ -49,9 +51,11 @@ export default function Login() {
       // Save to context and localStorage
       login(data.user, data.token);
       
-      // Redirect based on role
+      // Redirect based on role, or to assessment for new users
       if (data.user.role === 'admin') {
         navigate('/admin/dashboard');
+      } else if (!data.user.hasCompletedAssessment) {
+        navigate('/health-assessment');
       } else {
         navigate('/dashboard');
       }
@@ -78,8 +82,12 @@ export default function Login() {
       // Save to context and localStorage
       login(data.user, data.token);
       
-      // Navigate to dashboard
-      navigate('/dashboard');
+      // Navigate to assessment for new users, or dashboard
+      if (!data.user.hasCompletedAssessment) {
+        navigate('/health-assessment');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err: any) {
       setError(err.message || 'Google Sign-In failed. Please try again.');
       console.error('Google Sign-In error:', err);
