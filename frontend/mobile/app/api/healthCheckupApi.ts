@@ -162,6 +162,23 @@ export interface HealthCheckupResponse {
     entry: HealthCheckupEntry;
     completionPercentage: number;
     isComplete: boolean;
+    gamification?: {
+        gamification: {
+            points: number;
+            coins: number;
+            batteries: Array<{
+                sleep: number;
+                activity: number;
+                nutrition: number;
+                health: number;
+                total: number;
+                date: string;
+            }>;
+        };
+        coinsAwarded: number;
+        totalTodayCoins: number;
+        reasoning?: string;
+    };
 }
 
 export interface WeeklyStats {
