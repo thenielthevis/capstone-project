@@ -12,6 +12,7 @@ import StepAddictions from '@/components/assessment/StepAddictions';
 import StepEnvironment from '@/components/assessment/StepEnvironment';
 import { submitHealthAssessment } from '@/api/userApi';
 import { predictUser, getCachedPredictions } from '@/api/predictApi';
+import PermissionModal from '@/components/modals/PermissionModal';
 
 export default function HealthAssessment() {
   const { theme } = useTheme();
@@ -20,7 +21,8 @@ export default function HealthAssessment() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [currentConditionsInput, setCurrentConditionsInput] = useState('');
-  
+  const [showPermissionModal, setShowPermissionModal] = useState(true);
+
   const [formData, setFormData] = useState({
     age: '',
     sex: '',
@@ -49,7 +51,7 @@ export default function HealthAssessment() {
     const loadUserData = async () => {
       try {
         setLoading(true);
-        
+
         console.log('[HealthAssessment] Fetching existing user data...');
         // Fetch user data without forcing prediction regeneration
         const response = await getCachedPredictions();
@@ -58,7 +60,7 @@ export default function HealthAssessment() {
 
         if (data.profile) {
           const profile = data.profile;
-          
+
           // Pre-populate form with existing data
           setFormData(prev => ({
             ...prev,
@@ -92,7 +94,7 @@ export default function HealthAssessment() {
           if (profile.healthProfile?.currentConditions?.length > 0) {
             setCurrentConditionsInput(profile.healthProfile.currentConditions.join(', '));
           }
-          
+
           console.log('[HealthAssessment] Form pre-populated with existing data');
         }
       } catch (error: any) {
@@ -190,12 +192,12 @@ export default function HealthAssessment() {
     try {
       setIsSubmitting(true);
       const mappedData = mapFormDataToBackend(formData);
-      
+
       // Step 1: Update user health assessment in database
       console.log('[HealthAssessment] Submitting health assessment with data:', mappedData);
       await submitHealthAssessment(mappedData);
       console.log('[HealthAssessment] Health assessment submitted successfully');
-      
+
       // Step 2: Trigger prediction update by calling predictUser with force=true
       // The backend will see the updated health data and generate new predictions
       console.log('[HealthAssessment] Triggering prediction update with force regeneration...');
@@ -207,7 +209,7 @@ export default function HealthAssessment() {
         console.error('[HealthAssessment] Error generating predictions:', predictError);
         alert('Health data saved, but prediction update failed. You can manually regenerate predictions from the Predictions page.');
       }
-      
+
       navigate('/predictions');
     } catch (error: any) {
       console.error('[HealthAssessment] Error submitting health assessment:', error);
@@ -243,7 +245,7 @@ export default function HealthAssessment() {
   return (
     <div className="min-h-screen" style={{ background: `linear-gradient(135deg, ${theme.colors.surface} 0%, ${theme.colors.background} 100%)` }}>
       {/* Header */}
-      <Header 
+      <Header
         title="Health Assessment"
         showBackButton
         backTo="/dashboard"
@@ -287,7 +289,7 @@ export default function HealthAssessment() {
               <div className="w-full rounded-full h-2" style={{ backgroundColor: theme.colors.surface }}>
                 <div
                   className="h-2 rounded-full transition-all duration-300"
-                  style={{ 
+                  style={{
                     width: `${((currentStep + 1) / steps.length) * 100}%`,
                     backgroundColor: theme.colors.primary
                   }}
@@ -338,6 +340,7 @@ export default function HealthAssessment() {
           </div>
         )}
       </main>
+      <PermissionModal visible={showPermissionModal} onAccept={() => setShowPermissionModal(false)} />
     </div>
   );
 }

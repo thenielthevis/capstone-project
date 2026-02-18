@@ -53,16 +53,6 @@ const StepBasicInfo: React.FC<StepBasicInfoProps> = ({ formData, setFormData }) 
               />
               Female
             </label>
-            <label className="flex items-center" style={{ color: theme.colors.text }}>
-              <input
-                type="radio"
-                value="other"
-                checked={formData.sex === 'other'}
-                onChange={(e) => setFormData({ ...formData, sex: e.target.value })}
-                className="mr-2"
-              />
-              Other
-            </label>
           </div>
         </div>
 
