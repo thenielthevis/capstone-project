@@ -14,8 +14,9 @@ const { evaluateGamification } = require('../utils/geminiJudge');
  * Core function to calculate and update gamification stats for a user
  * Can be called internally by other controllers
  */
-const updateUserGamificationStats = async (userId) => {
+const updateUserGamificationStats = async (userId, options = {}) => {
     try {
+        const { skipAI = false } = options;
         // ---------------------------------------------------------
         // 1. Calculate Points (Total Upvotes from User's Posts)
         // ---------------------------------------------------------
@@ -84,38 +85,72 @@ const updateUserGamificationStats = async (userId) => {
         const user = await User.findById(userId);
         if (!user) throw new Error("User not found");
 
-        // ---------------------------------------------------------
-        // 3. Call Gemini Judge
-        // ---------------------------------------------------------
-        const contextData = {
-            userProfile: {
-                age: user.age,
-                gender: user.gender,
-                bmi: user.physicalMetrics?.bmi,
-                height: user.physicalMetrics?.height?.value,
-                weight: user.physicalMetrics?.weight?.value,
-                activityLevel: user.lifestyle?.activityLevel,
-                healthConditions: user.healthProfile?.currentConditions
-            },
-            activity: {
-                caloriesBurned: Math.round(totalCaloriesBurned),
-                activeMinutes: Math.round(totalActiveMinutes)
-            },
-            nutrition: nutritionDigest,
-            sleep: {
-                averageHours: user.lifestyle?.sleepHours || 7 // Default to 7 if not set
-            },
-            currentResponsiveDna: user.avatarConfig?.responsive_dna || {
-                height: 0.5,
-                upperBodyWeight: 0.5,
-                lowerBodyWeight: 0.5,
-                upperBodyMuscle: 0.5,
-                lowerBodyMuscle: 0.5
-            }
-        };
+        // --- Health Checkup Data ---
+        const HealthCheckup = require('../models/healthCheckupModel');
+        const checkupEntry = await HealthCheckup.findOne({
+            user: userId,
+            date: today
+        });
 
-        // Get AI Judgment (0-100 scores)
-        const scores = await evaluateGamification(contextData);
+        // ---------------------------------------------------------
+        // 3. Call Gemini Judge (OR Reuse Existing Scores)
+        // ---------------------------------------------------------
+        let scores = { activity: 0, nutrition: 0, health: 0, sleep: 0, reasoning: "AI evaluation skipped to save quota." };
+
+        // Find existing battery today to potentially reuse scores
+        const existingBattery = user.gamification?.batteries?.find(
+            b => b.date && b.date.toISOString().split('T')[0] === today.toISOString().split('T')[0]
+        );
+
+        if (skipAI && existingBattery) {
+            // Reuse existing Activity and Nutrition scores
+            scores.activity = existingBattery.activity || 0;
+            scores.nutrition = existingBattery.nutrition || 0;
+            scores.health = existingBattery.health || 0;
+            scores.sleep = existingBattery.sleep || 0;
+            scores.responsive_dna = user.avatarConfig?.responsive_dna;
+            scores.reasoning = "Using cached Activity/Nutrition scores (Health update).";
+        } else {
+            const contextData = {
+                userProfile: {
+                    age: user.age,
+                    gender: user.gender,
+                    bmi: user.physicalMetrics?.bmi,
+                    height: user.physicalMetrics?.height?.value,
+                    weight: user.physicalMetrics?.weight?.value,
+                    targetWeight: user.physicalMetrics?.targetWeight?.value,
+                    activityLevel: user.lifestyle?.activityLevel,
+                    healthConditions: user.healthProfile?.currentConditions
+                },
+                activity: {
+                    caloriesBurned: Math.round(totalCaloriesBurned),
+                    activeMinutes: Math.round(totalActiveMinutes)
+                },
+                nutrition: nutritionDigest,
+                healthCheckup: checkupEntry ? {
+                    water: checkupEntry.water,
+                    stress: checkupEntry.stress,
+                    vices: checkupEntry.vices,
+                    weight: checkupEntry.weight,
+                    sleep: checkupEntry.sleep,
+                    completedMetrics: checkupEntry.completedMetrics
+                } : null,
+                sleep: {
+                    // Prioritize actual sleep from checkup, fallback to profile default
+                    averageHours: checkupEntry?.sleep?.hours || user.lifestyle?.sleepHours || 7
+                },
+                currentResponsiveDna: user.avatarConfig?.responsive_dna || {
+                    height: 0.5,
+                    upperBodyWeight: 0.5,
+                    lowerBodyWeight: 0.5,
+                    upperBodyMuscle: 0.5,
+                    lowerBodyMuscle: 0.5
+                }
+            };
+
+            // Get AI Judgment (0-100 scores)
+            scores = await evaluateGamification(contextData);
+        }
 
         // ---------------------------------------------------------
         // 4. Calculate and Award Coins
@@ -179,8 +214,7 @@ const updateUserGamificationStats = async (userId) => {
             }
 
             const current = user.avatarConfig.responsive_dna || {
-                height: 0.5, upperBodyWeight: 0.5, lowerBodyWeight: 0.5,
-                upperBodyMuscle: 0.5, lowerBodyMuscle: 0.5
+                height: 0.5, upperbody: 0.5, lowerbody: 0.5, arms: 0.5
             };
             const ai = scores.responsive_dna;
 
@@ -195,21 +229,52 @@ const updateUserGamificationStats = async (userId) => {
             user.avatarConfig.responsive_dna = {
                 height: smooth('height'),
                 race: user.gender === 'female' ? 'HumanFemale' : 'HumanMale',
-                upperBodyWeight: smooth('upperBodyWeight'),
-                lowerBodyWeight: smooth('lowerBodyWeight'),
-                upperBodyMuscle: smooth('upperBodyMuscle'),
-                lowerBodyMuscle: smooth('lowerBodyMuscle')
+                upperbody: smooth('upperbody'),
+                lowerbody: smooth('lowerbody'),
+                arms: smooth('arms')
             };
             user.markModified('avatarConfig');
         }
 
         await user.save();
+
+        // ---------------------------------------------------------
+        // 5. Calculate Deterministic Health & Sleep Scores (Manual)
+        // ---------------------------------------------------------
+        const manualScores = calculateManualHealthScores(user, checkupEntry);
+
+        // ---------------------------------------------------------
+        // 6. Merge Scores (Gemini for Act/Nut, Manual for Health/Sleep)
+        // ---------------------------------------------------------
+        const finalBatteries = {
+            activity: scores.activity || 0,
+            nutrition: scores.nutrition || 0,
+            health: manualScores.health,
+            sleep: manualScores.sleep
+        };
+
+        // Update the user's batteries with final merged scores
+        const battery = user.gamification.batteries.find(
+            b => b.date && b.date.toISOString().split('T')[0] === today.toISOString().split('T')[0]
+        );
+
+        if (battery) {
+            battery.activity = finalBatteries.activity;
+            battery.nutrition = finalBatteries.nutrition;
+            battery.health = finalBatteries.health;
+            battery.sleep = finalBatteries.sleep;
+            battery.total = Math.round((battery.activity + battery.nutrition + battery.health + battery.sleep) / 4);
+            user.markModified('gamification.batteries');
+            await user.save();
+        }
+
         return {
             gamification: user.gamification,
             responsive_dna: user.avatarConfig?.responsive_dna,
             reasoning: scores.reasoning,
             coinsAwarded: newCoinsAwardedTotal,
-            totalTodayCoins: totalTargetCoins
+            totalTodayCoins: totalTargetCoins,
+            manualScores // For debugging if needed
         };
 
 
@@ -221,6 +286,99 @@ const updateUserGamificationStats = async (userId) => {
 
 // Export the internal function for use in other controllers
 exports.updateUserGamificationStats = updateUserGamificationStats;
+
+/**
+ * Calculates deterministic scores for Health and Sleep batteries
+ * @param {Object} user User model instance
+ * @param {Object} checkup Today's health checkup entry
+ * @returns {Object} { health: number, sleep: number }
+ */
+const calculateManualHealthScores = (user, checkup) => {
+    let healthScore = 0;
+    let sleepScore = 0;
+
+    if (!checkup) {
+        return { health: 10, sleep: 10 }; // Base floor for participation
+    }
+
+    // --- 1. Sleep Scoring ---
+    if (checkup.sleep && checkup.sleep.hours !== undefined) {
+        const hours = checkup.sleep.hours;
+        // Base score based on hours (7-9 is ideal)
+        let baseSleep = 10;
+        if (hours >= 7 && hours <= 9) baseSleep = 100;
+        else if (hours === 6 || hours === 10) baseSleep = 70;
+        else if (hours === 5 || hours === 11) baseSleep = 40;
+        else if (hours > 0) baseSleep = 20;
+
+        // Quality multiplier
+        const qualityMultipliers = {
+            'excellent': 1.0,
+            'good': 0.9,
+            'fair': 0.7,
+            'poor': 0.5
+        };
+        const multiplier = qualityMultipliers[checkup.sleep.quality] || 0.8; // Default to 0.8 if not set
+        sleepScore = Math.round(baseSleep * multiplier);
+    } else {
+        sleepScore = 10;
+    }
+
+    // --- 2. Health Scoring (4 components, max 25 each) ---
+
+    // A. Water Intake (Max 25)
+    if (checkup.water && checkup.water.goal > 0) {
+        const waterRatio = Math.min(1.0, (checkup.water.amount || 0) / checkup.water.goal);
+        healthScore += waterRatio * 25;
+    }
+
+    // B. Stress Level (Max 25) - Inversely proportional (1 is best, 10 is worst)
+    if (checkup.stress && checkup.stress.level !== undefined) {
+        const stressLevel = Math.max(1, Math.min(10, checkup.stress.level));
+        const stressScore = (11 - stressLevel) * 2.5; // level 1 -> 25, level 10 -> 2.5
+        healthScore += stressScore;
+    }
+
+    // C. BMI / Physical Health (Max 25)
+    // 18.5 - 24.9 is healthy range
+    const bmi = user.physicalMetrics?.bmi;
+    if (bmi) {
+        if (bmi >= 18.5 && bmi <= 24.9) {
+            healthScore += 25;
+        } else {
+            // Encourage them if they are logging weight (base pts)
+            healthScore += 10;
+        }
+    } else if (checkup.completedMetrics?.weight) {
+        healthScore += 15; // Logged weight but BMI not yet calc
+    }
+
+    // D. Vices (Max 25)
+    // Deduct heavily if vices were used. 
+    // If user has NO addictions registered, they get the full 25.
+    // If they have addictions and used them -> 0.
+    // If they have addictions and avoided them -> 25.
+    const addictions = user.riskFactors?.addictions || [];
+    const viceLogs = checkup.vices?.logs || [];
+
+    if (addictions.length === 0) {
+        healthScore += 25; // Healthy lifestyle by default
+    } else {
+        const usedAnyVice = viceLogs.some(log => log.used === true);
+        if (!usedAnyVice && checkup.completedMetrics?.vices) {
+            healthScore += 25; // Clean today!
+        } else if (usedAnyVice) {
+            healthScore += 0; // Point deduction already implicit by not adding
+        } else {
+            healthScore += 10; // Logged but maybe partial or default
+        }
+    }
+
+    return {
+        health: Math.min(100, Math.round(healthScore)),
+        sleep: Math.min(100, Math.round(sleepScore))
+    };
+};
 
 /**
  * @desc    Refresh/Update user's gamification stats (points + batteries)

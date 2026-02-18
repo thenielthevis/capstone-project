@@ -317,8 +317,10 @@ exports.updateCheckup = async (req, res) => {
         await entry.save();
 
         // Update gamification batteries if applicable
+        let gamificationResult = null;
         try {
-            await updateGamificationBatteries(userId, entry);
+            const { updateUserGamificationStats } = require('./gamificationController');
+            gamificationResult = await updateUserGamificationStats(userId, { skipAI: true });
         } catch (gamErr) {
             console.error('Error updating gamification:', gamErr);
         }
@@ -341,7 +343,8 @@ exports.updateCheckup = async (req, res) => {
             success: true,
             entry,
             completionPercentage: entry.getCompletionPercentage(),
-            isComplete: entry.isComplete
+            isComplete: entry.isComplete,
+            gamification: gamificationResult
         });
     } catch (error) {
         console.error('Error updating checkup:', error);
@@ -353,64 +356,6 @@ exports.updateCheckup = async (req, res) => {
     }
 };
 
-// Helper function to update gamification batteries
-const updateGamificationBatteries = async (userId, entry) => {
-    const user = await User.findById(userId);
-    if (!user || !user.gamification) return;
-
-    // Get or create today's battery entry
-    const today = getStartOfDay();
-    let battery = user.gamification.batteries.find(
-        b => b.date && getStartOfDay(b.date).getTime() === today.getTime()
-    );
-
-    if (!battery) {
-        battery = {
-            date: today,
-            sleep: 0,
-            activity: 0,
-            nutrition: 0,
-            health: 0,
-            total: 0
-        };
-        user.gamification.batteries.push(battery);
-    }
-
-    // Calculate health battery based on checkup completion
-    let healthScore = 0;
-
-    // Sleep: Good if 7-9 hours
-    if (entry.sleep?.hours) {
-        if (entry.sleep.hours >= 7 && entry.sleep.hours <= 9) {
-            healthScore += 25;
-        } else if (entry.sleep.hours >= 6 && entry.sleep.hours <= 10) {
-            healthScore += 15;
-        } else {
-            healthScore += 5;
-        }
-    }
-
-    // Water: Percentage of goal
-    if (entry.water?.amount && entry.water?.goal) {
-        const waterPercent = Math.min(100, (entry.water.amount / entry.water.goal) * 100);
-        healthScore += Math.round(waterPercent * 0.25); // Max 25 points
-    }
-
-    // Stress: Lower is better (10 = 0 points, 1 = 25 points)
-    if (entry.stress?.level) {
-        healthScore += Math.round((11 - entry.stress.level) * 2.5);
-    }
-
-    // Weight logging: 25 points for logging
-    if (entry.completedMetrics.weight) {
-        healthScore += 25;
-    }
-
-    battery.health = Math.min(100, healthScore);
-    battery.total = Math.round((battery.sleep + battery.activity + battery.nutrition + battery.health) / 4);
-
-    await user.save();
-};
 
 // Get checkup history
 exports.getCheckupHistory = async (req, res) => {
