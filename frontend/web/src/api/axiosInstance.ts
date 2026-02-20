@@ -34,12 +34,15 @@ axiosInstance.interceptors.response.use(
     return response;
   },
   (error) => {
-    console.error('[axiosInstance] Response error:', {
+    const errorData = {
       url: error.config?.url,
       status: error.response?.status,
       statusText: error.response?.statusText,
+      message: error.response?.data?.message || error.message,
       data: error.response?.data
-    });
+    };
+    console.error('[axiosInstance] Response error:', errorData);
+    
     if (error.response?.status === 401) {
       // Token expired or invalid
       const token = getToken();

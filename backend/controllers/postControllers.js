@@ -327,8 +327,8 @@ exports.votePost = async (req, res) => {
 exports.reactPost = async (req, res) => {
     try {
         const { id } = req.params;
-        const { reactionType } = req.body; // "Like", "Love", "Haha", "Wow", "Sad", "Angry"
-        const allowedReactions = ["Like", "Love", "Haha", "Wow", "Sad", "Angry"];
+        const { reactionType } = req.body; // "Heart", "Fire", "Zap", "Trophy", "Apple", "Dumbbell", "Run", "Smile", "Leaf", "Wind", "Water", "Brain", "Progress", "Steps"
+        const allowedReactions = ["Heart", "Fire", "Zap", "Trophy", "Apple", "Dumbbell", "Run", "Smile", "Leaf", "Wind", "Water", "Brain", "Progress", "Steps"];
 
         if (!allowedReactions.includes(reactionType)) {
             return res.status(400).json({ message: "Invalid reaction type" });
