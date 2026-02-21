@@ -195,7 +195,7 @@ export default function PredictionInputScreen() {
           title: "✅ Health Metrics Updated",
           body: "Your health assessment has been saved and new predictions have been generated!",
           data: {
-            screen: "Analysis",
+            screen: "/(tabs)/Analysis",
           },
           sound: 'default',
           priority: 'high',
@@ -467,15 +467,7 @@ export default function PredictionInputScreen() {
                 textColor={theme.colors.background}
                 onPress={async () => {
                   if (currentStep === steps.length - 1) {
-                    // Submit form: schedule notification immediately on button press,
-                    // then perform the async submit flow which will navigate back when done.
                     console.log(formData);
-                    try {
-                      await sendSuccessNotification();
-                    } catch (e) {
-                      console.error('Notification scheduling failed:', e);
-                    }
-
                     await handleSubmit();
                   } else {
                     setCurrentStep(current => current + 1);

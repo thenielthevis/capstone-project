@@ -69,7 +69,10 @@ const handleNotificationResponse = async (
 
         // Check notification data for specific screen routing
         if (data?.screen) {
-            targetScreen = `/screens/record/${data.screen}`;
+            // Use as-is if it's already an absolute path, otherwise scope to /screens/record/
+            targetScreen = (data.screen as string).startsWith('/')
+                ? data.screen as string
+                : `/screens/record/${data.screen}`;
         }
         if (data?.type === 'health_checkup_morning' || data?.type === 'health_checkup_evening') {
             targetScreen = '/screens/record/HealthCheckup';

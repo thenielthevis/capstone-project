@@ -148,7 +148,7 @@ const HEALTH_METRICS: HealthMetric[] = [
   },
   {
     id: "risks",
-    title: "Disease Risks",
+    title: "Health Risks",
     icon: "heart-pulse",
     description: "Potential Conditions",
     detailKey: "Disease_Risk_Assessment",
@@ -167,7 +167,7 @@ export default function AnalysisDashboard() {
 function AnalysisDashboardContent() {
   const { theme } = useTheme();
   const { user } = useUser();
-  const { userData: contextUserData, userLoading: contextLoading, refreshAll } = useAnalysis();
+  const { userData: contextUserData, userLoading: contextLoading, refreshAll, predictions } = useAnalysis();
   const router = useRouter();
   const [selectedMetric, setSelectedMetric] = useState<string | null>(null);
   const [showDetail, setShowDetail] = useState(false);
@@ -288,9 +288,10 @@ function AnalysisDashboardContent() {
         return labels[highest];
       }
       case "risks": {
-        const diseases = contextUserData.lastPrediction?.disease || [];
-        if (diseases.length === 0) return "Low Risk";
-        return `${diseases.length} Predicted`;
+        const preds = predictions || (contextUserData.lastPrediction?.predictions as Array<{ probability: number }> | undefined) || [];
+        const activeCount = preds.filter(p => p.probability > 0).length;
+        if (activeCount === 0) return "No Risks";
+        return `${activeCount} Risk${activeCount > 1 ? 's' : ''} Found`;
       }
       default:
         return "Analysis";
@@ -388,7 +389,7 @@ function AnalysisDashboardContent() {
                 color: theme.colors.text,
                 marginBottom: 2,
               }}
-              numberOfLines={1}
+              numberOfLines={2}
             >
               {metric.title}
             </Text>

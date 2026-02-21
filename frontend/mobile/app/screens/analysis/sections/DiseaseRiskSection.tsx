@@ -156,7 +156,7 @@ export const DiseaseRiskSection: React.FC<DiseaseRiskSectionProps> = ({ expanded
             <MetricHeader
                 icon="heart-pulse"
                 iconColor="#EF5350"
-                title="Disease Risk"
+                title="Health Risk"
                 subtitle="Risk-based predictions based on your health data analysis"
             />
 

@@ -80,7 +80,7 @@ const AnalysisScreenContent: React.FC<AnalysisScreenContentProps> = ({ initialMe
             case 'health': return 'Health Status';
             case 'environment': return 'Environmental Factors';
             case 'addiction': return 'Addiction Risk';
-            case 'risks': return 'Disease Risks';
+            case 'risks': return 'Health Risks';
             default: return 'Analysis Detail';
         }
     };

@@ -47,14 +47,6 @@ export default function HomeTabs() {
     }
   }, [fontError]);
 
-  if (!fontsLoaded && !fontError) {
-    return null;
-  }
-
-  if (!assessmentChecked) {
-    return null;
-  }
-
   const recordActions = useMemo(
     () => [
       {
@@ -84,6 +76,14 @@ export default function HomeTabs() {
     ],
     [theme.colors.primary]
   );
+
+  if (!fontsLoaded && !fontError) {
+    return null;
+  }
+
+  if (!assessmentChecked) {
+    return null;
+  }
 
   const handleActionPress = (route: Href) => {
     setRecordMenuOpen(false);
