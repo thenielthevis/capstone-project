@@ -9,7 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../context/ThemeContext';
 import { useActivityMetrics } from '../../context/ActivityMetricsContext';
 import { useUser } from '../../context/UserContext';
-import { createGeoSession } from '../../api/geoSessionApi';
+import { createGeoSession, createGeoSessionOffline } from '../../api/geoSessionApi';
 import { getTodayCalorieBalance } from '../../api/userApi';
 
 export default function ActivityMetrics() {
@@ -44,37 +44,33 @@ export default function ActivityMetrics() {
 
       // Only save if there was actual activity
       if (time > 0 && distance > 0) {
-        // Calculate average pace (min/km)
         const avgPace = distance > 0 ? (time / 60) / distance : 0;
 
-        // Create geo session with activity data
         const sessionPayload = {
           activity_type: getActivityId(activityType),
           distance_km: distance,
           avg_pace: avgPace,
           moving_time_sec: time,
-          route_coordinates: [], // No route in metrics view usually? or should we pass it? The original code had empty array. structure matches.
+          route_coordinates: [],
           calories_burned: caloriesBurned,
           started_at: new Date(Date.now() - time * 1000).toISOString(),
           ended_at: new Date().toISOString(),
         };
 
-        await createGeoSession(sessionPayload);
-        console.log('[ActivityMetrics] Session saved successfully, calories burned:', caloriesBurned);
-
-        // Refresh calorie balance after saving
-        try {
-          await getTodayCalorieBalance();
-          console.log('[ActivityMetrics] Calorie balance refreshed');
-        } catch (error) {
-          console.error('[ActivityMetrics] Error refreshing calorie balance:', error);
+        // Offline-first save
+        const result = await createGeoSessionOffline(sessionPayload);
+        if (result.online) {
+          console.log('[ActivityMetrics] Session saved online, calories:', caloriesBurned);
+          getTodayCalorieBalance().catch(() => {});
+        } else {
+          console.log('[ActivityMetrics] Session queued offline, id:', result.localId);
         }
       }
     } catch (error) {
       console.error('[ActivityMetrics] Error saving activity session:', error);
       Alert.alert(
-        'Offline Mode',
-        'Your activity session has ended, but we couldn\'t save it to the server. Please check your internet connection.',
+        'Saved Offline',
+        'Your activity will be synced when you reconnect.',
         [{ text: 'OK' }]
       );
     }
@@ -109,39 +105,16 @@ export default function ActivityMetrics() {
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Throttle ALL metrics updates to prevent lag - update display every 2 seconds
-  // This prevents the entire component from re-rendering every second
-  const [throttledSpeed, setThrottledSpeed] = React.useState(speed);
-  const [throttledDistance, setThrottledDistance] = React.useState(distance);
-  const [throttledTime, setThrottledTime] = React.useState(time);
+  // Context values are already throttled (flushed every 2 s from refs).
+  // No need for a local throttle layer — just use them directly.
 
-  React.useEffect(() => {
-    const interval = setInterval(() => {
-      setThrottledSpeed(speed);
-      setThrottledDistance(distance);
-      setThrottledTime(time);
-    }, 2000); // Update every 2 seconds
-
-    return () => clearInterval(interval);
-  }, [speed, distance, time]);
-
-  // Update immediately when a new split completes
-  React.useEffect(() => {
-    setThrottledSpeed(speed);
-    setThrottledDistance(distance);
-    setThrottledTime(time);
-  }, [splits.length, speed, distance, time]); // Triggers when splits array grows
-
-  // Calculate average pacing (minutes per kilometer) - uses throttled values
+  // Calculate average pacing (minutes per kilometer)
   const avgPace = React.useMemo(() => {
-    // Avoid calculating pace with insignificant distance (< 5 meters)
-    if (throttledDistance < 0.005 || throttledTime === 0) {
+    if (distance < 0.005 || time === 0) {
       return '--:--';
     }
-    // Convert time from seconds to minutes
-    const timeInMinutes = throttledTime / 60;
-    // Calculate pace: minutes per kilometer
-    const paceMinutes = timeInMinutes / throttledDistance;
+    const timeInMinutes = time / 60;
+    const paceMinutes = timeInMinutes / distance;
 
     // Cap at reasonable value (e.g. 60 min/km) to prevent layout break
     if (paceMinutes > 99) return '--:--';
@@ -149,12 +122,12 @@ export default function ActivityMetrics() {
     const minutes = Math.floor(paceMinutes);
     const seconds = Math.floor((paceMinutes - minutes) * 60);
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  }, [throttledDistance, throttledTime]);
+  }, [distance, time]);
 
   // Calculate real-time calories
   const calories = React.useMemo(() => {
     return calculateCaloriesBurned(user?.physicalMetrics?.weight?.value);
-  }, [throttledTime, user]);
+  }, [time, user]);
 
 
   // Prepare chart data - Now uses throttled values to prevent every-second recalculation
@@ -174,12 +147,12 @@ export default function ActivityMetrics() {
 
     // Calculate and append current ongoing split if recording or if there's leftover distance
     const splitsDistance = splits.length * SPLIT_DISTANCE_KM;
-    const currentSplitDist = throttledDistance - splitsDistance;
+    const currentSplitDist = distance - splitsDistance;
 
     // Only show dynamic bar if we have started the next split
     if (currentSplitDist > 0.001) {
       const splitsDuration = splits.reduce((acc, curr) => acc + curr.time, 0);
-      const currentSplitTime = throttledTime - splitsDuration;
+      const currentSplitTime = time - splitsDuration;
       const currentPace = currentSplitTime / currentSplitDist;
       const nextKvMarker = ((splits.length + 1) * SPLIT_DISTANCE_KM).toFixed(1);
 
@@ -206,10 +179,10 @@ export default function ActivityMetrics() {
     }
 
     return data;
-  }, [splits, throttledDistance, throttledTime, theme, SPLIT_DISTANCE_KM]);
+  }, [splits, distance, time, theme, SPLIT_DISTANCE_KM]);
 
   const shouldAnimate = splits.length < 50;
-  const isPlaceholder = splits.length === 0 && throttledDistance < 0.001;
+  const isPlaceholder = splits.length === 0 && distance < 0.001;
 
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: theme.colors.background }}>
@@ -308,7 +281,7 @@ export default function ActivityMetrics() {
                     fontFamily: theme.fonts.heading,
                   }}
                 >
-                  {throttledDistance.toFixed(2)} km
+                  {distance.toFixed(2)} km
                 </Text>
               </View>
               <View className="flex-1 py-8 px-5 items-center">
@@ -328,7 +301,7 @@ export default function ActivityMetrics() {
                     fontFamily: theme.fonts.heading,
                   }}
                 >
-                  {throttledSpeed.toFixed(1)} km/hr
+                  {speed.toFixed(1)} km/hr
                 </Text>
               </View>
             </View>

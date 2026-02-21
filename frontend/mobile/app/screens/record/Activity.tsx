@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   View,
   ActivityIndicator,
@@ -20,6 +20,13 @@ import { useUser } from "../../context/UserContext";
 import { createGeoSession } from "../../api/geoSessionApi";
 import { getTodayCalorieBalance } from "../../api/userApi";
 import { tokenStorage } from '@/utils/tokenStorage';
+import {
+  enqueueSession,
+  clearInProgressSession,
+  startAutoSync,
+  flushQueue,
+} from "../../utils/offlineSessionQueue";
+import NetInfo from "@react-native-community/netinfo";
 
 Logger.setLogCallback(log => {
   const { message } = log;
@@ -44,7 +51,8 @@ export default function TestMap() {
     time: contextTime,
     recording: contextRecording,
     activityType,
-    activities, // Add activities from context
+    activities,
+    refs, // ← high-frequency refs
     setSpeed: setContextSpeed,
     setDistance: setContextDistance,
     setTime: setContextTime,
@@ -52,19 +60,28 @@ export default function TestMap() {
     addSplit,
     resetMetrics,
     calculateCaloriesBurned,
-    SPLIT_DISTANCE_KM, // Get from context
-    isDistanceBased, // Flag for conditional tracking
+    flushToState,
+    SPLIT_DISTANCE_KM,
+    isDistanceBased,
   } = useActivityMetrics();
 
   const [location, setLocation] = useState<[number, number] | null>(null);
-  // Store the route as an array of [lon, lat]
-  const [routeCoords, setRouteCoords] = useState<Array<[number, number]>>([]);
+  // Route coords stored in ref (no re-renders on every GPS tick)
+  // A throttled GeoJSON state is used only for map rendering
+  const [routeGeoJSON, setRouteGeoJSON] = useState<any>(null);
   const [heading, setHeading] = useState<number>(0);
   const [loading, setLoading] = useState(true);
-  const [following, setFollowing] = useState<boolean>(true); // camera follows user by default
-  const [mapBearing, setMapBearing] = useState<number>(0); // 0 = north-up, -1 = compass-follow
-  const [mapPitch, setMapPitch] = useState<number>(80); // default pitch
-  const currentSpeedRef = useRef<number>(0); // Track smoothed speed locally
+  const [following, setFollowing] = useState<boolean>(true);
+  const [mapBearing, setMapBearing] = useState<number>(0);
+  const [mapPitch, setMapPitch] = useState<number>(80);
+  const currentSpeedRef = useRef<number>(0);
+
+  // Stable refs for values used inside location/heading callbacks
+  // This prevents tearing down the watcher on every state change
+  const followingRef = useRef(following);
+  const mapBearingRef = useRef(mapBearing);
+  followingRef.current = following;
+  mapBearingRef.current = mapBearing;
 
   // Constants - Removed local SPLIT_DISTANCE_KM definition as it is now in context
 
@@ -72,9 +89,8 @@ export default function TestMap() {
   const prevLocationRef = useRef<[number, number] | null>(null);
   const prevTimestampRef = useRef<number | null>(null);
   const totalDistanceRef = useRef<number>(0);
-  const lastSplitIndexRef = useRef<number>(0); // Track last split index
-  const splitStartTimeRef = useRef<number>(0); // Track when current split started
-  const timeRef = useRef<number>(0); // Track current time for timer
+  const lastSplitIndexRef = useRef<number>(0);
+  const splitStartTimeRef = useRef<number>(0);
 
   const mapRef = useRef<any>(null);
   const cameraRef = useRef<any>(null);
@@ -85,7 +101,33 @@ export default function TestMap() {
   // flag to avoid treating programmatic camera moves as user interactions
   const isProgrammaticRef = useRef(false);
 
-  // request permissions, get initial location and start watchers
+  // ── Start auto-sync on mount ──
+  useEffect(() => {
+    startAutoSync(createGeoSession);
+    // Try to flush any pending sessions from previous offline runs
+    flushQueue(createGeoSession);
+  }, []);
+
+  // ── Throttled route GeoJSON updater (every 2 s while recording) ──
+  useEffect(() => {
+    if (!contextRecording) return;
+    const id = setInterval(() => {
+      const coords = refs.routeCoords.current;
+      if (coords.length > 1) {
+        setRouteGeoJSON({
+          type: "Feature",
+          properties: {},
+          geometry: {
+            type: "LineString",
+            coordinates: coords,
+          },
+        });
+      }
+    }, 2000);
+    return () => clearInterval(id);
+  }, [contextRecording]);
+
+  // ── GPS + heading watchers (mounted ONCE, use refs for all mutable deps) ──
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -117,65 +159,42 @@ export default function TestMap() {
           ];
 
           setLocation(coords);
-          // Track route while recording
-          if (contextRecording) {
-            // Filter out points with poor accuracy (e.g. > 20m)
-            // This prevents "jumping" when GPS signal is weak
+
+          // ── Recording logic (writes to REFS only — zero re-renders) ──
+          if (refs.recording.current) {
+            // Filter out points with poor accuracy (> 20 m)
             if (pos.coords.accuracy && pos.coords.accuracy > 20) {
               return;
             }
 
-            setRouteCoords((prev) => [...prev, coords]);
-          }
+            // Append to route ref (no state update — GeoJSON throttled separately)
+            refs.routeCoords.current.push(coords);
 
-          // Calculate speed and distance only when recording
-          if (contextRecording) {
             const currentTimestamp = Date.now();
             const currentLat = pos.coords.latitude;
             const currentLon = pos.coords.longitude;
 
-            // Use OS-provided speed if available and non-negative
-            // Multiply by 3.6 to convert m/s to km/h
             let instantaneousSpeed = (pos.coords.speed ?? 0) * 3.6;
             if (instantaneousSpeed < 0) instantaneousSpeed = 0;
 
-            // Check if we have a previous location to calculate distance
             if (prevLocationRef.current && prevTimestampRef.current) {
               const [prevLon, prevLat] = prevLocationRef.current;
+              const segmentDistance = calculateDistance(prevLat, prevLon, currentLat, currentLon);
+              const MOVEMENT_THRESHOLD = 0.001; // 1 meter in km
 
-              // Calculate distance between previous and current location
-              const segmentDistance = calculateDistance(
-                prevLat,
-                prevLon,
-                currentLat,
-                currentLon
-              );
-
-              // Only accumulate distance if movement is significant (> 1 meters)
-              // This reduces "jitter" accumulation when standing still
-              const MOVEMENT_THRESHOLD = 0.001; // 1 meter
-
-              // Only accumulate distance if movement is significant AND activity is distance-based
-              if (isDistanceBased && segmentDistance > MOVEMENT_THRESHOLD) {
+              if (segmentDistance > MOVEMENT_THRESHOLD) {
                 totalDistanceRef.current += segmentDistance;
-                const newDistance = totalDistanceRef.current;
-                setContextDistance(newDistance);
+                // Write to ref — state flushed on interval
+                refs.distance.current = totalDistanceRef.current;
 
-                // Update previous location and timestamp only when we accept the movement
                 prevLocationRef.current = coords;
                 prevTimestampRef.current = currentTimestamp;
 
-                // Check if we've completed a new split
-                const currentSplitIndex = Math.floor(newDistance / SPLIT_DISTANCE_KM);
-
+                // Split detection
+                const currentSplitIndex = Math.floor(totalDistanceRef.current / SPLIT_DISTANCE_KM);
                 if (currentSplitIndex > lastSplitIndexRef.current) {
-                  // Use timeRef.current (actual time) not contextTime (throttled)
-                  const splitTime = timeRef.current - splitStartTimeRef.current;
-
-                  // Calculate pace (seconds per km)
+                  const splitTime = refs.time.current - splitStartTimeRef.current;
                   const splitPace = splitTime / SPLIT_DISTANCE_KM;
-
-                  // Label for the split (accumulated distance)
                   const splitLabel = currentSplitIndex * SPLIT_DISTANCE_KM;
 
                   console.log(`[Split] Completed split ${currentSplitIndex}: ${splitLabel.toFixed(2)}km, time=${splitTime}s, pace=${splitPace.toFixed(1)}s/km`);
@@ -187,48 +206,41 @@ export default function TestMap() {
                   });
 
                   lastSplitIndexRef.current = currentSplitIndex;
-                  splitStartTimeRef.current = timeRef.current; // Use actual time
+                  splitStartTimeRef.current = refs.time.current;
                 }
               }
 
-              // fallback: if OS speed is invalid/zero but we moved significantly, calc speed
+              // Fallback speed from distance if OS speed unavailable
               if (instantaneousSpeed === 0 && segmentDistance > MOVEMENT_THRESHOLD) {
-                const timeDiff = (currentTimestamp - (prevTimestampRef.current || currentTimestamp)) / 1000 / 3600; // hours
-                if (timeDiff > 0) {
-                  instantaneousSpeed = segmentDistance / timeDiff;
-                }
+                const timeDiff = (currentTimestamp - (prevTimestampRef.current || currentTimestamp)) / 1000 / 3600;
+                if (timeDiff > 0) instantaneousSpeed = segmentDistance / timeDiff;
               }
             } else if (!prevLocationRef.current) {
-              // First valid point initialization
               prevLocationRef.current = coords;
               prevTimestampRef.current = currentTimestamp;
             }
 
-            // Apply Exponential Moving Average (EMA) for smoothing
+            // EMA smoothing → write to ref
             const alpha = 0.2;
             currentSpeedRef.current = alpha * instantaneousSpeed + (1 - alpha) * currentSpeedRef.current;
-
-            // Update speed to context immediately (no throttling for speed)
-            // Speed changes are important for real-time feedback
-            const newSpeed = currentSpeedRef.current < 1.0 ? 0 : Math.min(currentSpeedRef.current, 120);
-            setContextSpeed(newSpeed);
+            refs.speed.current = currentSpeedRef.current < 1.0 ? 0 : Math.min(currentSpeedRef.current, 120);
 
           } else {
-            // Reset when not recording
+            // Not recording — reset trackers
             prevLocationRef.current = null;
             prevTimestampRef.current = null;
             currentSpeedRef.current = 0;
           }
 
-          // only auto-center while "following" is true (user hasn't panned away)
-          if (following && cameraRef.current) {
+          // Auto-center camera (use refs to avoid stale closures)
+          if (followingRef.current && cameraRef.current) {
             try {
               isProgrammaticRef.current = true;
               cameraRef.current.setCamera({
                 centerCoordinate: coords,
-                zoomLevel: undefined, // preserve current zoom
+                zoomLevel: undefined,
                 animationDuration: 500,
-                heading: mapBearing !== 0 ? mapBearing : undefined,
+                heading: mapBearingRef.current !== 0 ? mapBearingRef.current : undefined,
               });
               setTimeout(() => (isProgrammaticRef.current = false), 650);
             } catch (e) {
@@ -241,15 +253,13 @@ export default function TestMap() {
       headSubRef.current = await Location.watchHeadingAsync((h) => {
         const newHeading = h.trueHeading ?? h.magHeading ?? 0;
         setHeading(newHeading);
-        // animate top-right compass icon
         Animated.timing(compassAnim, {
           toValue: newHeading,
           duration: 200,
           useNativeDriver: true,
         }).start();
 
-        // if in compass-follow mode, rotate map to heading
-        if (following && mapBearing === -1) {
+        if (followingRef.current && mapBearingRef.current === -1) {
           if (cameraRef.current) {
             try {
               isProgrammaticRef.current = true;
@@ -271,7 +281,7 @@ export default function TestMap() {
       if (locSubRef.current) locSubRef.current.remove();
       if (headSubRef.current) headSubRef.current.remove();
     };
-  }, [following, mapBearing, contextRecording]);
+  }, []); // ← mounted ONCE — no more teardown on every state change
 
   // helper: check whether user's location is within current visible bounds
   const isLocationVisible = async (): Promise<boolean> => {
@@ -380,39 +390,26 @@ export default function TestMap() {
 
   // map region changes initiated by user should disable following
   const onRegionWillChange = () => {
-    // if the change is not programmatic, user likely panned/zoomed -> stop following
     if (!isProgrammaticRef.current) {
       setFollowing(false);
     }
   };
 
-  // Sync timeRef with contextTime
-  useEffect(() => {
-    timeRef.current = contextTime;
-  }, [contextTime]);
-
-  // Timer effect - runs internally at 1s, but only updates context every 2s
+  // Timer effect — ticks every 1 s into the ref, NO state updates here.
+  // The context auto-flush interval handles pushing to state every 2 s.
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | null = null;
-    let updateCounter = 0;
 
     if (contextRecording) {
       interval = setInterval(() => {
-        timeRef.current += 1;
-        updateCounter += 1;
-
-        // Only update context every 2 seconds to reduce re-renders
-        if (updateCounter >= 1) {
-          setContextTime(timeRef.current);
-          updateCounter = 0;
-        }
+        refs.time.current += 1;
       }, 1000);
     }
 
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [contextRecording, setContextTime]);
+  }, [contextRecording]);
 
   // Format time helper function
   const formatTime = (totalSeconds: number) => {
@@ -430,18 +427,18 @@ export default function TestMap() {
     if (isRecording && location) {
       prevLocationRef.current = location;
       prevTimestampRef.current = Date.now();
-      splitStartTimeRef.current = timeRef.current; // Use actual time
-      lastSplitIndexRef.current = Math.floor((contextDistance || 0) / SPLIT_DISTANCE_KM);
+      splitStartTimeRef.current = refs.time.current;
+      lastSplitIndexRef.current = Math.floor((refs.distance.current || 0) / SPLIT_DISTANCE_KM);
       // Start new route if not already started
-      if (routeCoords.length === 0) {
-        setRouteCoords([location]);
+      if (refs.routeCoords.current.length === 0) {
+        refs.routeCoords.current = [location];
       }
     }
     // Note: Timer continues from where it left off (doesn't reset on pause)
     // Distance and speed also persist when paused
   };
 
-  // Handle finish action - save activity session and update calorie balance
+  // Handle finish action - save activity session with offline-first approach
   const handleFinish = async () => {
     if (user?.isGuest) {
       Alert.alert(
@@ -454,27 +451,30 @@ export default function TestMap() {
       );
       return;
     }
+
+    // Flush latest ref values to state so we capture accurate final numbers
+    flushToState();
+
     try {
-      // Get user weight for calorie calculation (default 70kg if not available)
       const userWeight = user?.physicalMetrics?.weight?.value || 70;
       const caloriesBurned = calculateCaloriesBurned(userWeight);
+      const finalDistance = refs.distance.current;
+      const finalTime = refs.time.current;
 
-      // Only save if there was actual activity (distance OR time if non-distance sport)
-      if (contextTime > 0 && (contextDistance > 0 || !isDistanceBased)) {
-        // Calculate average pace (min/km) - only for distance sports
-        const avgPace = (isDistanceBased && contextDistance > 0) ? (contextTime / 60) / contextDistance : 0;
+      if (finalTime > 0 && (finalDistance > 0 || !isDistanceBased)) {
+        const avgPace = (isDistanceBased && finalDistance > 0) ? (finalTime / 60) / finalDistance : 0;
 
-        // Prepare route coordinates for saving
-        const routeForSave = routeCoords.map(([lon, lat]) => ({
+        // Build route from ref
+        const routeForSave = refs.routeCoords.current.map(([lon, lat]) => ({
           latitude: lat,
           longitude: lon,
         }));
 
-        // Capture map snapshot (URI)
-        let snapshotUri = null;
+        // Capture map snapshot
+        let snapshotUri: string | null = null;
         if (mapRef.current) {
           try {
-            snapshotUri = await mapRef.current.takeSnap(true); // true = write to disk
+            snapshotUri = await mapRef.current.takeSnap(true);
             console.log('[Activity] Map Snapshot taken:', snapshotUri);
           } catch (e) {
             console.warn('[Activity] Failed to take map snapshot', e);
@@ -483,105 +483,119 @@ export default function TestMap() {
 
         const formData = new FormData();
         formData.append("activity_type", getActivityId(activityType));
-        formData.append("distance_km", contextDistance.toString());
+        formData.append("distance_km", finalDistance.toString());
         formData.append("avg_pace", avgPace.toString());
-        formData.append("moving_time_sec", contextTime.toString());
+        formData.append("moving_time_sec", finalTime.toString());
         formData.append("calories_burned", caloriesBurned.toString());
-        formData.append("started_at", new Date(Date.now() - contextTime * 1000).toISOString());
+        formData.append("started_at", new Date(Date.now() - finalTime * 1000).toISOString());
         formData.append("ended_at", new Date().toISOString());
-
-        // Complex objects must be stringified for FormData
         formData.append("route_coordinates", JSON.stringify(routeForSave));
 
         if (snapshotUri) {
           const filename = snapshotUri.split('/').pop() || "map_snapshot.png";
           const match = /\.(\w+)$/.exec(filename);
           const type = match ? `image/${match[1]}` : `image/png`;
-
-          formData.append("preview_image", {
-            uri: snapshotUri,
-            name: filename,
-            type,
-          } as any);
+          formData.append("preview_image", { uri: snapshotUri, name: filename, type } as any);
         }
 
-        const response = await createGeoSession(formData);
-        console.log('[Activity] Session saved successfully, calories burned:', caloriesBurned);
+        // ── Offline-first: check connectivity ──
+        const net = await NetInfo.fetch();
+        let response: any = null;
+        let savedOffline = false;
 
-        // Refresh calorie balance after saving
-        try {
-          await getTodayCalorieBalance();
-          console.log('[Activity] Calorie balance refreshed');
-        } catch (error) {
-          console.error('[Activity] Error refreshing calorie balance:', error);
+        if (net.isConnected) {
+          try {
+            response = await createGeoSession(formData);
+            console.log('[Activity] Session saved online, calories:', caloriesBurned);
+            // Refresh calorie balance
+            getTodayCalorieBalance().catch(() => { });
+          } catch {
+            // Network call failed — queue offline
+            await enqueueSession(formData, snapshotUri);
+            savedOffline = true;
+            console.log('[Activity] Online save failed, queued offline');
+          }
+        } else {
+          await enqueueSession(formData, snapshotUri);
+          savedOffline = true;
+          console.log('[Activity] No connection, queued offline');
         }
 
-        // Prompt to share
-        Alert.alert(
-          "Session Saved",
-          "Would you like to share this activity to your feed?",
-          [
-            {
-              text: "No, thanks",
-              onPress: () => {
-                // Reset all metrics
-                resetMetrics();
-                // Reset local refs
-                totalDistanceRef.current = 0;
-                lastSplitIndexRef.current = 0;
-                splitStartTimeRef.current = 0;
-                prevLocationRef.current = null;
-                prevTimestampRef.current = null;
-                setRouteCoords([]); // Clear route
+        // Clear crash-recovery data
+        await clearInProgressSession();
+
+        // Helper to reset everything
+        const cleanupAndReset = () => {
+          resetMetrics();
+          totalDistanceRef.current = 0;
+          lastSplitIndexRef.current = 0;
+          splitStartTimeRef.current = 0;
+          prevLocationRef.current = null;
+          prevTimestampRef.current = null;
+          setRouteGeoJSON(null);
+        };
+
+        if (savedOffline) {
+          Alert.alert(
+            "Saved Offline",
+            "Your activity will be synced automatically when you're back online.",
+            [{
+              text: "OK", onPress: () => {
+                cleanupAndReset();
                 router.back();
-              },
-              style: "cancel"
-            },
-            {
-              text: "Share",
-              onPress: () => {
-                // Reset all metrics
-                resetMetrics();
-                // Reset local refs
-                totalDistanceRef.current = 0;
-                lastSplitIndexRef.current = 0;
-                splitStartTimeRef.current = 0;
-                prevLocationRef.current = null;
-                prevTimestampRef.current = null;
-                setRouteCoords([]); // Clear route
-
-                router.push({
-                  pathname: "/screens/post/post_session",
-                  params: {
-                    type: "GeoSession",
-                    id: response._id, // Ensure response has _id
-                    title: activityType,
-                    subtitle: `${contextDistance.toFixed(2)} km • ${formatTime(contextTime)}`
-                  }
-                });
               }
-            }
-          ]
-        );
+            }]
+          );
+        } else {
+          // Prompt to share
+          Alert.alert(
+            "Session Saved",
+            "Would you like to share this activity to your feed?",
+            [
+              {
+                text: "No, thanks",
+                style: "cancel",
+                onPress: () => {
+                  cleanupAndReset();
+                  router.back();
+                },
+              },
+              {
+                text: "Share",
+                onPress: () => {
+                  const savedDistance = finalDistance;
+                  const savedTime = finalTime;
+                  cleanupAndReset();
+                  router.push({
+                    pathname: "/screens/post/post_session",
+                    params: {
+                      type: "GeoSession",
+                      id: response?._id,
+                      title: activityType,
+                      subtitle: `${savedDistance.toFixed(2)} km • ${formatTime(savedTime)}`
+                    }
+                  });
+                },
+              }
+            ]
+          );
+        }
       } else {
-        // No activity data
         Alert.alert(
           "Session Discarded",
           isDistanceBased
             ? "No distance was recorded for this session."
             : "No time was recorded for this session.",
-          [
-            {
-              text: "OK",
-            }
-          ]
+          [{ text: "OK" }]
         );
       }
     } catch (error) {
       console.error('[Activity] Error saving activity session:', error);
+      // Last-resort: still try to queue offline
+      try { await enqueueSession({}, null); } catch { }
       Alert.alert(
-        'Offline Mode',
-        'Your activity session has ended, but we couldn\'t save it to the server. Please check your internet connection.',
+        'Saved Offline',
+        'Your activity will be synced when you reconnect.',
         [{ text: 'OK' }]
       );
     }
@@ -751,18 +765,11 @@ export default function TestMap() {
               </Animated.View>
             </MapLibreGL.PointAnnotation>
           )}
-          {/* Route Polyline */}
-          {routeCoords.length > 1 && (
+          {/* Route Polyline — uses throttled GeoJSON (updated every 2 s) */}
+          {routeGeoJSON && (
             <MapLibreGL.ShapeSource
               id="routeLine"
-              shape={{
-                type: "Feature",
-                properties: {},
-                geometry: {
-                  type: "LineString",
-                  coordinates: routeCoords,
-                },
-              }}
+              shape={routeGeoJSON}
             >
               <MapLibreGL.LineLayer
                 id="routeLineLayer"
