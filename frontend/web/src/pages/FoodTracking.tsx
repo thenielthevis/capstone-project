@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Camera, Edit3, History, BarChart3, Search, ChevronLeft, ChevronRight, Utensils } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Camera, Edit3, History, BarChart3, Search, ChevronLeft, ChevronRight, Utensils, Beef, Flame, Target, TrendingUp } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import ImageUpload from '@/components/food/ImageUpload';
@@ -9,7 +9,7 @@ import MultiDishUpload, { DishEntry } from '@/components/food/MultiDishUpload';
 import MultiDishResult from '@/components/food/MultiDishResult';
 import { analyzeFood, analyzeIngredients, analyzeMultipleDishes, MultiDishAnalysisResult } from '@/services/geminiService';
 import foodLogApi from '@/api/foodLogApi';
-import { getUserAllergies } from '@/api/userApi';
+import { getUserAllergies, getTodayCalorieBalance, createOrUpdateDailyCalorieBalance, DailyBalanceEntry } from '@/api/userApi';
 import Header from '@/components/Header';
 import GuestLimitModal from '@/components/modals/GuestLimitModal';
 
@@ -61,6 +61,41 @@ export default function FoodTracking() {
   const [userAllergies, setUserAllergies] = useState<string[]>([]);
   const [userDietaryPreferences, setUserDietaryPreferences] = useState<string[]>([]);
 
+  // Daily calorie & protein balance state
+  const [dailyBalance, setDailyBalance] = useState<DailyBalanceEntry | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState(false);
+
+  // Refresh daily balance
+  const refreshDailyBalance = useCallback(async () => {
+    if (!user || user.isGuest) return;
+    try {
+      const response = await getTodayCalorieBalance();
+      if (response.entry) {
+        setDailyBalance(response.entry);
+      } else {
+        // Try to create one
+        try {
+          const createResponse = await createOrUpdateDailyCalorieBalance();
+          if (createResponse.entry) {
+            setDailyBalance(createResponse.entry);
+          }
+        } catch {
+          // User may not have metrics set up yet
+        }
+      }
+    } catch (error) {
+      console.error('[FoodTracking] Error loading daily balance:', error);
+    }
+  }, [user]);
+
+  // Fetch daily balance on mount
+  useEffect(() => {
+    if (user && !user.isGuest) {
+      setBalanceLoading(true);
+      refreshDailyBalance().finally(() => setBalanceLoading(false));
+    }
+  }, [user, refreshDailyBalance]);
+
   // Fetch user allergies on mount
   useEffect(() => {
     const loadUserAllergies = async () => {
@@ -111,6 +146,9 @@ export default function FoodTracking() {
       });
 
       console.log('Food log saved successfully');
+
+      // Refresh daily balance after saving food log
+      await refreshDailyBalance();
     } catch (err: any) {
       console.error('Error saving food log:', err);
       console.error('Error details:', err.response?.data || err.message);
@@ -240,6 +278,9 @@ export default function FoodTracking() {
             console.error('Error saving dish to log:', saveErr);
           }
         }
+
+        // Refresh daily balance after saving all dishes
+        await refreshDailyBalance();
       }
     } catch (err: any) {
       setError(err.message || 'Failed to analyze dishes');
@@ -345,6 +386,167 @@ export default function FoodTracking() {
               </button>
             </div>
           </div>
+
+          {/* Daily Calorie & Protein Tracker */}
+          {dailyBalance && !balanceLoading && (
+            <div
+              className="mb-8 rounded-xl shadow-lg border overflow-hidden"
+              style={{
+                backgroundColor: theme.colors.card,
+                borderColor: theme.colors.border
+              }}
+            >
+              <div className="p-6">
+                <div className="flex items-center gap-2 mb-5">
+                  <TrendingUp className="w-5 h-5" style={{ color: theme.colors.primary }} />
+                  <h3 className="text-lg font-bold" style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}>
+                    Today's Progress
+                  </h3>
+                  <span
+                    className="ml-auto text-xs px-3 py-1 rounded-full font-medium"
+                    style={{
+                      backgroundColor: (dailyBalance.status === 'under' ? '#22c55e' :
+                        dailyBalance.status === 'over' ? '#ef4444' : theme.colors.primary) + '15',
+                      color: dailyBalance.status === 'under' ? '#22c55e' :
+                        dailyBalance.status === 'over' ? '#ef4444' : theme.colors.primary
+                    }}
+                  >
+                    {dailyBalance.status === 'under' ? 'On Track' :
+                      dailyBalance.status === 'over' ? 'Over Goal' : 'On Target'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Calorie Tracker */}
+                  <div
+                    className="rounded-xl p-5"
+                    style={{ backgroundColor: theme.colors.surface }}
+                  >
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#f9731615' }}>
+                        <Flame className="w-4 h-4" style={{ color: '#f97316' }} />
+                      </div>
+                      <span className="font-semibold text-sm" style={{ color: theme.colors.text }}>Calories</span>
+                    </div>
+                    <div className="flex items-baseline gap-1 mb-3">
+                      <span className="text-3xl font-bold" style={{ color: theme.colors.text }}>
+                        {dailyBalance.consumed_kcal}
+                      </span>
+                      <span className="text-sm" style={{ color: theme.colors.textSecondary }}>
+                        / {dailyBalance.goal_kcal} kcal
+                      </span>
+                    </div>
+                    {/* Calorie progress bar */}
+                    <div
+                      className="h-3 rounded-full overflow-hidden"
+                      style={{ backgroundColor: theme.colors.background }}
+                    >
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{
+                          width: `${Math.min(100, Math.round((dailyBalance.consumed_kcal / (dailyBalance.goal_kcal || 1)) * 100))}%`,
+                          backgroundColor: dailyBalance.status === 'under' ? '#22c55e' :
+                            dailyBalance.status === 'over' ? '#ef4444' : theme.colors.primary
+                        }}
+                      />
+                    </div>
+                    <div className="flex justify-between mt-2">
+                      <span className="text-xs" style={{ color: theme.colors.textSecondary }}>
+                        {Math.min(100, Math.round((dailyBalance.consumed_kcal / (dailyBalance.goal_kcal || 1)) * 100))}% consumed
+                      </span>
+                      <span className="text-xs" style={{ color: theme.colors.textSecondary }}>
+                        {Math.max(0, dailyBalance.goal_kcal - dailyBalance.net_kcal)} kcal remaining
+                      </span>
+                    </div>
+                    {/* Sub stats */}
+                    <div className="flex gap-4 mt-3 pt-3" style={{ borderTop: `1px solid ${theme.colors.border}` }}>
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#f97316' }} />
+                        <span className="text-xs" style={{ color: theme.colors.textSecondary }}>
+                          Eaten: {dailyBalance.consumed_kcal}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#22c55e' }} />
+                        <span className="text-xs" style={{ color: theme.colors.textSecondary }}>
+                          Burned: {dailyBalance.burned_kcal}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.colors.primary }} />
+                        <span className="text-xs" style={{ color: theme.colors.textSecondary }}>
+                          Net: {dailyBalance.net_kcal}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Protein Tracker */}
+                  <div
+                    className="rounded-xl p-5"
+                    style={{ backgroundColor: theme.colors.surface }}
+                  >
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#3b82f615' }}>
+                        <Beef className="w-4 h-4" style={{ color: '#3b82f6' }} />
+                      </div>
+                      <span className="font-semibold text-sm" style={{ color: theme.colors.text }}>Protein</span>
+                      <span
+                        className="ml-auto text-xs px-2 py-0.5 rounded-full font-medium"
+                        style={{
+                          backgroundColor: (dailyBalance.protein_status === 'under' ? '#f97316' :
+                            dailyBalance.protein_status === 'over' ? '#ef4444' : '#22c55e') + '15',
+                          color: dailyBalance.protein_status === 'under' ? '#f97316' :
+                            dailyBalance.protein_status === 'over' ? '#ef4444' : '#22c55e'
+                        }}
+                      >
+                        {dailyBalance.protein_status === 'under' ? 'Need More' :
+                          dailyBalance.protein_status === 'over' ? 'Over Goal' : 'On Target'}
+                      </span>
+                    </div>
+                    <div className="flex items-baseline gap-1 mb-3">
+                      <span className="text-3xl font-bold" style={{ color: '#3b82f6' }}>
+                        {dailyBalance.consumed_protein_g || 0}
+                      </span>
+                      <span className="text-sm" style={{ color: theme.colors.textSecondary }}>
+                        / {dailyBalance.goal_protein_g || 0}g
+                      </span>
+                    </div>
+                    {/* Protein progress bar */}
+                    <div
+                      className="h-3 rounded-full overflow-hidden"
+                      style={{ backgroundColor: theme.colors.background }}
+                    >
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{
+                          width: `${Math.min(100, Math.round(((dailyBalance.consumed_protein_g || 0) / (dailyBalance.goal_protein_g || 1)) * 100))}%`,
+                          backgroundColor: '#3b82f6'
+                        }}
+                      />
+                    </div>
+                    <div className="flex justify-between mt-2">
+                      <span className="text-xs" style={{ color: theme.colors.textSecondary }}>
+                        {Math.min(100, Math.round(((dailyBalance.consumed_protein_g || 0) / (dailyBalance.goal_protein_g || 1)) * 100))}% of daily goal
+                      </span>
+                      <span className="text-xs" style={{ color: theme.colors.textSecondary }}>
+                        {Math.max(0, (dailyBalance.goal_protein_g || 0) - (dailyBalance.consumed_protein_g || 0))}g remaining
+                      </span>
+                    </div>
+                    {/* Protein info */}
+                    <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${theme.colors.border}` }}>
+                      <div className="flex items-center gap-2">
+                        <Target className="w-3 h-3" style={{ color: theme.colors.textSecondary }} />
+                        <span className="text-xs" style={{ color: theme.colors.textSecondary }}>
+                          Goal based on your weight & activity level
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Error Message */}
           {error && (

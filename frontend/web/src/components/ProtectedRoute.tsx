@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
@@ -10,6 +10,7 @@ interface ProtectedRouteProps {
 export default function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
   const { user, isLoading } = useAuth();
   const { theme } = useTheme();
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -32,6 +33,17 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
   // If a specific role is required and user doesn't have it, redirect to dashboard
   if (requiredRole && user.role !== requiredRole) {
     return <Navigate to="/dashboard" replace />;
+  }
+
+  // Force new users to complete the health assessment before accessing the app
+  // Skip this check if the user is already on the health-assessment page or is a guest/admin
+  if (
+    user.hasCompletedAssessment === false &&
+    !user.isGuest &&
+    user.role !== 'admin' &&
+    location.pathname !== '/health-assessment'
+  ) {
+    return <Navigate to="/health-assessment" replace />;
   }
 
   return <>{children}</>;

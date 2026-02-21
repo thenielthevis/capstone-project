@@ -153,8 +153,12 @@ export default function PostDetail() {
       });
 
       await postApi.likePost(post._id, reactionType);
-    } catch (error) {
-      console.error('Error reacting:', error);
+    } catch (error: any) {
+      console.error('Error reacting - Full Error:', error);
+      console.error('Status:', error?.response?.status);
+      console.error('Message:', error?.response?.data?.message);
+      console.error('Data:', error?.response?.data);
+      console.error('Error Message:', error?.message);
       fetchData();
     }
   };
@@ -218,8 +222,12 @@ export default function PostDetail() {
       }));
 
       await commentApi.reactComment(commentId, reactionType);
-    } catch (error) {
-      console.error('Error reacting to comment:', error);
+    } catch (error: any) {
+      console.error('Error reacting to comment - Full Error:', error);
+      console.error('Status:', error?.response?.status);
+      console.error('Message:', error?.response?.data?.message);
+      console.error('Data:', error?.response?.data);
+      console.error('Error Message:', error?.message);
       fetchData();
     }
   };

@@ -141,6 +141,36 @@ export interface UserProfile {
   profileCompletion: number;
 }
 
+// Daily balance types
+export interface DailyBalanceEntry {
+  status: string;
+  consumed_kcal: number;
+  goal_kcal: number;
+  net_kcal: number;
+  burned_kcal: number;
+  goal_protein_g: number;
+  consumed_protein_g: number;
+  protein_status: string;
+}
+
+// Create or update today's daily calorie/protein balance
+export const createOrUpdateDailyCalorieBalance = async () => {
+  const response = await axiosInstance.post('/users/daily-calorie-balance', {});
+  return response.data;
+};
+
+// Get today's calorie/protein balance
+export const getTodayCalorieBalance = async (): Promise<{ message: string; entry: DailyBalanceEntry | null }> => {
+  const response = await axiosInstance.get('/users/daily-calorie-balance/today');
+  return response.data;
+};
+
+// Update daily calories/protein (add consumed or burned)
+export const updateDailyCalories = async (data: { consumed_kcal?: number; burned_kcal?: number; consumed_protein_g?: number }) => {
+  const response = await axiosInstance.patch('/users/daily-calorie-balance', data);
+  return response.data;
+};
+
 export default {
   submitHealthAssessment,
   getCurrentUser,
@@ -149,4 +179,7 @@ export default {
   getUserProfile,
   updateProfilePicture,
   getUserAllergies,
+  createOrUpdateDailyCalorieBalance,
+  getTodayCalorieBalance,
+  updateDailyCalories,
 };

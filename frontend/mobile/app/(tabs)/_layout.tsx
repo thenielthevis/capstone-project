@@ -7,11 +7,30 @@ import { useFonts } from "expo-font";
 import { useEffect, useState, useMemo } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { View, TouchableOpacity, Text } from "react-native";
+import { tokenStorage } from "@/utils/tokenStorage";
 
 export default function HomeTabs() {
   const { theme } = useTheme();
   const router = useRouter();
   const [recordMenuOpen, setRecordMenuOpen] = useState(false);
+  const [assessmentChecked, setAssessmentChecked] = useState(false);
+
+  // Guard: redirect users who haven't completed the initial health assessment
+  useEffect(() => {
+    const checkAssessment = async () => {
+      try {
+        const storedUser = await tokenStorage.getUser();
+        if (storedUser && storedUser.hasCompletedAssessment === false) {
+          router.replace('/screens/analysis_input/prediction_input' as any);
+          return;
+        }
+      } catch (e) {
+        console.error('Error checking assessment status:', e);
+      }
+      setAssessmentChecked(true);
+    };
+    checkAssessment();
+  }, []);
 
   const [fontsLoaded, fontError] = useFonts({
     Inter: require("../../assets/fonts/Inter_18pt-Regular.ttf"),
@@ -29,6 +48,10 @@ export default function HomeTabs() {
   }, [fontError]);
 
   if (!fontsLoaded && !fontError) {
+    return null;
+  }
+
+  if (!assessmentChecked) {
     return null;
   }
 

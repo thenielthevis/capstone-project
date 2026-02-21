@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useTheme } from '@/context/ThemeContext';
-import { PlusCircle } from 'lucide-react';
+import { Heart, Fire, Lightning, Trophy, ArrowFatUp, Barbell, PersonSimpleRun, PersonSimpleWalk, Smiley, Leaf, Wind, Drop, Brain, ChartBar, Plus } from 'phosphor-react';
 
-type ReactionType = 'Like' | 'Love' | 'Haha' | 'Wow' | 'Sad' | 'Angry';
+type ReactionType = 'Heart' | 'Fire' | 'Zap' | 'Trophy' | 'Apple' | 'Dumbbell' | 'Run' | 'Smile' | 'Leaf' | 'Wind' | 'Water' | 'Brain' | 'Progress' | 'Steps';
 
 interface ReactionButtonProps {
   userReaction?: string;
@@ -10,20 +10,45 @@ interface ReactionButtonProps {
   onReact: (type: string) => void;
 }
 
-export const REACTIONS: { type: ReactionType; emoji: string }[] = [
-  { type: 'Like', emoji: '👍' },
-  { type: 'Love', emoji: '❤️' },
-  { type: 'Haha', emoji: '😆' },
-  { type: 'Wow', emoji: '😮' },
-  { type: 'Sad', emoji: '😢' },
-  { type: 'Angry', emoji: '😡' },
+export const REACTIONS: { type: ReactionType; icon: React.ReactNode }[] = [
+  { type: 'Heart', icon: <Heart size={24} weight="fill" /> },
+  { type: 'Fire', icon: <Fire size={24} weight="fill" /> },
+  { type: 'Zap', icon: <Lightning size={24} weight="fill" /> },
+  { type: 'Trophy', icon: <Trophy size={24} weight="fill" /> },
+  { type: 'Apple', icon: <ArrowFatUp size={24} weight="fill" /> },
+  { type: 'Dumbbell', icon: <Barbell size={24} weight="fill" /> },
+  { type: 'Run', icon: <PersonSimpleRun size={24} weight="fill" /> },
+  { type: 'Smile', icon: <Smiley size={24} weight="fill" /> },
+  { type: 'Leaf', icon: <Leaf size={24} weight="fill" /> },
+  { type: 'Wind', icon: <Wind size={24} weight="fill" /> },
+  { type: 'Water', icon: <Drop size={24} weight="fill" /> },
+  { type: 'Brain', icon: <Brain size={24} weight="fill" /> },
+  { type: 'Progress', icon: <ChartBar size={24} weight="fill" /> },
+  { type: 'Steps', icon: <PersonSimpleWalk size={24} weight="fill" /> },
+];
+
+const QUICK_REACTIONS = [
+  { type: 'Heart', icon: <Heart size={24} weight="fill" /> },
+  { type: 'Fire', icon: <Fire size={24} weight="fill" /> },
+  { type: 'Zap', icon: <Lightning size={24} weight="fill" /> },
+  { type: 'Trophy', icon: <Trophy size={24} weight="fill" /> },
+  { type: 'Apple', icon: <ArrowFatUp size={24} weight="fill" /> },
 ];
 
 export default function ReactionButton({ userReaction, reactionCount, onReact }: ReactionButtonProps) {
   const { theme } = useTheme();
+  const [quickVisible, setQuickVisible] = useState(false);
   const [pickerVisible, setPickerVisible] = useState(false);
+  const [searchText, setSearchText] = useState('');
   const [hideTimeout, setHideTimeout] = useState<NodeJS.Timeout | null>(null);
   const buttonRef = useRef<HTMLDivElement>(null);
+
+  const filteredReactions = useMemo(() => {
+    if (!searchText.trim()) return REACTIONS;
+    return REACTIONS.filter(r => 
+      r.type.toLowerCase().includes(searchText.toLowerCase())
+    );
+  }, [searchText]);
 
   useEffect(() => {
     return () => {
@@ -47,41 +72,45 @@ export default function ReactionButton({ userReaction, reactionCount, onReact }:
       setHideTimeout(null);
     }
     if (!userReaction) {
-      setPickerVisible(true);
+      setQuickVisible(true);
     }
   };
 
   const handleMouseLeave = () => {
     const timeout = setTimeout(() => {
-      setPickerVisible(false);
-    }, 300);
+      setQuickVisible(false);
+    }, 1500);
     setHideTimeout(timeout);
   };
 
   const handleReactionSelect = (type: string) => {
     onReact(type);
+    setQuickVisible(false);
     setPickerVisible(false);
+    setSearchText('');
     if (hideTimeout) {
       clearTimeout(hideTimeout);
       setHideTimeout(null);
     }
   };
 
-  const reactionEmoji = userReaction ? REACTIONS.find((r) => r.type === userReaction)?.emoji : null;
+  const reactionData = userReaction ? REACTIONS.find((r) => r.type === userReaction) : null;
 
   return (
     <div className="relative" ref={buttonRef}>
       <button
-        onClick={handlePress}
+        onClick={userReaction ? handlePress : handleMouseEnter}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         className="flex items-center gap-1 transition-colors hover:opacity-80 px-2 py-1"
         style={{ color: userReaction ? theme.colors.primary : theme.colors.textTertiary }}
       >
-        {reactionEmoji ? (
-          <span className="text-lg">{reactionEmoji}</span>
+        {reactionData ? (
+          <span style={{ color: userReaction ? theme.colors.primary : theme.colors.text }}>
+            {reactionData.icon}
+          </span>
         ) : (
-          <PlusCircle className="w-5 h-5" />
+          <Plus size={20} weight="fill" />
         )}
         {reactionCount > 0 && (
           <span className="text-sm" style={{ color: theme.colors.text }}>
@@ -90,39 +119,164 @@ export default function ReactionButton({ userReaction, reactionCount, onReact }:
         )}
       </button>
 
-      {/* Reaction Picker */}
-      {pickerVisible && (
+      {/* Quick Reactions (on hover) */}
+      {quickVisible && !userReaction && (
         <div
-          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 z-50"
+          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-40"
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
           <div
-            className="flex gap-1 p-3 rounded-full shadow-2xl border-2"
+            className="rounded-lg shadow-xl border p-2 flex gap-1"
             style={{
               backgroundColor: theme.colors.card,
               borderColor: theme.colors.border,
             }}
           >
-            {REACTIONS.map((reaction) => (
+            {QUICK_REACTIONS.map((reaction) => (
               <button
                 key={reaction.type}
                 onClick={() => handleReactionSelect(reaction.type)}
-                className="text-2xl hover:scale-125 transition-transform p-2 rounded-full hover:bg-opacity-10"
-                style={{ 
-                  backgroundColor: 'transparent'
+                className="flex items-center justify-center p-2 rounded-lg transition-all hover:scale-110"
+                style={{
+                  backgroundColor: theme.colors.background,
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = theme.colors.primary + '20';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.backgroundColor = theme.colors.background;
                 }}
                 title={reaction.type}
               >
-                {reaction.emoji}
+                <div style={{ color: theme.colors.text }}>
+                  {reaction.icon}
+                </div>
               </button>
             ))}
+            {/* Plus button for full picker */}
+            <button
+              onClick={() => {
+                setQuickVisible(false);
+                setPickerVisible(true);
+              }}
+              className="flex items-center justify-center p-2 rounded-lg transition-all hover:scale-110"
+              style={{
+                backgroundColor: theme.colors.background,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = theme.colors.primary + '20';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = theme.colors.background;
+              }}
+              title="More reactions"
+            >
+              <div style={{ color: theme.colors.text }}>
+                <Plus size={24} weight="fill" />
+              </div>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Full Reaction Picker (on + click) */}
+      {pickerVisible && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50 pt-20"
+          onMouseEnter={() => {
+            if (hideTimeout) {
+              clearTimeout(hideTimeout);
+              setHideTimeout(null);
+            }
+          }}
+          onMouseLeave={() => {
+            const timeout = setTimeout(() => {
+              setPickerVisible(false);
+            }, 1500);
+            setHideTimeout(timeout);
+          }}
+        >
+          <div
+            className="rounded-lg shadow-2xl border p-6 w-full max-w-2xl mx-4"
+            style={{
+              backgroundColor: theme.colors.card,
+              borderColor: theme.colors.border,
+            }}
+          >
+            {/* Search Input */}
+            <input
+              type="text"
+              placeholder="Search reactions..."
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              className="w-full px-3 py-2 rounded border mb-3 text-sm focus:outline-none focus:ring-2"
+              style={{
+                backgroundColor: theme.colors.background,
+                borderColor: theme.colors.border,
+                color: theme.colors.text,
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = theme.colors.primary;
+                if (hideTimeout) {
+                  clearTimeout(hideTimeout);
+                  setHideTimeout(null);
+                }
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = theme.colors.border;
+              }}
+              onMouseEnter={() => {
+                if (hideTimeout) {
+                  clearTimeout(hideTimeout);
+                  setHideTimeout(null);
+                }
+              }}
+              onMouseLeave={() => {
+                const timeout = setTimeout(() => {
+                  setPickerVisible(false);
+                }, 1500);
+                setHideTimeout(timeout);
+              }}
+            />
+
+            {/* Reactions Grid */}
+            <div className="grid grid-cols-5 gap-2 max-h-64 overflow-y-auto">
+              {filteredReactions.length > 0 ? (
+                filteredReactions.map((reaction) => (
+                  <button
+                    key={reaction.type}
+                    onClick={() => handleReactionSelect(reaction.type)}
+                    className="flex flex-col items-center justify-center p-2 rounded-lg transition-all hover:scale-110"
+                    style={{
+                      backgroundColor: theme.colors.background,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = theme.colors.primary + '20';
+                      if (hideTimeout) {
+                        clearTimeout(hideTimeout);
+                        setHideTimeout(null);
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = theme.colors.background;
+                    }}
+                    title={reaction.type}
+                  >
+                    <div style={{ color: theme.colors.text }}>
+                      {reaction.icon}
+                    </div>
+                    <span className="text-xs mt-1" style={{ color: theme.colors.textTertiary }}>
+                      {reaction.type}
+                    </span>
+                  </button>
+                ))
+              ) : (
+                <div className="col-span-5 text-center py-4 text-sm" style={{ color: theme.colors.textTertiary }}>
+                  No reactions found
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

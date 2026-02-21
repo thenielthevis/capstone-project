@@ -34,6 +34,11 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: null,
     },
+    // Track whether the user has completed their initial health assessment
+    hasCompletedAssessment: {
+        type: Boolean,
+        default: false
+    },
     // cloudinary profile picture
     profilePicture: {
         type: String,
@@ -127,8 +132,11 @@ const userSchema = new mongoose.Schema({
             burned_kcal: { type: Number, default: 0 },
             net_kcal: { type: Number, default: 0 },
             coins_earned: { type: Number, default: 0 },
-            status: { type: String, enum: ['under', 'on_target', 'over'], default: 'on_target' }
-
+            status: { type: String, enum: ['under', 'on_target', 'over'], default: 'on_target' },
+            // Protein tracking
+            goal_protein_g: { type: Number, default: 0 },
+            consumed_protein_g: { type: Number, default: 0 },
+            protein_status: { type: String, enum: ['under', 'on_target', 'over'], default: 'on_target' }
         }
     ],
     gamification: {
