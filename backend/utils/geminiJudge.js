@@ -44,21 +44,20 @@ exports.evaluateGamification = async (data) => {
         SCORING CRITERIA:
         1. Activity: Based on calories burned and active time relative to implicit BMR/Maintenance. >500 active cals is usually good. (Impacts Coin Rewards: 1 coin per 10 kcal).
         2. Nutrition: Based on food choices (healthy/unhealthy), balance of macros, and caloric intake vs goal. (Impacts Coin Rewards: Score / 2).
-        3. Health: Based on overall BMI status, water intake, stress levels, and risk factors.
-        4. Sleep: Based on sleep hours (7-9 is ideal).
+        
+        Note: Health and Sleep scores are now handled deterministically by the backend. You do NOT need to provide scores for 'health' or 'sleep' in the JSON, but you can see them in context to inform your reasoning for Activity/Nutrition if relevant.
 
         RESPONSIVE DNA CRITERIA (each value 0.0 to 1.0, where 0.5 is the neutral/average state):
         These values control a 3D humanoid avatar's body proportions. They should realistically reflect the user's current physical state.
         - height: Based on the user's actual height if available. 0.5 = average (~170cm). Scale proportionally.
-        - upperBodyWeight: Reflects upper body fat/mass. High BMI (>30) → closer to 1.0 (heavier). Low BMI (<18.5) → closer to 0.0 (thinner). High calorie surplus from food logs → slightly increase. Active exercise → slightly decrease.
-        - lowerBodyWeight: Same logic as upperBodyWeight but for lower body.
-        - upperBodyMuscle: Reflects upper body muscularity. Frequent/intense exercise (especially strength, gym programs) → increase toward 1.0. Sedentary + high BMI → low values (fat, not muscle). Good protein intake → slight increase.
-        - lowerBodyMuscle: Same logic as upperBodyMuscle but for lower body. Running/walking/cycling activities boost this more.
+        - upperbody: Reflects upper body (chest/shoulder) mass and definition. High BMI + sedentary → closer to 1.0 (heavier). Intense upper body exercise → closer to 1.0 (muscular). Low BMI → closer to 0.0 (thinner).
+        - lowerbody: Reflects lower body (legs/hips) mass and definition. Similar BMI/exercise logic as upperbody.
+        - arms: Reflects arm mass and definition. Focus on overall arm thickness.
 
         IMPORTANT DNA RULES:
-        - A user with high BMI but NO exercise should have HIGH weight values but LOW muscle values (overweight, not muscular).
-        - A user with normal BMI and regular exercise should have MODERATE weight and MODERATE-HIGH muscle values (fit).
-        - A user with low BMI should have LOW weight and LOW-MODERATE muscle values (thin).
+        - A user with high BMI but NO exercise should have HIGH regional mass values.
+        - A user with normal BMI and regular exercise should have MODERATE regional mass values.
+        - A user with low BMI should have LOW regional mass values.
         - Changes should be gradual — prefer small adjustments from the current values provided in context.
 
         OUTPUT FORMAT:
@@ -66,14 +65,11 @@ exports.evaluateGamification = async (data) => {
         {
             "activity": 85,
             "nutrition": 70,
-            "health": 60,
-            "sleep": 90,
             "responsive_dna": {
                 "height": 0.5,
-                "upperBodyWeight": 0.55,
-                "lowerBodyWeight": 0.55,
-                "upperBodyMuscle": 0.6,
-                "lowerBodyMuscle": 0.65
+                "upperbody": 0.55,
+                "lowerbody": 0.55,
+                "arms": 0.6
             },
             "reasoning": "Great job! Your high activity earned you a lot of coins today. Your nutrition was solid as well."
         }
@@ -90,7 +86,7 @@ exports.evaluateGamification = async (data) => {
 
         // Ensure responsive_dna values are clamped between 0 and 1
         if (parsed.responsive_dna) {
-            for (const key of ['height', 'upperBodyWeight', 'lowerBodyWeight', 'upperBodyMuscle', 'lowerBodyMuscle']) {
+            for (const key of ['height', 'upperbody', 'lowerbody', 'arms']) {
                 if (typeof parsed.responsive_dna[key] === 'number') {
                     parsed.responsive_dna[key] = Math.max(0, Math.min(1, parsed.responsive_dna[key]));
                 } else {
@@ -98,7 +94,7 @@ exports.evaluateGamification = async (data) => {
                 }
             }
         } else {
-            parsed.responsive_dna = { height: 0.5, upperBodyWeight: 0.5, lowerBodyWeight: 0.5, upperBodyMuscle: 0.5, lowerBodyMuscle: 0.5 };
+            parsed.responsive_dna = { height: 0.5, upperbody: 0.5, lowerbody: 0.5, arms: 0.5 };
         }
 
         return parsed;
@@ -198,7 +194,7 @@ exports.generateAssessmentQuestions = async (userContext) => {
         }
 
         console.log('[Assessment] Parsed questions count:', questions.length);
-        
+
         if (questions.length < 10) {
             console.warn(`[Assessment] Only got ${questions.length} questions, expected 10. Using all available.`);
         }
@@ -438,7 +434,7 @@ Return ONLY the translated text, nothing else.`;
 
         const response = await model.generateContent(prompt);
         const translated = response.response.text().trim();
-        
+
         console.log('[Translation] Translated to English:', text.substring(0, 50), '...', 'to:', translated.substring(0, 50), '...');
         return translated;
     } catch (err) {
@@ -469,7 +465,7 @@ Return ONLY the translated text in Tagalog, nothing else.`;
 
         const response = await model.generateContent(prompt);
         const translated = response.response.text().trim();
-        
+
         console.log('[Translation] Translated to Tagalog:', text.substring(0, 50), '...', 'to:', translated.substring(0, 50), '...');
         return translated;
     } catch (err) {
