@@ -646,7 +646,7 @@ export default function Predictions() {
                       <div className="flex justify-between items-center">
                         <CardTitle className="text-lg flex items-center gap-2">
                           <Activity className="w-5 h-5" />
-                          Disease Risk Analysis
+                          Health Risk Analysis
                         </CardTitle>
                         {lastUpdated && (
                           <span className="text-xs text-gray-500">
@@ -657,7 +657,7 @@ export default function Predictions() {
                     </CardHeader>
                     <CardContent>
                       <p className="text-sm text-gray-600 mb-4">
-                        Based on your health profile, here are your predicted disease risks:
+                        Based on your health profile, here are your predicted health risks:
                       </p>
                       <div className="space-y-4">
                         {predictions.filter((p: any) => p.probability > 0).map((prediction, index) => (

@@ -639,7 +639,7 @@ const HEALTH_METRICS: HealthMetric[] = [
   },
   {
     id: 'risks',
-    title: 'Disease Risks',
+    title: 'Health Risks',
     icon: HeartPulse,
     description: 'Potential Conditions',
     detailKey: 'Disease_Risk_Assessment',
