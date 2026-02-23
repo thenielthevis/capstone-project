@@ -245,7 +245,6 @@ const getNotificationContent = (message: FeedbackMessage): Notifications.Notific
             messageId: message._id,
             category: message.category,
             priority: message.priority,
-            action: message.action
         },
         categoryIdentifier: message.category,
         badge: 1,

@@ -19,7 +19,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 10,
             title: 'Sleep Alert',
             messageTemplate: "You've slept less than 6 hours on {count}+ days this week. Chronic sleep deprivation affects your health, mood, and productivity. Let's work on improving your sleep schedule.",
-            action: { type: 'navigate', label: 'Sleep Tips', screen: 'SleepTips' },
             cooldownHours: 48
         },
         excellent_streak: {
@@ -27,7 +26,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 6,
             title: 'Perfect Sleep Week! 🌟',
             messageTemplate: "Perfect sleep week! You've maintained 7-9 hours for 7 days straight. Your body thanks you!",
-            action: { type: 'navigate', label: 'View Sleep Stats', screen: 'SleepStats' },
             cooldownHours: 168 // 1 week
         },
         irregular_pattern: {
@@ -35,7 +33,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 7,
             title: 'Irregular Sleep Pattern',
             messageTemplate: "Your sleep schedule has been inconsistent this week (±{stdDev} hours variance). Try going to bed at the same time each night to establish a healthy rhythm.",
-            action: { type: 'navigate', label: 'Set Sleep Schedule', screen: 'SleepSchedule' },
             cooldownHours: 72
         },
         oversleeping_pattern: {
@@ -43,7 +40,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 8,
             title: 'Oversleeping Pattern',
             messageTemplate: "You've slept over 10 hours for {count} days in a row. While rest is important, excessive sleep can indicate underlying issues. Consider checking in with how you're feeling.",
-            action: { type: 'log', label: 'Log Mood', screen: 'MoodCheckin' },
             cooldownHours: 72
         },
         improving_trend: {
@@ -51,7 +47,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 5,
             title: 'Sleep Improvement! 📈',
             messageTemplate: "Great progress! You're sleeping an average of {change}+ hours more this week compared to last week. Keep it up!",
-            action: null,
             cooldownHours: 168
         },
         weekend_catch_up: {
@@ -59,7 +54,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 7,
             title: 'Weekend Sleep Catch-up',
             messageTemplate: "You're catching up on sleep this weekend ({extraHours} hours more than weekday average). While helpful, try to maintain consistent sleep hours throughout the week for better overall health.",
-            action: { type: 'navigate', label: 'Optimize Schedule', screen: 'SleepSchedule' },
             cooldownHours: 168
         },
         low_quality_despite_duration: {
@@ -67,7 +61,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 8,
             title: 'Low Sleep Quality',
             messageTemplate: "You're getting enough sleep hours, but your sleep quality has been low for {count} days. Consider factors like room temperature, noise, screen time before bed, or caffeine intake.",
-            action: { type: 'navigate', label: 'Sleep Environment Tips', screen: 'SleepTips' },
             cooldownHours: 72
         },
         quality_improvement: {
@@ -75,7 +68,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 5,
             title: 'Sleep Quality Improved! ✨',
             messageTemplate: "Your sleep quality has improved significantly this week! Whatever you're doing is working.",
-            action: null,
             cooldownHours: 168
         }
     },
@@ -87,7 +79,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 9,
             title: 'Hydration Alert',
             messageTemplate: "You've been under 60% of your water goal for most of this week ({count}/5 days). Dehydration affects energy, focus, and skin health. Let's turn this around!",
-            action: { type: 'navigate', label: 'Set Reminders', screen: 'WaterReminders' },
             cooldownHours: 48
         },
         champion: {
@@ -95,7 +86,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 5,
             title: 'Hydration Champion! 💧',
             messageTemplate: "Hydration Champion! You've met your water goal {count}+ days this month. Outstanding consistency!",
-            action: { type: 'share', label: 'Share Achievement', screen: 'ShareAchievement' },
             cooldownHours: 720 // 30 days
         },
         afternoon_dip: {
@@ -103,7 +93,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 7,
             title: 'Afternoon Hydration Check',
             messageTemplate: "It's afternoon and you're at {percentage}% of your water goal. Afternoon dehydration can cause energy crashes. Time for a water break!",
-            action: { type: 'log', label: 'Log Water Now', screen: 'WaterLog' },
             cooldownHours: 24
         },
         pre_bedtime_overhydration: {
@@ -111,7 +100,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 6,
             title: 'Late Night Hydration',
             messageTemplate: "You've had a lot of water ({amount}ml) in the last hour before bed. This might disrupt your sleep. Try to front-load hydration earlier in the day.",
-            action: null,
             cooldownHours: 24
         },
         comeback: {
@@ -119,7 +107,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 5,
             title: 'Hydration Comeback! 💪',
             messageTemplate: "What a comeback! You went from {yesterdayPercent}% yesterday to hitting your goal today. Way to bounce back!",
-            action: null,
             cooldownHours: 48
         },
         weekend_drop: {
@@ -127,7 +114,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 7,
             title: 'Weekend Hydration Drop',
             messageTemplate: "Your water intake drops on weekends ({weekendPercent}% of weekday average). Different routines can disrupt healthy habits. Set weekend-specific reminders to stay on track.",
-            action: { type: 'navigate', label: 'Weekend Reminders', screen: 'WaterReminders' },
             cooldownHours: 168
         },
         weather_based: {
@@ -135,7 +121,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 8,
             title: 'Hot Weather Alert',
             messageTemplate: "It's hot outside and you're behind on hydration ({percentage}% of goal). Your body needs extra water in hot weather to stay healthy and energized.",
-            action: { type: 'navigate', label: 'Increase Goal', screen: 'WaterGoal' },
             cooldownHours: 24
         }
     },
@@ -147,7 +132,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 10,
             title: 'Rising Stress Levels',
             messageTemplate: "Your stress levels have been climbing for {count} days straight. This pattern needs attention. Consider stress-relief activities or talking to someone.",
-            action: { type: 'navigate', label: 'Stress Relief Exercises', screen: 'StressRelief' },
             cooldownHours: 72
         },
         chronic_high: {
@@ -155,7 +139,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 10,
             title: 'High Stress Alert',
             messageTemplate: "You've reported high stress (7+) for {count} out of 7 days. Chronic stress affects your health. Please consider reaching out to a healthcare professional or counselor.",
-            action: { type: 'navigate', label: 'Mental Health Resources', screen: 'MentalHealthResources' },
             cooldownHours: 168
         },
         stress_free_week: {
@@ -163,7 +146,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 4,
             title: 'Peaceful Week! 🧘',
             messageTemplate: "Peaceful week! Your average stress level has been {average}. Enjoy this calm period and note what's contributing to it.",
-            action: { type: 'navigate', label: 'Journal About It', screen: 'Journal' },
             cooldownHours: 168
         },
         monday_spike: {
@@ -171,7 +153,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 7,
             title: 'Monday Stress Spike',
             messageTemplate: "Monday stress spike detected (+{increase} points from weekend). The transition back to work can be tough. Try planning something enjoyable for Monday evenings to balance it out.",
-            action: { type: 'navigate', label: 'Self-Care Ideas', screen: 'SelfCare' },
             cooldownHours: 168
         },
         improvement: {
@@ -179,7 +160,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 5,
             title: 'Stress Levels Improved! 📉',
             messageTemplate: "Fantastic progress! Your stress levels have dropped from {previous} to {current} this week. You're managing stress better—keep using what's working!",
-            action: null,
             cooldownHours: 168
         },
         source_pattern: {
@@ -187,7 +167,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 8,
             title: 'Recurring Stress Source',
             messageTemplate: "{source} has been your primary stress source for most of the past 10 days. Consider work-life balance strategies or discussing workload with your manager.",
-            action: { type: 'navigate', label: 'Work-Life Balance Tips', screen: 'WorkLifeBalance' },
             cooldownHours: 168
         },
         evening_pattern: {
@@ -195,7 +174,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 7,
             title: 'Evening Stress Pattern',
             messageTemplate: "Your stress levels are consistently high in the evenings ({count}/7 days). Try incorporating a wind-down routine: meditation, light reading, or a relaxing hobby.",
-            action: { type: 'navigate', label: 'Evening Routine Ideas', screen: 'EveningRoutine' },
             cooldownHours: 168
         }
     },
@@ -207,7 +185,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 5,
             title: 'Healthy Progress! ⚖️',
             messageTemplate: "Healthy weight loss progress! You've lost {amount} at a sustainable pace this month. Keep up the balanced approach!",
-            action: { type: 'navigate', label: 'View Progress', screen: 'WeightProgress' },
             cooldownHours: 720 // 30 days
         },
         rapid_loss: {
@@ -215,7 +192,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 9,
             title: 'Rapid Weight Loss Warning',
             messageTemplate: "You're losing weight very quickly (>{rate} lbs/week for 2+ weeks). Rapid weight loss can be unhealthy. Consider consulting a healthcare provider or nutritionist.",
-            action: { type: 'navigate', label: 'Health Resources', screen: 'HealthResources' },
             cooldownHours: 168
         },
         rapid_gain: {
@@ -223,7 +199,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 9,
             title: 'Rapid Weight Gain',
             messageTemplate: "Your weight has increased by {amount} lbs this week. Sudden weight gain can indicate water retention or other health issues. Consider checking in with a doctor if this continues.",
-            action: { type: 'navigate', label: 'Learn More', screen: 'WeightInfo' },
             cooldownHours: 168
         },
         goal_achieved: {
@@ -231,7 +206,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 6,
             title: 'Goal Weight Reached! 🎉',
             messageTemplate: "Congratulations! You've reached your target weight! Now focus on maintaining your healthy habits.",
-            action: { type: 'navigate', label: 'Set Maintenance Plan', screen: 'WeightMaintenance' },
             cooldownHours: 720
         },
         plateau: {
@@ -239,7 +213,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 6,
             title: 'Weight Plateau',
             messageTemplate: "Your weight has plateaued for 3 weeks. Plateaus are normal! Consider adjusting your routine, varying exercises, or reviewing your nutrition.",
-            action: { type: 'navigate', label: 'Plateau Breakers', screen: 'PlateauTips' },
             cooldownHours: 504 // 3 weeks
         },
         weekend_fluctuation: {
@@ -247,7 +220,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 7,
             title: 'Weekend Weight Pattern',
             messageTemplate: "Pattern detected: Your weight tends to increase on weekends (avg +{amount} lbs). This is common! Focus on mindful eating and staying active during weekends.",
-            action: { type: 'navigate', label: 'Weekend Tips', screen: 'WeekendTips' },
             cooldownHours: 672 // 4 weeks
         },
         consistent_tracking: {
@@ -255,7 +227,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 4,
             title: 'Tracking Star! ⭐',
             messageTemplate: "Excellent tracking! You've logged your weight {count}+ days this month. Consistent tracking is key to reaching your goals.",
-            action: null,
             cooldownHours: 720
         }
     },
@@ -267,7 +238,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 9,
             title: 'Sleep-Stress Connection',
             messageTemplate: "Pattern identified: Poor sleep correlates with high stress in your data ({count}/5 days). Prioritizing sleep might help reduce your stress levels.",
-            action: { type: 'navigate', label: 'Sleep-Stress Connection', screen: 'SleepStressInfo' },
             cooldownHours: 168
         },
         dehydration_stress_link: {
@@ -275,7 +245,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 7,
             title: 'Hydration-Stress Link',
             messageTemplate: "Interesting pattern: You tend to be dehydrated on high-stress days. Dehydration can amplify stress symptoms. Stay hydrated even when busy!",
-            action: { type: 'navigate', label: 'Hydration Benefits', screen: 'HydrationInfo' },
             cooldownHours: 168
         },
         good_sleep_low_stress: {
@@ -283,7 +252,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 5,
             title: 'Winning Combination! 🏆',
             messageTemplate: "Positive correlation: Your good sleep is matching with low stress levels for {count}+ days. You've found a winning combination!",
-            action: null,
             cooldownHours: 168
         },
         weekend_recovery_pattern: {
@@ -291,7 +259,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 7,
             title: 'Weekend Recovery Pattern',
             messageTemplate: "Pattern: You're recovering on weekends with extra sleep and lower stress, but weekdays are tough (avg stress: {weekdayStress}). Consider ways to reduce weekday stress before it accumulates.",
-            action: { type: 'navigate', label: 'Weekday Wellness', screen: 'WeekdayWellness' },
             cooldownHours: 168
         },
         hydration_sleep_quality: {
@@ -299,7 +266,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 6,
             title: 'Hydration Helps Sleep! 💤',
             messageTemplate: "Insight: Your sleep quality tends to be better on days you meet your water goal ({count}/10 days). Keep up the hydration for better rest!",
-            action: null,
             cooldownHours: 336 // 2 weeks
         },
         weight_sleep_correlation: {
@@ -307,7 +273,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 6,
             title: 'Sleep Affects Weight',
             messageTemplate: "Data insight: Your weight management improves when you sleep well. Sleep affects metabolism and hunger hormones—keep prioritizing rest!",
-            action: { type: 'navigate', label: 'Sleep & Weight Info', screen: 'SleepWeightInfo' },
             cooldownHours: 720
         }
     },
@@ -319,7 +284,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 5,
             title: 'Good Afternoon! 👋',
             messageTemplate: "Good afternoon! You haven't logged your health data today. Quick check-in?",
-            action: { type: 'log', label: 'Log Now', screen: 'HealthCheckup' },
             cooldownHours: 24
         },
         streak_risk: {
@@ -327,7 +291,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 8,
             title: 'Streak at Risk! 🔥',
             messageTemplate: "Don't break your {count}-day streak! Log your health data before bed to keep it going.",
-            action: { type: 'log', label: 'Quick Log', screen: 'HealthCheckup' },
             cooldownHours: 24
         },
         milestone_streak: {
@@ -335,7 +298,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 6,
             title: 'Milestone Achieved! 🎊',
             messageTemplate: "Amazing! {count}-day logging streak! Your consistency is building lasting healthy habits.",
-            action: { type: 'share', label: 'Share Achievement', screen: 'ShareAchievement' },
             cooldownHours: 168
         },
         evening_wind_down: {
@@ -343,7 +305,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 7,
             title: 'Wind-Down Time 🌙',
             messageTemplate: "You had a stressful day (stress level: {level}). It's wind-down time! Try a relaxing activity before bed to help you sleep better.",
-            action: { type: 'navigate', label: 'Relaxation Exercises', screen: 'RelaxationExercises' },
             cooldownHours: 24
         },
         forgot_weekend_logging: {
@@ -351,7 +312,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 6,
             title: 'Weekend Check-in! 📅',
             messageTemplate: "Weekend wellness check! Don't forget to track your health even on days off. Consistency is key!",
-            action: { type: 'log', label: 'Log Weekend Data', screen: 'HealthCheckup' },
             cooldownHours: 48
         },
         monthly_review: {
@@ -359,7 +319,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 5,
             title: 'Month-End Review 📊',
             messageTemplate: "Month ending! Take a moment to review your progress and set intentions for next month.",
-            action: { type: 'navigate', label: 'Monthly Review', screen: 'MonthlyReview' },
             cooldownHours: 720
         },
         improvement_opportunity: {
@@ -367,7 +326,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 6,
             title: 'Room for Improvement',
             messageTemplate: "You're great at tracking ({trackingDays}+ days), but goal completion has been {completionRate}%. Let's adjust your goals to be more realistic and achievable.",
-            action: { type: 'navigate', label: 'Adjust Goals', screen: 'GoalSettings' },
             cooldownHours: 720
         }
     },
@@ -379,7 +337,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 5,
             title: 'PERFECT DAY! 🌟',
             messageTemplate: "PERFECT DAY! You hit all your health targets today. This is what we're working toward!",
-            action: { type: 'share', label: 'Celebrate', screen: 'Celebration' },
             cooldownHours: 24
         },
         perfect_week: {
@@ -387,7 +344,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 6,
             title: 'PERFECT WEEK! 🏆',
             messageTemplate: "PERFECT WEEK UNLOCKED! You've maintained excellent health habits for 7 days straight. You're unstoppable!",
-            action: { type: 'share', label: 'Claim Badge', screen: 'Badges' },
             cooldownHours: 168
         },
         early_bird: {
@@ -395,7 +351,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 4,
             title: 'Early Bird Badge! 🐦',
             messageTemplate: "Early Bird Badge Earned! You've woken up between 5-7 AM for {count} out of 10 days.",
-            action: { type: 'navigate', label: 'View Badges', screen: 'Badges' },
             cooldownHours: 240 // 10 days
         },
         hydration_hero: {
@@ -403,7 +358,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 5,
             title: 'HYDRATION HERO! 💧',
             messageTemplate: "HYDRATION HERO! You've met your water goal {count}+ times in the past 90 days. Elite level consistency!",
-            action: { type: 'share', label: 'Claim Badge', screen: 'Badges' },
             cooldownHours: 2160 // 90 days
         },
         stress_warrior: {
@@ -411,7 +365,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 5,
             title: 'Stress Warrior! 🧘',
             messageTemplate: "Stress Warrior Achievement! Your average stress level has been under 3.5 for the entire month. Exceptional mental wellness!",
-            action: { type: 'share', label: 'Claim Badge', screen: 'Badges' },
             cooldownHours: 720
         },
         comeback_champion: {
@@ -419,7 +372,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 6,
             title: 'COMEBACK CHAMPION! 💪',
             messageTemplate: "COMEBACK CHAMPION! You turned things around dramatically this week (health score: {previousScore}→{currentScore}). This shows real resilience and commitment!",
-            action: { type: 'share', label: 'Claim Badge', screen: 'Badges' },
             cooldownHours: 168
         },
         data_enthusiast: {
@@ -427,7 +379,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 4,
             title: 'Data Enthusiast! 📊',
             messageTemplate: "Data Enthusiast Badge! You've logged complete health data {count}+ days this month. Your detailed tracking enables better insights!",
-            action: { type: 'navigate', label: 'Advanced Analytics', screen: 'AdvancedAnalytics' },
             cooldownHours: 720
         }
     },
@@ -439,7 +390,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 10,
             title: '⚠️ Health Alert',
             messageTemplate: "Health Alert: Multiple concerning patterns detected this week (poor sleep, high stress, low hydration). Your wellbeing needs attention. Please consider reaching out to a healthcare professional.",
-            action: { type: 'navigate', label: 'Health Resources', screen: 'HealthResources' },
             cooldownHours: 168
         },
         declining_all_metrics: {
@@ -447,7 +397,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 9,
             title: 'All Metrics Declining',
             messageTemplate: "All metrics are declining this week compared to last week (sleep ↓{sleepChange}, stress ↑{stressChange}, hydration ↓{hydrationChange}). Something's affecting your overall wellness. Time to check in with yourself or someone you trust.",
-            action: { type: 'navigate', label: 'Self-Care Plan', screen: 'SelfCarePlan' },
             cooldownHours: 168
         },
         missed_logging_concern: {
@@ -455,7 +404,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 7,
             title: 'We Miss You! 💙',
             messageTemplate: "We haven't seen you in {days} days. After such a great {streakCount}+ day streak, we hope everything's okay. Your health journey matters—come back when you're ready.",
-            action: { type: 'log', label: 'Quick Check-In', screen: 'HealthCheckup' },
             cooldownHours: 168
         }
     },
@@ -467,7 +415,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 5,
             title: 'Holiday Season Tip 🎄',
             messageTemplate: "Holiday season tip: It's easy to let health habits slip during celebrations. Small consistent actions can help you stay balanced!",
-            action: { type: 'navigate', label: 'Holiday Wellness Tips', screen: 'HolidayTips' },
             cooldownHours: 168
         },
         new_year_momentum: {
@@ -475,7 +422,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 5,
             title: 'Strong New Year Start! 🎉',
             messageTemplate: "Strong New Year start! You've been consistent for {count}+ days. You're building sustainable habits, not just resolutions!",
-            action: null,
             cooldownHours: 336 // 2 weeks
         },
         daylight_savings: {
@@ -483,7 +429,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 7,
             title: 'Daylight Saving Adjustment',
             messageTemplate: "Daylight Saving Time can disrupt sleep. Your sleep quality has dipped. Give yourself a few days to adjust and prioritize rest.",
-            action: { type: 'navigate', label: 'DST Sleep Tips', screen: 'DSTTips' },
             cooldownHours: 168
         },
         rainy_day: {
@@ -491,7 +436,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 6,
             title: 'Rainy Day Blues',
             messageTemplate: "Extended rainy weather can affect mood and stress. Try indoor activities, bright lighting, or connecting with friends to boost your spirits.",
-            action: { type: 'navigate', label: 'Indoor Wellness Ideas', screen: 'IndoorWellness' },
             cooldownHours: 72
         }
     },
@@ -503,7 +447,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 5,
             title: 'Community Challenge! 🏅',
             messageTemplate: "Weekly Community Challenge: {participantCount} users are working on improving their hydration this week. Want to join?",
-            action: { type: 'navigate', label: 'Join Challenge', screen: 'CommunityChallenge' },
             cooldownHours: 168
         },
         above_average_performance: {
@@ -511,7 +454,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 4,
             title: 'You\'re Ahead! 🌟',
             messageTemplate: "You're sleeping {difference}+ hours more than the average Lifora user! Your commitment to rest is paying off.",
-            action: null,
             cooldownHours: 168
         },
         peer_motivation: {
@@ -519,7 +461,6 @@ const TRIGGER_DEFINITIONS = {
             priority: 6,
             title: 'You Can Do It!',
             messageTemplate: "{communityPercent}% of Lifora users met their goals this week. You can do it too! Small steps lead to big changes.",
-            action: { type: 'navigate', label: 'Tips for Success', screen: 'SuccessTips' },
             cooldownHours: 168
         }
     }

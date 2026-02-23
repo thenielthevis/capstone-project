@@ -10,11 +10,40 @@ import { useTheme } from "../context/ThemeContext";
 import { useFeedback } from "../context/FeedbackContext";
 import {
     FeedbackMessage,
+    FeedbackCategory,
     getCategoryIcon,
     getCategoryColor,
     getPriorityColor
 } from "../api/feedbackApi";
 import { useRouter } from "expo-router";
+
+// Map feedback categories to Analysis tab metric IDs
+const CATEGORY_TO_METRIC: Record<FeedbackCategory, string | null> = {
+    sleep: 'sleep',
+    hydration: 'water',
+    stress: 'stress',
+    weight: 'bmi',
+    correlation: 'risks',
+    behavioral: 'activity',
+    achievement: null,
+    warning: 'health',
+    contextual: 'environment',
+    social: null,
+};
+
+// Readable labels for the "View Analysis" button per category
+const CATEGORY_ANALYSIS_LABEL: Record<FeedbackCategory, string> = {
+    sleep: 'View Sleep Analysis',
+    hydration: 'View Hydration Analysis',
+    stress: 'View Stress Analysis',
+    weight: 'View Weight Analysis',
+    correlation: 'View Health Risks',
+    behavioral: 'View Activity Analysis',
+    achievement: 'View Analysis',
+    warning: 'View Health Analysis',
+    contextual: 'View Environment Analysis',
+    social: 'View Analysis',
+};
 
 interface FeedbackCardProps {
     message: FeedbackMessage;
@@ -46,13 +75,14 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
         }
     };
 
-    // Handle action button press
-    const handleActionPress = () => {
-        if (message.action?.screen) {
-            // Navigate to the specified screen
-            router.push(`/(tabs)/${message.action.screen}` as any);
+    // Handle navigating to corresponding Analysis metric
+    const handleViewAnalysis = () => {
+        const metricId = CATEGORY_TO_METRIC[message.category];
+        if (metricId) {
+            router.push(`/(tabs)/Analysis?metric=${metricId}` as any);
+        } else {
+            router.push('/(tabs)/Analysis' as any);
         }
-        onActionPress?.();
     };
 
     // Handle dismiss
@@ -267,36 +297,34 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
                 </View>
             )}
 
-            {/* Action button */}
-            {message.action && (
-                <TouchableOpacity
-                    onPress={handleActionPress}
-                    style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        marginTop: 16,
-                        paddingVertical: 12,
-                        paddingHorizontal: 20,
-                        backgroundColor: categoryColor,
-                        borderRadius: 12
-                    }}
-                >
-                    <Text style={{
-                        fontFamily: theme.fonts.bodyBold,
-                        fontSize: 14,
-                        color: "#FFFFFF"
-                    }}>
-                        {message.action.label}
-                    </Text>
-                    <MaterialCommunityIcons
-                        name="arrow-right"
-                        size={18}
-                        color="#FFFFFF"
-                        style={{ marginLeft: 6 }}
-                    />
-                </TouchableOpacity>
-            )}
+            {/* View Analysis button */}
+            <TouchableOpacity
+                onPress={handleViewAnalysis}
+                style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginTop: 16,
+                    paddingVertical: 12,
+                    paddingHorizontal: 20,
+                    backgroundColor: categoryColor,
+                    borderRadius: 12
+                }}
+            >
+                <Text style={{
+                    fontFamily: theme.fonts.bodyBold,
+                    fontSize: 14,
+                    color: "#FFFFFF"
+                }}>
+                    {CATEGORY_ANALYSIS_LABEL[message.category]}
+                </Text>
+                <MaterialCommunityIcons
+                    name="arrow-right"
+                    size={18}
+                    color="#FFFFFF"
+                    style={{ marginLeft: 6 }}
+                />
+            </TouchableOpacity>
         </TouchableOpacity>
     );
 };

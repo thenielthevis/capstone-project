@@ -13,15 +13,6 @@ export type FeedbackCategory =
 
 export type FeedbackStatus = 'unread' | 'read' | 'dismissed' | 'acted_upon';
 
-export type FeedbackActionType = 'navigate' | 'log' | 'share' | 'external' | 'tip';
-
-export interface FeedbackAction {
-    type: FeedbackActionType;
-    label: string;
-    screen?: string;
-    data?: any;
-}
-
 export interface FeedbackMessage {
     _id: string;
     user: string;
@@ -30,7 +21,6 @@ export interface FeedbackMessage {
     priority: number; // 1-10
     title: string;
     message: string;
-    action?: FeedbackAction;
     status: FeedbackStatus;
     generatedAt: string;
     expiresAt?: string;

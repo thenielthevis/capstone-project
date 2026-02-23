@@ -74,11 +74,6 @@ export const FeedbackBanner: React.FC<FeedbackBannerProps> = ({
             if (item.status === "unread") {
                 await updateStatus(item._id, "read");
             }
-
-            // Navigate if action specified
-            if (item.action?.screen) {
-                router.push(`/(tabs)/${item.action.screen}` as any);
-            }
         };
 
         return (
@@ -136,28 +131,6 @@ export const FeedbackBanner: React.FC<FeedbackBannerProps> = ({
                         >
                             {item.message}
                         </Text>
-
-                        {/* Action hint */}
-                        {item.action && (
-                            <View style={{
-                                flexDirection: "row",
-                                alignItems: "center",
-                                marginTop: 8
-                            }}>
-                                <Text style={{
-                                    fontFamily: theme.fonts.bodyBold,
-                                    fontSize: 12,
-                                    color: isUrgent ? priorityColor : categoryColor
-                                }}>
-                                    {item.action.label}
-                                </Text>
-                                <MaterialCommunityIcons
-                                    name="chevron-right"
-                                    size={16}
-                                    color={isUrgent ? priorityColor : categoryColor}
-                                />
-                            </View>
-                        )}
                     </View>
                 </View>
             </TouchableOpacity>

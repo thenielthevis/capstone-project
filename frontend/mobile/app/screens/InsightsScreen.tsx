@@ -12,10 +12,11 @@ import {
     RefreshControl,
     ActivityIndicator
 } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../context/ThemeContext";
 import { useFeedback } from "../context/FeedbackContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import FeedbackCard from "../components/FeedbackCard";
 import {
     FeedbackCategory,
@@ -38,6 +39,7 @@ const CATEGORY_FILTERS: Array<{ key: FeedbackCategory | 'all'; label: string }> 
 export default function InsightsScreen() {
     const { theme } = useTheme();
     const insets = useSafeAreaInsets();
+    const router = useRouter();
     const {
         messages,
         insights,
@@ -90,51 +92,76 @@ export default function InsightsScreen() {
             {/* Header */}
             <View style={{
                 paddingHorizontal: 24,
-                paddingTop: 16,
+                paddingTop: 8,
                 paddingBottom: 12,
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "center"
             }}>
-                <View>
-                    <Text style={{
-                        fontFamily: theme.fonts.heading,
-                        fontSize: 28,
-                        color: theme.colors.text
-                    }}>
-                        Insights
-                    </Text>
-                    <Text style={{
-                        fontFamily: theme.fonts.body,
-                        fontSize: 14,
-                        color: theme.colors.text + "AA",
-                        marginTop: 2
-                    }}>
-                        {unreadCount > 0
-                            ? `${unreadCount} unread message${unreadCount > 1 ? 's' : ''}`
-                            : "All caught up!"}
-                    </Text>
+                <View style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: unreadCount > 0 ? 4 : 0,
+                }}>
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                        <TouchableOpacity
+                            onPress={() => router.back()}
+                            activeOpacity={0.7}
+                            style={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: 12,
+                                backgroundColor: theme.colors.surface,
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                marginRight: 12,
+                            }}
+                        >
+                            <Ionicons
+                                name="chevron-back"
+                                size={22}
+                                color={theme.colors.text}
+                            />
+                        </TouchableOpacity>
+                        <Text style={{
+                            fontFamily: theme.fonts.heading,
+                            fontSize: 28,
+                            color: theme.colors.text
+                        }}>
+                            Insights
+                        </Text>
+                    </View>
+
+                    {unreadCount > 0 && (
+                        <TouchableOpacity
+                            onPress={handleMarkAllRead}
+                            style={{
+                                paddingVertical: 8,
+                                paddingHorizontal: 14,
+                                backgroundColor: theme.colors.primary + "15",
+                                borderRadius: 12
+                            }}
+                        >
+                            <Text style={{
+                                fontFamily: theme.fonts.bodyBold,
+                                fontSize: 13,
+                                color: theme.colors.primary
+                            }}>
+                                Mark all read
+                            </Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
 
-                {unreadCount > 0 && (
-                    <TouchableOpacity
-                        onPress={handleMarkAllRead}
-                        style={{
-                            paddingVertical: 8,
-                            paddingHorizontal: 14,
-                            backgroundColor: theme.colors.primary + "15",
-                            borderRadius: 12
-                        }}
-                    >
-                        <Text style={{
-                            fontFamily: theme.fonts.bodyBold,
-                            fontSize: 13,
-                            color: theme.colors.primary
-                        }}>
-                            Mark all read
-                        </Text>
-                    </TouchableOpacity>
-                )}
+                <Text style={{
+                    fontFamily: theme.fonts.body,
+                    fontSize: 14,
+                    color: theme.colors.text + "AA",
+                    marginTop: 2,
+                    marginLeft: 52,
+                }}>
+                    {unreadCount > 0
+                        ? `${unreadCount} unread message${unreadCount > 1 ? 's' : ''}`
+                        : "All caught up!"}
+                </Text>
             </View>
 
             {/* Category Stats Summary */}

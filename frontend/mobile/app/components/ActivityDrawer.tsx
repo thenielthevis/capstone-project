@@ -129,15 +129,8 @@ export default function ActivityDrawer({
       // If locked, we're in ActivityMetrics, so navigate back
       router.back();
     } else {
-      // Otherwise, navigate to ActivityMetrics
-      router.push({
-        pathname: "/screens/record/ActivityMetrics",
-        params: {
-          time: time.toString(),
-          speed: speed.toString(),
-          distance: distance.toString(),
-        },
-      });
+      // Otherwise, navigate to ActivityMetrics (data is read from context)
+      router.push("/screens/record/ActivityMetrics");
     }
   };
 

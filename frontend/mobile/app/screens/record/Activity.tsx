@@ -27,6 +27,12 @@ import {
   flushQueue,
 } from "../../utils/offlineSessionQueue";
 import NetInfo from "@react-native-community/netinfo";
+import {
+  downloadTilesForRecording,
+  expandIfNeeded,
+  cleanupOldPacks,
+  getMapStyleURL,
+} from "../../utils/offlineTileManager";
 
 Logger.setLogCallback(log => {
   const { message } = log;
@@ -75,6 +81,7 @@ export default function TestMap() {
   const [mapBearing, setMapBearing] = useState<number>(0);
   const [mapPitch, setMapPitch] = useState<number>(80);
   const currentSpeedRef = useRef<number>(0);
+  const latestCoordsRef = useRef<[number, number] | null>(null);
 
   // Stable refs for values used inside location/heading callbacks
   // This prevents tearing down the watcher on every state change
@@ -101,27 +108,73 @@ export default function TestMap() {
   // flag to avoid treating programmatic camera moves as user interactions
   const isProgrammaticRef = useRef(false);
 
-  // ── Start auto-sync on mount ──
+  // Centralised map style URL (shared with offline tile manager)
+  const mapStyleURL = getMapStyleURL(theme.mode as "dark" | "light", MAPTILER_KEY);
+
+  // ── Start auto-sync + clean up old tile packs on mount ──
   useEffect(() => {
     startAutoSync(createGeoSession);
-    // Try to flush any pending sessions from previous offline runs
     flushQueue(createGeoSession);
+    cleanupOldPacks();
   }, []);
 
-  // ── Throttled route GeoJSON updater (every 2 s while recording) ──
+  // ── Tell MapLibreGL about connectivity so it stops retrying tile loads offline ──
+  // This is the #1 fix for offline lag: without it the map queues hundreds of
+  // failing HTTP requests for tiles, each timing out and jamming the JS thread.
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      try {
+        (MapLibreGL as any).setConnected(!!state.isConnected);
+      } catch (_) {
+        // setConnected may not be available in all MapLibre RN versions
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // ── Throttled UI updater: marker, camera, route polyline (every 2 s while recording) ──
+  // Batching these prevents per-tick re-renders that jam the JS thread
+  // when the map can't load tiles (offline).
   useEffect(() => {
     if (!contextRecording) return;
     const id = setInterval(() => {
-      const coords = refs.routeCoords.current;
-      if (coords.length > 1) {
+      // 1. Update map marker position
+      const latest = latestCoordsRef.current;
+      if (latest) {
+        setLocation(latest);
+      }
+
+      // 2. Update route polyline
+      const route = refs.routeCoords.current;
+      if (route.length > 1) {
         setRouteGeoJSON({
           type: "Feature",
           properties: {},
           geometry: {
             type: "LineString",
-            coordinates: coords,
+            coordinates: route,
           },
         });
+      }
+
+      // 3. Expand offline tile coverage if user is near the edge of cached area
+      if (latest) {
+        expandIfNeeded(latest[0], latest[1], mapStyleURL).catch(() => {});
+      }
+
+      // 4. Camera follow (smooth animation spans the full 2 s interval)
+      if (latest && followingRef.current && cameraRef.current) {
+        try {
+          isProgrammaticRef.current = true;
+          cameraRef.current.setCamera({
+            centerCoordinate: latest,
+            animationDuration: 1800,
+            heading: mapBearingRef.current !== 0 ? mapBearingRef.current : undefined,
+          });
+          setTimeout(() => (isProgrammaticRef.current = false), 1900);
+        } catch (e) {
+          isProgrammaticRef.current = false;
+        }
       }
     }, 2000);
     return () => clearInterval(id);
@@ -150,7 +203,7 @@ export default function TestMap() {
         {
           accuracy: Location.Accuracy.BestForNavigation,
           timeInterval: 1000,
-          distanceInterval: 0.5,
+          distanceInterval: 2,
         },
         (pos) => {
           const coords: [number, number] = [
@@ -158,7 +211,8 @@ export default function TestMap() {
             pos.coords.latitude,
           ];
 
-          setLocation(coords);
+          // Always store latest position in ref (UI update throttled to 2 s while recording)
+          latestCoordsRef.current = coords;
 
           // ── Recording logic (writes to REFS only — zero re-renders) ──
           if (refs.recording.current) {
@@ -226,25 +280,26 @@ export default function TestMap() {
             refs.speed.current = currentSpeedRef.current < 1.0 ? 0 : Math.min(currentSpeedRef.current, 120);
 
           } else {
-            // Not recording — reset trackers
+            // Not recording — update marker immediately + reset trackers
+            setLocation(coords);
             prevLocationRef.current = null;
             prevTimestampRef.current = null;
             currentSpeedRef.current = 0;
-          }
 
-          // Auto-center camera (use refs to avoid stale closures)
-          if (followingRef.current && cameraRef.current) {
-            try {
-              isProgrammaticRef.current = true;
-              cameraRef.current.setCamera({
-                centerCoordinate: coords,
-                zoomLevel: undefined,
-                animationDuration: 500,
-                heading: mapBearingRef.current !== 0 ? mapBearingRef.current : undefined,
-              });
-              setTimeout(() => (isProgrammaticRef.current = false), 650);
-            } catch (e) {
-              isProgrammaticRef.current = false;
+            // Camera follow (while recording this is handled by the 2 s throttle)
+            if (followingRef.current && cameraRef.current) {
+              try {
+                isProgrammaticRef.current = true;
+                cameraRef.current.setCamera({
+                  centerCoordinate: coords,
+                  zoomLevel: undefined,
+                  animationDuration: 500,
+                  heading: mapBearingRef.current !== 0 ? mapBearingRef.current : undefined,
+                });
+                setTimeout(() => (isProgrammaticRef.current = false), 650);
+              } catch (e) {
+                isProgrammaticRef.current = false;
+              }
             }
           }
         }
@@ -402,7 +457,11 @@ export default function TestMap() {
 
     if (contextRecording) {
       interval = setInterval(() => {
-        refs.time.current += 1;
+        // Auto-pause: only count "moving time" (like Strava)
+        // refs.speed.current is 0 when EMA-smoothed speed < 1 km/h
+        if (refs.speed.current > 0) {
+          refs.time.current += 1;
+        }
       }, 1000);
     }
 
@@ -433,6 +492,13 @@ export default function TestMap() {
       if (refs.routeCoords.current.length === 0) {
         refs.routeCoords.current = [location];
       }
+      // Pre-download tiles around starting location for offline use
+      downloadTilesForRecording(
+        location[0],
+        location[1],
+        mapStyleURL,
+        (pct) => console.log(`[OfflineTiles] ${pct}%`)
+      ).catch(() => {});
     }
     // Note: Timer continues from where it left off (doesn't reset on pause)
     // Distance and speed also persist when paused
@@ -673,11 +739,7 @@ export default function TestMap() {
         <MapLibreGL.MapView
           ref={mapRef}
           style={{ flex: 1 }}
-          mapStyle={
-            theme.mode === "dark"
-              ? "https://api.maptiler.com/maps/019b1d6d-f87f-771b-88b8-776fa8f37312/style.json?key=" + MAPTILER_KEY
-              : `https://api.maptiler.com/maps/streets-v4/style.json?key=${MAPTILER_KEY}`
-          }
+          mapStyle={mapStyleURL}
           compassEnabled={false}
           logoEnabled={true}
           rotateEnabled={true}

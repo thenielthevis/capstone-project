@@ -16,7 +16,7 @@ import LottieView from "lottie-react-native";
 import { MaterialCommunityIcons, FontAwesome6, Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../context/ThemeContext";
 import { useUser } from "../context/UserContext";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useRouter, useLocalSearchParams } from "expo-router";
 import * as Notifications from 'expo-notifications';
 import Toast from "react-native-toast-message";
 import { LinearGradient } from "expo-linear-gradient";
@@ -169,6 +169,7 @@ function AnalysisDashboardContent() {
   const { user } = useUser();
   const { userData: contextUserData, userLoading: contextLoading, refreshAll, predictions } = useAnalysis();
   const router = useRouter();
+  const { metric: metricParam } = useLocalSearchParams<{ metric?: string }>();
   const [selectedMetric, setSelectedMetric] = useState<string | null>(null);
   const [showDetail, setShowDetail] = useState(false);
   const [showUpdateSuccess, setShowUpdateSuccess] = useState(false);
@@ -191,6 +192,14 @@ function AnalysisDashboardContent() {
 
   // Assessment Questions Modal States
   const [showAssessmentQuestions, setShowAssessmentQuestions] = useState(false);
+
+  // Open specific metric detail if navigated from insights
+  useEffect(() => {
+    if (metricParam && HEALTH_METRICS.some(m => m.id === metricParam)) {
+      setSelectedMetric(metricParam);
+      setShowDetail(true);
+    }
+  }, [metricParam]);
 
   useEffect(() => {
     refreshAll();

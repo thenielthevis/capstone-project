@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, Alert, Dimensions } from 'react-native';
+import { View, Text, ScrollView, Alert, Dimensions, InteractionManager } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -184,6 +184,16 @@ export default function ActivityMetrics() {
   const shouldAnimate = splits.length < 50;
   const isPlaceholder = splits.length === 0 && distance < 0.001;
 
+  // Defer heavy chart rendering until the navigation transition finishes.
+  // This prevents the BarChart mount from competing with the screen animation.
+  const [chartReady, setChartReady] = React.useState(false);
+  React.useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => {
+      setChartReady(true);
+    });
+    return () => task.cancel();
+  }, []);
+
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: theme.colors.background }}>
       {/* ... (previous JSX code same until ChartWrapper) ... */}
@@ -330,7 +340,8 @@ export default function ActivityMetrics() {
                 <ChartWrapper
                   data={chartData}
                   theme={theme}
-                  shouldAnimate={shouldAnimate}
+                  shouldAnimate={false}
+                  chartReady={chartReady}
                 />
               </View>
             </View>
@@ -374,11 +385,21 @@ export default function ActivityMetrics() {
   );
 }
 
-// // Memoized Chart Wrapper to prevent re-renders on timer updates
-const ChartWrapper = React.memo(({ data, theme, shouldAnimate }: any) => {
+// Memoized Chart Wrapper — defers mount until navigation transition finishes
+const ChartWrapper = React.memo(({ data, theme, shouldAnimate, chartReady }: any) => {
+  // Don't render the heavy BarChart until the screen transition is done
+  if (!chartReady) {
+    return (
+      <View style={{ height: 250, justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ color: theme.colors.text + '40', fontFamily: theme.fonts.body }}>
+          Loading chart…
+        </Text>
+      </View>
+    );
+  }
+
   // Calculate max value to ensure bars fit within the height
-  // Add 20% buffer for top label
-  const maxDataValue = Math.max(...data.map((d: any) => d.value), 1); // Ensure at least 1 to avoid dividing by zero or weird scales
+  const maxDataValue = Math.max(...data.map((d: any) => d.value), 1);
   const maxValue = maxDataValue * 1.2;
 
   return (
@@ -394,9 +415,8 @@ const ChartWrapper = React.memo(({ data, theme, shouldAnimate }: any) => {
       yAxisThickness={0}
       xAxisLabelTextStyle={{ color: theme.colors.text, fontSize: 10, fontFamily: theme.fonts.body }}
       noOfSections={3}
-      maxValue={maxValue} // Explicitly set max value for scaling
-      isAnimated={shouldAnimate}
-      animationDuration={600}
+      maxValue={maxValue}
+      isAnimated={false}
       width={Dimensions.get('window').width - 60}
       height={250}
       frontColor={theme.colors.primary}

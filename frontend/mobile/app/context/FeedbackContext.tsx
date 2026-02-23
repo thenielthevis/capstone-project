@@ -3,7 +3,7 @@
  * Manages feedback messages, insights, and notification state
  */
 
-import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from "react";
+import React, { createContext, useContext, useState, useCallback, useRef, ReactNode, useEffect } from "react";
 import {
     getFeedbackMessages,
     getHighPriorityMessages,
@@ -198,13 +198,61 @@ export const FeedbackProvider = ({ children }: { children: ReactNode }) => {
         return messages.filter(m => m.category === category);
     }, [messages]);
 
-    // Auto-refresh on mount
+    // Auto-refresh on mount and periodically
+    const initialLoadDone = useRef(false);
+
     useEffect(() => {
-        if (user) {
-            refreshHighPriority();
-            refreshInsights();
+        if (!user) {
+            initialLoadDone.current = false;
+            return;
         }
-    }, [user, refreshHighPriority, refreshInsights]);
+
+        // Initial load with a small delay to ensure auth token is ready
+        const initialLoadTimer = setTimeout(async () => {
+            try {
+                await Promise.all([
+                    refreshMessages(),
+                    refreshHighPriority(),
+                    refreshInsights(),
+                ]);
+                initialLoadDone.current = true;
+            } catch (err) {
+                console.error("[FeedbackContext] Initial load failed, retrying...", err);
+                // Retry once after another delay
+                setTimeout(async () => {
+                    try {
+                        await Promise.all([
+                            refreshMessages(),
+                            refreshHighPriority(),
+                            refreshInsights(),
+                        ]);
+                        initialLoadDone.current = true;
+                    } catch (retryErr) {
+                        console.error("[FeedbackContext] Retry also failed:", retryErr);
+                    }
+                }, 3000);
+            }
+        }, 500);
+
+        // Poll for unread count every 60 seconds to keep badge fresh
+        const pollInterval = setInterval(async () => {
+            if (initialLoadDone.current) {
+                try {
+                    const response = await getInsightsSummary();
+                    if (response.success) {
+                        setUnreadCount(response.summary.totalUnread);
+                    }
+                } catch {
+                    // Silent fail on polling
+                }
+            }
+        }, 60000);
+
+        return () => {
+            clearTimeout(initialLoadTimer);
+            clearInterval(pollInterval);
+        };
+    }, [user]); // Only depend on user, not the callbacks (avoids infinite loops)
 
     return (
         <FeedbackContext.Provider value={{

@@ -41,16 +41,6 @@ const feedbackMessageSchema = new mongoose.Schema({
         required: true,
         maxLength: 500
     },
-    // Optional action button configuration
-    action: {
-        type: {
-            type: String,
-            enum: ['navigate', 'log', 'share', 'external', 'tip']
-        },
-        label: String,
-        screen: String, // For navigate type
-        data: mongoose.Schema.Types.Mixed // Additional action data
-    },
     // Message status
     status: {
         type: String,

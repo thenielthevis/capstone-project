@@ -5,6 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useRouter, Href } from "expo-router";
 import { fontSizes } from "@/design/tokens";
 import { useUser } from "../context/UserContext";
+import { useFeedback } from "../context/FeedbackContext";
 
 type HeaderProps = {
   onProfilePress?: () => void;
@@ -22,6 +23,7 @@ export default function Header({
   const { theme } = useTheme();
   const router = useRouter();
   const { user } = useUser();
+  const { unreadCount } = useFeedback();
 
   const handleProfilePress = () => {
     if (onProfilePress) {
@@ -126,13 +128,45 @@ export default function Header({
             </View>
           )}
         </TouchableOpacity>
-        <TouchableOpacity onPress={onNotificationsPress} activeOpacity={0.7}>
+        <TouchableOpacity
+          onPress={() => router.push("/screens/InsightsScreen" as Href)}
+          activeOpacity={0.7}
+          style={{ position: 'relative', marginRight: 16 }}
+        >
           <Ionicons
             name="notifications-outline"
             size={26}
-            style={{ marginRight: 16 }}
             color={theme.colors.text}
           />
+          {unreadCount > 0 && (
+            <View
+              style={{
+                position: 'absolute',
+                top: -4,
+                right: -6,
+                minWidth: 18,
+                height: 18,
+                borderRadius: 9,
+                backgroundColor: '#EF4444',
+                alignItems: 'center',
+                justifyContent: 'center',
+                paddingHorizontal: 4,
+                borderWidth: 2,
+                borderColor: theme.colors.surface,
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: theme.fonts.bodyBold,
+                  fontSize: 10,
+                  color: '#FFFFFF',
+                  lineHeight: 12,
+                }}
+              >
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </Text>
+            </View>
+          )}
         </TouchableOpacity>
         <TouchableOpacity onPress={() => router.push("/screens/settings/list" as Href)} activeOpacity={0.7}>
           <Ionicons name="settings-outline" size={26} color={theme.colors.text} />

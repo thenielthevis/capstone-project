@@ -680,7 +680,6 @@ class FeedbackTriggerEngine {
             priority: trigger.priority,
             title: trigger.title,
             message,
-            action: trigger.action,
             metadata: data
         });
     }

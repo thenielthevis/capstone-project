@@ -8,12 +8,10 @@ import { postApi } from "../api/postApi";
 import { useRouter } from "expo-router";
 import { useUser } from "../context/UserContext";
 import { useMoodCheckin } from "../context/MoodCheckinContext";
-import { useFeedback } from "../context/FeedbackContext";
 import ReactionButton, { REACTIONS } from "../components/ReactionButton";
 import ReportModal from "../components/Modals/ReportModal";
 import { BottomSheetModal, BottomSheetModalProvider, BottomSheetBackdrop, BottomSheetView } from "@gorhom/bottom-sheet";
 import PostMediaCarousel from "../components/feed/PostMediaCarousel";
-import FeedbackBanner from "../components/FeedbackBanner";
 import QuickMoodCheckin from "../components/QuickMoodCheckin";
 
 type Post = {
@@ -53,7 +51,6 @@ export default function Home() {
   const { user } = useUser();
   const router = useRouter();
   const { isCheckinDue, currentPeriod, openCheckinModal } = useMoodCheckin();
-  const { hasUrgentMessages } = useFeedback();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -497,9 +494,6 @@ export default function Home() {
           />
         }
       >
-        {/* Feedback Banner - Shows high priority messages */}
-        <FeedbackBanner />
-
         {/* Quick Mood Check-in Widget */}
         {isCheckinDue && (
           <TouchableOpacity
