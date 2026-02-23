@@ -34,6 +34,7 @@ import Chat from './pages/Chat';
 import Report from './pages/Report';
 import HealthAnalysis from './pages/HealthAnalysis';
 import AnalysisDetail from './pages/AnalysisDetail';
+import Insights from './pages/Insights';
 import Profile from './pages/Profile';
 import PostDetail from './pages/PostDetail';
 import MoodCheckin from './pages/MoodCheckin';
@@ -117,6 +118,14 @@ function App() {
         element={
           <ProtectedRoute>
             <AnalysisDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/insights"
+        element={
+          <ProtectedRoute>
+            <Insights />
           </ProtectedRoute>
         }
       />

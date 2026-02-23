@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   Home,
   MessageSquare,
+  Bell,
   User,
   Settings,
   LogOut,
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
+import { useFeedback } from '@/context/FeedbackContext';
 import logoImg from '@/assets/logo.png';
 import { Button } from './ui/button';
 
@@ -39,6 +41,7 @@ export default function Header({
   const navigate = useNavigate();
   const { theme } = useTheme();
   const { user, logout } = useAuth();
+  const { unreadCount } = useFeedback();
 
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
@@ -174,6 +177,33 @@ export default function Header({
                     <span className="hidden sm:inline">Home</span>
                   </Button>
                 )}
+
+                {/* Insights Bell */}
+                <button
+                  onClick={() => navigate('/insights')}
+                  className="relative p-2 rounded-full transition-colors"
+                  style={{ color: theme.colors.text }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.colors.surface}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  <Bell className="w-5 h-5" />
+                  {unreadCount > 0 && (
+                    <span
+                      className="absolute -top-0.5 -right-0.5 flex items-center justify-center rounded-full text-white font-bold border-2"
+                      style={{
+                        backgroundColor: '#EF4444',
+                        borderColor: theme.colors.background,
+                        fontSize: unreadCount > 9 ? 8 : 10,
+                        minWidth: 18,
+                        height: 18,
+                        paddingLeft: 4,
+                        paddingRight: 4,
+                      }}
+                    >
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                </button>
 
                 {/* Messages */}
                 <button

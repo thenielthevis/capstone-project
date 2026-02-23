@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import ErrorBoundary from './components/ErrorBoundary.tsx'
 import { AuthProvider } from './context/AuthContext.tsx'
 import { ThemeProvider } from './context/ThemeContext.tsx'
+import { FeedbackProvider } from './context/FeedbackContext.tsx'
 import { ToastProvider } from './components/Toast/Toast.tsx'
 import App from './App.tsx'
 import './index.css'
@@ -14,9 +15,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <BrowserRouter>
         <ThemeProvider>
           <AuthProvider>
+            <FeedbackProvider>
             <ToastProvider>
               <App />
             </ToastProvider>
+            </FeedbackProvider>
           </AuthProvider>
         </ThemeProvider>
       </BrowserRouter>

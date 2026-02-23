@@ -27,10 +27,12 @@ import {
   Trash2,
   Flag,
   Smile,
-  Activity
+  Activity,
+  Bell
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
+import { useFeedback } from '@/context/FeedbackContext';
 import { getUserProfile, getTodayCalorieBalance, createOrUpdateDailyCalorieBalance, DailyBalanceEntry } from '@/api/userApi';
 import { postApi, Post } from '@/api/postApi';
 import ReactionButton from '@/components/ReactionButton';
@@ -46,6 +48,7 @@ export default function Dashboard() {
   const location = useLocation();
   const { user, setUser, logout } = useAuth();
   const { theme } = useTheme();
+  const { unreadCount } = useFeedback();
 
   // Posts state
   const [posts, setPosts] = useState<Post[]>([]);
@@ -71,9 +74,9 @@ export default function Dashboard() {
   // Navigation items
   const navItems = [
     { title: 'Home', icon: Home, path: '/dashboard', active: true },
-    { title: 'Community', icon: Users, path: '/feed' },
     { title: 'Analysis', icon: TrendingUp, path: '/analysis' },
     { title: 'Messages', icon: MessageSquare, path: '/chat' },
+    { title: 'Insights', icon: Bell, path: '/insights' },
     { title: 'Profile', icon: UserIcon, path: '/profile' },
   ];
 
@@ -566,6 +569,21 @@ export default function Dashboard() {
                 >
                   <div className="relative">
                     <Icon className={`w-6 h-6 ${isActive ? 'stroke-[2.5]' : ''}`} />
+                    {item.title === 'Insights' && unreadCount > 0 && (
+                      <span
+                        className="absolute -top-1.5 -right-1.5 flex items-center justify-center rounded-full text-white font-bold"
+                        style={{
+                          backgroundColor: '#EF4444',
+                          fontSize: unreadCount > 9 ? 8 : 10,
+                          minWidth: 16,
+                          height: 16,
+                          paddingLeft: 3,
+                          paddingRight: 3,
+                        }}
+                      >
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    )}
                   </div>
                   <span className="hidden xl:inline">{item.title}</span>
                 </button>
