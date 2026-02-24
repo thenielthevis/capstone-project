@@ -544,6 +544,40 @@ export default function ProfileScreen() {
             {profile?.email}
           </Text>
 
+          {/* View Public Profile Button */}
+          <TouchableOpacity
+            onPress={() => {
+              const myId = user?._id || user?.id;
+              if (myId) {
+                router.push({
+                  pathname: "/screens/profile/UserProfile",
+                  params: { userId: myId },
+                } as any);
+              }
+            }}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              marginTop: 12,
+              backgroundColor: theme.colors.primary + "15",
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+              borderRadius: 20,
+            }}
+          >
+            <Ionicons name="eye-outline" size={16} color={theme.colors.primary} />
+            <Text
+              style={{
+                fontFamily: theme.fonts.bodyBold,
+                fontSize: 13,
+                color: theme.colors.primary,
+                marginLeft: 6,
+              }}
+            >
+              View Public Profile
+            </Text>
+          </TouchableOpacity>
+
           {/* Profile Completion */}
           <View
             style={{

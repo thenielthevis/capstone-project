@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -34,6 +34,8 @@ type Period = 'daily' | 'weekly' | 'monthly' | 'all_time';
 type Category = 'global' | 'age_group' | 'gender' | 'fitness_level' | 'friends';
 type Metric = 'score' | 'calories_burned' | 'activity_minutes' | 'streak';
 
+const PAGE_SIZE = 20;
+
 export default function LeaderboardScreen() {
   const router = useRouter();
   const { theme } = useTheme();
@@ -48,30 +50,56 @@ export default function LeaderboardScreen() {
   const [celebrationAchievement, setCelebrationAchievement] = useState<any>(null);
   const [showCelebration, setShowCelebration] = useState(false);
   
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  
   // Filters
   const [period, setPeriod] = useState<Period>('weekly');
   const [category, setCategory] = useState<Category>('global');
   const [metric, setMetric] = useState<Metric>('score');
   
-  // Load data
-  const loadData = useCallback(async () => {
+  // Prevent double-loading on mount
+  const didLoadStats = useRef(false);
+  
+  // Load user stats only once on mount (filter-independent, heavy server call)
+  useEffect(() => {
+    if (didLoadStats.current) return;
+    didLoadStats.current = true;
+    
+    (async () => {
+      try {
+        const statsResult = await getMyStats();
+        setMyStats(statsResult.stats);
+        if (statsResult.newAchievements?.length > 0) {
+          setCelebrationAchievement(statsResult.newAchievements[0]);
+          setShowCelebration(true);
+        }
+      } catch (error) {
+        console.error('Error loading user stats:', error);
+      }
+    })();
+  }, []);
+  
+  // Load leaderboard + nearby when filters change (separate from stats)
+  const loadFilteredData = useCallback(async (resetPage = true) => {
     try {
-      const [statsResult, leaderboardData, nearbyData] = await Promise.all([
-        getMyStats(),
-        getLeaderboard({ period, category, metric, limit: 20 }),
+      if (resetPage) {
+        setLoading(true);
+        setPage(1);
+        setHasMore(true);
+      }
+      
+      const [leaderboardData, nearbyData] = await Promise.all([
+        getLeaderboard({ period, category, metric, limit: PAGE_SIZE }),
         getNearbyCompetitors(period),
       ]);
       
-      setMyStats(statsResult.stats);
       setLeaderboard(leaderboardData.leaderboard);
       setCurrentUserEntry(leaderboardData.currentUserRank);
       setNearbyCompetitors(nearbyData.nearby || []);
-      
-      // Show celebration for new achievements
-      if (statsResult.newAchievements && statsResult.newAchievements.length > 0) {
-        setCelebrationAchievement(statsResult.newAchievements[0]);
-        setShowCelebration(true);
-      }
+      setHasMore(leaderboardData.leaderboard.length >= PAGE_SIZE);
     } catch (error) {
       console.error('Error loading leaderboard data:', error);
     } finally {
@@ -81,24 +109,59 @@ export default function LeaderboardScreen() {
   }, [period, category, metric]);
   
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    loadFilteredData();
+  }, [loadFilteredData]);
   
-  // Refresh data - getMyStats automatically updates stats and checks achievements
+  // Load more entries for pagination
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const nextPage = page + 1;
+      const data = await getLeaderboard({
+        period,
+        category,
+        metric,
+        limit: PAGE_SIZE,
+        page: nextPage,
+      });
+      
+      if (data.leaderboard.length > 0) {
+        setLeaderboard(prev => [...prev, ...data.leaderboard]);
+        setPage(nextPage);
+        setHasMore(data.leaderboard.length >= PAGE_SIZE);
+      } else {
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.error('Error loading more:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore, page, period, category, metric]);
+  
+  // Refresh — reload everything including stats
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await loadData();
+      const [statsResult] = await Promise.all([
+        getMyStats().catch(() => null),
+        loadFilteredData(),
+      ]);
+      if (statsResult?.stats) setMyStats(statsResult.stats);
+      if (statsResult?.newAchievements?.length > 0) {
+        setCelebrationAchievement(statsResult.newAchievements[0]);
+        setShowCelebration(true);
+      }
     } catch (error) {
       console.error('Error refreshing:', error);
       setRefreshing(false);
     }
-  }, [loadData]);
+  }, [loadFilteredData]);
   
-  const handleUserPress = (userId: string) => {
-    // Future: Navigate to user profile
+  const handleUserPress = useCallback((userId: string) => {
     console.log('User pressed:', userId);
-  };
+  }, []);
   
   if (loading) {
     return (
@@ -235,6 +298,8 @@ export default function LeaderboardScreen() {
               entries={leaderboard}
               metric={metric}
               onUserPress={handleUserPress}
+              onEndReached={loadMore}
+              loadingMore={loadingMore}
             />
           ) : (
             <View style={{ 

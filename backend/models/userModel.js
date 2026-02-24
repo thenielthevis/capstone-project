@@ -216,6 +216,27 @@ const userSchema = new mongoose.Schema({
         morningTime: { type: String, default: '08:00' }, // HH:mm format - for sleep logging
         eveningTime: { type: String, default: '19:00' }, // HH:mm format - for water/stress/weight
         timezone: { type: String, default: 'Asia/Manila' }
+    },
+    // Follow system
+    followers: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }],
+    following: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }],
+    // Profile visibility: public, mutuals, hidden
+    profileVisibility: {
+        type: String,
+        enum: ['public', 'mutuals', 'hidden'],
+        default: 'public'
+    },
+    // Bio for the profile
+    bio: {
+        type: String,
+        maxLength: 150,
+        default: ''
     }
 });
 

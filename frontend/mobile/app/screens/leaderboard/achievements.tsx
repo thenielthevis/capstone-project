@@ -1,11 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
-  ScrollView,
+  FlatList,
   RefreshControl,
   TouchableOpacity,
   ActivityIndicator,
+  ListRenderItemInfo,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -88,34 +90,45 @@ export default function AchievementsScreen() {
     }
   }, [loadAchievements]);
   
-  // Filter achievements
-  const filteredAchievements = achievements.filter(achievement => {
-    if (categoryFilter !== 'all' && achievement.category !== categoryFilter) {
-      return false;
-    }
-    if (!showCompleted && achievement.completed) {
-      return false;
-    }
-    return true;
-  });
+  // Filter achievements — memoized to avoid recomputing on every render
+  const sortedAchievements = useMemo(() => {
+    const filtered = achievements.filter(achievement => {
+      if (categoryFilter !== 'all' && achievement.category !== categoryFilter) {
+        return false;
+      }
+      if (!showCompleted && achievement.completed) {
+        return false;
+      }
+      return true;
+    });
+    
+    // Sort: incomplete first, then by progress percentage
+    return filtered.sort((a, b) => {
+      if (a.completed !== b.completed) {
+        return a.completed ? 1 : -1;
+      }
+      return b.percentage - a.percentage;
+    });
+  }, [achievements, categoryFilter, showCompleted]);
   
-  // Sort achievements: incomplete first, then by progress percentage
-  const sortedAchievements = [...filteredAchievements].sort((a, b) => {
-    if (a.completed !== b.completed) {
-      return a.completed ? 1 : -1;
-    }
-    return b.percentage - a.percentage;
-  });
-  
-  const openAchievementModal = (achievement: Achievement) => {
+  const openAchievementModal = useCallback((achievement: Achievement) => {
     setSelectedAchievement(achievement);
     setModalVisible(true);
-  };
+  }, []);
   
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     setModalVisible(false);
     setSelectedAchievement(null);
-  };
+  }, []);
+  
+  const renderAchievementItem = useCallback(({ item }: ListRenderItemInfo<Achievement>) => (
+    <AchievementCard
+      achievement={item}
+      onPress={() => openAchievementModal(item)}
+    />
+  ), [openAchievementModal]);
+  
+  const keyExtractor = useCallback((item: Achievement) => item.id, []);
   
   if (loading) {
     return (
@@ -159,8 +172,17 @@ export default function AchievementsScreen() {
         <View style={{ width: 24 }} />
       </View>
       
-      <ScrollView
-        style={{ flex: 1 }}
+      <FlatList
+        data={sortedAchievements}
+        renderItem={renderAchievementItem}
+        keyExtractor={keyExtractor}
+        numColumns={2}
+        columnWrapperStyle={{ justifyContent: 'space-between', paddingHorizontal: 16 }}
+        contentContainerStyle={{ paddingBottom: 32 }}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        windowSize={7}
+        initialNumToRender={8}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -169,183 +191,173 @@ export default function AchievementsScreen() {
             colors={[theme.colors.primary]}
           />
         }
-      >
-        {/* Summary Card */}
-        {summary && (
-          <View style={{ 
-            marginHorizontal: 16, 
-            marginTop: 16, 
-            padding: 16, 
-            backgroundColor: theme.colors.surface, 
-            borderRadius: 16 
-          }}>
-            <View style={{ 
-              flexDirection: 'row', 
-              alignItems: 'center', 
-              justifyContent: 'space-between', 
-              marginBottom: 16 
-            }}>
-              <View style={{ alignItems: 'center', flex: 1 }}>
-                <Text style={{ 
-                  fontSize: 28, 
-                  fontFamily: theme.fonts.heading, 
-                  color: '#fbbf24' 
+        ListHeaderComponent={
+          <>
+            {/* Summary Card */}
+            {summary && (
+              <View style={{ 
+                marginHorizontal: 16, 
+                marginTop: 16, 
+                padding: 16, 
+                backgroundColor: theme.colors.surface, 
+                borderRadius: 16 
+              }}>
+                <View style={{ 
+                  flexDirection: 'row', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between', 
+                  marginBottom: 16 
                 }}>
-                  {summary.completed}
-                </Text>
+                  <View style={{ alignItems: 'center', flex: 1 }}>
+                    <Text style={{ 
+                      fontSize: 28, 
+                      fontFamily: theme.fonts.heading, 
+                      color: '#fbbf24' 
+                    }}>
+                      {summary.completed}
+                    </Text>
+                    <Text style={{ 
+                      color: theme.colors.textSecondary, 
+                      fontSize: 12, 
+                      marginTop: 4 
+                    }}>Completed</Text>
+                  </View>
+                  <View style={{ height: 48, width: 1, backgroundColor: theme.colors.border }} />
+                  <View style={{ alignItems: 'center', flex: 1 }}>
+                    <Text style={{ 
+                      fontSize: 28, 
+                      fontFamily: theme.fonts.heading, 
+                      color: theme.colors.text 
+                    }}>
+                      {summary.total}
+                    </Text>
+                    <Text style={{ 
+                      color: theme.colors.textSecondary, 
+                      fontSize: 12, 
+                      marginTop: 4 
+                    }}>Total</Text>
+                  </View>
+                  <View style={{ height: 48, width: 1, backgroundColor: theme.colors.border }} />
+                  <View style={{ alignItems: 'center', flex: 1 }}>
+                    <Text style={{ 
+                      fontSize: 28, 
+                      fontFamily: theme.fonts.heading, 
+                      color: theme.colors.accent 
+                    }}>
+                      {summary.total_points}
+                    </Text>
+                    <Text style={{ 
+                      color: theme.colors.textSecondary, 
+                      fontSize: 12, 
+                      marginTop: 4 
+                    }}>Points</Text>
+                  </View>
+                </View>
+                
+                {/* Progress Bar */}
+                <View style={{ 
+                  height: 12, 
+                  backgroundColor: theme.colors.border, 
+                  borderRadius: 6, 
+                  overflow: 'hidden' 
+                }}>
+                  <View
+                    style={{ 
+                      height: '100%', 
+                      backgroundColor: '#fbbf24', 
+                      borderRadius: 6,
+                      width: `${summary.progress_percentage}%` 
+                    }}
+                  />
+                </View>
                 <Text style={{ 
                   color: theme.colors.textSecondary, 
                   fontSize: 12, 
-                  marginTop: 4 
-                }}>Completed</Text>
-              </View>
-              <View style={{ height: 48, width: 1, backgroundColor: theme.colors.border }} />
-              <View style={{ alignItems: 'center', flex: 1 }}>
-                <Text style={{ 
-                  fontSize: 28, 
-                  fontFamily: theme.fonts.heading, 
-                  color: theme.colors.text 
+                  textAlign: 'center', 
+                  marginTop: 8 
                 }}>
-                  {summary.total}
+                  {summary.progress_percentage}% Complete
                 </Text>
-                <Text style={{ 
-                  color: theme.colors.textSecondary, 
-                  fontSize: 12, 
-                  marginTop: 4 
-                }}>Total</Text>
               </View>
-              <View style={{ height: 48, width: 1, backgroundColor: theme.colors.border }} />
-              <View style={{ alignItems: 'center', flex: 1 }}>
-                <Text style={{ 
-                  fontSize: 28, 
-                  fontFamily: theme.fonts.heading, 
-                  color: theme.colors.accent 
-                }}>
-                  {summary.total_points}
-                </Text>
-                <Text style={{ 
-                  color: theme.colors.textSecondary, 
-                  fontSize: 12, 
-                  marginTop: 4 
-                }}>Points</Text>
-              </View>
-            </View>
+            )}
             
-            {/* Progress Bar */}
-            <View style={{ 
-              height: 12, 
-              backgroundColor: theme.colors.border, 
-              borderRadius: 6, 
-              overflow: 'hidden' 
-            }}>
-              <View
-                style={{ 
-                  height: '100%', 
-                  backgroundColor: '#fbbf24', 
-                  borderRadius: 6,
-                  width: `${summary.progress_percentage}%` 
-                }}
-              />
-            </View>
-            <Text style={{ 
-              color: theme.colors.textSecondary, 
-              fontSize: 12, 
-              textAlign: 'center', 
-              marginTop: 8 
-            }}>
-              {summary.progress_percentage}% Complete
-            </Text>
-          </View>
-        )}
-        
-        {/* Category Filters */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={{ marginTop: 16, paddingHorizontal: 16 }}
-          contentContainerStyle={{ gap: 8 }}
-        >
-          {(Object.keys(CATEGORY_LABELS) as CategoryFilter[]).map((cat) => (
+            {/* Category Filters */}
+            <FlatList
+              horizontal
+              data={Object.keys(CATEGORY_LABELS) as CategoryFilter[]}
+              showsHorizontalScrollIndicator={false}
+              style={{ marginTop: 16, paddingHorizontal: 16 }}
+              contentContainerStyle={{ gap: 8 }}
+              keyExtractor={(item) => item}
+              renderItem={({ item: cat }) => (
+                <TouchableOpacity
+                  onPress={() => setCategoryFilter(cat)}
+                  style={{
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    borderRadius: 20,
+                    backgroundColor: categoryFilter === cat 
+                      ? '#fbbf24' 
+                      : theme.colors.surface,
+                    borderWidth: categoryFilter === cat ? 0 : 1,
+                    borderColor: theme.colors.border,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontFamily: theme.fonts.body,
+                      color: categoryFilter === cat 
+                        ? '#000' 
+                        : theme.colors.textSecondary,
+                    }}
+                  >
+                    {CATEGORY_LABELS[cat]}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            />
+            
+            {/* Show/Hide Completed Toggle */}
             <TouchableOpacity
-              key={cat}
-              onPress={() => setCategoryFilter(cat)}
-              style={{
+              onPress={() => setShowCompleted(!showCompleted)}
+              style={{ 
+                flexDirection: 'row', 
+                alignItems: 'center', 
+                justifyContent: 'flex-end',
                 paddingHorizontal: 16,
-                paddingVertical: 8,
-                borderRadius: 20,
-                backgroundColor: categoryFilter === cat 
-                  ? '#fbbf24' 
-                  : theme.colors.surface,
-                borderWidth: categoryFilter === cat ? 0 : 1,
-                borderColor: theme.colors.border,
+                marginTop: 16,
+                marginBottom: 16,
               }}
             >
-              <Text
-                style={{
-                  fontSize: 14,
-                  fontFamily: theme.fonts.body,
-                  color: categoryFilter === cat 
-                    ? '#000' 
-                    : theme.colors.textSecondary,
-                }}
-              >
-                {CATEGORY_LABELS[cat]}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-        
-        {/* Show/Hide Completed Toggle */}
-        <TouchableOpacity
-          onPress={() => setShowCompleted(!showCompleted)}
-          style={{ 
-            flexDirection: 'row', 
-            alignItems: 'center', 
-            justifyContent: 'flex-end',
-            paddingHorizontal: 16,
-            marginTop: 16 
-          }}
-        >
-          <Ionicons
-            name={showCompleted ? 'checkbox' : 'square-outline'}
-            size={20}
-            color="#fbbf24"
-          />
-          <Text style={{ 
-            color: theme.colors.textSecondary, 
-            fontSize: 14, 
-            marginLeft: 8 
-          }}>Show completed</Text>
-        </TouchableOpacity>
-        
-        {/* Achievements Grid */}
-        <View style={{ paddingHorizontal: 16, marginTop: 16, paddingBottom: 32 }}>
-          {sortedAchievements.length > 0 ? (
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-              {sortedAchievements.map((achievement) => (
-                <AchievementCard
-                  key={achievement.id}
-                  achievement={achievement}
-                  onPress={() => openAchievementModal(achievement)}
-                />
-              ))}
-            </View>
-          ) : (
-            <View style={{ paddingVertical: 48, alignItems: 'center' }}>
-              <Ionicons name="trophy-outline" size={64} color={theme.colors.textSecondary} />
+              <Ionicons
+                name={showCompleted ? 'checkbox' : 'square-outline'}
+                size={20}
+                color="#fbbf24"
+              />
               <Text style={{ 
                 color: theme.colors.textSecondary, 
-                fontSize: 16, 
-                marginTop: 16, 
-                textAlign: 'center',
-                fontFamily: theme.fonts.body
-              }}>
-                No achievements in this category
-              </Text>
-            </View>
-          )}
-        </View>
-      </ScrollView>
+                fontSize: 14, 
+                marginLeft: 8 
+              }}>Show completed</Text>
+            </TouchableOpacity>
+          </>
+        }
+        ListEmptyComponent={
+          <View style={{ paddingVertical: 48, alignItems: 'center' }}>
+            <Ionicons name="trophy-outline" size={64} color={theme.colors.textSecondary} />
+            <Text style={{ 
+              color: theme.colors.textSecondary, 
+              fontSize: 16, 
+              marginTop: 16, 
+              textAlign: 'center',
+              fontFamily: theme.fonts.body
+            }}>
+              No achievements in this category
+            </Text>
+          </View>
+        }
+      />
       
       {/* Achievement Detail Modal */}
       {selectedAchievement && (

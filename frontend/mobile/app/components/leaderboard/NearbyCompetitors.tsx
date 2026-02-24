@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import { View, Text, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getNearbyCompetitors, NearbyCompetitor } from '../../api/leaderboardApi';
@@ -10,7 +10,7 @@ interface NearbyCompetitorsProps {
   onUserPress?: (userId: string) => void;
 }
 
-export default function NearbyCompetitors({
+function NearbyCompetitors({
   competitors: propCompetitors,
   period,
   onUserPress,
@@ -31,7 +31,7 @@ export default function NearbyCompetitors({
     }
   }, [period, propCompetitors]);
   
-  const loadNearby = async () => {
+  const loadNearby = useCallback(async () => {
     try {
       setLoading(true);
       const data = await getNearbyCompetitors(period, 3);
@@ -42,7 +42,7 @@ export default function NearbyCompetitors({
     } finally {
       setLoading(false);
     }
-  };
+  }, [period]);
   
   if (loading) {
     return (
@@ -196,3 +196,5 @@ export default function NearbyCompetitors({
     </View>
   );
 }
+
+export default memo(NearbyCompetitors);

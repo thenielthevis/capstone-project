@@ -13,7 +13,8 @@ import {
   Utensils,
   Dumbbell,
   FileText,
-  ChevronDown
+  ChevronDown,
+  Trophy
 } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
@@ -74,6 +75,7 @@ export default function Header({
       { label: 'Predictions', icon: Heart, path: '/predictions' },
       { label: 'Food', icon: Utensils, path: '/food-tracking' },
       { label: 'Programs', icon: Dumbbell, path: '/programs' },
+      { label: 'Leaderboard', icon: Trophy, path: '/leaderboard' },
     ];
 
   const userMenuItems = user?.isGuest

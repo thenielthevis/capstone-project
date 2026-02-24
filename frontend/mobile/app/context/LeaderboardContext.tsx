@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, ReactNode } from 'react';
 import {
   getMyStats,
   refreshMyStats,
@@ -37,8 +37,11 @@ export function LeaderboardProvider({ children }: { children: ReactNode }) {
   const [achievementSummary, setAchievementSummary] = useState<AchievementSummary | null>(null);
   const [newlyEarnedAchievements, setNewlyEarnedAchievements] = useState<Achievement[]>([]);
   
-  // Initial load
+  // Initial load — use ref to prevent double-fire in strict mode
+  const didLoad = useRef(false);
   useEffect(() => {
+    if (didLoad.current) return;
+    didLoad.current = true;
     loadInitialData();
   }, []);
   
@@ -104,7 +107,8 @@ export function LeaderboardProvider({ children }: { children: ReactNode }) {
     setNewlyEarnedAchievements([]);
   }, []);
   
-  const value: LeaderboardContextType = {
+  // Memoize context value to prevent unnecessary consumer re-renders
+  const value = useMemo<LeaderboardContextType>(() => ({
     stats,
     loading,
     error,
@@ -115,7 +119,18 @@ export function LeaderboardProvider({ children }: { children: ReactNode }) {
     loadAchievements,
     checkForNewAchievements,
     clearNewAchievements,
-  };
+  }), [
+    stats,
+    loading,
+    error,
+    achievements,
+    achievementSummary,
+    newlyEarnedAchievements,
+    refreshStats,
+    loadAchievements,
+    checkForNewAchievements,
+    clearNewAchievements,
+  ]);
   
   return (
     <LeaderboardContext.Provider value={value}>

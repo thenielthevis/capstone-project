@@ -36,9 +36,11 @@ import HealthAnalysis from './pages/HealthAnalysis';
 import AnalysisDetail from './pages/AnalysisDetail';
 import Insights from './pages/Insights';
 import Profile from './pages/Profile';
+import UserProfile from './pages/UserProfile';
 import PostDetail from './pages/PostDetail';
 import MoodCheckin from './pages/MoodCheckin';
 import HealthCheckup from './pages/HealthCheckup';
+import Leaderboard from './pages/Leaderboard';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -218,6 +220,14 @@ function App() {
         }
       />
       <Route
+        path="/profile/:userId"
+        element={
+          <ProtectedRoute>
+            <UserProfile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/mood-checkin"
         element={
           <ProtectedRoute>
@@ -230,6 +240,14 @@ function App() {
         element={
           <ProtectedRoute>
             <HealthCheckup />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/leaderboard"
+        element={
+          <ProtectedRoute>
+            <Leaderboard />
           </ProtectedRoute>
         }
       />

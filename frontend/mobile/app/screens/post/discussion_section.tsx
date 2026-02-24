@@ -519,24 +519,36 @@ export default function DiscussionSection() {
                     {/* Post Display */}
                     <View className="p-5 border-b" style={{ borderBottomColor: theme.colors.text + '11' }}>
                         <View className="flex-row items-center mb-3">
-                            <View
-                                className="w-10 h-10 rounded-full items-center justify-center mr-3"
-                                style={{ backgroundColor: theme.colors.primary + '20' }}
+                            <TouchableOpacity
+                                onPress={() => {
+                                    if (post.user?._id) {
+                                        router.push({
+                                            pathname: "/screens/profile/UserProfile",
+                                            params: { userId: post.user._id },
+                                        } as any);
+                                    }
+                                }}
+                                className="flex-row items-center flex-1"
                             >
-                                {post.user?.profilePicture ? (
-                                    <Image source={{ uri: post.user.profilePicture }} className="w-10 h-10 rounded-full" />
-                                ) : (
-                                    <Ionicons name="person" size={20} color={theme.colors.primary} />
-                                )}
-                            </View>
-                            <View className="flex-1">
-                                <Text style={{ fontFamily: theme.fonts.heading, color: theme.colors.text }} className="text-base">
-                                    {post.user?.username || post.user?.name || "Unknown User"}
-                                </Text>
-                                <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '77' }} className="text-xs">
-                                    {getTimeAgo(post.createdAt)}
-                                </Text>
-                            </View>
+                                <View
+                                    className="w-10 h-10 rounded-full items-center justify-center mr-3"
+                                    style={{ backgroundColor: theme.colors.primary + '20' }}
+                                >
+                                    {post.user?.profilePicture ? (
+                                        <Image source={{ uri: post.user.profilePicture }} className="w-10 h-10 rounded-full" />
+                                    ) : (
+                                        <Ionicons name="person" size={20} color={theme.colors.primary} />
+                                    )}
+                                </View>
+                                <View className="flex-1">
+                                    <Text style={{ fontFamily: theme.fonts.heading, color: theme.colors.text }} className="text-base">
+                                        {post.user?.username || post.user?.name || "Unknown User"}
+                                    </Text>
+                                    <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '77' }} className="text-xs">
+                                        {getTimeAgo(post.createdAt)}
+                                    </Text>
+                                </View>
+                            </TouchableOpacity>
                             {/* Report Post Button */}
                             {post.user?._id !== userId && (
                                 <TouchableOpacity

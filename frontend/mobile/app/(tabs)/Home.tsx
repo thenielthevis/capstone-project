@@ -268,34 +268,42 @@ export default function Home() {
         >
           {/* Post Header */}
           <View className="flex-row items-center p-4 pb-3">
-            <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.colors.primary + '20' }}>
-              {post.user?.profilePicture ? (
-                <Image source={{ uri: post.user.profilePicture }} className="w-10 h-10 rounded-full" />
-              ) : (
-                <Ionicons name="person" size={20} color={theme.colors.primary} />
-              )}
-            </View>
-            <View className="flex-1 ">
-              <Text style={{ fontFamily: theme.fonts.heading, color: theme.colors.text }} className="text-base">
-                {post.user?.username || "Unknown User"}
-              </Text>
-              <View className="flex-row items-center mt-1">
-                <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '77' }} className="text-xs">
-                  {getTimeAgo(post.createdAt)} •
+            <TouchableOpacity
+              onPress={() => router.push({
+                pathname: "/screens/profile/UserProfile",
+                params: { userId: post.user?._id },
+              } as any)}
+              className="flex-row items-center flex-1"
+            >
+              <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.colors.primary + '20' }}>
+                {post.user?.profilePicture ? (
+                  <Image source={{ uri: post.user.profilePicture }} className="w-10 h-10 rounded-full" />
+                ) : (
+                  <Ionicons name="person" size={20} color={theme.colors.primary} />
+                )}
+              </View>
+              <View className="flex-1 ">
+                <Text style={{ fontFamily: theme.fonts.heading, color: theme.colors.text }} className="text-base">
+                  {post.user?.username || "Unknown User"}
                 </Text>
-                <View className="ml-1">
-                  {post.visibility === "public" ? (
-                    <MaterialIcons name="public" size={14} color={theme.colors.text + '77'} />
-                  ) : (
-                    <Ionicons
-                      name={post.visibility === "private" ? "lock-closed" : "people"}
-                      size={14}
-                      color={theme.colors.text + '77'}
-                    />
-                  )}
+                <View className="flex-row items-center mt-1">
+                  <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '77' }} className="text-xs">
+                    {getTimeAgo(post.createdAt)} •
+                  </Text>
+                  <View className="ml-1">
+                    {post.visibility === "public" ? (
+                      <MaterialIcons name="public" size={14} color={theme.colors.text + '77'} />
+                    ) : (
+                      <Ionicons
+                        name={post.visibility === "private" ? "lock-closed" : "people"}
+                        size={14}
+                        color={theme.colors.text + '77'}
+                      />
+                    )}
+                  </View>
                 </View>
               </View>
-            </View>
+            </TouchableOpacity>
             {/* Settings Button */}
             <TouchableOpacity
               onPress={() => handleOpenKeyOptions(post)}
