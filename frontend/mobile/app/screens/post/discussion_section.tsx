@@ -431,13 +431,11 @@ export default function DiscussionSection() {
                             </TouchableOpacity>
 
                             {/* Reaction */}
-                            <View style={{ marginLeft: 8 }}>
-                                <ReactionButton
-                                    userReaction={comment.reactions?.find((r: any) => r.user === userId || r.user?._id === userId)?.type}
-                                    reactionCount={reactionCount}
-                                    onReact={(type) => handleReactComment(comment._id, type)}
-                                />
-                            </View>
+                            <ReactionButton
+                                userReaction={comment.reactions?.find((r: any) => r.user === userId || r.user?._id === userId)?.type}
+                                reactionCount={reactionCount}
+                                onReact={(type) => handleReactComment(comment._id, type)}
+                            />
 
                             {/* Reply */}
                             <TouchableOpacity
@@ -642,11 +640,16 @@ export default function DiscussionSection() {
                                             <View className="flex-row">
                                                 {REACTIONS.filter(r => (post as any).reactions.some((pr: any) => pr.type === r.type))
                                                     .slice(0, 3)
-                                                    .map((r, i) => (
-                                                        <Text key={r.type} style={{ fontSize: 15, marginLeft: i === 0 ? 0 : -5, zIndex: 3 - i }}>
-                                                            {r.emoji}
-                                                        </Text>
-                                                    ))}
+                                                    .map((r, i) => {
+                                                        const reactionIcon = r.library === "ionicons" 
+                                                            ? <Ionicons name={r.icon as any} size={16} color={theme.colors.text} />
+                                                            : <MaterialCommunityIcons name={r.icon as any} size={16} color={theme.colors.text} />;
+                                                        return (
+                                                            <View key={r.type} style={{ marginLeft: i === 0 ? 0 : -8, zIndex: 3 - i }}>
+                                                                {reactionIcon}
+                                                            </View>
+                                                        );
+                                                    })}
                                             </View>
                                             <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '99', fontSize: 13, marginLeft: 4 }}>
                                                 {(post as any).reactions.length > 1000 ? ((post as any).reactions.length / 1000).toFixed(1) + 'k' : (post as any).reactions.length}

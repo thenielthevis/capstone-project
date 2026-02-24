@@ -256,13 +256,12 @@ export default function ImageMax() {
                 <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text, marginLeft: 4 }}>{downvoteCount}</Text>
               </TouchableOpacity>
               {/* Reactions */}
-              <View style={{ marginRight: 16 }}>
-                <ReactionButton
-                  userReaction={post.reactions?.find((r: any) => r.user === userId || r.user?._id === userId)?.type}
-                  reactionCount={reactionCount}
-                  onReact={handleReaction}
-                />
-              </View>
+              <ReactionButton
+                userReaction={post.reactions?.find((r: any) => r.user === userId || r.user?._id === userId)?.type}
+                reactionCount={reactionCount}
+                onReact={handleReaction}
+                compact={true}
+              />
               {/* Comments */}
               <TouchableOpacity onPress={() => router.push(`/screens/post/discussion_section?postId=${post._id}` as any)} style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
                 <Ionicons name="chatbubble-outline" size={20} color={theme.colors.text + '77'} />

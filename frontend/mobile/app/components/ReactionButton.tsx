@@ -73,10 +73,16 @@ export default function ReactionButton({ userReaction, reactionCount, onReact, c
         setSearchText("");
     };
 
-    const reactionData = userReaction ? REACTIONS.find(r => r.type === userReaction) : null;
+    const reactionColors: { [key: string]: string } = {
+        Heart: '#FF0000',
+        Fire: '#FF6B35',
+        Zap: '#FFD700',
+        Trophy: '#FFA500',
+        Apple: '#00C853',
+    };
 
-    // Sizes based on compact mode
-    const iconSize = compact ? 14 : 22;
+    const reactionData = userReaction ? REACTIONS.find(r => r.type === userReaction) : null;
+    const iconSize = compact ? 10 : 20;
 
     const renderReactionIcon = (reaction: typeof REACTIONS[0], size: number = 24) => {
         if (reaction.library === "ionicons") {
@@ -87,11 +93,12 @@ export default function ReactionButton({ userReaction, reactionCount, onReact, c
     };
 
     return (
-        <>
+        <View style={{ position: 'relative' }}>
             <View ref={buttonRef} collapsable={false}>
                 <TouchableOpacity
                     onPress={handlePress}
-                    style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: compact ? 2 : 0 }}
+                    onLongPress={handleLongPress}
+                    style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: compact ? 2 : 0 }}
                 >
                     {reactionData ? (
                         renderReactionIcon(reactionData, iconSize)
@@ -105,62 +112,69 @@ export default function ReactionButton({ userReaction, reactionCount, onReact, c
                 </TouchableOpacity>
             </View>
 
-            {/* Quick Reactions */}
-            {quickVisible && !userReaction && (
+            {/* Quick Reactions Card - All 6 icons together */}
+            {quickVisible && (
                 <View
                     style={{
                         position: 'absolute',
-                        bottom: 35,
-                        left: 0,
-                        right: 0,
-                        flexDirection: 'row',
-                        justifyContent: 'center',
-                        gap: 8,
+                        bottom: compact ? 24 : 40,
+                        right: -50,
+                        zIndex: 9999,
                         backgroundColor: theme.colors.surface,
-                        borderRadius: 12,
+                        borderRadius: 16,
                         paddingVertical: 8,
                         paddingHorizontal: 12,
-                        marginHorizontal: 20,
-                        elevation: 5,
+                        elevation: 50,
                         shadowColor: "#000",
-                        shadowOffset: { width: 0, height: 2 },
-                        shadowOpacity: 0.25,
-                        shadowRadius: 3.84,
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.3,
+                        shadowRadius: 5,
                     }}
                 >
-                    {QUICK_REACTIONS.map((reaction) => (
+                    <View
+                        style={{
+                            flexDirection: 'row',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            gap: 6,
+                        }}
+                    >
+                        {/* 5 Quick Reactions with colors */}
+                        {QUICK_REACTIONS.map((reaction) => (
+                            <TouchableOpacity
+                                key={reaction.type}
+                                onPress={() => handleReactionSelect(reaction.type)}
+                                style={{
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    width: 40,
+                                    height: 40,
+                                    borderRadius: 20,
+                                    backgroundColor: reactionColors[reaction.type] || '#E0E0E0',
+                                }}
+                            >
+                                {renderReactionIcon(reaction as { type: ReactionType; icon: string; library: "ionicons" | "material" }, 24)}
+                            </TouchableOpacity>
+                        ))}
+
+                        {/* Add button for full picker */}
                         <TouchableOpacity
-                            key={reaction.type}
-                            onPress={() => handleReactionSelect(reaction.type)}
+                            onPress={() => {
+                                setQuickVisible(false);
+                                setPickerVisible(true);
+                            }}
                             style={{
                                 justifyContent: 'center',
                                 alignItems: 'center',
-                                paddingHorizontal: 8,
-                                paddingVertical: 4,
-                                borderRadius: 8,
-                                backgroundColor: theme.colors.background,
+                                width: 40,
+                                height: 40,
+                                borderRadius: 20,
+                                backgroundColor: '#E0E0E0',
                             }}
                         >
-                            {renderReactionIcon(reaction as { type: ReactionType; icon: string; library: "ionicons" | "material" }, 24)}
+                            <Ionicons name="add-circle-outline" size={20} color={theme.colors.text} />
                         </TouchableOpacity>
-                    ))}
-                    {/* Plus button for full picker */}
-                    <TouchableOpacity
-                        onPress={() => {
-                            setQuickVisible(false);
-                            setPickerVisible(true);
-                        }}
-                        style={{
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            paddingHorizontal: 8,
-                            paddingVertical: 4,
-                            borderRadius: 8,
-                            backgroundColor: theme.colors.background,
-                        }}
-                    >
-                        <Ionicons name="add-circle" size={24} color={theme.colors.text} />
-                    </TouchableOpacity>
+                    </View>
                 </View>
             )}
 
@@ -257,6 +271,6 @@ export default function ReactionButton({ userReaction, reactionCount, onReact, c
                     </View>
                 </TouchableWithoutFeedback>
             </Modal>
-        </>
+        </View>
     );
 }
