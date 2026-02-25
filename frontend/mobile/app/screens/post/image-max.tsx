@@ -140,28 +140,28 @@ export default function ImageMax() {
                   )}
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontFamily: theme.fonts.heading, color: theme.colors.text }}>{post.user?.username || "Unknown User"}</Text>
-                  <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '77', fontSize: 12 }}>{getTimeAgo(post.createdAt)}</Text>
+                  <Text style={{ fontFamily: theme.fonts.heading, color: "#FFFFFF" }}>{post.user?.username || "Unknown User"}</Text>
+                  <Text style={{ fontFamily: theme.fonts.body, color: "#FFFFFF" + '77', fontSize: 12 }}>{getTimeAgo(post.createdAt)}</Text>
                 </View>
                 {post.visibility === "public" ? (
-                  <MaterialIcons name="public" size={16} color={theme.colors.text + '77'} />
+                  <MaterialIcons name="public" size={16} color={"#FFFFFF" + '77'} />
                 ) : (
                   <Ionicons
                     name={post.visibility === "private" ? "lock-closed" : "people"}
                     size={16}
-                    color={theme.colors.text + '77'}
+                    color={"#FFFFFF" + '77'}
                   />
                 )}
               </View>
               {/* Post Title */}
               {post.title && post.title !== "Untitled" && (
-                <Text style={{ fontFamily: theme.fonts.heading, color: theme.colors.text, fontSize: 18, marginBottom: 2 }}>
+                <Text style={{ fontFamily: theme.fonts.heading, color: "#FFFFFF", fontSize: 18, marginBottom: 2 }}>
                   {post.title}
                 </Text>
               )}
               {/* Post Content */}
               {post.content && (
-                <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text, fontSize: 14, marginBottom: 2 }}>
+                <Text style={{ fontFamily: theme.fonts.body, color: "#FFFFFF" + '77', fontSize: 14, marginBottom: 2 }}>
                   {post.content}
                 </Text>
               )}
@@ -173,7 +173,7 @@ export default function ImageMax() {
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
-                  backgroundColor: theme.colors.primary + '20',
+                  backgroundColor: "#FFFFFF" + '20',
                   padding: 8,
                   borderRadius: 8,
                   alignSelf: 'flex-start',
@@ -225,7 +225,7 @@ export default function ImageMax() {
                 <TouchableOpacity onPress={() => router.push(`/screens/post/discussion_section?postId=${post._id}` as any)}>
                   {((post as any).commentCount || 0) > 0 && (
                     <View style={{ flexDirection: "row", alignItems: "center" }}>
-                      <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '99', fontSize: 13 }}>
+                      <Text style={{ fontFamily: theme.fonts.body, color: "#FFFFFF" + '99', fontSize: 13 }}>
                         {(post as any).commentCount} comments
                       </Text>
                     </View>
@@ -242,18 +242,18 @@ export default function ImageMax() {
                 <Ionicons
                   name={post.votes?.upvotes?.some((v: any) => v.toString() === userId) ? "arrow-up-circle" : "arrow-up-circle-outline"}
                   size={22}
-                  color={post.votes?.upvotes?.some((v: any) => v.toString() === userId) ? theme.colors.primary : theme.colors.text + '77'}
+                  color={post.votes?.upvotes?.some((v: any) => v.toString() === userId) ? theme.colors.primary : "#FFFFFF" + '77'}
                 />
-                <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text, marginLeft: 4 }}>{upvoteCount}</Text>
+                <Text style={{ fontFamily: theme.fonts.body, color: "#FFFFFF" + '77', marginLeft: 4 }}>{upvoteCount}</Text>
               </TouchableOpacity>
               {/* Downvote */}
               <TouchableOpacity onPress={() => handleVote("down")} style={{ flexDirection: "row", alignItems: "center", marginRight: 16 }} disabled={voteLoading}>
                 <Ionicons
                   name={post.votes?.downvotes?.some((v: any) => v.toString() === userId) ? "arrow-down-circle" : "arrow-down-circle-outline"}
                   size={22}
-                  color={post.votes?.downvotes?.some((v: any) => v.toString() === userId) ? theme.colors.primary : theme.colors.text + '77'}
+                  color={post.votes?.downvotes?.some((v: any) => v.toString() === userId) ? theme.colors.primary : "#FFFFFF" + '77'}
                 />
-                <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text, marginLeft: 4 }}>{downvoteCount}</Text>
+                <Text style={{ fontFamily: theme.fonts.body, color: "#FFFFFF" + '77', marginLeft: 4 }}>{downvoteCount}</Text>
               </TouchableOpacity>
               {/* Reactions */}
               <ReactionButton
@@ -264,12 +264,12 @@ export default function ImageMax() {
               />
               {/* Comments */}
               <TouchableOpacity onPress={() => router.push(`/screens/post/discussion_section?postId=${post._id}` as any)} style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-                <Ionicons name="chatbubble-outline" size={20} color={theme.colors.text + '77'} />
-                <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '77', marginLeft: 4 }}>Comment</Text>
+                <Ionicons name="chatbubble-outline" size={20} color={"#FFFFFF" + '77'} />
+                <Text style={{ fontFamily: theme.fonts.body, color: "#FFFFFF" + '77', marginLeft: 4 }}>Comment</Text>
               </TouchableOpacity>
               {/* Share */}
               <TouchableOpacity>
-                <MaterialCommunityIcons name="share-outline" size={24} color={theme.colors.text + '77'} />
+                <MaterialCommunityIcons name="share-outline" size={24} color={"#FFFFFF" + '77'} />
               </TouchableOpacity>
             </View>
           </View>
