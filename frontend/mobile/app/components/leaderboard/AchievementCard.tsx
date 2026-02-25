@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, Text, TouchableOpacity, Dimensions } from 'react-native';
 import { Achievement } from '../../api/leaderboardApi';
 import { useTheme } from '../../context/ThemeContext';
@@ -47,7 +47,7 @@ const TIER_ICONS = {
 const { width } = Dimensions.get('window');
 const cardWidth = (width - 48) / 2; // 16px padding on each side + 16px gap
 
-export default function AchievementCard({ achievement, onPress }: AchievementCardProps) {
+function AchievementCard({ achievement, onPress }: AchievementCardProps) {
   const { theme } = useTheme();
   const tierStyle = TIER_COLORS[achievement.tier] || TIER_COLORS.bronze;
   const tierIcon = TIER_ICONS[achievement.tier] || '🏆';
@@ -146,3 +146,4 @@ export default function AchievementCard({ achievement, onPress }: AchievementCar
     </TouchableOpacity>
   );
 }
+export default memo(AchievementCard);

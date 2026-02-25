@@ -659,6 +659,12 @@ exports.getUserProfile = async (req, res) => {
 
                 // Profile Stats
                 profileCompletion,
+
+                // Social
+                followersCount: user.followers?.length || 0,
+                followingCount: user.following?.length || 0,
+                bio: user.bio || '',
+                profileVisibility: user.profileVisibility || 'public',
             }
         });
     } catch (error) {
@@ -685,6 +691,8 @@ exports.updateUserProfile = async (req, res) => {
             'healthProfile',
             'environmentalFactors',
             'riskFactors',
+            'bio',
+            'profileVisibility',
         ];
 
         // Filter out non-allowed fields

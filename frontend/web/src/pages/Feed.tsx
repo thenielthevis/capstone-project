@@ -37,6 +37,7 @@ import {
 export default function Feed() {
   const { theme } = useTheme();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -357,8 +358,9 @@ export default function Feed() {
       >
         {/* Post Header */}
         <div className="flex items-center p-4 pb-3">
-          <div
-            className="w-10 h-10 rounded-full flex items-center justify-center mr-3"
+          <button
+            onClick={() => post.user?._id && navigate(`/profile/${post.user._id}`)}
+            className="w-10 h-10 rounded-full flex items-center justify-center mr-3 cursor-pointer hover:opacity-80 transition"
             style={{ backgroundColor: theme.colors.primary + '20' }}
           >
             {post.user?.profilePicture ? (
@@ -370,14 +372,15 @@ export default function Feed() {
             ) : (
               <User className="w-5 h-5" style={{ color: theme.colors.primary }} />
             )}
-          </div>
+          </button>
           <div className="flex-1">
-            <p
-              className="font-semibold"
+            <button
+              onClick={() => post.user?._id && navigate(`/profile/${post.user._id}`)}
+              className="font-semibold hover:underline cursor-pointer text-left"
               style={{ fontFamily: theme.fonts.heading, color: theme.colors.text }}
             >
               {post.user?.username || 'Unknown User'}
-            </p>
+            </button>
             <p
               className="text-xs"
               style={{ fontFamily: theme.fonts.body, color: theme.colors.textTertiary }}

@@ -71,7 +71,7 @@ exports.getMyStats = async (req, res) => {
 exports.refreshMyStats = async (req, res) => {
   try {
     const userId = req.user.id;
-    const stats = await updateUserLeaderboardStats(userId);
+    const stats = await updateUserLeaderboardStats(userId, { force: true });
     
     // Automatically check for achievements after refreshing stats
     const newlyEarned = await checkAndAwardAchievements(userId);
@@ -673,14 +673,24 @@ async function createLeaderboardStats(user) {
 
 /**
  * Update user's leaderboard stats from their activities
+ * Optimized: Uses $facet to batch period aggregations into 3 queries (one per collection)
+ * instead of 12 separate queries. Adds staleness check to throttle frequent refreshes.
  */
-async function updateUserLeaderboardStats(userId) {
+const STATS_FRESHNESS_MS = 5 * 60 * 1000; // 5 minutes
+
+async function updateUserLeaderboardStats(userId, { force = false } = {}) {
   const user = await User.findById(userId);
   if (!user) throw new Error('User not found');
   
   let stats = await LeaderboardStats.findOne({ user_id: userId });
   if (!stats) {
     stats = await createLeaderboardStats(user);
+  }
+  
+  // Staleness check — skip heavy aggregation if refreshed recently (unless forced)
+  if (!force && stats.last_updated) {
+    const age = Date.now() - new Date(stats.last_updated).getTime();
+    if (age < STATS_FRESHNESS_MS) return stats;
   }
   
   const today = getStartOfDay();
@@ -721,121 +731,70 @@ async function updateUserLeaderboardStats(userId) {
     stats.monthly = { month_start: monthStart };
   }
   
-  // Aggregate food logs
-  const [dailyFoodLogs, weeklyFoodLogs, monthlyFoodLogs, allTimeFoodLogs] = await Promise.all([
-    FoodLog.aggregate([
-      { $match: { userId: user._id, analyzedAt: { $gte: today } } },
-      { $group: { _id: null, total: { $sum: '$calories' }, count: { $sum: 1 } } }
-    ]),
-    FoodLog.aggregate([
-      { $match: { userId: user._id, analyzedAt: { $gte: weekStart } } },
-      { $group: { _id: null, total: { $sum: '$calories' }, count: { $sum: 1 } } }
-    ]),
-    FoodLog.aggregate([
-      { $match: { userId: user._id, analyzedAt: { $gte: monthStart } } },
-      { $group: { _id: null, total: { $sum: '$calories' }, count: { $sum: 1 } } }
-    ]),
+  // ── Optimised: 3 $facet queries instead of 12 separate aggregations ──
+  const emptyBucket = { total: 0, count: 0 };
+  const emptyActivity = { calories: 0, minutes: 0, count: 0 };
+  
+  const foodGroup = { _id: null, total: { $sum: '$calories' }, count: { $sum: 1 } };
+  const activityGroup = (calField, minField) => ({
+    _id: null,
+    calories: { $sum: calField },
+    minutes: { $sum: minField },
+    count: { $sum: 1 },
+  });
+  
+  const [foodFacets, geoFacets, programFacets] = await Promise.all([
+    // ── FoodLog: single query, 4 facets ──
     FoodLog.aggregate([
       { $match: { userId: user._id } },
-      { $group: { _id: null, total: { $sum: '$calories' }, count: { $sum: 1 } } }
-    ])
-  ]);
-  
-  // Aggregate geo sessions (outdoor activities)
-  const [dailyGeo, weeklyGeo, monthlyGeo, allTimeGeo] = await Promise.all([
-    GeoSession.aggregate([
-      { $match: { user_id: user._id, createdAt: { $gte: today } } },
-      { $group: { 
-        _id: null, 
-        calories: { $sum: '$calories_burned' }, 
-        minutes: { $sum: { $divide: ['$moving_time_sec', 60] } },
-        count: { $sum: 1 }
+      { $facet: {
+        daily:   [{ $match: { analyzedAt: { $gte: today } } },      { $group: foodGroup }],
+        weekly:  [{ $match: { analyzedAt: { $gte: weekStart } } },   { $group: foodGroup }],
+        monthly: [{ $match: { analyzedAt: { $gte: monthStart } } },  { $group: foodGroup }],
+        allTime: [{ $group: foodGroup }],
       }}
     ]),
-    GeoSession.aggregate([
-      { $match: { user_id: user._id, createdAt: { $gte: weekStart } } },
-      { $group: { 
-        _id: null, 
-        calories: { $sum: '$calories_burned' }, 
-        minutes: { $sum: { $divide: ['$moving_time_sec', 60] } },
-        count: { $sum: 1 }
-      }}
-    ]),
-    GeoSession.aggregate([
-      { $match: { user_id: user._id, createdAt: { $gte: monthStart } } },
-      { $group: { 
-        _id: null, 
-        calories: { $sum: '$calories_burned' }, 
-        minutes: { $sum: { $divide: ['$moving_time_sec', 60] } },
-        count: { $sum: 1 }
-      }}
-    ]),
+    // ── GeoSession: single query, 4 facets ──
     GeoSession.aggregate([
       { $match: { user_id: user._id } },
-      { $group: { 
-        _id: null, 
-        calories: { $sum: '$calories_burned' }, 
-        minutes: { $sum: { $divide: ['$moving_time_sec', 60] } },
-        count: { $sum: 1 }
-      }}
-    ])
-  ]);
-  
-  // Aggregate program sessions (indoor workouts)
-  const [dailyProgram, weeklyProgram, monthlyProgram, allTimeProgram] = await Promise.all([
-    ProgramSession.aggregate([
-      { $match: { user_id: user._id, performed_at: { $gte: today } } },
-      { $group: { 
-        _id: null, 
-        calories: { $sum: '$total_calories_burned' }, 
-        minutes: { $sum: '$total_duration_minutes' },
-        count: { $sum: 1 }
+      { $facet: {
+        daily:   [{ $match: { createdAt: { $gte: today } } },      { $group: activityGroup('$calories_burned', { $divide: ['$moving_time_sec', 60] }) }],
+        weekly:  [{ $match: { createdAt: { $gte: weekStart } } },   { $group: activityGroup('$calories_burned', { $divide: ['$moving_time_sec', 60] }) }],
+        monthly: [{ $match: { createdAt: { $gte: monthStart } } },  { $group: activityGroup('$calories_burned', { $divide: ['$moving_time_sec', 60] }) }],
+        allTime: [{ $group: activityGroup('$calories_burned', { $divide: ['$moving_time_sec', 60] }) }],
       }}
     ]),
-    ProgramSession.aggregate([
-      { $match: { user_id: user._id, performed_at: { $gte: weekStart } } },
-      { $group: { 
-        _id: null, 
-        calories: { $sum: '$total_calories_burned' }, 
-        minutes: { $sum: '$total_duration_minutes' },
-        count: { $sum: 1 }
-      }}
-    ]),
-    ProgramSession.aggregate([
-      { $match: { user_id: user._id, performed_at: { $gte: monthStart } } },
-      { $group: { 
-        _id: null, 
-        calories: { $sum: '$total_calories_burned' }, 
-        minutes: { $sum: '$total_duration_minutes' },
-        count: { $sum: 1 }
-      }}
-    ]),
+    // ── ProgramSession: single query, 4 facets ──
     ProgramSession.aggregate([
       { $match: { user_id: user._id } },
-      { $group: { 
-        _id: null, 
-        calories: { $sum: '$total_calories_burned' }, 
-        minutes: { $sum: '$total_duration_minutes' },
-        count: { $sum: 1 }
+      { $facet: {
+        daily:   [{ $match: { performed_at: { $gte: today } } },      { $group: activityGroup('$total_calories_burned', '$total_duration_minutes') }],
+        weekly:  [{ $match: { performed_at: { $gte: weekStart } } },   { $group: activityGroup('$total_calories_burned', '$total_duration_minutes') }],
+        monthly: [{ $match: { performed_at: { $gte: monthStart } } },  { $group: activityGroup('$total_calories_burned', '$total_duration_minutes') }],
+        allTime: [{ $group: activityGroup('$total_calories_burned', '$total_duration_minutes') }],
       }}
-    ])
+    ]),
   ]);
   
-  // Update stats
-  const dailyFoodData = dailyFoodLogs[0] || { total: 0, count: 0 };
-  const weeklyFoodData = weeklyFoodLogs[0] || { total: 0, count: 0 };
-  const monthlyFoodData = monthlyFoodLogs[0] || { total: 0, count: 0 };
-  const allTimeFoodData = allTimeFoodLogs[0] || { total: 0, count: 0 };
+  // Extract results from facets (each facet returns an array, take [0] or default)
+  const food = foodFacets[0] || {};
+  const geo  = geoFacets[0] || {};
+  const prog = programFacets[0] || {};
   
-  const dailyGeoData = dailyGeo[0] || { calories: 0, minutes: 0, count: 0 };
-  const weeklyGeoData = weeklyGeo[0] || { calories: 0, minutes: 0, count: 0 };
-  const monthlyGeoData = monthlyGeo[0] || { calories: 0, minutes: 0, count: 0 };
-  const allTimeGeoData = allTimeGeo[0] || { calories: 0, minutes: 0, count: 0 };
+  const dailyFoodData   = food.daily?.[0]   || emptyBucket;
+  const weeklyFoodData  = food.weekly?.[0]  || emptyBucket;
+  const monthlyFoodData = food.monthly?.[0] || emptyBucket;
+  const allTimeFoodData = food.allTime?.[0] || emptyBucket;
   
-  const dailyProgramData = dailyProgram[0] || { calories: 0, minutes: 0, count: 0 };
-  const weeklyProgramData = weeklyProgram[0] || { calories: 0, minutes: 0, count: 0 };
-  const monthlyProgramData = monthlyProgram[0] || { calories: 0, minutes: 0, count: 0 };
-  const allTimeProgramData = allTimeProgram[0] || { calories: 0, minutes: 0, count: 0 };
+  const dailyGeoData    = geo.daily?.[0]   || emptyActivity;
+  const weeklyGeoData   = geo.weekly?.[0]  || emptyActivity;
+  const monthlyGeoData  = geo.monthly?.[0] || emptyActivity;
+  const allTimeGeoData  = geo.allTime?.[0] || emptyActivity;
+  
+  const dailyProgramData   = prog.daily?.[0]   || emptyActivity;
+  const weeklyProgramData  = prog.weekly?.[0]  || emptyActivity;
+  const monthlyProgramData = prog.monthly?.[0] || emptyActivity;
+  const allTimeProgramData = prog.allTime?.[0] || emptyActivity;
   
   // Daily
   stats.daily.calories_consumed = dailyFoodData.total;

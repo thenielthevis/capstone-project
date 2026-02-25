@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, Text, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LeaderboardEntry, LeaderboardStats } from '../../api/leaderboardApi';
@@ -39,7 +39,7 @@ const getRankSuffix = (rank: number): string => {
   }
 };
 
-export default function UserRankCard({ entry, stats, period }: UserRankCardProps) {
+function UserRankCard({ entry, stats, period }: UserRankCardProps) {
   const { theme } = useTheme();
   const rank = entry.rank;
   const isTopTen = rank <= 10;
@@ -271,3 +271,5 @@ export default function UserRankCard({ entry, stats, period }: UserRankCardProps
     </View>
   );
 }
+
+export default memo(UserRankCard);

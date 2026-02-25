@@ -43,6 +43,8 @@ const healthCheckupRoutes = require('./routes/healthCheckupRoutes');
 const moodCheckinRoutes = require('./routes/moodCheckinRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
 const leaderboardRoutes = require('./routes/leaderboardRoutes');
+const profileRoutes = require('./routes/profileRoutes');
+const achievementRoutes = require('./routes/achievementRoutes');
 
 const corsOptions = {
     origin: process.env.NODE_ENV === 'production'
@@ -83,6 +85,10 @@ app.use('/api/health-checkups', healthCheckupRoutes);
 app.use('/api/mood-checkins', moodCheckinRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
+app.use('/api/profile', profileRoutes);
+app.use('/api/achievements', achievementRoutes);
+console.log('[APP] Registered /api/achievements routes');
+console.log('[APP] Registered /api/profile routes');
 console.log('[APP] Registered /api/leaderboard routes');
 console.log('[APP] Registered /api/admin routes');
 console.log('[APP] Registered /api/gemini routes');

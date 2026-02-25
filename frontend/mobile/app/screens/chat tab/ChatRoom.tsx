@@ -673,9 +673,17 @@ export default function ChatRoom() {
               marginHorizontal: 12,
             }}
           >
-            {/* Avatar for other's messages */}
+            {/* Avatar for other's messages - tap to view profile */}
             {!isOwnMessage && (
-              <View
+              <TouchableOpacity
+                onPress={() => {
+                  if (item.sender?._id) {
+                    router.push({
+                      pathname: "/screens/profile/UserProfile",
+                      params: { userId: item.sender._id },
+                    });
+                  }
+                }}
                 style={{
                   width: 32,
                   height: 32,
@@ -695,23 +703,34 @@ export default function ChatRoom() {
                 ) : (
                   <Ionicons name="person" size={18} color={theme.colors.secondary} />
                 )}
-              </View>
+              </TouchableOpacity>
             )}
 
             <View style={{ maxWidth: "75%" }}>
-              {/* Sender name for group chats */}
+              {/* Sender name for group chats - tap to view profile */}
               {!isOwnMessage && (
-                <Text
-                  style={{
-                    fontFamily: theme.fonts.body,
-                    fontSize: theme.fontSizes.xs,
-                    color: theme.colors.text + "80",
-                    marginBottom: 4,
-                    marginLeft: 4,
+                <TouchableOpacity
+                  onPress={() => {
+                    if (item.sender?._id) {
+                      router.push({
+                        pathname: "/screens/profile/UserProfile",
+                        params: { userId: item.sender._id },
+                      });
+                    }
                   }}
                 >
-                  {item.sender?.username || "Unknown"}
-                </Text>
+                  <Text
+                    style={{
+                      fontFamily: theme.fonts.body,
+                      fontSize: theme.fontSizes.xs,
+                      color: theme.colors.text + "80",
+                      marginBottom: 4,
+                      marginLeft: 4,
+                    }}
+                  >
+                    {item.sender?.username || "Unknown"}
+                  </Text>
+                </TouchableOpacity>
               )}
 
               {/* Message Bubble */}

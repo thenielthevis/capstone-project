@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { View, Text, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,7 +9,16 @@ interface LeaderboardWidgetProps {
   showTopCount?: number;
 }
 
-export default function LeaderboardWidget({ showTopCount = 3 }: LeaderboardWidgetProps) {
+// Module-level cache to persist across remounts
+let widgetCache: {
+  topUsers: LeaderboardEntry[];
+  currentUserRank: LeaderboardEntry | null;
+  timestamp: number;
+} | null = null;
+
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+function LeaderboardWidgetInner({ showTopCount = 3 }: LeaderboardWidgetProps) {
   const router = useRouter();
   const { theme } = useTheme();
   const [loading, setLoading] = useState(true);
@@ -17,20 +26,34 @@ export default function LeaderboardWidget({ showTopCount = 3 }: LeaderboardWidge
   const [currentUserRank, setCurrentUserRank] = useState<LeaderboardEntry | null>(null);
   
   useEffect(() => {
+    // Use cached data if fresh enough
+    if (widgetCache && Date.now() - widgetCache.timestamp < CACHE_DURATION) {
+      setTopUsers(widgetCache.topUsers);
+      setCurrentUserRank(widgetCache.currentUserRank);
+      setLoading(false);
+      return;
+    }
     loadTopUsers();
   }, []);
   
-  const loadTopUsers = async () => {
+  const loadTopUsers = useCallback(async () => {
     try {
       const data = await getLeaderboard({ period: 'weekly', limit: showTopCount });
-      setTopUsers(data.leaderboard.slice(0, showTopCount));
+      const users = data.leaderboard.slice(0, showTopCount);
+      setTopUsers(users);
       setCurrentUserRank(data.currentUserRank);
+      // Cache the result
+      widgetCache = {
+        topUsers: users,
+        currentUserRank: data.currentUserRank,
+        timestamp: Date.now(),
+      };
     } catch (error) {
       console.error('Error loading leaderboard widget:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [showTopCount]);
   
   const goToLeaderboard = () => {
     router.push('/screens/leaderboard/' as any);
@@ -245,3 +268,5 @@ export default function LeaderboardWidget({ showTopCount = 3 }: LeaderboardWidge
     </TouchableOpacity>
   );
 }
+
+export default memo(LeaderboardWidgetInner);

@@ -211,14 +211,26 @@ exports.getFeed = async (req, res) => {
         const limit = parseInt(req.query.limit) || 20;
         const skip = (page - 1) * limit;
 
+        // Get the current user's following list for friends-only posts
+        const currentUser = await User.findById(req.user.id).select('following').lean();
+        const mutualIds = [];
+        if (currentUser && currentUser.following) {
+            // Find mutuals: users the current user follows who also follow back
+            const followingUsers = await User.find({
+                _id: { $in: currentUser.following },
+                followers: req.user.id
+            }).select('_id').lean();
+            mutualIds.push(...followingUsers.map(u => u._id));
+        }
+
         // Build visibility filter
-        // Show: public posts, friends-only posts from friends, and user's own private posts
+        // Show: public posts, friends-only posts from mutuals, and user's own posts
         const visibilityFilter = {
             $or: [
                 { visibility: "public" },
-                { visibility: "private", user: req.user.id }
-                // TODO: Add friends-only filter when friend system is implemented
-                // { visibility: "friends", user: { $in: req.user.friends } }
+                { visibility: "private", user: req.user.id },
+                { visibility: "friends", user: { $in: mutualIds } },
+                { visibility: "friends", user: req.user.id },
             ]
         };
 

@@ -187,6 +187,17 @@ export default function SettingsScreen() {
           theme={theme}
         />
 
+        {/* Privacy Section */}
+        <SectionHeader title="Privacy" theme={theme} />
+        <SettingsItem
+          icon="eye-outline"
+          iconColor="#f59e0b"
+          title="Profile Visibility"
+          subtitle="Who can see your profile & posts"
+          onPress={() => router.push("/screens/settings/profile-visibility" as any)}
+          theme={theme}
+        />
+
         {/* Legal Section */}
         <SectionHeader title="Legal" theme={theme} />
         <SettingsItem

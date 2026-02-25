@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, FlatList, TouchableOpacity, Image } from 'react-native';
+import React, { memo, useCallback, useMemo } from 'react';
+import { View, Text, FlatList, TouchableOpacity, Image, ListRenderItemInfo, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LeaderboardEntry } from '../../api/leaderboardApi';
 import { useTheme } from '../../context/ThemeContext';
@@ -8,6 +8,8 @@ interface LeaderboardListProps {
   entries: LeaderboardEntry[];
   metric: 'score' | 'calories_burned' | 'activity_minutes' | 'streak';
   onUserPress: (userId: string) => void;
+  onEndReached?: () => void;
+  loadingMore?: boolean;
 }
 
 const getRankColor = (rank: number): string => {
@@ -71,7 +73,7 @@ const getMetricIcon = (
   }
 };
 
-function LeaderboardCard({
+const LeaderboardCard = memo(function LeaderboardCard({
   entry,
   metric,
   onPress,
@@ -217,18 +219,52 @@ function LeaderboardCard({
       </View>
     </TouchableOpacity>
   );
-}
+});
+
+const ITEM_HEIGHT = 73; // approximate height of each card + separator
 
 export default function LeaderboardList({
   entries,
   metric,
   onUserPress,
+  onEndReached,
+  loadingMore,
 }: LeaderboardListProps) {
   const { theme } = useTheme();
   
-  return (
-    <View style={{ backgroundColor: theme.colors.background }}>
-      {/* Header */}
+  const keyExtractor = useCallback((item: LeaderboardEntry) => item.user.id, []);
+  
+  const getItemLayout = useCallback((_: any, index: number) => ({
+    length: ITEM_HEIGHT,
+    offset: ITEM_HEIGHT * index,
+    index,
+  }), []);
+  
+  const renderItem = useCallback(({ item }: ListRenderItemInfo<LeaderboardEntry>) => (
+    <LeaderboardCard
+      entry={item}
+      metric={metric}
+      onPress={() => onUserPress(item.user.id)}
+      theme={theme}
+    />
+  ), [metric, onUserPress, theme]);
+  
+  const ItemSeparator = useCallback(() => (
+    <View style={{ height: 1, backgroundColor: theme.colors.border, marginLeft: 64 }} />
+  ), [theme.colors.border]);
+  
+  const metricLabel = useMemo(() => {
+    switch (metric) {
+      case 'score': return 'Score';
+      case 'calories_burned': return 'Calories Burned';
+      case 'activity_minutes': return 'Activity Time';
+      case 'streak': return 'Streak';
+      default: return '';
+    }
+  }, [metric]);
+  
+  const ListHeader = useMemo(() => (
+    <>
       <View style={{ 
         flexDirection: 'row', 
         alignItems: 'center', 
@@ -242,30 +278,30 @@ export default function LeaderboardList({
         <Text style={{ color: theme.colors.textSecondary, fontSize: 12, marginLeft: 12 }}>User</Text>
         <View style={{ flex: 1 }} />
         <Text style={{ color: theme.colors.textSecondary, fontSize: 12 }}>
-          {metric === 'score' && 'Score'}
-          {metric === 'calories_burned' && 'Calories Burned'}
-          {metric === 'activity_minutes' && 'Activity Time'}
-          {metric === 'streak' && 'Streak'}
+          {metricLabel}
         </Text>
       </View>
-      
-      {/* Divider */}
       <View style={{ height: 1, backgroundColor: theme.colors.border }} />
-      
-      {/* List */}
-      {entries.map((entry, index) => (
-        <View key={entry.user.id}>
-          <LeaderboardCard
-            entry={entry}
-            metric={metric}
-            onPress={() => onUserPress(entry.user.id)}
-            theme={theme}
-          />
-          {index < entries.length - 1 && (
-            <View style={{ height: 1, backgroundColor: theme.colors.border, marginLeft: 64 }} />
-          )}
-        </View>
-      ))}
+    </>
+  ), [theme.colors.surface, theme.colors.textSecondary, theme.colors.border, metricLabel]);
+  
+  return (
+    <View style={{ backgroundColor: theme.colors.background }}>
+      {ListHeader}
+      <FlatList
+        data={entries}
+        renderItem={renderItem}
+        keyExtractor={keyExtractor}
+        getItemLayout={getItemLayout}
+        ItemSeparatorComponent={ItemSeparator}
+        onEndReached={onEndReached}
+        onEndReachedThreshold={0.5}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={15}
+        windowSize={10}
+        initialNumToRender={15}
+        scrollEnabled={false}
+      />
     </View>
   );
 }

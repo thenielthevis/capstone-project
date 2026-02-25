@@ -610,8 +610,15 @@ export default function Chat() {
             >
               <ArrowLeft className="w-5 h-5" style={{ color: theme.colors.text }} />
             </button>
-            <div
-              className="w-10 h-10 rounded-full flex items-center justify-center"
+            <button
+              onClick={() => {
+                if (!selectedChat.isGroupChat) {
+                  const currentUserId = getCurrentUserId();
+                  const otherUser = selectedChat.users.find((u) => u._id !== currentUserId);
+                  if (otherUser) navigate(`/profile/${otherUser._id}`);
+                }
+              }}
+              className={`w-10 h-10 rounded-full flex items-center justify-center ${!selectedChat.isGroupChat ? 'cursor-pointer hover:opacity-80 transition' : ''}`}
               style={{
                 backgroundColor: selectedChat.isGroupChat
                   ? theme.colors.primary + '20'
@@ -625,14 +632,21 @@ export default function Chat() {
               ) : (
                 <User className="w-5 h-5" style={{ color: theme.colors.secondary }} />
               )}
-            </div>
+            </button>
             <div className="flex-1">
-              <h2
-                className="font-semibold"
+              <button
+                onClick={() => {
+                  if (!selectedChat.isGroupChat) {
+                    const currentUserId = getCurrentUserId();
+                    const otherUser = selectedChat.users.find((u) => u._id !== currentUserId);
+                    if (otherUser) navigate(`/profile/${otherUser._id}`);
+                  }
+                }}
+                className={`font-semibold text-left ${!selectedChat.isGroupChat ? 'hover:underline cursor-pointer' : ''}`}
                 style={{ fontFamily: theme.fonts.heading, color: theme.colors.text }}
               >
                 {chatName}
-              </h2>
+              </button>
               {selectedChat.isGroupChat && (
                 <p className="text-xs" style={{ color: theme.colors.textSecondary }}>
                   {selectedChat.users.length} members
@@ -686,7 +700,10 @@ export default function Chat() {
                     >
                       {/* Profile Picture for group chat messages */}
                       {!isMine && selectedChat.isGroupChat && (
-                        <div className="mr-2 flex-shrink-0">
+                        <button
+                          onClick={() => navigate(`/profile/${message.sender._id}`)}
+                          className="mr-2 flex-shrink-0 cursor-pointer hover:opacity-80 transition"
+                        >
                           <div 
                             className="w-8 h-8 rounded-full flex items-center justify-center"
                             style={{ backgroundColor: theme.colors.secondary + '20' }}
@@ -701,7 +718,7 @@ export default function Chat() {
                               <User className="w-4 h-4" style={{ color: theme.colors.secondary }} />
                             )}
                           </div>
-                        </div>
+                        </button>
                       )}
                       <div className="relative max-w-[70%]">
                         {/* Reply indicator */}
@@ -726,12 +743,13 @@ export default function Chat() {
                           }}
                         >
                           {!isMine && selectedChat.isGroupChat && (
-                            <p
-                              className="text-xs font-semibold mb-1"
+                            <button
+                              onClick={() => navigate(`/profile/${message.sender._id}`)}
+                              className="text-xs font-semibold mb-1 hover:underline cursor-pointer"
                               style={{ color: theme.colors.primary }}
                             >
                               {message.sender.username}
-                            </p>
+                            </button>
                           )}
                           <p style={{ color: isMine ? '#FFFFFF' : theme.colors.text, whiteSpace: 'pre-line' }}>
                             {message.content}
