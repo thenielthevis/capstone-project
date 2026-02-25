@@ -464,7 +464,7 @@ export default function Profile() {
             }
           />
           <InfoRow label="Age" value={profile?.age ? `${profile.age} years` : null} />
-          <InfoRow label="Birthday" value={formatDate(profile?.birthdate || null)} />
+          <InfoRow label="Birthdate" value={formatDate(profile?.birthdate || null)} />
           <InfoRow label="Blood Type" value={profile?.healthProfile.bloodType} />
         </ProfileSection>
 

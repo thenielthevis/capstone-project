@@ -1,6 +1,7 @@
 const HealthCheckup = require('../models/healthCheckupModel');
 const User = require('../models/userModel');
 const FeedbackTriggerEngine = require('../services/feedbackTriggerEngine');
+const { recalcTodaysCalorieGoal } = require('../utils/calorieCalculator');
 
 // Helper function to get start of day
 const getStartOfDay = (date = new Date()) => {
@@ -315,6 +316,19 @@ exports.updateCheckup = async (req, res) => {
         }
 
         await entry.save();
+
+        // Auto-recalculate calorie goal if calorie-relevant fields changed
+        if (weight !== undefined || bmi !== undefined || targetWeight !== undefined || activityLevel !== undefined) {
+            try {
+                const freshUser = await User.findById(userId);
+                if (freshUser) {
+                    recalcTodaysCalorieGoal(freshUser);
+                    await freshUser.save();
+                }
+            } catch (calorieErr) {
+                console.error('[HealthCheckup] Error auto-recalculating calorie goal:', calorieErr);
+            }
+        }
 
         // Update gamification batteries if applicable
         let gamificationResult = null;

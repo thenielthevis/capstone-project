@@ -113,7 +113,7 @@ exports.getCachedPrediction = async (req, res) => {
 
     // Find user and get their last prediction
     const user = await User.findById(authUserId)
-      .select('_id username email age gender profilePicture birthdate physicalMetrics lifestyle dietaryProfile healthProfile environmentalFactors riskFactors lastPrediction')
+      .select('_id username email age birthdate gender profilePicture physicalMetrics lifestyle dietaryProfile healthProfile environmentalFactors riskFactors lastPrediction')
       .exec();
 
     if (!user) {
@@ -238,7 +238,7 @@ exports.predictUser = async (req, res) => {
     // Find user and get their health data
     console.log('[predictUser] method=', req.method, 'authUserId=', authUserId, 'bodyUserId=', bodyUserId, 'resolved userId=', userId);
     // Select full profile fields so frontend can render complete user information
-    const user = await User.findById(userId).select('_id username email age gender profilePicture birthdate physicalMetrics lifestyle dietaryProfile healthProfile environmentalFactors riskFactors lastPrediction').exec();
+    const user = await User.findById(userId).select('_id username email age birthdate gender profilePicture physicalMetrics lifestyle dietaryProfile healthProfile environmentalFactors riskFactors lastPrediction').exec();
     console.log('[predictUser] fetched user summary=', user ? { id: String(user._id), username: user.username, email: user.email, age: user.age, hasPhysicalMetrics: !!user.physicalMetrics, hasDietaryProfile: !!user.dietaryProfile, hasHealthProfile: !!user.healthProfile } : null);
     // Also print the full sanitized user document to the server console to help debugging
     try {

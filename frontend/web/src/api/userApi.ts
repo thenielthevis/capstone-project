@@ -1,7 +1,8 @@
 import axiosInstance from './axiosInstance';
 
 export interface HealthAssessmentData {
-  age: number;
+  birthdate?: string;
+  age?: number;
   gender: string;
   physicalMetrics: {
     height: { value: number };

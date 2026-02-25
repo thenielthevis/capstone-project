@@ -1,6 +1,7 @@
-import React from 'react';
-import { View, Text } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, Platform, Pressable } from 'react-native';
 import { TextInput, RadioButton } from 'react-native-paper';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 interface StepBasicInfoProps {
   formData: any;
@@ -8,20 +9,69 @@ interface StepBasicInfoProps {
   theme: any;
 }
 
-const StepBasicInfo: React.FC<StepBasicInfoProps> = ({ formData, setFormData, theme }) => (
-  <View>
-      <TextInput
-        label="Age"
-        mode="outlined"
-        textColor={theme.colors.text}
-        value={formData.age}
-        onChangeText={(text) => setFormData({ ...formData, age: text })}
-        keyboardType="numeric"
-        style={{ marginBottom: 12, backgroundColor: theme.colors.input }}
-        theme={{ colors: { onSurfaceVariant: theme.colors.text + "EE", primary: theme.colors.primary } }}
-        maxLength={3}
-        placeholderTextColor={theme.colors.text}
-      />
+const StepBasicInfo: React.FC<StepBasicInfoProps> = ({ formData, setFormData, theme }) => {
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const maxDate = new Date();
+  maxDate.setFullYear(maxDate.getFullYear() - 13);
+
+  const currentBirthdate = formData.birthdate ? new Date(formData.birthdate) : undefined;
+
+  const calculateAge = (dateStr: string) => {
+    const today = new Date();
+    const birth = new Date(dateStr);
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+    return age;
+  };
+
+  const handleDateChange = (_event: any, selectedDate?: Date) => {
+    if (Platform.OS === 'android') setShowDatePicker(false);
+    if (selectedDate) {
+      setFormData({ ...formData, birthdate: selectedDate.toISOString().split('T')[0] });
+    }
+  };
+
+  return (
+    <View>
+      <Text style={{
+        color: theme.colors.text,
+        fontSize: theme.fontSizes.base,
+        marginBottom: 4
+      }}>
+        Birthdate *
+      </Text>
+      <Pressable
+        onPress={() => setShowDatePicker(true)}
+        style={{
+          backgroundColor: theme.colors.input,
+          borderWidth: 1,
+          borderColor: theme.colors.border || '#ccc',
+          borderRadius: 4,
+          paddingHorizontal: 12,
+          paddingVertical: 14,
+          marginBottom: 4,
+        }}
+      >
+        <Text style={{ color: formData.birthdate ? theme.colors.text : (theme.colors.text + '99'), fontSize: 16 }}>
+          {formData.birthdate || 'Select your birthdate'}
+        </Text>
+      </Pressable>
+      {formData.birthdate && (
+        <Text style={{ color: theme.colors.text + 'AA', fontSize: 12, marginBottom: 8 }}>
+          Age: {calculateAge(formData.birthdate)} years old
+        </Text>
+      )}
+      {showDatePicker && (
+        <DateTimePicker
+          value={currentBirthdate || maxDate}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          maximumDate={maxDate}
+          onChange={handleDateChange}
+        />
+      )}
       <Text style={{ 
         color: theme.colors.text, 
         fontSize: theme.fontSizes.base,
@@ -97,6 +147,7 @@ const StepBasicInfo: React.FC<StepBasicInfoProps> = ({ formData, setFormData, th
         textColor={theme.colors.text}
       />
     </View>
-);
+  );
+};
 
 export default StepBasicInfo;
