@@ -36,7 +36,50 @@ DISEASE_DESCRIPTIONS = {
     'Heart Disease': 'General heart and cardiovascular dysfunction related to lifestyle and risk factors.',
     'Parkinsons': 'Progressive neurological disorder affecting movement and motor control.',
     'Dementia': 'Decline in cognitive abilities and memory, associated with aging and genetics.',
-    'Osteoporosis': 'Weakened bone structure increasing fracture risk, related to age and activity levels.'
+    'Osteoporosis': 'Weakened bone structure increasing fracture risk, related to age and activity levels.',
+    'Thyroid Disorder': 'Thyroid gland dysfunction affecting metabolism and hormone regulation.',
+    'Obesity': 'Excessive body weight increasing risk of multiple chronic diseases.',
+    'Depression': 'Mental health condition affecting mood, motivation, and quality of life.',
+    'Anxiety': 'Persistent worry and tension affecting daily functioning.',
+    'Type 2 Diabetes': 'Insulin resistance leading to high blood sugar levels.',
+    'Type 1 Diabetes': 'Autoimmune condition where body cannot produce insulin.',
+    'Cholesterol': 'High blood cholesterol increasing cardiovascular disease risk.',
+    'Migraine': 'Severe headaches often with nausea and sensitivity to light.',
+    'Gout': 'Painful inflammatory condition caused by uric acid crystal accumulation.',
+    'Fatty Liver Disease': 'Fat accumulation in liver cells affecting liver function.',
+    'Sleep Apnea': 'Breathing interruptions during sleep affecting oxygen levels.',
+    'Pneumonia': 'Lung infection causing inflammation and fluid accumulation.',
+    'Bronchitis': 'Inflammation of airways in lungs causing persistent cough.',
+    'Tuberculosis': 'Infectious bacterial disease primarily affecting the lungs.',
+    'Kidney Stones': 'Hard mineral deposits forming in kidneys causing severe pain.',
+    'Prostate Issues': 'Enlargement or inflammation of prostate gland in males.',
+    'Cervical Cancer': 'Malignant growth in cervix affecting women.',
+    'Breast Cancer': 'Malignant tumor in breast tissue.',
+    'Colorectal Cancer': 'Cancer affecting colon or rectum.',
+    'Skin Cancer': 'Malignant growth on skin from UV or genetic factors.',
+    'Alzheimers': 'Progressive brain disorder causing memory loss and cognitive decline.',
+    'Rheumatoid Arthritis': 'Autoimmune joint disease causing pain and inflammation.',
+    'Lupus': 'Autoimmune disease affecting multiple body systems.',
+    'Celiac Disease': 'Autoimmune condition triggered by gluten consumption.',
+    'IBS': 'Irritable Bowel Syndrome causing digestive discomfort.',
+    'Crohns Disease': 'Inflammatory bowel disease affecting digestive tract.',
+    'Hepatitis': 'Liver inflammation from viral or autoimmune causes.',
+    'Gastroenteritis': 'Stomach and intestinal inflammation from infection.',
+    'Ulcers': 'Sores in stomach or intestinal lining.',
+    'Glaucoma': 'Eye disease causing optic nerve damage and vision loss.',
+    'Cataracts': 'Clouding of eye lens affecting vision.',
+    'Diabetic Retinopathy': 'Eye damage from diabetes affecting blood vessels in retina.',
+    'Hyperlipidemia': 'Abnormally high levels of lipids in blood.',
+    'Metabolic Syndrome': 'Group of conditions including obesity, high BP, and high blood sugar.',
+    'Polycystic Ovary Syndrome': 'Hormonal disorder affecting women with irregular periods.',
+    'Endometriosis': 'Tissue growth outside uterus causing pain.',
+    'Benign Prostatic Hyperplasia': 'Non-cancerous enlargement of prostate.',
+    'Erectile Dysfunction': 'Difficulty achieving or maintaining erections.',
+    'Multiple Sclerosis': 'Autoimmune disease affecting nervous system.',
+    'Epilepsy': 'Neurological disorder causing recurrent seizures.',
+    'Migraine Headaches': 'Intense, debilitating headaches often unilateral.',
+    'Peripheral Neuropathy': 'Nerve damage causing weakness and pain in extremities.',
+    'Neuropathy': 'Nerve damage affecting sensation and motor function.',
 }
 
 # ============================================================================
@@ -58,6 +101,34 @@ class RuleBasedEngine:
             'parkinsons': self._score_parkinsons,
             'dementia': self._score_dementia,
             'osteoporosis': self._score_osteoporosis,
+            'thyroid_disorder': self._score_thyroid_disorder,
+            'obesity': self._score_obesity,
+            'depression': self._score_depression,
+            'anxiety': self._score_anxiety,
+            'cholesterol': self._score_cholesterol,
+            'migraine': self._score_migraine,
+            'gout': self._score_gout,
+            'fatty_liver_disease': self._score_fatty_liver_disease,
+            'sleep_apnea': self._score_sleep_apnea,
+            'pneumonia': self._score_pneumonia,
+            'bronchitis': self._score_bronchitis,
+            'tuberculosis': self._score_tuberculosis,
+            'kidney_stones': self._score_kidney_stones,
+            'prostate_issues': self._score_prostate_issues,
+            'breast_cancer': self._score_breast_cancer,
+            'colorectal_cancer': self._score_colorectal_cancer,
+            'rheumatoid_arthritis': self._score_rheumatoid_arthritis,
+            'lupus': self._score_lupus,
+            'ibs': self._score_ibs,
+            'crohns_disease': self._score_crohns_disease,
+            'hepatitis': self._score_hepatitis,
+            'glaucoma': self._score_glaucoma,
+            'cataracts': self._score_cataracts,
+            'metabolic_syndrome': self._score_metabolic_syndrome,
+            'pcos': self._score_pcos,
+            'multiple_sclerosis': self._score_multiple_sclerosis,
+            'epilepsy': self._score_epilepsy,
+            'peripheral_neuropathy': self._score_peripheral_neuropathy,
         }
         
         # Proper disease names mapping (lowercase key -> proper display name)
@@ -68,6 +139,34 @@ class RuleBasedEngine:
             'parkinsons': 'Parkinsons',
             'dementia': 'Dementia',
             'osteoporosis': 'Osteoporosis',
+            'thyroid_disorder': 'Thyroid Disorder',
+            'obesity': 'Obesity',
+            'depression': 'Depression',
+            'anxiety': 'Anxiety',
+            'cholesterol': 'Cholesterol',
+            'migraine': 'Migraine',
+            'gout': 'Gout',
+            'fatty_liver_disease': 'Fatty Liver Disease',
+            'sleep_apnea': 'Sleep Apnea',
+            'pneumonia': 'Pneumonia',
+            'bronchitis': 'Bronchitis',
+            'tuberculosis': 'Tuberculosis',
+            'kidney_stones': 'Kidney Stones',
+            'prostate_issues': 'Prostate Issues',
+            'breast_cancer': 'Breast Cancer',
+            'colorectal_cancer': 'Colorectal Cancer',
+            'rheumatoid_arthritis': 'Rheumatoid Arthritis',
+            'lupus': 'Lupus',
+            'ibs': 'IBS',
+            'crohns_disease': 'Crohns Disease',
+            'hepatitis': 'Hepatitis',
+            'glaucoma': 'Glaucoma',
+            'cataracts': 'Cataracts',
+            'metabolic_syndrome': 'Metabolic Syndrome',
+            'pcos': 'PCOS',
+            'multiple_sclerosis': 'Multiple Sclerosis',
+            'epilepsy': 'Epilepsy',
+            'peripheral_neuropathy': 'Peripheral Neuropathy',
         }
     
     def _score_huntingtons(self, data):
@@ -356,6 +455,1028 @@ class RuleBasedEngine:
         if 'vegan' in diet or 'restricted' in diet:
             score += 0.10
             factors.append(('restricted_diet', 0.10))
+        
+        # Smoking
+        if self._has_addiction(data, ['smoking', 'cigarettes']):
+            score += 0.10
+            factors.append(('smoking', 0.10))
+        
+        return min(score, 1.0), factors
+    
+    def _score_thyroid_disorder(self, data):
+        """Thyroid disorder risk scoring"""
+        score = 0.0
+        factors = []
+        
+        # Gender: women more susceptible
+        if data.get('gender') == 'female':
+            score += 0.20
+            factors.append(('female_gender', 0.20))
+        
+        # Family history
+        if self._has_family_history(data, ['thyroid', 'goiter']):
+            score += 0.30
+            factors.append(('family_history', 0.30))
+        
+        # Age: higher risk after 50
+        age = float(data.get('age', 0))
+        if age > 50:
+            score += 0.15
+            factors.append(('age_50plus', 0.15))
+        
+        # Current conditions
+        if self._has_current_condition(data, ['autoimmune', 'iodine deficiency']):
+            score += 0.20
+            factors.append(('autoimmune_condition', 0.20))
+        
+        # High stress
+        if data.get('stressLevel') in ['high', 'extreme']:
+            score += 0.10
+            factors.append(('high_stress', 0.10))
+        
+        # Poor sleep
+        sleep = float(data.get('sleepHours', 7))
+        if sleep < 6:
+            score += 0.08
+            factors.append(('poor_sleep', 0.08))
+        
+        return min(score, 1.0), factors
+    
+    def _score_obesity(self, data):
+        """Obesity risk scoring"""
+        score = 0.0
+        factors = []
+        
+        # BMI: primary factor
+        bmi = float(data.get('bmi', 22))
+        if bmi > 35:
+            score += 0.40
+            factors.append(('very_high_bmi', 0.40))
+        elif bmi > 30:
+            score += 0.30
+            factors.append(('high_bmi', 0.30))
+        elif bmi > 25:
+            score += 0.15
+            factors.append(('overweight', 0.15))
+        
+        # Family history
+        if self._has_family_history(data, ['obesity', 'overweight']):
+            score += 0.15
+            factors.append(('family_history', 0.15))
+        
+        # Sedentary lifestyle
+        activity = data.get('activityLevel', 'moderate').lower()
+        if 'sedentary' in activity:
+            score += 0.20
+            factors.append(('sedentary', 0.20))
+        
+        # Poor diet
+        diet = data.get('dietaryPreference', 'mixed').lower()
+        if 'fast_food' in diet or 'junk' in diet:
+            score += 0.15
+            factors.append(('poor_diet', 0.15))
+        
+        # High stress
+        if data.get('stressLevel') in ['high', 'extreme']:
+            score += 0.10
+            factors.append(('high_stress', 0.10))
+        
+        return min(score, 1.0), factors
+    
+    def _score_depression(self, data):
+        """Depression risk scoring"""
+        score = 0.0
+        factors = []
+        
+        # High stress: major factor
+        if data.get('stressLevel') in ['high', 'extreme']:
+            score += 0.30
+            factors.append(('high_stress', 0.30))
+        
+        # Poor sleep
+        sleep = float(data.get('sleepHours', 7))
+        if sleep < 6 or sleep > 9:
+            score += 0.15
+            factors.append(('poor_sleep', 0.15))
+        
+        # Sedentary lifestyle
+        activity = data.get('activityLevel', 'moderate').lower()
+        if 'sedentary' in activity:
+            score += 0.15
+            factors.append(('sedentary', 0.15))
+        
+        # Family history
+        if self._has_family_history(data, ['depression', 'mental health']):
+            score += 0.25
+            factors.append(('family_history', 0.25))
+        
+        # Addiction issues
+        if self._has_addiction(data, ['alcohol', 'drugs']):
+            score += 0.15
+            factors.append(('addiction', 0.15))
+        
+        # Low water intake (dehydration affects mood)
+        water = float(data.get('dailyWaterIntake_L', 2.0))
+        if water < 1.5:
+            score += 0.10
+            factors.append(('dehydration', 0.10))
+        
+        return min(score, 1.0), factors
+    
+    def _score_anxiety(self, data):
+        """Anxiety disorder risk scoring"""
+        score = 0.0
+        factors = []
+        
+        # High stress
+        if data.get('stressLevel') in ['high', 'extreme']:
+            score += 0.35
+            factors.append(('high_stress', 0.35))
+        
+        # Family history
+        if self._has_family_history(data, ['anxiety', 'panic']):
+            score += 0.25
+            factors.append(('family_history', 0.25))
+        
+        # Poor sleep
+        sleep = float(data.get('sleepHours', 7))
+        if sleep < 6:
+            score += 0.15
+            factors.append(('poor_sleep', 0.15))
+        
+        # High caffeine consumption (not tracked, but implied in activity)
+        activity = data.get('activityLevel', 'moderate').lower()
+        if 'sedentary' in activity:
+            score += 0.10
+            factors.append(('sedentary', 0.10))
+        
+        return min(score, 1.0), factors
+    
+    def _score_cholesterol(self, data):
+        """High cholesterol risk scoring"""
+        score = 0.0
+        factors = []
+        
+        # Age: risk increases with age
+        age = float(data.get('age', 0))
+        if age > 45:
+            score += (age - 45) * 0.005
+            factors.append(('age_factor', (age - 45) * 0.005))
+        
+        # Family history
+        if self._has_family_history(data, ['cholesterol', 'heart disease']):
+            score += 0.25
+            factors.append(('family_history', 0.25))
+        
+        # BMI
+        bmi = float(data.get('bmi', 22))
+        if bmi > 30:
+            score += 0.20
+            factors.append(('high_bmi', 0.20))
+        elif bmi > 25:
+            score += 0.10
+            factors.append(('overweight', 0.10))
+        
+        # Sedentary lifestyle
+        activity = data.get('activityLevel', 'moderate').lower()
+        if 'sedentary' in activity:
+            score += 0.15
+            factors.append(('sedentary', 0.15))
+        
+        # Poor diet
+        diet = data.get('dietaryPreference', 'mixed').lower()
+        if 'fast_food' in diet or 'junk' in diet:
+            score += 0.20
+            factors.append(('poor_diet', 0.20))
+        
+        return min(score, 1.0), factors
+    
+    def _score_migraine(self, data):
+        """Migraine risk scoring"""
+        score = 0.0
+        factors = []
+        
+        # Family history: strong predictor
+        if self._has_family_history(data, ['migraine', 'headache']):
+            score += 0.40
+            factors.append(('family_history', 0.40))
+        
+        # Gender: women more susceptible
+        if data.get('gender') == 'female':
+            score += 0.20
+            factors.append(('female_gender', 0.20))
+        
+        # High stress
+        if data.get('stressLevel') in ['high', 'extreme']:
+            score += 0.20
+            factors.append(('high_stress', 0.20))
+        
+        # Poor sleep
+        sleep = float(data.get('sleepHours', 7))
+        if sleep < 6 or sleep > 9:
+            score += 0.15
+            factors.append(('poor_sleep', 0.15))
+        
+        # Dehydration
+        water = float(data.get('dailyWaterIntake_L', 2.0))
+        if water < 1.5:
+            score += 0.15
+            factors.append(('dehydration', 0.15))
+        
+        return min(score, 1.0), factors
+    
+    def _score_gout(self, data):
+        """Gout risk scoring"""
+        score = 0.0
+        factors = []
+        
+        # Age and gender: more common in men over 40
+        age = float(data.get('age', 0))
+        if data.get('gender') == 'male' and age > 40:
+            score += 0.20
+            factors.append(('male_age_factor', 0.20))
+        
+        # Family history
+        if self._has_family_history(data, ['gout', 'uric acid']):
+            score += 0.30
+            factors.append(('family_history', 0.30))
+        
+        # High BMI
+        bmi = float(data.get('bmi', 22))
+        if bmi > 30:
+            score += 0.20
+            factors.append(('high_bmi', 0.20))
+        
+        # Alcohol consumption
+        if self._has_addiction(data, 'alcohol'):
+            score += 0.25
+            factors.append(('alcohol_consumption', 0.25))
+        
+        # Poor diet (high purine foods)
+        diet = data.get('dietaryPreference', 'mixed').lower()
+        if 'meat' in diet or 'seafood' in diet:
+            score += 0.15
+            factors.append(('high_purine_diet', 0.15))
+        
+        return min(score, 1.0), factors
+    
+    def _score_fatty_liver_disease(self, data):
+        """Fatty Liver Disease risk scoring"""
+        score = 0.0
+        factors = []
+        
+        # BMI: key factor
+        bmi = float(data.get('bmi', 22))
+        if bmi > 30:
+            score += 0.25
+            factors.append(('high_bmi', 0.25))
+        elif bmi > 25:
+            score += 0.12
+            factors.append(('overweight', 0.12))
+        
+        # Diabetes/metabolic conditions
+        if self._has_current_condition(data, ['diabetes', 'metabolic']):
+            score += 0.20
+            factors.append(('metabolic_condition', 0.20))
+        
+        # Alcohol consumption
+        if self._has_addiction(data, 'alcohol'):
+            score += 0.25
+            factors.append(('alcohol_consumption', 0.25))
+        
+        # Sedentary lifestyle
+        activity = data.get('activityLevel', 'moderate').lower()
+        if 'sedentary' in activity:
+            score += 0.15
+            factors.append(('sedentary', 0.15))
+        
+        # Poor diet
+        diet = data.get('dietaryPreference', 'mixed').lower()
+        if 'fast_food' in diet or 'junk' in diet:
+            score += 0.15
+            factors.append(('poor_diet', 0.15))
+        
+        return min(score, 1.0), factors
+    
+    def _score_sleep_apnea(self, data):
+        """Sleep Apnea risk scoring"""
+        score = 0.0
+        factors = []
+        
+        # BMI: strong predictor
+        bmi = float(data.get('bmi', 22))
+        if bmi > 30:
+            score += 0.30
+            factors.append(('high_bmi', 0.30))
+        elif bmi > 25:
+            score += 0.15
+            factors.append(('overweight', 0.15))
+        
+        # Age: more common after 50
+        age = float(data.get('age', 0))
+        if age > 50:
+            score += 0.15
+            factors.append(('age_50plus', 0.15))
+        
+        # Gender: more common in men
+        if data.get('gender') == 'male':
+            score += 0.15
+            factors.append(('male_gender', 0.15))
+        
+        # Family history
+        if self._has_family_history(data, ['sleep apnea', 'sleep disorder']):
+            score += 0.20
+            factors.append(('family_history', 0.20))
+        
+        # Smoking
+        if self._has_addiction(data, ['smoking', 'cigarettes']):
+            score += 0.10
+            factors.append(('smoking', 0.10))
+        
+        return min(score, 1.0), factors
+    
+    def _score_pneumonia(self, data):
+        """Pneumonia risk scoring"""
+        score = 0.0
+        factors = []
+        
+        # Age: elderly or very young at higher risk
+        age = float(data.get('age', 0))
+        if age > 65 or age < 5:
+            score += 0.20
+            factors.append(('extreme_age', 0.20))
+        
+        # Smoking
+        if self._has_addiction(data, ['smoking', 'cigarettes']):
+            score += 0.20
+            factors.append(('smoking', 0.20))
+        
+        # Respiratory conditions
+        if self._has_current_condition(data, ['asthma', 'copd', 'respiratory']):
+            score += 0.25
+            factors.append(('respiratory_condition', 0.25))
+        
+        # Weak immune system (poor sleep, stress)
+        sleep = float(data.get('sleepHours', 7))
+        if sleep < 6:
+            score += 0.15
+            factors.append(('poor_sleep', 0.15))
+        
+        # High stress
+        if data.get('stressLevel') in ['high', 'extreme']:
+            score += 0.10
+            factors.append(('high_stress', 0.10))
+        
+        return min(score, 1.0), factors
+    
+    def _score_bronchitis(self, data):
+        """Bronchitis risk scoring"""
+        score = 0.0
+        factors = []
+        
+        # Smoking: primary factor
+        if self._has_addiction(data, ['smoking', 'cigarettes']):
+            score += 0.35
+            factors.append(('smoking', 0.35))
+        
+        # Respiratory conditions
+        if self._has_current_condition(data, ['asthma', 'copd', 'respiratory']):
+            score += 0.20
+            factors.append(('respiratory_condition', 0.20))
+        
+        # Air pollution exposure
+        pollution = data.get('pollutionExposure', 'low').lower()
+        if 'high' in pollution:
+            score += 0.20
+            factors.append(('high_pollution', 0.20))
+        
+        # Age: older age higher risk
+        age = float(data.get('age', 0))
+        if age > 50:
+            score += 0.10
+            factors.append(('age_50plus', 0.10))
+        
+        return min(score, 1.0), factors
+    
+    def _score_tuberculosis(self, data):
+        """Tuberculosis risk scoring"""
+        score = 0.0
+        factors = []
+        
+        # Close contact/travel history (not explicitly tracked, so lower base)
+        score += 0.05
+        factors.append(('base_risk', 0.05))
+        
+        # Smoking
+        if self._has_addiction(data, ['smoking', 'cigarettes']):
+            score += 0.15
+            factors.append(('smoking', 0.15))
+        
+        # Weak immune (poor sleep, high stress, poor nutrition)
+        sleep = float(data.get('sleepHours', 7))
+        if sleep < 6:
+            score += 0.15
+            factors.append(('poor_sleep', 0.15))
+        
+        if data.get('stressLevel') in ['high', 'extreme']:
+            score += 0.10
+            factors.append(('high_stress', 0.10))
+        
+        # Low BMI (malnutrition)
+        bmi = float(data.get('bmi', 22))
+        if bmi < 18.5:
+            score += 0.15
+            factors.append(('low_bmi', 0.15))
+        
+        return min(score, 1.0), factors
+    
+    def _score_kidney_stones(self, data):
+        """Kidney Stones risk scoring"""
+        score = 0.0
+        factors = []
+        
+        # Low water intake: primary factor
+        water = float(data.get('dailyWaterIntake_L', 2.0))
+        if water < 1.5:
+            score += 0.40
+            factors.append(('low_water_intake', 0.40))
+        elif water < 2.0:
+            score += 0.20
+            factors.append(('moderate_water_intake', 0.20))
+        
+        # Family history
+        if self._has_family_history(data, ['kidney stones', 'calculi']):
+            score += 0.25
+            factors.append(('family_history', 0.25))
+        
+        # Chronic kidney disease
+        if self._has_current_condition(data, ['kidney disease', 'ckd']):
+            score += 0.20
+            factors.append(('kidney_disease', 0.20))
+        
+        # High protein diet
+        diet = data.get('dietaryPreference', 'mixed').lower()
+        if 'meat' in diet or 'protein' in diet:
+            score += 0.15
+            factors.append(('high_protein_diet', 0.15))
+        
+        # Age: 40-60 higher risk
+        age = float(data.get('age', 0))
+        if 40 <= age <= 60:
+            score += 0.10
+            factors.append(('age_range', 0.10))
+        
+        return min(score, 1.0), factors
+    
+    def _score_prostate_issues(self, data):
+        """Prostate Issues risk scoring"""
+        score = 0.0
+        factors = []
+        
+        # Gender: only affects men
+        if data.get('gender') != 'male':
+            return 0.0, []
+        
+        # Age: increases significantly after 50
+        age = float(data.get('age', 0))
+        if age > 70:
+            score += 0.35
+            factors.append(('age_70plus', 0.35))
+        elif age > 50:
+            score += 0.20
+            factors.append(('age_50plus', 0.20))
+        
+        # Family history
+        if self._has_family_history(data, ['prostate', 'prostate cancer']):
+            score += 0.30
+            factors.append(('family_history', 0.30))
+        
+        # High BMI
+        bmi = float(data.get('bmi', 22))
+        if bmi > 30:
+            score += 0.15
+            factors.append(('high_bmi', 0.15))
+        
+        # Sedentary lifestyle
+        activity = data.get('activityLevel', 'moderate').lower()
+        if 'sedentary' in activity:
+            score += 0.10
+            factors.append(('sedentary', 0.10))
+        
+        return min(score, 1.0), factors
+    
+    def _score_breast_cancer(self, data):
+        """Breast Cancer risk scoring"""
+        score = 0.0
+        factors = []
+        
+        # Gender: primarily affects women
+        if data.get('gender') != 'female':
+            score += 0.05  # Still some risk for men
+        else:
+            score += 0.10  # Base risk for women
+        
+        # Age: increases after 50
+        age = float(data.get('age', 0))
+        if age > 70:
+            score += 0.20
+            factors.append(('age_70plus', 0.20))
+        elif age > 50:
+            score += 0.15
+            factors.append(('age_50plus', 0.15))
+        
+        # Family history: strong predictor
+        if self._has_family_history(data, ['breast cancer', 'cancer']):
+            score += 0.35
+            factors.append(('family_history', 0.35))
+        
+        # Obesity
+        bmi = float(data.get('bmi', 22))
+        if bmi > 30:
+            score += 0.15
+            factors.append(('obesity', 0.15))
+        
+        # Alcohol consumption
+        if self._has_addiction(data, 'alcohol'):
+            score += 0.10
+            factors.append(('alcohol_consumption', 0.10))
+        
+        return min(score, 1.0), factors
+    
+    def _score_colorectal_cancer(self, data):
+        """Colorectal Cancer risk scoring"""
+        score = 0.0
+        factors = []
+        
+        # Age: increases after 50
+        age = float(data.get('age', 0))
+        if age > 50:
+            score += 0.20
+            factors.append(('age_50plus', 0.20))
+        
+        # Family history
+        if self._has_family_history(data, ['colorectal cancer', 'colon cancer']):
+            score += 0.30
+            factors.append(('family_history', 0.30))
+        
+        # Poor diet (low fiber)
+        diet = data.get('dietaryPreference', 'mixed').lower()
+        if 'fast_food' in diet or 'meat-heavy' in diet:
+            score += 0.20
+            factors.append(('poor_diet', 0.20))
+        
+        # Obesity
+        bmi = float(data.get('bmi', 22))
+        if bmi > 30:
+            score += 0.15
+            factors.append(('obesity', 0.15))
+        
+        # Smoking
+        if self._has_addiction(data, ['smoking', 'cigarettes']):
+            score += 0.10
+            factors.append(('smoking', 0.10))
+        
+        # Sedentary lifestyle
+        activity = data.get('activityLevel', 'moderate').lower()
+        if 'sedentary' in activity:
+            score += 0.10
+            factors.append(('sedentary', 0.10))
+        
+        return min(score, 1.0), factors
+    
+    def _score_rheumatoid_arthritis(self, data):
+        """Rheumatoid Arthritis risk scoring"""
+        score = 0.0
+        factors = []
+        
+        # Gender: more common in women
+        if data.get('gender') == 'female':
+            score += 0.20
+            factors.append(('female_gender', 0.20))
+        
+        # Age: typically 40-60
+        age = float(data.get('age', 0))
+        if 40 <= age <= 60:
+            score += 0.15
+            factors.append(('age_range', 0.15))
+        
+        # Family history
+        if self._has_family_history(data, ['rheumatoid arthritis', 'ra']):
+            score += 0.30
+            factors.append(('family_history', 0.30))
+        
+        # Smoking
+        if self._has_addiction(data, ['smoking', 'cigarettes']):
+            score += 0.15
+            factors.append(('smoking', 0.15))
+        
+        # High stress
+        if data.get('stressLevel') in ['high', 'extreme']:
+            score += 0.15
+            factors.append(('high_stress', 0.15))
+        
+        # Autoimmune conditions
+        if self._has_current_condition(data, ['autoimmune']):
+            score += 0.20
+            factors.append(('autoimmune_condition', 0.20))
+        
+        return min(score, 1.0), factors
+    
+    def _score_lupus(self, data):
+        """Lupus (SLE) risk scoring"""
+        score = 0.0
+        factors = []
+        
+        # Gender: predominantly affects women
+        if data.get('gender') == 'female':
+            score += 0.30
+            factors.append(('female_gender', 0.30))
+        
+        # Age: typically 15-45
+        age = float(data.get('age', 0))
+        if 15 <= age <= 45:
+            score += 0.20
+            factors.append(('age_range', 0.20))
+        
+        # Family history
+        if self._has_family_history(data, ['lupus', 'autoimmune']):
+            score += 0.35
+            factors.append(('family_history', 0.35))
+        
+        # Autoimmune conditions
+        if self._has_current_condition(data, ['autoimmune']):
+            score += 0.15
+            factors.append(('autoimmune_condition', 0.15))
+        
+        # High stress
+        if data.get('stressLevel') in ['high', 'extreme']:
+            score += 0.15
+            factors.append(('high_stress', 0.15))
+        
+        # Poor sleep
+        sleep = float(data.get('sleepHours', 7))
+        if sleep < 6:
+            score += 0.10
+            factors.append(('poor_sleep', 0.10))
+        
+        return min(score, 1.0), factors
+    
+    def _score_ibs(self, data):
+        """IBS (Irritable Bowel Syndrome) risk scoring"""
+        score = 0.0
+        factors = []
+        
+        # Gender: more common in women
+        if data.get('gender') == 'female':
+            score += 0.15
+            factors.append(('female_gender', 0.15))
+        
+        # Age: typically 20-50
+        age = float(data.get('age', 0))
+        if 20 <= age <= 50:
+            score += 0.10
+            factors.append(('age_range', 0.10))
+        
+        # High stress: major trigger
+        if data.get('stressLevel') in ['high', 'extreme']:
+            score += 0.30
+            factors.append(('high_stress', 0.30))
+        
+        # Poor diet
+        diet = data.get('dietaryPreference', 'mixed').lower()
+        if 'fast_food' in diet or 'junk' in diet:
+            score += 0.20
+            factors.append(('poor_diet', 0.20))
+        
+        # Low physical activity
+        activity = data.get('activityLevel', 'moderate').lower()
+        if 'sedentary' in activity:
+            score += 0.15
+            factors.append(('sedentary', 0.15))
+        
+        # Poor sleep
+        sleep = float(data.get('sleepHours', 7))
+        if sleep < 6:
+            score += 0.15
+            factors.append(('poor_sleep', 0.15))
+        
+        return min(score, 1.0), factors
+    
+    def _score_crohns_disease(self, data):
+        """Crohn's Disease risk scoring"""
+        score = 0.0
+        factors = []
+        
+        # Age: typically 15-35 and 50-70
+        age = float(data.get('age', 0))
+        if 15 <= age <= 35 or 50 <= age <= 70:
+            score += 0.15
+            factors.append(('susceptible_age', 0.15))
+        
+        # Family history
+        if self._has_family_history(data, ['crohns', 'inflammatory bowel']):
+            score += 0.35
+            factors.append(('family_history', 0.35))
+        
+        # Smoking
+        if self._has_addiction(data, ['smoking', 'cigarettes']):
+            score += 0.20
+            factors.append(('smoking', 0.20))
+        
+        # Stress
+        if data.get('stressLevel') in ['high', 'extreme']:
+            score += 0.15
+            factors.append(('high_stress', 0.15))
+        
+        # Poor diet
+        diet = data.get('dietaryPreference', 'mixed').lower()
+        if 'fast_food' in diet or 'junk' in diet:
+            score += 0.15
+            factors.append(('poor_diet', 0.15))
+        
+        return min(score, 1.0), factors
+    
+    def _score_hepatitis(self, data):
+        """Hepatitis risk scoring"""
+        score = 0.0
+        factors = []
+        
+        # Alcohol consumption: risk for hepatitis
+        if self._has_addiction(data, 'alcohol'):
+            score += 0.30
+            factors.append(('alcohol_consumption', 0.30))
+        
+        # Travel history (approximated by current conditions)
+        if self._has_current_condition(data, ['liver disease']):
+            score += 0.20
+            factors.append(('liver_condition', 0.20))
+        
+        # Family history
+        if self._has_family_history(data, ['hepatitis', 'liver disease']):
+            score += 0.25
+            factors.append(('family_history', 0.25))
+        
+        # Age: some types more common in older adults
+        age = float(data.get('age', 0))
+        if age > 50:
+            score += 0.10
+            factors.append(('age_50plus', 0.10))
+        
+        # Poor hygiene/sanitation risk (approximated)
+        score += 0.05
+        factors.append(('base_risk', 0.05))
+        
+        return min(score, 1.0), factors
+    
+    def _score_glaucoma(self, data):
+        """Glaucoma risk scoring"""
+        score = 0.0
+        factors = []
+        
+        # Age: increases after 60
+        age = float(data.get('age', 0))
+        if age > 60:
+            score += 0.20
+            factors.append(('age_60plus', 0.20))
+        elif age > 40:
+            score += 0.10
+            factors.append(('age_40plus', 0.10))
+        
+        # Family history: strong predictor
+        if self._has_family_history(data, ['glaucoma', 'eye disease']):
+            score += 0.35
+            factors.append(('family_history', 0.35))
+        
+        # High blood pressure
+        if self._has_current_condition(data, ['hypertension', 'high blood pressure']):
+            score += 0.15
+            factors.append(('hypertension', 0.15))
+        
+        # Diabetes
+        if self._has_current_condition(data, ['diabetes']):
+            score += 0.15
+            factors.append(('diabetes', 0.15))
+        
+        # Race: African Americans at higher risk
+        score += 0.05
+        factors.append(('base_risk', 0.05))
+        
+        return min(score, 1.0), factors
+    
+    def _score_cataracts(self, data):
+        """Cataracts risk scoring"""
+        score = 0.0
+        factors = []
+        
+        # Age: primary risk factor
+        age = float(data.get('age', 0))
+        if age > 70:
+            score += 0.30
+            factors.append(('age_70plus', 0.30))
+        elif age > 60:
+            score += 0.20
+            factors.append(('age_60plus', 0.20))
+        
+        # Smoking
+        if self._has_addiction(data, ['smoking', 'cigarettes']):
+            score += 0.20
+            factors.append(('smoking', 0.20))
+        
+        # Diabetes
+        if self._has_current_condition(data, ['diabetes']):
+            score += 0.20
+            factors.append(('diabetes', 0.20))
+        
+        # Family history
+        if self._has_family_history(data, ['cataracts', 'eye disease']):
+            score += 0.15
+            factors.append(('family_history', 0.15))
+        
+        return min(score, 1.0), factors
+    
+    def _score_metabolic_syndrome(self, data):
+        """Metabolic Syndrome risk scoring"""
+        score = 0.0
+        factors = []
+        
+        # High BMI: key component
+        bmi = float(data.get('bmi', 22))
+        if bmi > 30:
+            score += 0.25
+            factors.append(('obesity', 0.25))
+        elif bmi > 25:
+            score += 0.12
+            factors.append(('overweight', 0.12))
+        
+        # Sedentary lifestyle
+        activity = data.get('activityLevel', 'moderate').lower()
+        if 'sedentary' in activity:
+            score += 0.20
+            factors.append(('sedentary', 0.20))
+        
+        # Poor diet
+        diet = data.get('dietaryPreference', 'mixed').lower()
+        if 'fast_food' in diet or 'junk' in diet:
+            score += 0.15
+            factors.append(('poor_diet', 0.15))
+        
+        # Family history
+        if self._has_family_history(data, ['metabolic syndrome', 'diabetes']):
+            score += 0.20
+            factors.append(('family_history', 0.20))
+        
+        # High stress
+        if data.get('stressLevel') in ['high', 'extreme']:
+            score += 0.10
+            factors.append(('high_stress', 0.10))
+        
+        return min(score, 1.0), factors
+    
+    def _score_pcos(self, data):
+        """PCOS (Polycystic Ovary Syndrome) risk scoring"""
+        score = 0.0
+        factors = []
+        
+        # Gender: only affects women
+        if data.get('gender') != 'female':
+            return 0.0, []
+        
+        # Age: typically reproductive years
+        age = float(data.get('age', 0))
+        if 20 <= age <= 40:
+            score += 0.15
+            factors.append(('age_range', 0.15))
+        
+        # Family history: strong predictor
+        if self._has_family_history(data, ['pcos', 'polycystic ovary']):
+            score += 0.35
+            factors.append(('family_history', 0.35))
+        
+        # Obesity
+        bmi = float(data.get('bmi', 22))
+        if bmi > 30:
+            score += 0.25
+            factors.append(('obesity', 0.25))
+        elif bmi > 25:
+            score += 0.15
+            factors.append(('overweight', 0.15))
+        
+        # Insulin resistance indicator (high BMI, diabetes)
+        if self._has_current_condition(data, ['diabetes', 'insulin resistance']):
+            score += 0.20
+            factors.append(('insulin_resistance', 0.20))
+        
+        return min(score, 1.0), factors
+    
+    def _score_multiple_sclerosis(self, data):
+        """Multiple Sclerosis risk scoring"""
+        score = 0.0
+        factors = []
+        
+        # Age: typically 20-40
+        age = float(data.get('age', 0))
+        if 20 <= age <= 40:
+            score += 0.15
+            factors.append(('susceptible_age', 0.15))
+        elif age < 20 or age > 50:
+            score += 0.05
+            factors.append(('age_factor', 0.05))
+        
+        # Gender: more common in women
+        if data.get('gender') == 'female':
+            score += 0.15
+            factors.append(('female_gender', 0.15))
+        
+        # Family history
+        if self._has_family_history(data, ['multiple sclerosis', 'autoimmune']):
+            score += 0.35
+            factors.append(('family_history', 0.35))
+        
+        # Viral infections (approximated by health conditions)
+        if self._has_current_condition(data, ['viral infection', 'autoimmune']):
+            score += 0.15
+            factors.append(('infection_autoimmune', 0.15))
+        
+        # Low vitamin D (approximated by sedentary lifestyle and low sun exposure)
+        activity = data.get('activityLevel', 'moderate').lower()
+        if 'sedentary' in activity:
+            score += 0.10
+            factors.append(('sedentary', 0.10))
+        
+        # Smoking
+        if self._has_addiction(data, ['smoking', 'cigarettes']):
+            score += 0.10
+            factors.append(('smoking', 0.10))
+        
+        return min(score, 1.0), factors
+    
+    def _score_epilepsy(self, data):
+        """Epilepsy risk scoring"""
+        score = 0.0
+        factors = []
+        
+        # Age: peaks in childhood and elderly
+        age = float(data.get('age', 0))
+        if age < 5 or age > 65:
+            score += 0.15
+            factors.append(('extreme_age', 0.15))
+        
+        # Family history
+        if self._has_family_history(data, ['epilepsy', 'seizure']):
+            score += 0.30
+            factors.append(('family_history', 0.30))
+        
+        # Neurological conditions
+        if self._has_current_condition(data, ['neurological', 'seizure', 'head injury']):
+            score += 0.25
+            factors.append(('neurological_condition', 0.25))
+        
+        # Brain injury history (approximated)
+        score += 0.05
+        factors.append(('base_risk', 0.05))
+        
+        # Sleep deprivation (can trigger seizures)
+        sleep = float(data.get('sleepHours', 7))
+        if sleep < 6:
+            score += 0.15
+            factors.append(('poor_sleep', 0.15))
+        
+        return min(score, 1.0), factors
+    
+    def _score_peripheral_neuropathy(self, data):
+        """Peripheral Neuropathy risk scoring"""
+        score = 0.0
+        factors = []
+        
+        # Age: increases with age
+        age = float(data.get('age', 0))
+        if age > 60:
+            score += 0.15
+            factors.append(('age_60plus', 0.15))
+        elif age > 40:
+            score += 0.08
+            factors.append(('age_40plus', 0.08))
+        
+        # Diabetes: major cause
+        if self._has_current_condition(data, ['diabetes']):
+            score += 0.35
+            factors.append(('diabetes', 0.35))
+        
+        # Chronic kidney disease
+        if self._has_current_condition(data, ['kidney disease', 'ckd']):
+            score += 0.20
+            factors.append(('kidney_disease', 0.20))
+        
+        # Infections (history)
+        if self._has_current_condition(data, ['infection', 'hiv']):
+            score += 0.20
+            factors.append(('infection', 0.20))
+        
+        # Occupational exposure
+        occupation = data.get('occupationType', '').lower()
+        if any(x in occupation for x in ['chemical', 'pesticide', 'industrial']):
+            score += 0.15
+            factors.append(('occupational_exposure', 0.15))
         
         # Smoking
         if self._has_addiction(data, ['smoking', 'cigarettes']):
