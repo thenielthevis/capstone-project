@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { AlertCircle, TrendingUp, Activity, User, RefreshCw, Heart, Ruler, Weight, Zap, Moon, Brain } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import { predictUser, getCachedPredictions } from '@/api/predictApi';
+import { getUserProfile } from '@/api/userApi';
 import Header from '@/components/Header';
 
 // Utility function to normalize disease names
@@ -149,7 +150,27 @@ export default function Predictions() {
       if (error.response?.status === 401) {
         setError('Your session has expired. Please log in again.');
       } else if (error.response?.status === 404) {
-        setError('User profile not found. Please complete a health assessment first.');
+        // No predictions yet — still load user profile so page is usable
+        try {
+          const profileRes = await getUserProfile();
+          if (profileRes.profile) {
+            const p = profileRes.profile;
+            // Normalize physicalMetrics from flat to nested shape
+            setProfile({
+              ...p,
+              physicalMetrics: {
+                height: { value: p.physicalMetrics?.height ?? null },
+                weight: { value: p.physicalMetrics?.weight ?? null },
+                targetWeight: p.physicalMetrics?.targetWeight != null ? { value: p.physicalMetrics.targetWeight } : undefined,
+                bmi: p.physicalMetrics?.bmi ?? null,
+                waistCircumference: p.physicalMetrics?.waistCircumference ?? null,
+              },
+            });
+          }
+          setPredictions([]);
+        } catch {
+          setError('User profile not found. Please complete a health assessment first.');
+        }
       } else if (error.response?.status === 500) {
         setError('Unable to generate predictions. Please complete your health assessment with all required information (age, gender, height, weight, activity level, and sleep hours).');
       } else {
@@ -510,11 +531,11 @@ export default function Predictions() {
                     </div>
 
                     {/* Additional Profile Sections */}
-                    <div className="space-y-6 border-t border-gray-200 pt-6">
+                    <div className="space-y-6 mt-8 border-t border-gray-200 pt-6">
                       {/* Dietary Profile */}
                       {(profile.dietaryProfile?.preferences?.length > 0 || profile.dietaryProfile?.allergies?.length > 0) && (
                         <div>
-                          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: theme.colors.text }}>
                             <Zap className="w-5 h-5 text-amber-600" />
                             Dietary Profile
                           </h3>
@@ -550,7 +571,7 @@ export default function Predictions() {
                       {/* Health Profile */}
                       {(profile.healthProfile?.currentConditions?.length > 0 || profile.healthProfile?.familyHistory?.length > 0 || profile.healthProfile?.medications?.length > 0) && (
                         <div>
-                          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: theme.colors.text }}>
                             <Heart className="w-5 h-5 text-rose-600" />
                             Health Profile
                           </h3>
@@ -598,7 +619,7 @@ export default function Predictions() {
                       {/* Addictions/Substance Use */}
                       {profile.riskFactors?.addictions?.length > 0 && (
                         <div>
-                          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: theme.colors.text }}>
                             <AlertCircle className="w-5 h-5 text-red-600" />
                             Substance Use
                           </h3>

@@ -76,7 +76,7 @@ export interface DietarySectionProps {
 
 export const DietarySection: React.FC<DietarySectionProps> = ({ expanded = true }) => {
     const { theme } = useTheme();
-    const { userData, history, weeklyHistory, monthlyHistory, historyLoading, refreshAll } = useAnalysis();
+    const { userData, history, weeklyHistory, monthlyHistory, historyLoading, refreshAll, regeneratePredictions } = useAnalysis();
 
     const [updatingPrefs, setUpdatingPrefs] = useState(false);
     const [localAllergies, setLocalAllergies] = useState(userData?.dietaryProfile?.allergies?.join(', ') || '');
@@ -102,6 +102,7 @@ export const DietarySection: React.FC<DietarySectionProps> = ({ expanded = true 
         if (isNaN(freq)) throw new Error('Invalid meal frequency');
 
         await logDietary(freq);
+        await regeneratePredictions();
         await refreshAll();
     };
 
@@ -118,6 +119,7 @@ export const DietarySection: React.FC<DietarySectionProps> = ({ expanded = true 
             await logDietary(undefined, undefined, undefined, {
                 preferences: newPrefs
             });
+            await regeneratePredictions();
             await refreshAll();
         } finally {
             setUpdatingPrefs(false);
@@ -132,6 +134,7 @@ export const DietarySection: React.FC<DietarySectionProps> = ({ expanded = true 
             await logDietary(undefined, undefined, undefined, {
                 allergies: allergiesArray
             });
+            await regeneratePredictions();
             await refreshAll();
         } finally {
             setUpdatingAllergies(false);

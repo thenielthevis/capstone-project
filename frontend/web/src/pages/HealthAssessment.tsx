@@ -10,7 +10,7 @@ import StepHealthProfile from '@/components/assessment/StepHealthProfile';
 import StepLifestyle from '@/components/assessment/StepLifestyle';
 import StepAddictions from '@/components/assessment/StepAddictions';
 import StepEnvironment from '@/components/assessment/StepEnvironment';
-import { submitHealthAssessment } from '@/api/userApi';
+import { submitHealthAssessment, getUserProfile } from '@/api/userApi';
 import { predictUser, getCachedPredictions } from '@/api/predictApi';
 import PermissionModal from '@/components/modals/PermissionModal';
 import { useAuth } from '@/context/AuthContext';
@@ -101,9 +101,48 @@ export default function HealthAssessment() {
         }
       } catch (error: any) {
         console.error('[HealthAssessment] Error loading user data:', error);
-        console.error('[HealthAssessment] Error response:', error.response);
-        // If user doesn't have data yet, that's okay - they can fill out the form
-        if (error.response?.status !== 404) {
+        // On 404 (no predictions yet), fall back to getUserProfile to pre-populate form
+        if (error.response?.status === 404) {
+          try {
+            const profileRes = await getUserProfile();
+            if (profileRes.profile) {
+              const profile = profileRes.profile;
+              setFormData(prev => ({
+                ...prev,
+                age: profile.age ? String(profile.age) : '',
+                sex: profile.gender || '',
+                height: profile.physicalMetrics?.height ? String(profile.physicalMetrics.height) : '',
+                weight: profile.physicalMetrics?.weight ? String(profile.physicalMetrics.weight) : '',
+                targetWeight: profile.physicalMetrics?.targetWeight ? String(profile.physicalMetrics.targetWeight) : '',
+                waistCircumference: profile.physicalMetrics?.waistCircumference ? String(profile.physicalMetrics.waistCircumference) : '',
+                activityLevel: profile.lifestyle?.activityLevel || '',
+                sleepHours: profile.lifestyle?.sleepHours ? String(profile.lifestyle.sleepHours) : '',
+                dietaryPreferences: profile.dietaryProfile?.preferences || [],
+                allergies: profile.dietaryProfile?.allergies || [],
+                dailyWaterIntake: profile.dietaryProfile?.dailyWaterIntake ? String(profile.dietaryProfile.dailyWaterIntake) : '',
+                mealFrequency: profile.dietaryProfile?.mealFrequency ? String(profile.dietaryProfile.mealFrequency) : '',
+                currentConditions: profile.healthProfile?.currentConditions || [],
+                geneticalConditions: profile.healthProfile?.familyHistory || [],
+                medications: profile.healthProfile?.medications || [],
+                bloodType: profile.healthProfile?.bloodType || '',
+                pollutionExposure: profile.environmentalFactors?.pollutionExposure || '',
+                occupationType: profile.environmentalFactors?.occupationType || '',
+                stressLevel: profile.riskFactors?.stressLevel || '',
+                addictions: profile.riskFactors?.addictions?.map((a: any) => ({
+                  substance: a.substance || '',
+                  severity: a.severity || '',
+                  duration: a.duration ? String(a.duration) : ''
+                })) || [],
+              }));
+              if (profile.healthProfile?.currentConditions?.length > 0) {
+                setCurrentConditionsInput(profile.healthProfile.currentConditions.join(', '));
+              }
+              console.log('[HealthAssessment] Form pre-populated from getUserProfile fallback');
+            }
+          } catch {
+            console.log('[HealthAssessment] Could not fetch user profile - will use empty form');
+          }
+        } else {
           console.log('[HealthAssessment] Could not fetch user data - will use empty form');
         }
       } finally {

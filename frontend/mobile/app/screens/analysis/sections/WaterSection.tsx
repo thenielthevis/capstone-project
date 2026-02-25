@@ -39,7 +39,7 @@ export interface WaterSectionProps {
 
 export const WaterSection: React.FC<WaterSectionProps> = ({ expanded = true }) => {
     const { theme } = useTheme();
-    const { userData, history, weeklyHistory, todayCheckup, monthlyHistory, historyLoading, refreshAll } = useAnalysis();
+    const { userData, history, weeklyHistory, todayCheckup, monthlyHistory, historyLoading, refreshAll, regeneratePredictions } = useAnalysis();
 
     // Get current water from today's checkup
     const currentWater = todayCheckup?.water?.amount || 0;
@@ -53,6 +53,7 @@ export const WaterSection: React.FC<WaterSectionProps> = ({ expanded = true }) =
             throw new Error('Please enter a valid amount');
         }
         await addWaterIntake(amount, 'ml');
+        await regeneratePredictions();
         await refreshAll();
     };
 

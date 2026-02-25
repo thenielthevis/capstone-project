@@ -58,7 +58,7 @@ export interface ActivitySectionProps {
 
 export const ActivitySection: React.FC<ActivitySectionProps> = ({ expanded = true }) => {
     const { theme } = useTheme();
-    const { userData, history, weeklyHistory, monthlyHistory, historyLoading, refreshAll } = useAnalysis();
+    const { userData, history, weeklyHistory, monthlyHistory, historyLoading, refreshAll, regeneratePredictions } = useAnalysis();
 
     // Get current activity level
     const currentActivityLevel = userData?.lifestyle?.activityLevel;
@@ -66,6 +66,7 @@ export const ActivitySection: React.FC<ActivitySectionProps> = ({ expanded = tru
 
     const handleActivityLevelUpdate = async (level: any) => {
         await logActivityLevel(level);
+        await regeneratePredictions();
         await refreshAll();
     };
 

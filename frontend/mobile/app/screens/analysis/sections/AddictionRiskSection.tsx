@@ -69,7 +69,7 @@ export interface AddictionRiskSectionProps {
 
 export const AddictionRiskSection: React.FC<AddictionRiskSectionProps> = ({ expanded = true }) => {
     const { theme } = useTheme();
-    const { userData, entries, history, weeklyHistory, monthlyHistory, historyLoading, refreshAll } = useAnalysis();
+    const { userData, entries, history, weeklyHistory, monthlyHistory, historyLoading, refreshAll, regeneratePredictions } = useAnalysis();
 
     const [updating, setUpdating] = useState(false);
     const [newSubstance, setNewSubstance] = useState('');
@@ -125,6 +125,7 @@ export const AddictionRiskSection: React.FC<AddictionRiskSectionProps> = ({ expa
                 addictions: updatedAddictions
             });
             setNewSubstance('');
+            await regeneratePredictions();
             await refreshAll();
         } finally {
             setUpdating(false);
@@ -140,6 +141,7 @@ export const AddictionRiskSection: React.FC<AddictionRiskSectionProps> = ({ expa
             await logAddictionRisk(score, updatedAddictions.length, {
                 addictions: updatedAddictions
             });
+            await regeneratePredictions();
             await refreshAll();
         } finally {
             setUpdating(false);
@@ -156,6 +158,7 @@ export const AddictionRiskSection: React.FC<AddictionRiskSectionProps> = ({ expa
             await logAddictionRisk(score, updatedAddictions.length, {
                 addictions: updatedAddictions
             });
+            await regeneratePredictions();
             await refreshAll();
         } finally {
             setUpdating(false);
@@ -172,6 +175,7 @@ export const AddictionRiskSection: React.FC<AddictionRiskSectionProps> = ({ expa
             await logAddictionRisk(score, updatedAddictions.length, {
                 addictions: updatedAddictions
             });
+            await regeneratePredictions();
             await refreshAll();
         } finally {
             setUpdating(false);

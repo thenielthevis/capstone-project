@@ -305,7 +305,7 @@ exports.updateCheckup = async (req, res) => {
         }
 
         if (Object.keys(profileUpdates).length > 0) {
-            await User.findByIdAndUpdate(userId, { $set: profileUpdates, lastPrediction: null });
+            await User.findByIdAndUpdate(userId, { $set: profileUpdates });
         }
         // ------------------------------------
 

@@ -39,7 +39,7 @@ export interface SleepSectionProps {
 
 export const SleepSection: React.FC<SleepSectionProps> = ({ expanded = true }) => {
     const { theme } = useTheme();
-    const { userData, history, weeklyHistory, todayCheckup, monthlyHistory, historyLoading, refreshAll } = useAnalysis();
+    const { userData, history, weeklyHistory, todayCheckup, monthlyHistory, historyLoading, refreshAll, regeneratePredictions } = useAnalysis();
 
     // Get current sleep from today's checkup or user data
     const currentSleep = todayCheckup?.sleep?.hours || userData?.lifestyle?.sleepHours;
@@ -61,6 +61,7 @@ export const SleepSection: React.FC<SleepSectionProps> = ({ expanded = true }) =
             throw new Error('Please enter a valid number of hours (0-24)');
         }
         await logSleep(hours);
+        await regeneratePredictions();
         await refreshAll();
     };
 

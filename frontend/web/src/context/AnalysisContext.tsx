@@ -1,16 +1,16 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useMemo } from 'react';
-import { useTheme } from '@/app/context/ThemeContext';
-import { useUser } from '@/app/context/UserContext';
-import { getUserProfile, UserProfile } from '@/app/api/userApi';
-import {
-    getCheckupHistory,
-    getTodayCheckup,
-    HealthCheckupEntry,
-    MetricType
-} from '@/app/api/healthCheckupApi';
-import axiosInstance from '@/app/api/axiosInstance';
+/**
+ * Analysis Context for Web
+ * Provides health checkup history data with daily, weekly, and monthly aggregation.
+ * Ported from mobile AnalysisContext.
+ */
 
-// Types for the Analysis context
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
+import { getCheckupHistory, getTodayCheckup, HealthCheckupEntry, MetricType } from '@/api/healthCheckupApi';
+import { getUserProfile } from '@/api/userApi';
+import { getCachedPredictions } from '@/api/predictApi';
+import axiosInstance from '@/api/axiosInstance';
+
+// Types
 export interface HistoryDataPoint {
     date: string;
     value: number;
@@ -31,47 +31,20 @@ export interface MetricHistory {
 }
 
 export interface AnalysisContextType {
-    // User data
-    userData: UserProfile | null;
+    userData: any | null;
     predictions: Array<{ name: string; probability: number }> | null;
     userLoading: boolean;
-
-    // History data
     entries: HealthCheckupEntry[];
     history: MetricHistory;
-    weeklyHistory: MetricHistory; // Pre-calculated weekly averages
-    monthlyHistory: MetricHistory; // Pre-calculated monthly averages
+    weeklyHistory: MetricHistory;
+    monthlyHistory: MetricHistory;
     historyLoading: boolean;
     historyError: string | null;
-
-    // Today's checkup
     todayCheckup: HealthCheckupEntry | null;
-
-    // Actions
     refreshAll: () => Promise<void>;
     refreshHistory: () => Promise<void>;
     refreshTodayCheckup: () => Promise<void>;
     refreshUserData: () => Promise<void>;
-    regeneratePredictions: () => Promise<void>;
-    isUpdating: boolean;
-
-    // Theme (colors object for direct access)
-    theme: {
-        colors: {
-            primary: string;
-            secondary: string;
-            accent: string;
-            background: string;
-            surface: string;
-            text: string;
-            textSecondary: string;
-            input: string;
-            border: string;
-            overlay: string;
-            error: string;
-            success: string;
-        };
-    };
 }
 
 const defaultHistory: MetricHistory = {
@@ -97,20 +70,16 @@ export const useAnalysis = () => {
     return context;
 };
 
+// Aggregate daily data points into weekly averages (last 5 weeks)
 const aggregateByWeek = (data: HistoryDataPoint[]): HistoryDataPoint[] => {
     if (!data.length) return [];
-    // Last 30 days daily data grouped by week
     const weeksMap = new Map<number, { sum: number; count: number; start: Date; end: Date }>();
-
-    // Get current date and go back 35 days (5 weeks) to ensure we have enough full weeks
     const now = new Date();
     const startTime = now.getTime() - (35 * 24 * 60 * 60 * 1000);
 
     for (const point of data) {
         const date = new Date(point.date);
         if (date.getTime() < startTime) continue;
-
-        // Group by week of year
         const weekKey = Math.floor(date.getTime() / (7 * 24 * 60 * 60 * 1000));
         if (!weeksMap.has(weekKey)) {
             const start = new Date(date);
@@ -133,10 +102,10 @@ const aggregateByWeek = (data: HistoryDataPoint[]): HistoryDataPoint[] => {
             label: `${start.getMonth() + 1}/${start.getDate()}`
         });
     }
-    return result.slice(-5); // Show last 5 weeks
+    return result.slice(-5);
 };
 
-// Internal helper for monthly aggregation
+// Aggregate daily data points into monthly averages (last 12 months)
 const aggregateByMonth = (data: HistoryDataPoint[]): HistoryDataPoint[] => {
     if (!data.length) return [];
     const monthMap = new Map<string, { sum: number; count: number }>();
@@ -166,22 +135,66 @@ const aggregateByMonth = (data: HistoryDataPoint[]): HistoryDataPoint[] => {
     return result.slice(-12);
 };
 
+// Format date for chart labels
+const formatDateLabel = (dateString: string): string => {
+    const date = new Date(dateString);
+    return `${date.getMonth() + 1}/${date.getDate()}`;
+};
+
+// Extract a numeric metric value from a checkup entry
+const extractMetricValue = (entry: HealthCheckupEntry, metric: MetricType): number | null => {
+    switch (metric) {
+        case 'sleep': return entry.sleep?.hours ?? null;
+        case 'water': return entry.water?.amount ?? null;
+        case 'stress': return entry.stress?.level ?? null;
+        case 'weight': return entry.weight?.value ?? null;
+        case 'bmi': return entry.bmi?.value ?? null;
+        case 'activityLevel': return entry.activityLevel?.pal ?? null;
+        case 'dietary': return entry.dietary?.mealFrequency ?? null;
+
+        case 'healthStatus':
+            if (entry.healthStatus?.score !== undefined) return entry.healthStatus.score;
+            if (entry.healthStatus?.conditionsCount !== undefined) {
+                return Math.max(0, 100 - (entry.healthStatus.conditionsCount * 10));
+            }
+            return null;
+
+        case 'environmental':
+            if (entry.environmental?.score !== undefined) return entry.environmental.score;
+            if (entry.environmental?.pollutionExposure) {
+                const level = entry.environmental.pollutionExposure.toLowerCase();
+                if (level === 'low') return 1;
+                if (level === 'moderate' || level === 'medium') return 2;
+                if (level === 'high') return 3;
+                return 1;
+            }
+            return null;
+
+        case 'addictionRisk':
+            if (entry.addictionRisk?.score !== undefined) return entry.addictionRisk.score;
+            if (entry.addictionRisk?.substancesCount !== undefined) {
+                return entry.addictionRisk.substancesCount * 10;
+            }
+            return null;
+
+        case 'diseaseRisk':
+            if (entry.diseaseRisk?.averageRisk !== undefined) return entry.diseaseRisk.averageRisk;
+            if (entry.diseaseRisk?.highRiskCount !== undefined) {
+                return entry.diseaseRisk.highRiskCount;
+            }
+            return null;
+
+        default: return null;
+    }
+};
+
 interface AnalysisProviderProps {
     children: ReactNode;
-    initialUserData?: UserProfile | null;
-    initialPredictions?: Array<{ name: string; probability: number }> | null;
 }
 
-export const AnalysisProvider: React.FC<AnalysisProviderProps> = ({
-    children,
-    initialUserData = null,
-    initialPredictions = null
-}) => {
-    const { theme } = useTheme();
-    const { user } = useUser();
-
-    const [userData, setUserData] = useState<UserProfile | null>(initialUserData);
-    const [predictions, setPredictions] = useState<Array<{ name: string; probability: number }> | null>(initialPredictions);
+export const AnalysisProvider: React.FC<AnalysisProviderProps> = ({ children }) => {
+    const [userData, setUserData] = useState<any | null>(null);
+    const [predictions, setPredictions] = useState<Array<{ name: string; probability: number }> | null>(null);
     const [userLoading, setUserLoading] = useState(false);
 
     const [history, setHistory] = useState<MetricHistory>(defaultHistory);
@@ -190,7 +203,7 @@ export const AnalysisProvider: React.FC<AnalysisProviderProps> = ({
     const [historyError, setHistoryError] = useState<string | null>(null);
     const [todayCheckup, setTodayCheckup] = useState<HealthCheckupEntry | null>(null);
 
-    // Memoize weekly and monthly history to prevent re-calculations
+    // Memoized aggregations
     const weeklyHistory = useMemo((): MetricHistory => ({
         bmi: aggregateByWeek(history.bmi),
         activity: aggregateByWeek(history.activity),
@@ -217,65 +230,6 @@ export const AnalysisProvider: React.FC<AnalysisProviderProps> = ({
         diseaseRisk: aggregateByMonth(history.diseaseRisk),
     }), [history]);
 
-    // Helper to format date for chart labels
-    const formatDateLabel = (dateString: string): string => {
-        const date = new Date(dateString);
-        return `${date.getMonth() + 1}/${date.getDate()}`;
-    };
-
-    // Helper to extract metric value from entry
-    const extractMetricValue = (entry: HealthCheckupEntry, metric: MetricType): number | null => {
-        switch (metric) {
-            case 'sleep': return entry.sleep?.hours ?? null;
-            case 'water': return entry.water?.amount ?? null;
-            case 'stress': return entry.stress?.level ?? null;
-            case 'weight': return entry.weight?.value ?? null;
-            case 'bmi': return entry.bmi?.value ?? null;
-            case 'activityLevel': return entry.activityLevel?.pal ?? null;
-            case 'dietary': return entry.dietary?.mealFrequency ?? null;
-
-            case 'healthStatus':
-                if (entry.healthStatus?.score !== undefined) return entry.healthStatus.score;
-                // Fallback score logic: Base 100 - (10 per condition)
-                if (entry.healthStatus?.conditionsCount !== undefined) {
-                    return Math.max(0, 100 - (entry.healthStatus.conditionsCount * 10));
-                }
-                return null;
-
-            case 'environmental':
-                if (entry.environmental?.score !== undefined) return entry.environmental.score;
-                // Fallback map pollution string to number
-                if (entry.environmental?.pollutionExposure) {
-                    const level = entry.environmental.pollutionExposure.toLowerCase();
-                    if (level === 'low') return 1;
-                    if (level === 'moderate' || level === 'medium') return 2;
-                    if (level === 'high') return 3;
-                    return 1; // Default
-                }
-                return null;
-
-            case 'addictionRisk':
-                if (entry.addictionRisk?.score !== undefined) return entry.addictionRisk.score;
-                // Fallback: 10 points * substance count
-                if (entry.addictionRisk?.substancesCount !== undefined) {
-                    return entry.addictionRisk.substancesCount * 10;
-                }
-                return null;
-
-            case 'diseaseRisk':
-                // Prefer averageRisk if available (0-100%)
-                if (entry.diseaseRisk?.averageRisk !== undefined) return entry.diseaseRisk.averageRisk;
-                // Fallback to high risk count
-                if (entry.diseaseRisk?.highRiskCount !== undefined) {
-                    return entry.diseaseRisk.highRiskCount;
-                }
-                return null;
-
-            default: return null;
-        }
-    };
-
-    // Actions
     const refreshUserData = useCallback(async () => {
         setUserLoading(true);
         try {
@@ -283,27 +237,15 @@ export const AnalysisProvider: React.FC<AnalysisProviderProps> = ({
             if (profileRes.profile) {
                 setUserData(profileRes.profile);
             }
-
-            // Try to fetch predictions
             try {
-                const predRes = await axiosInstance.get('/predict/cached');
+                const predRes = await getCachedPredictions();
                 if (predRes.data?.predictions) {
                     setPredictions(predRes.data.predictions);
                 } else if (predRes.data?.disease) {
-                    // Fallback to mapping string array if predictions object array missing
                     setPredictions(predRes.data.disease.map((name: string) => ({ name, probability: 1 })));
-                } else {
-                    // If no cached prediction, trigger generation
-                    console.log('[AnalysisContext] No cached predictions, generating...');
-                    const genRes = await axiosInstance.post('/predict/me');
-                    if (genRes.data?.predictions) {
-                        setPredictions(genRes.data.predictions);
-                    } else if (genRes.data?.disease) {
-                        setPredictions(genRes.data.disease.map((name: string) => ({ name, probability: 1 })));
-                    }
                 }
-            } catch (err) {
-                console.log('[AnalysisContext] Error fetching/generating predictions', err);
+            } catch {
+                console.log('[AnalysisContext] Predictions not available');
             }
         } catch (error) {
             console.error('[AnalysisContext] Error fetching user profile:', error);
@@ -331,7 +273,6 @@ export const AnalysisProvider: React.FC<AnalysisProviderProps> = ({
 
             const entriesData = historyRes.success ? historyRes.data : [];
             const sessions = sessionsRes.data?.data || [];
-
             setEntries(entriesData);
 
             const newHistory: MetricHistory = {
@@ -343,8 +284,7 @@ export const AnalysisProvider: React.FC<AnalysisProviderProps> = ({
                 (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
             );
 
-            // Create set of dates that have manual activity logs
-            const datesWithManualActivity = new Set();
+            const datesWithManualActivity = new Set<string>();
 
             for (const entry of sortedEntries) {
                 const label = formatDateLabel(entry.date);
@@ -383,25 +323,18 @@ export const AnalysisProvider: React.FC<AnalysisProviderProps> = ({
                 if (disease !== null) newHistory.diseaseRisk.push({ date: entry.date, value: disease, label });
             }
 
-            // Merge session activity for days without manual logs
-            // Group sessions by date
-            const sessionsByDate = new Map();
+            // Merge session-based activity for days without manual logs
+            const sessionsByDate = new Map<string, number>();
             for (const session of sessions) {
                 const date = new Date(session.sortDate || session.performed_at || session.started_at);
                 const dateStr = date.toDateString();
-                const current = sessionsByDate.get(dateStr) || 0;
-                sessionsByDate.set(dateStr, current + 1); // Increment count, or use duration if available
+                sessionsByDate.set(dateStr, (sessionsByDate.get(dateStr) || 0) + 1);
             }
 
-            // Add session-inferred activity points
             sessionsByDate.forEach((count, dateStr) => {
                 if (!datesWithManualActivity.has(dateStr)) {
                     const date = new Date(dateStr);
-                    // Determine implied PAL based on session count
-                    // 1 session -> 1.55 (Moderately Active)
-                    // 2+ sessions -> 1.725 (Very Active)
                     const impliedPAL = count >= 2 ? 1.725 : 1.55;
-
                     newHistory.activity.push({
                         date: date.toISOString(),
                         value: impliedPAL,
@@ -410,7 +343,6 @@ export const AnalysisProvider: React.FC<AnalysisProviderProps> = ({
                 }
             });
 
-            // Re-sort activity history
             newHistory.activity.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
             setHistory(newHistory);
@@ -440,25 +372,6 @@ export const AnalysisProvider: React.FC<AnalysisProviderProps> = ({
         ]);
     }, [refreshUserData, refreshHistory, refreshTodayCheckup]);
 
-    // Regenerate predictions (force) - used after section updates
-    const [isUpdating, setIsUpdating] = useState(false);
-    const regeneratePredictions = useCallback(async () => {
-        setIsUpdating(true);
-        try {
-            const res = await axiosInstance.post('/predict/me', { force: true });
-            if (res.data?.predictions) {
-                setPredictions(res.data.predictions);
-            } else if (res.data?.disease) {
-                setPredictions(res.data.disease.map((name: string) => ({ name, probability: 1 })));
-            }
-        } catch (err) {
-            console.log('[AnalysisContext] Error regenerating predictions:', err);
-        } finally {
-            setIsUpdating(false);
-        }
-    }, []);
-
-    // Load data only once on mount
     useEffect(() => {
         refreshAll();
     }, []);
@@ -478,9 +391,6 @@ export const AnalysisProvider: React.FC<AnalysisProviderProps> = ({
         refreshHistory,
         refreshTodayCheckup,
         refreshUserData,
-        regeneratePredictions,
-        isUpdating,
-        theme: theme as any,
     };
 
     return (

@@ -61,7 +61,7 @@ export interface HealthStatusSectionProps {
 
 export const HealthStatusSection: React.FC<HealthStatusSectionProps> = ({ expanded = true }) => {
     const { theme } = useTheme();
-    const { userData, entries, history, weeklyHistory, monthlyHistory, historyLoading, refreshAll } = useAnalysis();
+    const { userData, entries, history, weeklyHistory, monthlyHistory, historyLoading, refreshAll, regeneratePredictions } = useAnalysis();
 
     const [updating, setUpdating] = useState(false);
     const [localConditions, setLocalConditions] = useState(userData?.healthProfile?.currentConditions?.join(', ') || '');
@@ -83,6 +83,8 @@ export const HealthStatusSection: React.FC<HealthStatusSectionProps> = ({ expand
             if (type === 'conditions') healthProfile.currentConditions = localConditions.split(',').map(s => s.trim()).filter(Boolean);
             if (type === 'history') healthProfile.familyHistory = localHistory.split(',').map(s => s.trim()).filter(Boolean);
             if (type === 'meds') healthProfile.medications = localMeds.split(',').map(s => s.trim()).filter(Boolean);
+            await updateUserProfile({ healthProfile });
+            await regeneratePredictions();
             await refreshAll();
         } finally {
             setUpdating(false);

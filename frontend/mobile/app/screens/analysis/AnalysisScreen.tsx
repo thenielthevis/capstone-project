@@ -33,7 +33,7 @@ interface AnalysisScreenContentProps {
 
 const AnalysisScreenContent: React.FC<AnalysisScreenContentProps> = ({ initialMetric, onClose }) => {
     const { theme } = useTheme();
-    const { refreshAll, historyLoading, userLoading } = useAnalysis();
+    const { refreshAll, historyLoading, userLoading, isUpdating } = useAnalysis();
 
     const activeTab = initialMetric || 'bmi';
     const [refreshing, setRefreshing] = useState(false);
@@ -129,6 +129,21 @@ const AnalysisScreenContent: React.FC<AnalysisScreenContentProps> = ({ initialMe
                     renderActiveSection()
                 )}
             </ScrollView>
+
+            {/* Loading overlay for prediction regeneration */}
+            {isUpdating && (
+                <View style={[styles.updatingOverlay, { backgroundColor: theme.colors.overlay || 'rgba(0,0,0,0.5)' }]}>
+                    <View style={[styles.updatingCard, { backgroundColor: theme.colors.surface }]}>
+                        <ActivityIndicator size="large" color={theme.colors.primary} />
+                        <Text style={[styles.updatingTitle, { color: theme.colors.text }]}>
+                            Updating health data...
+                        </Text>
+                        <Text style={[styles.updatingSubtitle, { color: theme.colors.textSecondary }]}>
+                            Regenerating predictions
+                        </Text>
+                    </View>
+                </View>
+            )}
         </View>
     );
 };
@@ -197,6 +212,32 @@ const styles = StyleSheet.create({
     loadingText: {
         marginTop: 16,
         fontSize: fontSizes.m,
+        fontFamily: fontFamilies.poppinsRegular,
+    },
+    updatingOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 100,
+    },
+    updatingCard: {
+        padding: 32,
+        borderRadius: 16,
+        alignItems: 'center',
+        elevation: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+    },
+    updatingTitle: {
+        marginTop: 16,
+        fontSize: fontSizes.m,
+        fontFamily: fontFamilies.poppinsSemiBold,
+    },
+    updatingSubtitle: {
+        marginTop: 4,
+        fontSize: fontSizes.s,
         fontFamily: fontFamilies.poppinsRegular,
     },
 });

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import { getCachedPredictions } from '@/api/predictApi';
+import { getUserProfile } from '@/api/userApi';
 import Header from '@/components/Header';
 import DailyAssessmentModal from '@/components/DailyAssessmentModal';
 
@@ -688,6 +689,28 @@ export default function HealthAnalysis() {
       console.error('Error loading health data:', err);
       if (err.response?.status === 401) {
         setError('Please sign in to view your health analysis');
+      } else if (err.response?.status === 404) {
+        // No predictions yet — still load user profile so the page is usable
+        try {
+          const profileRes = await getUserProfile();
+          if (profileRes.profile) {
+            const p = profileRes.profile;
+            // Normalize physicalMetrics from flat (getUserProfile) to nested shape
+            setProfile({
+              ...p,
+              physicalMetrics: {
+                height: { value: p.physicalMetrics?.height ?? null },
+                weight: { value: p.physicalMetrics?.weight ?? null },
+                targetWeight: p.physicalMetrics?.targetWeight != null ? { value: p.physicalMetrics.targetWeight } : undefined,
+                bmi: p.physicalMetrics?.bmi ?? null,
+                waistCircumference: p.physicalMetrics?.waistCircumference ?? null,
+              },
+            });
+          }
+          setPredictions([]);
+        } catch {
+          setError('Unable to load health data. Complete a health assessment first.');
+        }
       } else {
         setError('Unable to load health data. Complete a health assessment first.');
       }

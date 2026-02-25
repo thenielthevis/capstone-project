@@ -92,7 +92,7 @@ export interface EnvironmentalFactorsSectionProps {
 
 export const EnvironmentalFactorsSection: React.FC<EnvironmentalFactorsSectionProps> = ({ expanded = true }) => {
     const { theme } = useTheme();
-    const { userData, history, weeklyHistory, monthlyHistory, historyLoading, refreshAll } = useAnalysis();
+    const { userData, history, weeklyHistory, monthlyHistory, historyLoading, refreshAll, regeneratePredictions } = useAnalysis();
 
     const [updating, setUpdating] = useState(false);
 
@@ -122,6 +122,7 @@ export const EnvironmentalFactorsSection: React.FC<EnvironmentalFactorsSectionPr
                     }
                 });
             }
+            await regeneratePredictions();
             await refreshAll();
         } finally {
             setUpdating(false);

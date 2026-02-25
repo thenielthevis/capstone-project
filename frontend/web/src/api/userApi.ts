@@ -51,7 +51,7 @@ export const updateUser = async (userData: any) => {
 };
 
 export const updateUserHealthData = async (healthData: Partial<HealthAssessmentData>) => {
-  return axiosInstance.patch('/users/health-data', healthData);
+  return axiosInstance.patch('/users/profile', healthData);
 };
 
 // Get full user profile

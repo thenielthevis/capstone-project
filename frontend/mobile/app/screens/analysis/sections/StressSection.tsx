@@ -70,7 +70,7 @@ export interface StressSectionProps {
 
 export const StressSection: React.FC<StressSectionProps> = ({ expanded = true }) => {
     const { theme } = useTheme();
-    const { history, weeklyHistory, todayCheckup, monthlyHistory, historyLoading, refreshAll } = useAnalysis();
+    const { history, weeklyHistory, todayCheckup, monthlyHistory, historyLoading, refreshAll, regeneratePredictions } = useAnalysis();
     const [answers, setAnswers] = React.useState<Record<number, number>>({});
     const [submittingQuestionnaire, setSubmittingQuestionnaire] = React.useState(false);
 
@@ -87,6 +87,7 @@ export const StressSection: React.FC<StressSectionProps> = ({ expanded = true })
             throw new Error('Please enter a number between 1-10');
         }
         await logStress(level);
+        await regeneratePredictions();
         await refreshAll();
     };
 
@@ -98,6 +99,7 @@ export const StressSection: React.FC<StressSectionProps> = ({ expanded = true })
             const total = Object.values(answers).reduce((sum, val) => sum + val, 0);
             const scaledScore = Math.min(10, Math.max(1, Math.round(total / 2)));
             await logStress(scaledScore);
+            await regeneratePredictions();
             await refreshAll();
             setAnswers({});
         } finally {

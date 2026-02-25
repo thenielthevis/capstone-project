@@ -36,7 +36,7 @@ export interface BMISectionProps {
 
 export const BMISection: React.FC<BMISectionProps> = ({ expanded = true }) => {
     const { theme } = useTheme();
-    const { userData, history, weeklyHistory, monthlyHistory, historyLoading, refreshAll } = useAnalysis();
+    const { userData, history, weeklyHistory, monthlyHistory, historyLoading, refreshAll, regeneratePredictions } = useAnalysis();
 
     // Get current BMI from user data
     const currentBMI = userData?.physicalMetrics?.bmi;
@@ -61,6 +61,7 @@ export const BMISection: React.FC<BMISectionProps> = ({ expanded = true }) => {
             throw new Error('Invalid weight or missing height data');
         }
         await logBmiFromMeasurements(currentHeight, weight);
+        await regeneratePredictions();
         await refreshAll();
     };
 
