@@ -13,21 +13,31 @@ const StepBasicInfo: React.FC<StepBasicInfoProps> = ({ formData, setFormData }) 
     <Card>
       <CardContent className="pt-6 space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-2" style={{ color: theme.colors.text }}>Age *</label>
+          <label className="block text-sm font-medium mb-2" style={{ color: theme.colors.text }}>Birthdate *</label>
           <input
-            type="number"
-            value={formData.age}
-            onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+            type="date"
+            value={formData.birthdate}
+            onChange={(e) => setFormData({ ...formData, birthdate: e.target.value })}
             className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
             style={{
               backgroundColor: theme.colors.input,
               borderColor: theme.colors.border,
               color: theme.colors.text
             }}
-            placeholder="Enter your age"
-            min="13"
-            max="120"
+            max={new Date(new Date().setFullYear(new Date().getFullYear() - 13)).toISOString().split('T')[0]}
           />
+          {formData.birthdate && (
+            <p className="text-xs mt-1" style={{ color: theme.colors.textSecondary }}>
+              Age: {(() => {
+                const today = new Date();
+                const birth = new Date(formData.birthdate);
+                let age = today.getFullYear() - birth.getFullYear();
+                const m = today.getMonth() - birth.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+                return age;
+              })()} years old
+            </p>
+          )}
         </div>
 
         <div>

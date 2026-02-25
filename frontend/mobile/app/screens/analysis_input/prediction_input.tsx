@@ -69,7 +69,7 @@ export default function PredictionInputScreen() {
   const [currentConditionsInput, setCurrentConditionsInput] = useState("");
   const [formData, setFormData] = useState({
     // Basic Info
-    age: "",
+    birthdate: "",
     sex: "",
     // Physical Metrics
     height: "",
@@ -130,7 +130,7 @@ export default function PredictionInputScreen() {
           // Pre-populate form with existing data
           setFormData(prev => ({
             ...prev,
-            age: profile.age ? String(profile.age) : "",
+            birthdate: profile.birthdate ? new Date(profile.birthdate).toISOString().split('T')[0] : "",
             sex: profile.gender || "",
             height: profile.physicalMetrics?.height?.value ? String(profile.physicalMetrics.height.value) : "",
             weight: profile.physicalMetrics?.weight?.value ? String(profile.physicalMetrics.weight.value) : "",
@@ -291,7 +291,7 @@ export default function PredictionInputScreen() {
 
   function mapFormDataToBackend(formData: any) {
     return {
-      age: Number(formData.age),
+      birthdate: formData.birthdate || undefined,
       gender: formData.sex,
       physicalMetrics: {
         height: { value: Number(formData.height) },

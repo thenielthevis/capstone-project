@@ -1,4 +1,4 @@
-const { calculateGoalKcal } = require('../utils/calorieCalculator');
+const { calculateGoalKcal, recalcTodaysCalorieGoal } = require('../utils/calorieCalculator');
 
 function calculateNetCalories(consumed, burned) {
     return consumed - burned;
@@ -290,6 +290,7 @@ exports.submitHealthAssessment = async (req, res) => {
     try {
         const userId = req.user.id;
         const {
+            birthdate,
             age,
             gender,
             physicalMetrics,
@@ -301,49 +302,43 @@ exports.submitHealthAssessment = async (req, res) => {
         } = req.body;
         console.log("[SubmitHealthAssessment] Received data:", req.body);
 
-        // Auto-calculate BMI if height and weight are provided
-        let updatedPhysicalMetrics = physicalMetrics;
-        if (
-            physicalMetrics &&
-            physicalMetrics.height &&
-            physicalMetrics.height.value &&
-            physicalMetrics.weight &&
-            physicalMetrics.weight.value
-        ) {
-            const heightM = physicalMetrics.height.value / 100; // convert cm to meters
-            const weightKg = physicalMetrics.weight.value;
-            const bmi = +(weightKg / (heightM * heightM)).toFixed(2);
-            updatedPhysicalMetrics = {
-                ...physicalMetrics,
-                bmi
-            };
-        }
-
-        // Update only the relevant fields
-        const updatedUser = await User.findByIdAndUpdate(
-            userId,
-            {
-                age,
-                gender,
-                physicalMetrics: updatedPhysicalMetrics,
-                lifestyle,
-                dietaryProfile,
-                healthProfile,
-                environmentalFactors,
-                riskFactors,
-                // Mark the initial assessment as completed
-                hasCompletedAssessment: true,
-                // IMPORTANT: Clear lastPrediction so next /predict/me call regenerates with new data
-                lastPrediction: null
-            },
-            { new: true, runValidators: true }
-        );
-
-        if (!updatedUser) {
+        const user = await User.findById(userId);
+        if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
 
-        res.status(200).json({ message: "Health assessment submitted", user: updatedUser, hasCompletedAssessment: true });
+        // Set birthdate (preferred) or fall back to age
+        if (birthdate) {
+            user.birthdate = new Date(birthdate);
+            // age will be auto-calculated by pre-save hook
+        } else if (age) {
+            user.age = age;
+        }
+
+        if (gender) user.gender = gender;
+        if (physicalMetrics) {
+            user.physicalMetrics = {
+                ...(user.physicalMetrics?.toObject?.() || user.physicalMetrics || {}),
+                ...physicalMetrics
+            };
+            // BMI will be auto-calculated by pre-save hook
+        }
+        if (lifestyle) user.lifestyle = { ...(user.lifestyle?.toObject?.() || user.lifestyle || {}), ...lifestyle };
+        if (dietaryProfile) user.dietaryProfile = { ...(user.dietaryProfile?.toObject?.() || user.dietaryProfile || {}), ...dietaryProfile };
+        if (healthProfile) user.healthProfile = { ...(user.healthProfile?.toObject?.() || user.healthProfile || {}), ...healthProfile };
+        if (environmentalFactors) user.environmentalFactors = { ...(user.environmentalFactors?.toObject?.() || user.environmentalFactors || {}), ...environmentalFactors };
+        if (riskFactors) user.riskFactors = { ...(user.riskFactors?.toObject?.() || user.riskFactors || {}), ...riskFactors };
+
+        user.hasCompletedAssessment = true;
+        // Clear lastPrediction so next /predict/me call regenerates with new data
+        user.lastPrediction = null;
+
+        // Auto-recalculate today's calorie goal with updated metrics
+        recalcTodaysCalorieGoal(user);
+
+        await user.save();
+
+        res.status(200).json({ message: "Health assessment submitted", user, hasCompletedAssessment: true });
     } catch (error) {
         res.status(500).json({ message: "Server error", error: error.message });
     }
@@ -377,7 +372,15 @@ exports.createOrUpdateDailyCalorieBalance = async (req, res) => {
         today.setHours(0, 0, 0, 0);
 
         // Extract needed fields
-        const { age, gender, physicalMetrics, lifestyle } = user;
+        let { age, gender, physicalMetrics, lifestyle } = user;
+        // If birthdate exists but age isn't set, compute dynamically
+        if (!age && user.birthdate) {
+            const today = new Date();
+            const birth = new Date(user.birthdate);
+            age = today.getFullYear() - birth.getFullYear();
+            const m = today.getMonth() - birth.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+        }
         const weight = physicalMetrics?.weight?.value;
         const height = physicalMetrics?.height?.value;
         const targetWeight = physicalMetrics?.targetWeight?.value;
@@ -596,8 +599,19 @@ exports.getUserProfile = async (req, res) => {
                 daysSinceRegistration,
 
                 // Personal Info
-                birthdate: user.birthdate,
-                age: user.age,
+                birthdate: user.birthdate || null,
+                age: (() => {
+                    const bday = user.birthdate;
+                    if (bday) {
+                        const today = new Date();
+                        const birth = new Date(bday);
+                        let a = today.getFullYear() - birth.getFullYear();
+                        const m = today.getMonth() - birth.getMonth();
+                        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) a--;
+                        return a;
+                    }
+                    return user.age || null;
+                })(),
                 gender: user.gender,
 
                 // Physical Metrics
@@ -606,7 +620,7 @@ exports.getUserProfile = async (req, res) => {
                     weight: user.physicalMetrics?.weight?.value || null,
                     targetWeight: user.physicalMetrics?.targetWeight?.value || null,
                     bmi: calculatedBMI || user.physicalMetrics?.bmi || null,
-                    waistCircumference: user.physicalMetrics?.waistCircumference || null,
+                    waistCircumference: user.physicalMetrics?.waistCircumference?.value ?? user.physicalMetrics?.waistCircumference ?? null,
                 },
 
                 // Lifestyle
@@ -759,6 +773,9 @@ exports.updateUserProfile = async (req, res) => {
 
         // Apply remaining simple updates
         Object.assign(user, filteredUpdates);
+
+        // Auto-recalculate today's calorie goal (pre-save hook handles age + BMI)
+        recalcTodaysCalorieGoal(user);
 
         await user.save();
 

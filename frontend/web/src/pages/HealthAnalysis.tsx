@@ -695,17 +695,8 @@ export default function HealthAnalysis() {
           const profileRes = await getUserProfile();
           if (profileRes.profile) {
             const p = profileRes.profile;
-            // Normalize physicalMetrics from flat (getUserProfile) to nested shape
-            setProfile({
-              ...p,
-              physicalMetrics: {
-                height: { value: p.physicalMetrics?.height ?? null },
-                weight: { value: p.physicalMetrics?.weight ?? null },
-                targetWeight: p.physicalMetrics?.targetWeight != null ? { value: p.physicalMetrics.targetWeight } : undefined,
-                bmi: p.physicalMetrics?.bmi ?? null,
-                waistCircumference: p.physicalMetrics?.waistCircumference ?? null,
-              },
-            });
+            // getUserProfile returns flat physicalMetrics; set as-is
+            setProfile(p);
           }
           setPredictions([]);
         } catch {

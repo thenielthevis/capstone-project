@@ -26,7 +26,7 @@ export default function HealthAssessment() {
   const [showPermissionModal, setShowPermissionModal] = useState(true);
 
   const [formData, setFormData] = useState({
-    age: '',
+    birthdate: '',
     sex: '',
     height: '',
     weight: '',
@@ -66,7 +66,7 @@ export default function HealthAssessment() {
           // Pre-populate form with existing data
           setFormData(prev => ({
             ...prev,
-            age: profile.age ? String(profile.age) : '',
+            birthdate: profile.birthdate ? new Date(profile.birthdate).toISOString().split('T')[0] : '',
             sex: profile.gender || '',
             height: profile.physicalMetrics?.height?.value ? String(profile.physicalMetrics.height.value) : '',
             weight: profile.physicalMetrics?.weight?.value ? String(profile.physicalMetrics.weight.value) : '',
@@ -109,7 +109,7 @@ export default function HealthAssessment() {
               const profile = profileRes.profile;
               setFormData(prev => ({
                 ...prev,
-                age: profile.age ? String(profile.age) : '',
+                birthdate: profile.birthdate ? new Date(profile.birthdate).toISOString().split('T')[0] : '',
                 sex: profile.gender || '',
                 height: profile.physicalMetrics?.height ? String(profile.physicalMetrics.height) : '',
                 weight: profile.physicalMetrics?.weight ? String(profile.physicalMetrics.weight) : '',
@@ -187,7 +187,7 @@ export default function HealthAssessment() {
 
   const mapFormDataToBackend = (formData: any) => {
     return {
-      age: Number(formData.age),
+      birthdate: formData.birthdate || undefined,
       gender: formData.sex,
       physicalMetrics: {
         height: { value: Number(formData.height) },
@@ -269,7 +269,7 @@ export default function HealthAssessment() {
   const validateCurrentStep = () => {
     switch (currentStep) {
       case 0:
-        return formData.age && formData.sex && formData.height && formData.weight;
+        return formData.birthdate && formData.sex && formData.height && formData.weight;
       case 2:
         return formData.activityLevel && formData.sleepHours;
       default:

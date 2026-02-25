@@ -47,7 +47,6 @@ const userSchema = new mongoose.Schema({
     birthdate: {
         type: Date
     },
-    // Basic Health Information
     age: {
         type: Number,
         min: 13,
@@ -238,6 +237,31 @@ const userSchema = new mongoose.Schema({
         maxLength: 150,
         default: ''
     }
+});
+
+// Auto-calculate age from birthdate and BMI from height/weight before saving
+userSchema.pre('save', function (next) {
+    // Auto-calculate age from birthdate
+    if (this.birthdate) {
+        const today = new Date();
+        const birth = new Date(this.birthdate);
+        let age = today.getFullYear() - birth.getFullYear();
+        const monthDiff = today.getMonth() - birth.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+            age--;
+        }
+        this.age = age;
+    }
+
+    // Auto-calculate BMI from height and weight
+    const height = this.physicalMetrics?.height?.value;
+    const weight = this.physicalMetrics?.weight?.value;
+    if (height && weight && height > 0) {
+        const heightM = height / 100;
+        this.physicalMetrics.bmi = +(weight / (heightM * heightM)).toFixed(2);
+    }
+
+    next();
 });
 
 // Hash password before saving

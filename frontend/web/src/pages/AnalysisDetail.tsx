@@ -370,17 +370,9 @@ function AnalysisDetailContent() {
           const profileRes = await getUserProfile();
           if (profileRes.profile) {
             const p = profileRes.profile;
-            // Normalize physicalMetrics from flat (getUserProfile) to nested shape
-            setProfile({
-              ...p,
-              physicalMetrics: {
-                height: { value: p.physicalMetrics?.height ?? null },
-                weight: { value: p.physicalMetrics?.weight ?? null },
-                targetWeight: p.physicalMetrics?.targetWeight != null ? { value: p.physicalMetrics.targetWeight } : undefined,
-                bmi: p.physicalMetrics?.bmi ?? null,
-                waistCircumference: p.physicalMetrics?.waistCircumference ?? null,
-              },
-            });
+            // getUserProfile returns flat physicalMetrics (height: 175, not {value: 175})
+            // Set profile as-is; renderBMIContent handles both shapes
+            setProfile(p);
           }
           setPredictions([]);
         } catch {
@@ -459,10 +451,13 @@ function AnalysisDetailContent() {
   );
 
   const renderBMIContent = () => {
-    const bmi = profile?.physicalMetrics?.bmi;
-    const height = profile?.physicalMetrics?.height;
-    const weight = profile?.physicalMetrics?.weight;
-    const waist = profile?.physicalMetrics?.waistCircumference;
+    const bmi = typeof profile?.physicalMetrics?.bmi === 'object' ? (profile?.physicalMetrics?.bmi as any)?.value : profile?.physicalMetrics?.bmi;
+    const rawHeight = profile?.physicalMetrics?.height;
+    const height = typeof rawHeight === 'object' && rawHeight !== null ? (rawHeight as any).value : rawHeight;
+    const rawWeight = profile?.physicalMetrics?.weight;
+    const weight = typeof rawWeight === 'object' && rawWeight !== null ? (rawWeight as any).value : rawWeight;
+    const rawWaist = profile?.physicalMetrics?.waistCircumference;
+    const waist = typeof rawWaist === 'object' && rawWaist !== null ? (rawWaist as any).value : rawWaist;
     const getBMIStatus = (bmi: number) => {
       if (bmi < 18.5) return BMI_CATEGORIES[0];
       if (bmi < 25) return BMI_CATEGORIES[1];
