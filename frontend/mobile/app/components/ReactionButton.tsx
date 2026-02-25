@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, Modal, TouchableWithoutFeedback, ScrollVi
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "../context/ThemeContext";
 
-type ReactionType = "Heart" | "Fire" | "Zap" | "Trophy" | "Apple" | "Dumbbell" | "Run" | "Smile" | "Leaf" | "Wind" | "Water" | "Brain" | "Progress" | "Steps";
+type ReactionType = "Love" | "Fire" | "Zap" | "Trophy" | "Apple" | "Dumbbell" | "Run" | "Smile" | "Leaf" | "Wind" | "Water" | "Brain" | "Progress" | "Steps";
 
 interface ReactionButtonProps {
     userReaction?: string;
@@ -13,7 +13,7 @@ interface ReactionButtonProps {
 }
 
 export const REACTIONS: { type: ReactionType; icon: string; library: "ionicons" | "material" }[] = [
-    { type: "Heart", icon: "heart", library: "ionicons" },
+    { type: "Love", icon: "heart", library: "ionicons" },
     { type: "Fire", icon: "flame", library: "ionicons" },
     { type: "Zap", icon: "flash", library: "ionicons" },
     { type: "Trophy", icon: "trophy", library: "ionicons" },
@@ -30,7 +30,7 @@ export const REACTIONS: { type: ReactionType; icon: string; library: "ionicons" 
 ];
 
 const QUICK_REACTIONS = [
-    { type: "Heart", icon: "heart", library: "ionicons" },
+    { type: "Love", icon: "heart", library: "ionicons" },
     { type: "Fire", icon: "flame", library: "ionicons" },
     { type: "Zap", icon: "flash", library: "ionicons" },
     { type: "Trophy", icon: "trophy", library: "ionicons" },
@@ -74,7 +74,7 @@ export default function ReactionButton({ userReaction, reactionCount, onReact, c
     };
 
     const reactionColors: { [key: string]: string } = {
-        Heart: '#FF0000',
+        Love: '#E0E0E0',
         Fire: '#FF6B35',
         Zap: '#FFD700',
         Trophy: '#FFA500',
@@ -139,7 +139,7 @@ export default function ReactionButton({ userReaction, reactionCount, onReact, c
                             gap: 6,
                         }}
                     >
-                        {/* 5 Quick Reactions with colors */}
+                        {/* 5 Quick Reactions with outlined circles */}
                         {QUICK_REACTIONS.map((reaction) => (
                             <TouchableOpacity
                                 key={reaction.type}
@@ -147,10 +147,12 @@ export default function ReactionButton({ userReaction, reactionCount, onReact, c
                                 style={{
                                     justifyContent: 'center',
                                     alignItems: 'center',
-                                    width: 40,
-                                    height: 40,
-                                    borderRadius: 20,
-                                    backgroundColor: reactionColors[reaction.type] || '#E0E0E0',
+                                    width: 44,
+                                    height: 44,
+                                    borderRadius: 22,
+                                    backgroundColor: 'transparent',
+                                    borderWidth: 2,
+                                    borderColor: theme.colors.border,
                                 }}
                             >
                                 {renderReactionIcon(reaction as { type: ReactionType; icon: string; library: "ionicons" | "material" }, 24)}
@@ -166,10 +168,12 @@ export default function ReactionButton({ userReaction, reactionCount, onReact, c
                             style={{
                                 justifyContent: 'center',
                                 alignItems: 'center',
-                                width: 40,
-                                height: 40,
-                                borderRadius: 20,
-                                backgroundColor: '#E0E0E0',
+                                width: 44,
+                                height: 44,
+                                borderRadius: 22,
+                                backgroundColor: 'transparent',
+                                borderWidth: 2,
+                                borderColor: theme.colors.border,
                             }}
                         >
                             <Ionicons name="add-circle-outline" size={20} color={theme.colors.text} />

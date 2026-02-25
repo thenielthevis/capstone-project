@@ -28,7 +28,7 @@ export const commentApi = {
     },
 
     // React to a comment
-    reactComment: async (commentId: string, reactionType: string = "Like") => {
+    reactComment: async (commentId: string, reactionType: string = "Love") => {
         const { data } = await axiosInstance.put(`/comments/${commentId}/react`, {
             reactionType,
         });

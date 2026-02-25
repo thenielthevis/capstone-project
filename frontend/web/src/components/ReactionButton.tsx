@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { useTheme } from '@/context/ThemeContext';
 import { Heart, Fire, Lightning, Trophy, ArrowFatUp, Barbell, PersonSimpleRun, PersonSimpleWalk, Smiley, Leaf, Wind, Drop, Brain, ChartBar, Plus } from 'phosphor-react';
 
-type ReactionType = 'Heart' | 'Fire' | 'Zap' | 'Trophy' | 'Apple' | 'Dumbbell' | 'Run' | 'Smile' | 'Leaf' | 'Wind' | 'Water' | 'Brain' | 'Progress' | 'Steps';
+type ReactionType = 'Love' | 'Fire' | 'Zap' | 'Trophy' | 'Apple' | 'Dumbbell' | 'Run' | 'Smile' | 'Leaf' | 'Wind' | 'Water' | 'Brain' | 'Progress' | 'Steps';
 
 interface ReactionButtonProps {
   userReaction?: string;
@@ -11,7 +11,7 @@ interface ReactionButtonProps {
 }
 
 export const REACTIONS: { type: ReactionType; icon: React.ReactNode }[] = [
-  { type: 'Heart', icon: <Heart size={24} weight="fill" /> },
+  { type: 'Love', icon: <Heart size={24} weight="fill" /> },
   { type: 'Fire', icon: <Fire size={24} weight="fill" /> },
   { type: 'Zap', icon: <Lightning size={24} weight="fill" /> },
   { type: 'Trophy', icon: <Trophy size={24} weight="fill" /> },
@@ -28,7 +28,7 @@ export const REACTIONS: { type: ReactionType; icon: React.ReactNode }[] = [
 ];
 
 const QUICK_REACTIONS = [
-  { type: 'Heart', icon: <Heart size={24} weight="fill" /> },
+  { type: 'Love', icon: <Heart size={24} weight="fill" /> },
   { type: 'Fire', icon: <Fire size={24} weight="fill" /> },
   { type: 'Zap', icon: <Lightning size={24} weight="fill" /> },
   { type: 'Trophy', icon: <Trophy size={24} weight="fill" /> },
@@ -112,11 +112,6 @@ export default function ReactionButton({ userReaction, reactionCount, onReact }:
         ) : (
           <Plus size={20} weight="fill" />
         )}
-        {reactionCount > 0 && (
-          <span className="text-sm" style={{ color: theme.colors.text }}>
-            {reactionCount}
-          </span>
-        )}
       </button>
 
       {/* Quick Reactions (on hover) */}
@@ -137,15 +132,22 @@ export default function ReactionButton({ userReaction, reactionCount, onReact }:
               <button
                 key={reaction.type}
                 onClick={() => handleReactionSelect(reaction.type)}
-                className="flex items-center justify-center p-2 rounded-lg transition-all hover:scale-110"
+                className="flex items-center justify-center transition-all hover:scale-110"
                 style={{
-                  backgroundColor: theme.colors.background,
+                  backgroundColor: 'transparent',
+                  borderColor: theme.colors.border,
+                  borderRadius: '50%',
+                  width: '44px',
+                  height: '44px',
+                  border: `2px solid ${theme.colors.border}`,
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.colors.primary + '20';
+                  e.currentTarget.style.backgroundColor = theme.colors.primary + '10';
+                  e.currentTarget.style.borderColor = theme.colors.primary;
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.colors.background;
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.borderColor = theme.colors.border;
                 }}
                 title={reaction.type}
               >
@@ -160,15 +162,22 @@ export default function ReactionButton({ userReaction, reactionCount, onReact }:
                 setQuickVisible(false);
                 setPickerVisible(true);
               }}
-              className="flex items-center justify-center p-2 rounded-lg transition-all hover:scale-110"
+              className="flex items-center justify-center transition-all hover:scale-110"
               style={{
-                backgroundColor: theme.colors.background,
+                backgroundColor: 'transparent',
+                borderColor: theme.colors.border,
+                borderRadius: '50%',
+                width: '44px',
+                height: '44px',
+                border: `2px solid ${theme.colors.border}`,
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.colors.primary + '20';
+                e.currentTarget.style.backgroundColor = theme.colors.primary + '10';
+                e.currentTarget.style.borderColor = theme.colors.primary;
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = theme.colors.background;
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.borderColor = theme.colors.border;
               }}
               title="More reactions"
             >

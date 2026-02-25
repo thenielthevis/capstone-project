@@ -36,6 +36,7 @@ import { useFeedback } from '@/context/FeedbackContext';
 import { getUserProfile, getTodayCalorieBalance, createOrUpdateDailyCalorieBalance, DailyBalanceEntry } from '@/api/userApi';
 import { postApi, Post } from '@/api/postApi';
 import ReactionButton from '@/components/ReactionButton';
+import ReactionCounter from '@/components/ReactionCounter';
 import PostMediaCarousel from '@/components/feed/PostMediaCarousel';
 import ReportModal from '@/components/ReportModal';
 import GamificationStats from '@/components/GamificationStats';
@@ -280,8 +281,9 @@ export default function Dashboard() {
         key={post._id}
         className="mb-6 rounded-2xl border shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden"
         style={{
-          backgroundColor: theme.colors.surface + "90",
-          borderColor: theme.colors.border + '40',
+          backgroundColor: theme.colors.surface,
+          borderColor: theme.colors.border,
+          borderWidth: '1px',
         }}
       >
         {/* Post Header */}
@@ -432,7 +434,12 @@ export default function Dashboard() {
         {(reactionCount > 0 || commentCount > 0) && (
           <div className="flex items-center justify-between px-3 py-2 text-xs" style={{ color: theme.colors.textSecondary }}>
             <div>
-              {reactionCount > 0 && `${reactionCount} reaction${reactionCount !== 1 ? 's' : ''}`}
+              {post.reactions && post.reactions.length > 0 && (
+                <ReactionCounter
+                  reactions={post.reactions}
+                  onReactionPress={(reactionType) => handleReaction(post._id, reactionType)}
+                />
+              )}
             </div>
             <button className="cursor-pointer" onClick={() => navigate(`/post/${post._id}`)}>
               {commentCount > 0 && `${commentCount} comment${commentCount !== 1 ? 's' : ''}`}

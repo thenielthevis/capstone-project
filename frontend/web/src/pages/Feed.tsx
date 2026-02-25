@@ -4,6 +4,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import Header from '@/components/Header';
 import ReactionButton, { REACTIONS } from '@/components/ReactionButton';
+import ReactionCounter from '@/components/ReactionCounter';
 import PostMediaCarousel from '@/components/feed/PostMediaCarousel';
 import CreatePostModal from '@/components/feed/CreatePostModal';
 import ImageViewerModal from '@/components/feed/ImageViewerModal';
@@ -479,34 +480,13 @@ export default function Feed() {
             className="flex items-center justify-between px-4 py-2"
             style={{ borderTopWidth: 1, borderColor: theme.colors.border }}
           >
-            {/* Left: Reactions */}
-            <div className="flex items-center">
-              {post.reactions?.length > 0 && (
-                <>
-                  <div className="flex">
-                    {REACTIONS.filter((r) => post.reactions.some((pr: any) => pr.type === r.type))
-                      .slice(0, 3)
-                      .map((r, i) => (
-                        <span
-                          key={r.type}
-                          className="text-base"
-                          style={{ marginLeft: i === 0 ? 0 : -5, zIndex: 3 - i }}
-                        >
-                          {r.emoji}
-                        </span>
-                      ))}
-                  </div>
-                  <span
-                    className="text-sm ml-1"
-                    style={{ fontFamily: theme.fonts.body, color: theme.colors.textSecondary }}
-                  >
-                    {post.reactions.length > 1000
-                      ? (post.reactions.length / 1000).toFixed(1) + 'k'
-                      : post.reactions.length}
-                  </span>
-                </>
-              )}
-            </div>
+            {/* Left: Reactions with ReactionCounter */}
+            {post.reactions?.length > 0 && (
+              <ReactionCounter
+                reactions={post.reactions}
+                onReactionPress={(reactionType) => handleReaction(post._id, reactionType)}
+              />
+            )}
 
             {/* Right: Comments & Shares */}
             <div className="flex items-center gap-2">

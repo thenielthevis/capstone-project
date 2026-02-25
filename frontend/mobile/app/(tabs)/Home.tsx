@@ -9,6 +9,7 @@ import { useRouter } from "expo-router";
 import { useUser } from "../context/UserContext";
 import { useMoodCheckin } from "../context/MoodCheckinContext";
 import ReactionButton, { REACTIONS } from "../components/ReactionButton";
+import ReactionCounter from "../components/ReactionCounter";
 import ReportModal from "../components/Modals/ReportModal";
 import { BottomSheetModal, BottomSheetModalProvider, BottomSheetBackdrop, BottomSheetView } from "@gorhom/bottom-sheet";
 import PostMediaCarousel from "../components/feed/PostMediaCarousel";
@@ -371,25 +372,15 @@ export default function Home() {
         {/* Post Stats Row */}
         {(post.reactions?.length > 0 || (post.commentCount || 0) > 0 || (post.shares?.length || 0) > 0) && (
           <View className="flex-row items-center justify-between px-4 py-2">
-            {/* Left: Reactions */}
-            <View className="flex-row items-center">
-              {post.reactions?.length > 0 && (
-                <>
-                  <View className="flex-row">
-                    {REACTIONS.filter(r => post.reactions.some((pr: any) => pr.type === r.type))
-                      .slice(0, 3)
-                      .map((r, i) => (
-                        <Text key={r.type} style={{ fontSize: 15, marginLeft: i === 0 ? 0 : 0, zIndex: 3 - i }}>
-                          {r.emoji}
-                        </Text>
-                      ))}
-                  </View>
-                  <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '99', fontSize: 13, marginLeft: 4 }}>
-                    {post.reactions.length > 1000 ? (post.reactions.length / 1000).toFixed(1) + 'k' : post.reactions.length}
-                  </Text>
-                </>
-              )}
-            </View>
+            {/* Left: Reaction Counter */}
+            {post.reactions?.length > 0 && (
+              <View className="flex-1">
+                <ReactionCounter
+                  reactions={post.reactions}
+                  onReactionPress={(reactionType) => handleReaction(post._id, reactionType)}
+                />
+              </View>
+            )}
 
             {/* Right: Comments & Shares */}
             <View className="flex-row items-center">

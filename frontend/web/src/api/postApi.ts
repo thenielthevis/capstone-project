@@ -87,7 +87,7 @@ export const postApi = {
     return data;
   },
 
-  likePost: async (postId: string, reactionType: string = 'Like') => {
+  likePost: async (postId: string, reactionType: string = 'Love') => {
     const { data } = await axiosInstance.put(`/posts/${postId}/react`, {
       reactionType,
     });

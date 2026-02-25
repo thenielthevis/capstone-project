@@ -22,6 +22,8 @@ import { useTheme } from '@/context/ThemeContext';
 import { postApi, Post } from '@/api/postApi';
 import { commentApi, Comment } from '@/api/commentApi';
 import ReactionButton from '@/components/ReactionButton';
+import ReactionCounter from '@/components/ReactionCounter';
+import ReactionCounterSimple from '@/components/ReactionCounterSimple';
 import SessionPreview from '@/components/feed/SessionPreview';
 import PostMediaCarousel from '@/components/feed/PostMediaCarousel';
 import ImageViewerModal from '@/components/feed/ImageViewerModal';
@@ -310,8 +312,11 @@ export default function PostDetail() {
           {/* Comment Content */}
           <div className="flex-1 min-w-0">
             <div
-              className="rounded-xl p-3"
-              style={{ backgroundColor: theme.colors.surface }}
+              className="rounded-xl p-3 border"
+              style={{ 
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+              }}
             >
               <div className="flex items-center gap-2 mb-1">
                 <span
@@ -334,6 +339,16 @@ export default function PostDetail() {
                 {comment.content}
               </p>
             </div>
+
+            {/* Reaction Counter - Shows reactions in simple format */}
+            {comment.reactions && comment.reactions.length > 0 && (
+              <div className="mt-2 ml-3">
+                <ReactionCounterSimple
+                  reactions={comment.reactions}
+                  onReactionPress={(reactionType) => handleReactComment(comment._id, reactionType)}
+                />
+              </div>
+            )}
 
             {/* Action Bar */}
             <div className="flex items-center gap-4 mt-2 ml-3">
@@ -567,8 +582,18 @@ export default function PostDetail() {
             </div>
           )}
 
+  {post.reactions && post.reactions.length > 0 && (
+     <div className="ml-auto pr-6">
+              <ReactionCounter
+                reactions={post.reactions}
+                onReactionPress={(reactionType) => handleReaction(reactionType)}
+              />
+                </div>
+  )}
+
+            
           {/* Interaction Bar */}
-          <div className="flex items-center gap-4 p-4 border-t" style={{ borderColor: theme.colors.border }}>
+          <div className="flex items-center gap-4 p-4 border-t mt-4" style={{ borderColor: theme.colors.border }}>
             <button
               onClick={() => handleVote('up')}
               className="flex items-center gap-1 transition-transform hover:scale-110"
@@ -595,6 +620,7 @@ export default function PostDetail() {
               reactionCount={reactionCount}
               onReact={handleReaction}
             />
+          
             <div className="flex items-center gap-1">
               <MessageCircle className="w-6 h-6" style={{ color: theme.colors.text }} />
               <span style={{ color: theme.colors.text }} className="text-sm font-medium">

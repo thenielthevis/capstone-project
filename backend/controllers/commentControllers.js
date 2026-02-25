@@ -109,7 +109,7 @@ exports.reactComment = async (req, res) => {
     try {
         const { id } = req.params;
         const { reactionType } = req.body;
-        const allowedReactions = ["Heart", "Fire", "Zap", "Trophy", "Apple", "Dumbbell", "Run", "Smile", "Leaf", "Wind", "Water", "Brain", "Progress", "Steps"];
+        const allowedReactions = ["Love", "Fire", "Zap", "Trophy", "Apple", "Dumbbell", "Run", "Smile", "Leaf", "Wind", "Water", "Brain", "Progress", "Steps"];
 
         if (!allowedReactions.includes(reactionType)) {
             return res.status(400).json({ message: "Invalid reaction type" });

@@ -60,7 +60,7 @@ const postSchema = new mongoose.Schema(
                 },
             ],
         },
-        // Facebook style reactions (Heart, Fire, Zap, Trophy, Apple, Dumbbell, Run, Smile, Leaf, Wind, Water, Brain, Progress, Steps)
+        // Facebook style reactions (Love, Fire, Zap, Trophy, Apple, Dumbbell, Run, Smile, Leaf, Wind, Water, Brain, Progress, Steps)
         reactions: [
             {
                 user: {
@@ -69,7 +69,7 @@ const postSchema = new mongoose.Schema(
                 },
                 type: {
                     type: String,
-                    enum: ["Heart", "Fire", "Zap", "Trophy", "Apple", "Dumbbell", "Run", "Smile", "Leaf", "Wind", "Water", "Brain", "Progress", "Steps"],
+                    enum: ["Love", "Fire", "Zap", "Trophy", "Apple", "Dumbbell", "Run", "Smile", "Leaf", "Wind", "Water", "Brain", "Progress", "Steps"],
                     required: true,
                 },
             },

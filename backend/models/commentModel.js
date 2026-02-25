@@ -48,7 +48,7 @@ const commentSchema = new mongoose.Schema(
                 },
                 type: {
                     type: String,
-                    enum: ["Heart", "Fire", "Zap", "Trophy", "Apple", "Dumbbell", "Run", "Smile", "Leaf", "Wind", "Water", "Brain", "Progress", "Steps"],
+                    enum: ["Love", "Fire", "Zap", "Trophy", "Apple", "Dumbbell", "Run", "Smile", "Leaf", "Wind", "Water", "Brain", "Progress", "Steps"],
                     required: true,
                 },
             },

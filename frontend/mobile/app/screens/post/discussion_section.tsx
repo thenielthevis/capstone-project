@@ -8,6 +8,7 @@ import { commentApi } from "../../api/commentApi";
 import { postApi } from "../../api/postApi";
 import { useUser } from "../../context/UserContext";
 import ReactionButton, { REACTIONS } from "../../components/ReactionButton";
+import ReactionCounter from "../../components/ReactionCounter";
 import ReportModal from "../../components/Modals/ReportModal";
 import { ReportType } from "../../api/reportApi";
 import SessionPreview from "../../components/feed/SessionPreview";
@@ -397,6 +398,14 @@ export default function DiscussionSection() {
                             {comment.content}
                         </Text>
 
+                        {/* Reaction Counter - Shows all reactions with counts */}
+                        {comment.reactions && comment.reactions.length > 0 && (
+                            <ReactionCounter
+                                reactions={comment.reactions}
+                                onReactionPress={(reactionType) => handleReactComment(comment._id, reactionType)}
+                            />
+                        )}
+
                         {/* Action Bar */}
                         <View className="flex-row items-center mt-2" style={{ marginLeft: -6 }}>
                             {/* Upvote */}
@@ -644,31 +653,16 @@ export default function DiscussionSection() {
 
                         {/* Post Stats Row */}
                         {((post as any).reactions?.length > 0 || comments.length > 0) && (
-                            <View className="flex-row items-center justify-between mt-2 mb-1">
-                                {/* Left: Reactions */}
-                                <View className="flex-row items-center">
-                                    {(post as any).reactions?.length > 0 && (
-                                        <>
-                                            <View className="flex-row">
-                                                {REACTIONS.filter(r => (post as any).reactions.some((pr: any) => pr.type === r.type))
-                                                    .slice(0, 3)
-                                                    .map((r, i) => {
-                                                        const reactionIcon = r.library === "ionicons" 
-                                                            ? <Ionicons name={r.icon as any} size={16} color={theme.colors.text} />
-                                                            : <MaterialCommunityIcons name={r.icon as any} size={16} color={theme.colors.text} />;
-                                                        return (
-                                                            <View key={r.type} style={{ marginLeft: i === 0 ? 0 : -8, zIndex: 3 - i }}>
-                                                                {reactionIcon}
-                                                            </View>
-                                                        );
-                                                    })}
-                                            </View>
-                                            <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '99', fontSize: 13, marginLeft: 4 }}>
-                                                {(post as any).reactions.length > 1000 ? ((post as any).reactions.length / 1000).toFixed(1) + 'k' : (post as any).reactions.length}
-                                            </Text>
-                                        </>
-                                    )}
-                                </View>
+                            <View className="flex-row items-center justify-between mt-3 mb-2">
+                                {/* Left: Reaction Counter */}
+                                {(post as any).reactions?.length > 0 && (
+                                    <View className="flex-1">
+                                        <ReactionCounter
+                                            reactions={(post as any).reactions}
+                                            onReactionPress={(reactionType) => handleReaction(post._id, reactionType)}
+                                        />
+                                    </View>
+                                )}
 
                                 {/* Right: Comments & Shares */}
                                 <View className="flex-row items-center">
