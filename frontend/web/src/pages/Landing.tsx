@@ -523,7 +523,7 @@ export default function Landing() {
             <div className="pt-8" style={{ borderTop: `1px solid ${theme.colors.border}` }}>
               <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                 <p className="text-sm">
-                  © 2025 Lifora. All rights reserved.
+                  © 2026 Lifora. All rights reserved.
                 </p>
                 <div className="flex gap-6">
                   <a href="#" className="text-sm hover:text-blue-400 transition-colors">

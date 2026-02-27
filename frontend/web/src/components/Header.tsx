@@ -60,6 +60,13 @@ export default function Header({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const navigateToAuth = (path: string) => {
+    if (user?.isGuest) {
+      logout();
+    }
+    navigate(path);
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -159,7 +166,7 @@ export default function Header({
             {user?.isGuest ? (
               <Button
                 variant="ghost"
-                onClick={() => navigate('/login')}
+                onClick={() => navigateToAuth('/login')}
                 className="flex items-center gap-2"
                 style={{ color: theme.colors.textSecondary }}
               >
