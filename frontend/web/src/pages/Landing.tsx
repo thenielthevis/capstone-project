@@ -12,7 +12,8 @@ import {
   Award,
   Menu,
   X,
-  PlayCircle
+  PlayCircle,
+  Smartphone
 } from 'lucide-react';
 import MobileMockupCarousel from '@/components/landing/MobileMockupCarousel';
 
@@ -52,6 +53,7 @@ import team1Img from '../assets/member/team1.jpg';
 import team2Img from '../assets/member/team2.jpg';
 import team3Img from '../assets/member/team3.png';
 import team4Img from '../assets/member/team4.jpg';
+import qrCodeImg from '../assets/images/Mobile Application.png';
 
 const images = {
   logo: logoImg,
@@ -310,6 +312,22 @@ export default function Landing() {
                       </div>
                     </div>
                   ))}
+                </div>
+
+                {/* QR Code Download */}
+                <div className="flex items-center gap-5 p-5 rounded-2xl mt-2" style={{ backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <div className="flex-shrink-0 bg-white rounded-xl p-2">
+                    <img src={qrCodeImg} alt="Download Lifora Mobile App" className="w-28 h-28" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Smartphone size={16} className="text-blue-400" />
+                      <span className="text-sm font-bold text-white">Download the App</span>
+                    </div>
+                    <p className="text-xs text-landing-muted leading-relaxed">
+                      Scan this QR code with your phone's camera to download the Lifora mobile app (APK).
+                    </p>
+                  </div>
                 </div>
               </div>
 
