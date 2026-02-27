@@ -77,15 +77,23 @@ exports.generateDailyQuestions = async (req, res) => {
 };
 
 // Get active assessment questions for user
+// Auto-generates questions if none exist for today (saves Gemini quota by reusing)
 exports.getActiveQuestions = async (req, res) => {
   try {
     const userId = req.user.id;
     const { category } = req.query;
     console.log("[Assessment] Fetching active questions for userId:", userId);
 
+    // First check for today's active (unanswered) questions
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
     let query = {
       userId,
       isActive: true,
+      createdAt: { $gte: today, $lt: tomorrow },
     };
 
     if (category) {
@@ -93,11 +101,75 @@ exports.getActiveQuestions = async (req, res) => {
     }
 
     console.log("[Assessment] Query:", JSON.stringify(query));
-    const questions = await Assessment.find(query)
+    let questions = await Assessment.find(query)
       .sort({ createdAt: -1 })
       .limit(10);
 
-    console.log("[Assessment] Found", questions.length, "active questions");
+    console.log("[Assessment] Found", questions.length, "active questions for today");
+
+    // If no active questions for today, check if user already completed today's assessment
+    if (questions.length === 0) {
+      const completedToday = await Assessment.findOne({
+        userId,
+        completedAt: { $gte: today, $lt: tomorrow },
+      });
+
+      if (completedToday) {
+        // User already completed today - return empty (don't regenerate)
+        console.log("[Assessment] User already completed today's assessment");
+        return res.status(200).json({
+          message: "Today's assessment already completed",
+          questions: [],
+          total: 0,
+          alreadyCompleted: true,
+        });
+      }
+
+      // No questions generated for today yet - auto-generate
+      console.log("[Assessment] No questions for today, auto-generating...");
+      try {
+        const user = await User.findById(userId);
+        if (user) {
+          const userContext = {
+            age: user.age,
+            gender: user.gender,
+            healthProfile: user.healthProfile,
+            lifestyle: user.lifestyle,
+            riskFactors: user.riskFactors,
+            previousAssessments: await Assessment.find({ userId })
+              .sort({ createdAt: -1 })
+              .limit(5)
+              .lean(),
+          };
+
+          const generatedQuestions = await generateAssessmentQuestions(userContext);
+          console.log("[Assessment] Auto-generated", generatedQuestions.length, "questions");
+
+          const savedQuestions = [];
+          for (const q of generatedQuestions) {
+            const assessment = new Assessment({
+              userId,
+              question: q.question,
+              questionTagalog: null,
+              choices: q.choices.map(c => ({ ...c, textTagalog: null })),
+              suggestion: q.suggestion,
+              suggestionTagalog: null,
+              sentiment: q.sentiment || "neutral",
+              reminderTime: q.reminderTime || "09:00",
+              category: q.category || "general_wellbeing",
+              difficulty: q.difficulty || "medium",
+              isActive: true,
+            });
+            const saved = await assessment.save();
+            savedQuestions.push(saved);
+          }
+          questions = savedQuestions;
+        }
+      } catch (genError) {
+        console.error("[Assessment] Auto-generation failed:", genError.message);
+        // Return empty array if generation fails - don't block the user
+      }
+    }
 
     if (questions.length > 0) {
       console.log("[Assessment] First question:", questions[0].question.substring(0, 50));

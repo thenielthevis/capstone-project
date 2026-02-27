@@ -142,6 +142,7 @@ const userSchema = new mongoose.Schema({
         points: { type: Number, default: 0 },
         coins: { type: Number, default: 0 },
         batteries: [{
+            date: { type: Date },
             sleep: { type: Number, default: 0, max: 100 },
             activity: { type: Number, default: 0, max: 100 },
             nutrition: { type: Number, default: 0, max: 100 },

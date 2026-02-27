@@ -580,23 +580,10 @@ function AnalysisDashboardContent() {
 
               {/* Daily Assessment Icon Button */}
               <TouchableOpacity
-                onPress={async () => {
-                  try {
-                    const token = await tokenStorage.getToken();
-                    if (!token) {
-                      Toast.show({ type: "error", text1: "Error", text2: "Please sign in first" });
-                      return;
-                    }
-                    const response = await fetch(`${API_URL}/assessment/generate-daily-questions`, {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                      body: JSON.stringify({}),
-                    });
-                    if (!response.ok) throw new Error("Failed to generate questions");
-                    setShowAssessmentQuestions(true);
-                  } catch (error: any) {
-                    Toast.show({ type: "error", text1: "Error", text2: error.message || "Failed to generate assessment questions" });
-                  }
+                onPress={() => {
+                  // Questions are auto-generated on the backend when fetching active-questions
+                  // No need to explicitly call generate-daily-questions (saves Gemini quota)
+                  setShowAssessmentQuestions(true);
                 }}
                 activeOpacity={0.7}
               >
@@ -683,7 +670,7 @@ function AnalysisDashboardContent() {
       {/* Assessment Questions Screen */}
       {showAssessmentQuestions && (
         <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 1001 }}>
-          <AssessmentQuestions onClose={() => setShowAssessmentQuestions(false)} />
+          <AssessmentQuestions onClose={() => setShowAssessmentQuestions(false)} useSafeArea={false} />
         </View>
       )}
 

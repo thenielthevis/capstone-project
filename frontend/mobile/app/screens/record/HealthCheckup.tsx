@@ -22,6 +22,8 @@ import HealthMetricCard from "../../components/HealthMetricCard";
 import WaterIntakeProgress from "../../components/WaterIntakeProgress";
 import GamificationReward from "../../components/animation/gamification-reward";
 import GamificationLoading from "../../components/animation/gamification-loading";
+import AssessmentQuestions from "../analysis_input/assessment_questions";
+import { tokenStorage } from "@/utils/tokenStorage";
 
 // Custom Slider component since @react-native-community/slider may not be installed
 interface SliderProps {
@@ -195,17 +197,46 @@ export default function HealthCheckup() {
     const [customWater, setCustomWater] = useState("");
     const [vicesForm, setVicesForm] = useState<{ [substance: string]: boolean }>({});
 
+    // Daily Assessment state
+    const [showAssessmentQuestions, setShowAssessmentQuestions] = useState(false);
+    const [assessmentCompleted, setAssessmentCompleted] = useState(false);
+    const [checkingAssessment, setCheckingAssessment] = useState(false);
+
     useEffect(() => {
         refreshCheckup();
         refreshStats();
         fetchUserAddictions();
+        checkAssessmentStatus();
     }, [refreshCheckup, refreshStats, fetchUserAddictions]);
+
+    // Check daily assessment status
+    const checkAssessmentStatus = useCallback(async () => {
+        try {
+            setCheckingAssessment(true);
+            const token = await tokenStorage.getToken();
+            if (!token) return;
+
+            const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:5000/api";
+
+            const response = await fetch(`${API_URL}/assessment/daily-status`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setAssessmentCompleted(data.completed);
+            }
+        } catch (err) {
+            console.error("[HealthCheckup] Error checking assessment status:", err);
+        } finally {
+            setCheckingAssessment(false);
+        }
+    }, []);
 
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
-        await Promise.all([refreshCheckup(), refreshStats()]);
+        await Promise.all([refreshCheckup(), refreshStats(), checkAssessmentStatus()]);
         setRefreshing(false);
-    }, [refreshCheckup, refreshStats]);
+    }, [refreshCheckup, refreshStats, checkAssessmentStatus]);
 
     // Handle quick water add
     const handleWaterAdd = async (amount: number) => {
@@ -328,10 +359,11 @@ export default function HealthCheckup() {
     };
 
     return (
+        <>
         <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }} edges={["top"]}>
             <ScrollView
                 style={{ flex: 1 }}
-                contentContainerStyle={{ paddingBottom: 100 }}
+                contentContainerStyle={{ paddingBottom: 26 }}
                 showsVerticalScrollIndicator={false}
                 refreshControl={
                     <RefreshControl
@@ -502,6 +534,84 @@ export default function HealthCheckup() {
                         </View>
                     )}
                 </View>
+
+                {/* Daily Assessment Card */}
+                {!assessmentCompleted && (
+                    <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
+                        <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={() => setShowAssessmentQuestions(true)}
+                            style={{
+                                backgroundColor: theme.colors.surface,
+                                borderRadius: 16,
+                                padding: 16,
+                                flexDirection: "row",
+                                alignItems: "center",
+                                borderWidth: 1,
+                                borderColor: "#06B6D4" + "40",
+                            }}
+                        >
+                            <View
+                                style={{
+                                    width: 48,
+                                    height: 48,
+                                    borderRadius: 24,
+                                    backgroundColor: "#06B6D4" + "20",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    marginRight: 14,
+                                }}
+                            >
+                                <MaterialCommunityIcons name="clipboard-list" size={24} color="#06B6D4" />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={{ fontFamily: theme.fonts.heading, fontSize: 16, color: theme.colors.text }}>
+                                    Daily Assessment
+                                </Text>
+                                <Text style={{ fontFamily: theme.fonts.body, fontSize: 13, color: theme.colors.text + "77", marginTop: 2 }}>
+                                    Answer questions to track your emotional health
+                                </Text>
+                            </View>
+                            <MaterialCommunityIcons name="chevron-right" size={24} color={theme.colors.text + "55"} />
+                        </TouchableOpacity>
+                    </View>
+                )}
+
+                {assessmentCompleted && (
+                    <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
+                        <View
+                            style={{
+                                backgroundColor: "#22c55e" + "15",
+                                borderRadius: 16,
+                                padding: 16,
+                                flexDirection: "row",
+                                alignItems: "center",
+                            }}
+                        >
+                            <View
+                                style={{
+                                    width: 48,
+                                    height: 48,
+                                    borderRadius: 24,
+                                    backgroundColor: "#22c55e" + "25",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    marginRight: 14,
+                                }}
+                            >
+                                <MaterialCommunityIcons name="check-circle" size={24} color="#22c55e" />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={{ fontFamily: theme.fonts.heading, fontSize: 16, color: theme.colors.text }}>
+                                    Assessment Complete
+                                </Text>
+                                <Text style={{ fontFamily: theme.fonts.body, fontSize: 13, color: "#22c55e", marginTop: 2 }}>
+                                    Today's assessment is done. Great job!
+                                </Text>
+                            </View>
+                        </View>
+                    </View>
+                )}
 
                 {/* Complete Daily Checkup Button */}
                 {!isComplete && completionPercentage > 0 && (
@@ -948,5 +1058,16 @@ export default function HealthCheckup() {
             />
             <GamificationLoading visible={contextLoading} />
         </SafeAreaView>
+
+        {/* Assessment Questions Overlay - outside SafeAreaView for full screen coverage */}
+        {showAssessmentQuestions && (
+            <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 1001, backgroundColor: theme.colors.background }}>
+                <AssessmentQuestions onClose={() => {
+                    setShowAssessmentQuestions(false);
+                    checkAssessmentStatus();
+                }} />
+            </View>
+        )}
+        </>
     );
 }

@@ -5,11 +5,11 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  SafeAreaView,
   Dimensions,
   Platform,
   TextInput,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import { LinearGradient } from "expo-linear-gradient";
@@ -34,6 +34,7 @@ interface Question {
 
 interface AssessmentQuestionsProps {
   onClose: () => void;
+  useSafeArea?: boolean;
 }
 
 interface SentimentResult {
@@ -99,8 +100,9 @@ const getDifficultyColor = (difficulty: string) => {
   }
 };
 
-export default function AssessmentQuestions({ onClose }: AssessmentQuestionsProps) {
+export default function AssessmentQuestions({ onClose, useSafeArea = true }: AssessmentQuestionsProps) {
   const { theme } = useTheme();
+  const Wrapper = useSafeArea ? SafeAreaView : View;
   const [loading, setLoading] = useState(true);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -457,7 +459,7 @@ export default function AssessmentQuestions({ onClose }: AssessmentQuestionsProp
   // Show "already completed today" screen
   if (alreadyCompletedToday) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <Wrapper style={{ flex: 1, backgroundColor: theme.colors.background }}>
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 24 }}>
           <View
             style={{
@@ -566,13 +568,13 @@ export default function AssessmentQuestions({ onClose }: AssessmentQuestionsProp
             </LinearGradient>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </Wrapper>
     );
   }
 
   if (loading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <Wrapper style={{ flex: 1, backgroundColor: theme.colors.background }}>
         <View
           style={{
             flex: 1,
@@ -592,14 +594,14 @@ export default function AssessmentQuestions({ onClose }: AssessmentQuestionsProp
             Loading assessment questions...
           </Text>
         </View>
-      </SafeAreaView>
+      </Wrapper>
     );
   }
 
   // Show assessment complete screen
   if (assessmentComplete) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <Wrapper style={{ flex: 1, backgroundColor: theme.colors.background }}>
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 24 }}>
           <View
             style={{
@@ -668,7 +670,7 @@ export default function AssessmentQuestions({ onClose }: AssessmentQuestionsProp
             </LinearGradient>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </Wrapper>
     );
   }
 
@@ -705,7 +707,7 @@ export default function AssessmentQuestions({ onClose }: AssessmentQuestionsProp
     };
 
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <Wrapper style={{ flex: 1, backgroundColor: theme.colors.background }}>
         <View
           style={{
             paddingHorizontal: 16,
@@ -1003,13 +1005,13 @@ export default function AssessmentQuestions({ onClose }: AssessmentQuestionsProp
             </LinearGradient>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </Wrapper>
     );
   }
 
   if (questions.length === 0) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <Wrapper style={{ flex: 1, backgroundColor: theme.colors.background }}>
         <View
           style={{
             paddingHorizontal: 16,
@@ -1072,7 +1074,7 @@ export default function AssessmentQuestions({ onClose }: AssessmentQuestionsProp
             Assessment questions will be generated daily. Come back later to answer your personalized health questions.
           </Text>
         </View>
-      </SafeAreaView>
+      </Wrapper>
     );
   }
 
@@ -1086,7 +1088,7 @@ export default function AssessmentQuestions({ onClose }: AssessmentQuestionsProp
   const questionProgress = isBatchComplete ? 100 : (batchedResponses.length / effectiveBatchSize) * 100;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+    <Wrapper style={{ flex: 1, backgroundColor: theme.colors.background }}>
       {/* Header */}
       <View
         style={{
@@ -1535,6 +1537,6 @@ export default function AssessmentQuestions({ onClose }: AssessmentQuestionsProp
       </View>
 
       <Toast />
-    </SafeAreaView>
+    </Wrapper>
   );
 }

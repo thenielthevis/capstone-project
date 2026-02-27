@@ -192,6 +192,7 @@ const updateUserGamificationStats = async (userId, options = {}) => {
         // 5. Update User Model
         // ---------------------------------------------------------
         const newBatteries = {
+            date: today,
             activity: scores.activity || 0,
             nutrition: scores.nutrition || 0,
             health: scores.health || 0,
