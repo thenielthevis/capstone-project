@@ -12,6 +12,7 @@ import { adminApi, Workout, WorkoutStats } from '@/api/adminApi';
 import { showToast } from '@/components/Toast/Toast';
 import { exportWorkoutsReport, WorkoutData } from '@/utils/pdfExport';
 import CloudinaryLottie from '@/components/CloudinaryLottie';
+import Lottie from 'lottie-react';
 
 export default function AdminWorkouts() {
   const { theme } = useTheme();
@@ -41,13 +42,14 @@ export default function AdminWorkouts() {
   // Form states
   const [formData, setFormData] = useState({
     category: 'bodyweight' as 'bodyweight' | 'equipment',
-    type: 'chest' as 'chest' | 'arms' | 'legs' | 'core' | 'back' | 'shoulders' | 'full_body' | 'stretching',
+    type: 'chest' as 'chest' | 'arms' | 'legs' | 'core' | 'back' | 'shoulders' | 'full_body' | 'stretching' | 'quadriceps' | 'hamstrings' | 'glutes' | 'calves' | 'biceps' | 'triceps' | 'abs' | 'lower_back' | 'upper_back' | 'cardio' | 'plyometrics' | 'yoga' | 'pilates',
     name: '',
     description: '',
     equipment_needed: '',
   });
   const [animationFile, setAnimationFile] = useState<File | null>(null);
   const [animationPreview, setAnimationPreview] = useState<string>('');
+  const [lottieData, setLottieData] = useState<object | null>(null);
 
   // Load workouts whenever dependencies change
   useEffect(() => {
@@ -194,6 +196,19 @@ export default function AdminWorkouts() {
       shoulders: '#6366F1',
       full_body: '#10B981',
       stretching: '#06B6D4',
+      quadriceps: '#D97706',
+      hamstrings: '#9333EA',
+      glutes: '#E11D48',
+      calves: '#0891B2',
+      biceps: '#EA580C',
+      triceps: '#CA8A04',
+      abs: '#DB2777',
+      lower_back: '#059669',
+      upper_back: '#4F46E5',
+      cardio: '#DC2626',
+      plyometrics: '#7C3AED',
+      yoga: '#2DD4BF',
+      pilates: '#F472B6',
     };
     return colors[type] || theme.colors.textSecondary;
   };
@@ -208,6 +223,7 @@ export default function AdminWorkouts() {
     });
     setAnimationFile(null);
     setAnimationPreview('');
+    setLottieData(null);
   };
 
   const handleOpenCreateModal = () => {
@@ -244,11 +260,30 @@ export default function AdminWorkouts() {
     const file = e.target.files?.[0];
     if (file) {
       setAnimationFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAnimationPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+
+      // Check if it's a JSON (Lottie) file
+      if (file.name.endsWith('.json') || file.type === 'application/json') {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          try {
+            const json = JSON.parse(reader.result as string);
+            setLottieData(json);
+            setAnimationPreview(''); // clear image preview
+          } catch {
+            showToast({ type: 'error', text1: 'Invalid JSON file' });
+            setLottieData(null);
+          }
+        };
+        reader.readAsText(file);
+      } else {
+        // Image/GIF file
+        setLottieData(null);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setAnimationPreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -500,6 +535,19 @@ export default function AdminWorkouts() {
                         <option value="shoulders">Shoulders</option>
                         <option value="full_body">Full Body</option>
                         <option value="stretching">Stretching</option>
+                        <option value="quadriceps">Quadriceps</option>
+                        <option value="hamstrings">Hamstrings</option>
+                        <option value="glutes">Glutes</option>
+                        <option value="calves">Calves</option>
+                        <option value="biceps">Biceps</option>
+                        <option value="triceps">Triceps</option>
+                        <option value="abs">Abs</option>
+                        <option value="lower_back">Lower Back</option>
+                        <option value="upper_back">Upper Back</option>
+                        <option value="cardio">Cardio</option>
+                        <option value="plyometrics">Plyometrics</option>
+                        <option value="yoga">Yoga</option>
+                        <option value="pilates">Pilates</option>
                       </select>
                     </div>
 
@@ -787,6 +835,19 @@ export default function AdminWorkouts() {
                     <option value="shoulders">Shoulders</option>
                     <option value="full_body">Full Body</option>
                     <option value="stretching">Stretching</option>
+                    <option value="quadriceps">Quadriceps</option>
+                    <option value="hamstrings">Hamstrings</option>
+                    <option value="glutes">Glutes</option>
+                    <option value="calves">Calves</option>
+                    <option value="biceps">Biceps</option>
+                    <option value="triceps">Triceps</option>
+                    <option value="abs">Abs</option>
+                    <option value="lower_back">Lower Back</option>
+                    <option value="upper_back">Upper Back</option>
+                    <option value="cardio">Cardio</option>
+                    <option value="plyometrics">Plyometrics</option>
+                    <option value="yoga">Yoga</option>
+                    <option value="pilates">Pilates</option>
                   </select>
                 </div>
               </div>
@@ -836,12 +897,17 @@ export default function AdminWorkouts() {
                 </label>
                 <input
                   type="file"
-                  accept="image/*,.gif"
+                  accept="image/*,.gif,.json,application/json"
                   onChange={handleFileChange}
                   className="w-full px-3 py-2 rounded-lg border"
                   style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border, color: theme.colors.text }}
                 />
-                {animationPreview && (
+                {lottieData && (
+                  <div className="mt-2 w-32 h-32 rounded-lg overflow-hidden" style={{ backgroundColor: theme.colors.background }}>
+                    <Lottie animationData={lottieData} loop autoplay style={{ width: '100%', height: '100%' }} />
+                  </div>
+                )}
+                {!lottieData && animationPreview && (
                   <img src={animationPreview} alt="Preview" className="mt-2 w-32 h-32 object-cover rounded-lg" />
                 )}
               </div>
@@ -922,6 +988,19 @@ export default function AdminWorkouts() {
                     <option value="shoulders">Shoulders</option>
                     <option value="full_body">Full Body</option>
                     <option value="stretching">Stretching</option>
+                    <option value="quadriceps">Quadriceps</option>
+                    <option value="hamstrings">Hamstrings</option>
+                    <option value="glutes">Glutes</option>
+                    <option value="calves">Calves</option>
+                    <option value="biceps">Biceps</option>
+                    <option value="triceps">Triceps</option>
+                    <option value="abs">Abs</option>
+                    <option value="lower_back">Lower Back</option>
+                    <option value="upper_back">Upper Back</option>
+                    <option value="cardio">Cardio</option>
+                    <option value="plyometrics">Plyometrics</option>
+                    <option value="yoga">Yoga</option>
+                    <option value="pilates">Pilates</option>
                   </select>
                 </div>
               </div>
@@ -971,15 +1050,25 @@ export default function AdminWorkouts() {
                 </label>
                 <input
                   type="file"
-                  accept="image/*,.gif"
+                  accept="image/*,.gif,.json,application/json"
                   onChange={handleFileChange}
                   className="w-full px-3 py-2 rounded-lg border"
                   style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border, color: theme.colors.text }}
                 />
-                {animationPreview && (
+                {lottieData && (
                   <div className="mt-2">
                     <p className="text-xs mb-1" style={{ color: theme.colors.textSecondary }}>
-                      {animationFile ? 'New image:' : 'Current image:'}
+                      {animationFile ? 'New animation:' : 'Current animation:'}
+                    </p>
+                    <div className="w-32 h-32 rounded-lg overflow-hidden" style={{ backgroundColor: theme.colors.background }}>
+                      <Lottie animationData={lottieData} loop autoplay style={{ width: '100%', height: '100%' }} />
+                    </div>
+                  </div>
+                )}
+                {!lottieData && animationPreview && (
+                  <div className="mt-2">
+                    <p className="text-xs mb-1" style={{ color: theme.colors.textSecondary }}>
+                      {animationFile ? 'New image:' : 'Current animation:'}
                     </p>
                     <img src={animationPreview} alt="Preview" className="w-32 h-32 object-cover rounded-lg" />
                   </div>

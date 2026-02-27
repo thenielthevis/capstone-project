@@ -253,7 +253,7 @@ export interface GeoActivityStats {
 export interface Workout {
   _id: string;
   category: 'bodyweight' | 'equipment';
-  type: 'chest' | 'arms' | 'legs' | 'core' | 'back' | 'shoulders' | 'full_body' | 'stretching';
+  type: 'chest' | 'arms' | 'legs' | 'core' | 'back' | 'shoulders' | 'full_body' | 'stretching' | 'quadriceps' | 'hamstrings' | 'glutes' | 'calves' | 'biceps' | 'triceps' | 'abs' | 'lower_back' | 'upper_back' | 'cardio' | 'plyometrics' | 'yoga' | 'pilates';
   name: string;
   description: string;
   animation_url?: string;
@@ -684,7 +684,7 @@ class AdminAPI {
    */
   async createWorkout(workoutData: {
     category: 'bodyweight' | 'equipment';
-    type: 'chest' | 'arms' | 'legs' | 'core' | 'back' | 'shoulders' | 'full_body' | 'stretching';
+    type: 'chest' | 'arms' | 'legs' | 'core' | 'back' | 'shoulders' | 'full_body' | 'stretching' | 'quadriceps' | 'hamstrings' | 'glutes' | 'calves' | 'biceps' | 'triceps' | 'abs' | 'lower_back' | 'upper_back' | 'cardio' | 'plyometrics' | 'yoga' | 'pilates';
     name: string;
     description?: string;
     equipment_needed?: string;
@@ -724,7 +724,7 @@ class AdminAPI {
     workoutId: string,
     workoutData: {
       category?: 'bodyweight' | 'equipment';
-      type?: 'chest' | 'arms' | 'legs' | 'core' | 'back' | 'shoulders' | 'full_body' | 'stretching';
+      type?: 'chest' | 'arms' | 'legs' | 'core' | 'back' | 'shoulders' | 'full_body' | 'stretching' | 'quadriceps' | 'hamstrings' | 'glutes' | 'calves' | 'biceps' | 'triceps' | 'abs' | 'lower_back' | 'upper_back' | 'cardio' | 'plyometrics' | 'yoga' | 'pilates';
       name?: string;
       description?: string;
       equipment_needed?: string;
