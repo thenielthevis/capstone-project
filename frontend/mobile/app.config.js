@@ -59,6 +59,10 @@ export default {
         {
           icon: "./assets/images/icon.png",
           backgroundColor: "#ffffff",
+          sound: true,
+          vibrate: true,
+          priority: "high",
+          channelId: "default"
         }
       ],
       "expo-background-fetch",
@@ -87,7 +91,11 @@ export default {
         projectId: "6b89e6f9-8ac6-494a-80d4-21ed8413e4ed"
       },
       MAPTILER_KEY: process.env.EXPO_PUBLIC_MAPTILER_KEY,
-      geminiApiKey: process.env.EXPO_PUBLIC_GEMINI_API_KEY
+      geminiApiKey: process.env.EXPO_PUBLIC_GEMINI_API_KEY,
+      geminiApiKey2: process.env.EXPO_PUBLIC_GEMINI_API_KEY2,
+      geminiApiKey3: process.env.EXPO_PUBLIC_GEMINI_API_KEY3,
+      geminiApiKey4: process.env.EXPO_PUBLIC_GEMINI_API_KEY4,
+      geminiApiKey5: process.env.EXPO_PUBLIC_GEMINI_API_KEY5,
     },
     owner: "capstone.project"
   }

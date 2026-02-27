@@ -6,22 +6,23 @@ import Constants from 'expo-constants';
 // When a key hits its quota, the next key is used automatically.
 const API_KEYS: string[] = (() => {
   const keys: string[] = [];
+  const extra = Constants.expoConfig?.extra;
   // Primary key
-  const primary = Constants.expoConfig?.extra?.geminiApiKey || process.env.EXPO_PUBLIC_GEMINI_API_KEY;
+  const primary = extra?.geminiApiKey || process.env.EXPO_PUBLIC_GEMINI_API_KEY;
   if (primary) keys.push(primary);
-  // Additional keys: EXPO_PUBLIC_GEMINI_API_KEY2 through EXPO_PUBLIC_GEMINI_API_KEY10
-  const envKeys: Record<string, string | undefined> = {
-    '2': process.env.EXPO_PUBLIC_GEMINI_API_KEY2,
-    '3': process.env.EXPO_PUBLIC_GEMINI_API_KEY3,
-    '4': process.env.EXPO_PUBLIC_GEMINI_API_KEY4,
-    '5': process.env.EXPO_PUBLIC_GEMINI_API_KEY5,
-    '6': process.env.EXPO_PUBLIC_GEMINI_API_KEY6,
-    '7': process.env.EXPO_PUBLIC_GEMINI_API_KEY7,
-    '8': process.env.EXPO_PUBLIC_GEMINI_API_KEY8,
-    '9': process.env.EXPO_PUBLIC_GEMINI_API_KEY9,
-    '10': process.env.EXPO_PUBLIC_GEMINI_API_KEY10,
-  };
-  for (const k of Object.values(envKeys)) {
+  // Additional keys: read from Constants.extra (production) or process.env (dev)
+  const extraKeys = [
+    extra?.geminiApiKey2 || process.env.EXPO_PUBLIC_GEMINI_API_KEY2,
+    extra?.geminiApiKey3 || process.env.EXPO_PUBLIC_GEMINI_API_KEY3,
+    extra?.geminiApiKey4 || process.env.EXPO_PUBLIC_GEMINI_API_KEY4,
+    extra?.geminiApiKey5 || process.env.EXPO_PUBLIC_GEMINI_API_KEY5,
+    process.env.EXPO_PUBLIC_GEMINI_API_KEY6,
+    process.env.EXPO_PUBLIC_GEMINI_API_KEY7,
+    process.env.EXPO_PUBLIC_GEMINI_API_KEY8,
+    process.env.EXPO_PUBLIC_GEMINI_API_KEY9,
+    process.env.EXPO_PUBLIC_GEMINI_API_KEY10,
+  ];
+  for (const k of extraKeys) {
     if (k) keys.push(k);
   }
   return keys;
