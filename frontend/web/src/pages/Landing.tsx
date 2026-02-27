@@ -65,14 +65,21 @@ const images = {
 
 export default function Landing() {
   const { theme } = useTheme();
-  const { loginAsGuest, user, isAuthenticated } = useAuth();
+  const { loginAsGuest, logout, user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState('home');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Redirect authenticated users to dashboard
+  const navigateToAuth = (path: string) => {
+    if (user?.isGuest) {
+      logout();
+    }
+    navigate(path);
+  };
+
+  // Redirect authenticated users to dashboard (skip guests — they navigate to a specific feature)
   useEffect(() => {
-    if (isAuthenticated && user) {
+    if (isAuthenticated && user && !user.isGuest) {
       if (user.role === 'admin') {
         navigate('/admin/dashboard', { replace: true });
       } else {
@@ -134,13 +141,13 @@ export default function Landing() {
             <div className="hidden md:flex items-center gap-3">
               <Button
                 variant="ghost"
-                onClick={() => window.location.href = '/login'}
+                onClick={() => navigateToAuth('/login')}
                 className="text-sm font-medium"
               >
                 Login
               </Button>
               <Button
-                onClick={() => window.location.href = '/register'}
+                onClick={() => navigateToAuth('/register')}
                 className="text-sm font-medium rounded-full px-6"
                 style={{ backgroundColor: theme.colors.primary, color: '#FFFFFF' }}
               >
@@ -174,10 +181,10 @@ export default function Landing() {
                   </Button>
                 ))}
                 <div className="flex flex-col gap-2 pt-2 mt-2" style={{ borderTop: `1px solid ${theme.colors.border}` }}>
-                  <Button variant="ghost" onClick={() => window.location.href = '/login'}>
+                  <Button variant="ghost" onClick={() => navigateToAuth('/login')}>
                     Login
                   </Button>
-                  <Button onClick={() => window.location.href = '/register'} style={{ backgroundColor: theme.colors.primary, color: '#FFFFFF' }}>
+                  <Button onClick={() => navigateToAuth('/register')} style={{ backgroundColor: theme.colors.primary, color: '#FFFFFF' }}>
                     Start for free
                   </Button>
                 </div>
@@ -211,7 +218,7 @@ export default function Landing() {
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Button
                     size="lg"
-                    onClick={() => window.location.href = '/register'}
+                    onClick={() => navigateToAuth('/register')}
                     className="text-base h-14 px-8 rounded-full font-medium shadow-lg btn-cta"
                     style={{ backgroundColor: theme.colors.primary, color: '#FFFFFF' }}
                   >
@@ -412,7 +419,7 @@ export default function Landing() {
               <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
                 <Button
                   size="lg"
-                  onClick={() => window.location.href = '/register'}
+                  onClick={() => navigateToAuth('/register')}
                   className="text-base h-14 px-10 border-2 rounded-full font-semibold btn-cta"
                   style={{ borderColor: '#FFFFFF', backgroundColor: theme.colors.primary, color: '#FFFFFF' }}
                 >
