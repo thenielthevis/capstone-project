@@ -675,7 +675,8 @@ export default function Home() {
                             initialImages: post.images,
                             initialVisibility: post.visibility,
                             title: post.title,
-                            initialTags: post.tags ? JSON.stringify(post.tags) : undefined
+                            initialTags: post.tags ? JSON.stringify(post.tags) : undefined,
+                            type: post.reference?.item_type
                           }
                         } as any);
                       }}

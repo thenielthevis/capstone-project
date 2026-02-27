@@ -265,10 +265,12 @@ export default function InsightsScreen() {
                 }}
                 refreshControl={
                     <RefreshControl
-                        refreshing={refreshing}
-                        onRefresh={onRefresh}
-                        tintColor={theme.colors.primary}
-                    />
+                    refreshing={refreshing}
+                    onRefresh={onRefresh}
+                    tintColor={theme.colors.primary}
+                    colors={[theme.colors.primary]}
+                    progressBackgroundColor={theme.colors.surface}
+                />
                 }
                 showsVerticalScrollIndicator={false}
             >
