@@ -298,7 +298,11 @@ function AnalysisDashboardContent() {
       }
       case "risks": {
         const preds = predictions || (contextUserData.lastPrediction?.predictions as Array<{ probability: number }> | undefined) || [];
-        const activeCount = preds.filter(p => p.probability > 0).length;
+        const RISK_THRESHOLD = 30;
+        const activeCount = preds.filter(p => {
+          const prob = p.probability <= 1 ? p.probability * 100 : p.probability;
+          return prob >= RISK_THRESHOLD;
+        }).length;
         if (activeCount === 0) return "No Risks";
         return `${activeCount} Risk${activeCount > 1 ? 's' : ''} Found`;
       }

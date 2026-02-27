@@ -2562,7 +2562,6 @@ export default function Food() {
 
         <ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
           refreshControl={
           <RefreshControl

@@ -123,7 +123,7 @@ export default function SettingsScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
+        contentContainerStyle={{ paddingHorizontal: 20 }}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}

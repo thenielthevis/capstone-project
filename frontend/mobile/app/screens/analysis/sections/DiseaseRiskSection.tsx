@@ -116,8 +116,8 @@ export const DiseaseRiskSection: React.FC<DiseaseRiskSectionProps> = ({ expanded
     // Narrow the type and handle possible nulls safely
     const predictionsSource = predictions || (userData?.lastPrediction as any)?.predictions || [];
 
-    // Filter out predictions with 0% probability and map to include metadata
-    const diseases = (predictionsSource as Array<{ name: string; probability: number }>)
+    // Map all predictions and normalize probabilities
+    const allDiseases = (predictionsSource as Array<{ name: string; probability: number }>)
         .filter((p: { name: string; probability: number }) => p.probability > 0)
         .map((p: { name: string; probability: number }) => {
             const meta = DISEASE_METADATA[p.name] || {
@@ -137,6 +137,11 @@ export const DiseaseRiskSection: React.FC<DiseaseRiskSectionProps> = ({ expanded
                 probability: probPercent
             };
         });
+
+    // Only show conditions with moderate risk or above (≥30%)
+    const RISK_THRESHOLD = 30;
+    const diseases = allDiseases.filter((d) => d.probability >= RISK_THRESHOLD);
+    const lowRiskCount = allDiseases.length - diseases.length;
 
     const highRiskCount = diseases.filter((p: any) => p.probability >= 50).length;
     const avgRisk = diseases.length
@@ -169,6 +174,18 @@ export const DiseaseRiskSection: React.FC<DiseaseRiskSectionProps> = ({ expanded
                     These predictions are based on your health data analysis. They are NOT a diagnosis. Please consult with healthcare professionals for proper evaluation.
                 </Text>
             </View>
+
+            {/* Low Risk Summary */}
+            {diseases.length === 0 && lowRiskCount > 0 && (
+                <View style={[styles.preventionCard, { backgroundColor: theme.mode === 'dark' ? "#1a381cff" : "#E8F5E9", borderLeftColor: theme.colors.success }]}>
+                    <Text style={[styles.preventionTitle, { color: theme.colors.success }]}>
+                        <MaterialCommunityIcons name="shield-check" size={16} color={theme.colors.success} /> Looking Good!
+                    </Text>
+                    <Text style={[styles.preventionText, { color: theme.colors.text }]}>
+                        All {lowRiskCount} screened conditions are below the moderate risk threshold. Keep maintaining your healthy lifestyle!
+                    </Text>
+                </View>
+            )}
 
             {/* Disease List Card */}
             {diseases.length > 0 && (
@@ -391,6 +408,11 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontFamily: fontFamilies.poppinsRegular,
         lineHeight: 14,
+    },
+    lowRiskNote: {
+        fontSize: fontSizes.xs,
+        fontFamily: fontFamilies.poppinsRegular,
+        marginBottom: 12,
     },
 });
 

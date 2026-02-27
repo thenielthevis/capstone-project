@@ -54,6 +54,7 @@ const features = [
         description: "Track user activities such as walking, running, or cycling using real-time location data.",
         images: [
             require("../../../assets/images/features/carousel-geo1.jpg"),
+            require("../../../assets/images/features/carousel-geo2.png"),
         ],
         color: "#38b6ff",
         guestPath: "/screens/record/Activity"
@@ -113,9 +114,10 @@ const features = [
         subtitle: "Social Wellness",
         description: "Connect, share achievements, and participate in challenges with friends.",
         images: [
-            require("../../../assets/images/features/carousel-network1.jpg"),
-            require("../../../assets/images/features/carousel-network2.jpg"),
-            require("../../../assets/images/features/carousel-network3.jpg"),
+            require("../../../assets/images/features/carousel-network1.png"),
+            require("../../../assets/images/features/carousel-network2.png"),
+            require("../../../assets/images/features/carousel-network3.png"),
+            require("../../../assets/images/features/carousel-network4.png"),
         ],
         color: "#ec4899",
     },
@@ -127,7 +129,11 @@ const AutoRotatingImages = ({ images, featureId }: { images: any[]; featureId: s
     const fadeAnim = useRef(new Animated.Value(1)).current;
     const imageHeight = SCREEN_HEIGHT * 0.55;
 
+    // Reset index and start rotation when feature changes
     useEffect(() => {
+        setActiveIndex(0);
+        fadeAnim.setValue(1);
+
         if (images.length <= 1) return;
 
         const interval = setInterval(() => {
@@ -149,18 +155,15 @@ const AutoRotatingImages = ({ images, featureId }: { images: any[]; featureId: s
         }, 2000);
 
         return () => clearInterval(interval);
-    }, [images.length, featureId]);
-
-    // Reset index when feature changes
-    useEffect(() => {
-        setActiveIndex(0);
-        fadeAnim.setValue(1);
     }, [featureId]);
+
+    // Guard against out-of-bounds index during transitions
+    const safeIndex = activeIndex < images.length ? activeIndex : 0;
 
     return (
         <View style={{ height: imageHeight, width: SCREEN_WIDTH }}>
             <Animated.Image
-                source={images[activeIndex]}
+                source={images[safeIndex]}
                 style={{
                     width: SCREEN_WIDTH,
                     height: imageHeight,
