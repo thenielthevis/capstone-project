@@ -153,11 +153,26 @@ const updateUserGamificationStats = async (userId, options = {}) => {
         }
 
         // ---------------------------------------------------------
+        // 3b. Apply Nutrition Floor (safety net for edge cases)
+        // ---------------------------------------------------------
+        // Gemini now judges food QUALITY (healthiness) not total intake vs goal,
+        // so scores should be fairer. This floor is a safety net for edge cases
+        // (e.g. Gemini returning unexpectedly low scores).
+        const foodLogCount = foodLogs.length;
+        const nutritionFloor = Math.min(10 + (foodLogCount * 3), 40);  // 13 for 1 food, up to 40
+        if ((scores.nutrition || 0) < nutritionFloor) {
+            console.log(`[Gamification] Nutrition floor applied: AI=${scores.nutrition}, floor=${nutritionFloor}`);
+            scores.nutrition = nutritionFloor;
+        }
+
+        // ---------------------------------------------------------
         // 4. Calculate and Award Coins
         // ---------------------------------------------------------
         const activityCoins = Math.floor(totalCaloriesBurned / 10);
         const nutritionCoins = Math.floor((scores.nutrition || 0) / 2);
-        const totalTargetCoins = activityCoins + nutritionCoins;
+        // Base coin reward per food log so every log feels rewarding
+        const foodLogCoins = foodLogCount * 3;
+        const totalTargetCoins = activityCoins + nutritionCoins + foodLogCoins;
 
         // Find or create today's entry in dailyCalorieBalance to track daily coins
         let dailyEntry = user.dailyCalorieBalance.find(e => {

@@ -1,13 +1,109 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import Constants from 'expo-constants';
 
-const API_KEY = Constants.expoConfig?.extra?.geminiApiKey || process.env.EXPO_PUBLIC_GEMINI_API_KEY;
+// ── Gemini API Key Rotation ──────────────────────────────────────────
+// Collects all EXPO_PUBLIC_GEMINI_API_KEY, EXPO_PUBLIC_GEMINI_API_KEY2, etc.
+// When a key hits its quota, the next key is used automatically.
+const API_KEYS: string[] = (() => {
+  const keys: string[] = [];
+  // Primary key
+  const primary = Constants.expoConfig?.extra?.geminiApiKey || process.env.EXPO_PUBLIC_GEMINI_API_KEY;
+  if (primary) keys.push(primary);
+  // Additional keys: EXPO_PUBLIC_GEMINI_API_KEY2 through EXPO_PUBLIC_GEMINI_API_KEY10
+  const envKeys: Record<string, string | undefined> = {
+    '2': process.env.EXPO_PUBLIC_GEMINI_API_KEY2,
+    '3': process.env.EXPO_PUBLIC_GEMINI_API_KEY3,
+    '4': process.env.EXPO_PUBLIC_GEMINI_API_KEY4,
+    '5': process.env.EXPO_PUBLIC_GEMINI_API_KEY5,
+    '6': process.env.EXPO_PUBLIC_GEMINI_API_KEY6,
+    '7': process.env.EXPO_PUBLIC_GEMINI_API_KEY7,
+    '8': process.env.EXPO_PUBLIC_GEMINI_API_KEY8,
+    '9': process.env.EXPO_PUBLIC_GEMINI_API_KEY9,
+    '10': process.env.EXPO_PUBLIC_GEMINI_API_KEY10,
+  };
+  for (const k of Object.values(envKeys)) {
+    if (k) keys.push(k);
+  }
+  return keys;
+})();
 
-if (!API_KEY) {
+if (API_KEYS.length === 0) {
   console.error('Gemini API key is not set. Please add EXPO_PUBLIC_GEMINI_API_KEY to your .env file');
 }
 
-const genAI = new GoogleGenerativeAI(API_KEY || '');
+console.log(`[Gemini] Loaded ${API_KEYS.length} API key(s) for rotation`);
+
+// Key rotation state
+let currentKeyIndex = 0;
+
+function getCurrentGenAI(): GoogleGenerativeAI {
+  if (API_KEYS.length === 0) return new GoogleGenerativeAI('');
+  return new GoogleGenerativeAI(API_KEYS[currentKeyIndex]);
+}
+
+function isQuotaError(error: any): boolean {
+  const msg = error?.message?.toLowerCase() || '';
+  const status = error?.status || error?.httpStatusCode;
+  return (
+    status === 429 ||
+    msg.includes('quota') ||
+    msg.includes('rate limit') ||
+    msg.includes('resource exhausted') ||
+    msg.includes('too many requests')
+  );
+}
+
+/**
+ * Rotate to the next API key. Returns true if a new key is available, false if all keys exhausted.
+ */
+function rotateApiKey(): boolean {
+  if (API_KEYS.length <= 1) return false;
+  const nextIndex = (currentKeyIndex + 1) % API_KEYS.length;
+  // If we've cycled back to the first key, all keys are exhausted
+  if (nextIndex === 0) {
+    console.warn('[Gemini] All API keys exhausted — no more keys to rotate to');
+    return false;
+  }
+  currentKeyIndex = nextIndex;
+  console.log(`[Gemini] Rotated to API key #${currentKeyIndex + 1}`);
+  return true;
+}
+
+/**
+ * Execute a Gemini API call with automatic key rotation on quota errors.
+ * Retries the call with the next available key if the current one is exhausted.
+ */
+async function withKeyRotation<T>(fn: (genAI: GoogleGenerativeAI) => Promise<T>): Promise<T> {
+  const startIndex = currentKeyIndex;
+  let lastError: any;
+
+  for (let attempts = 0; attempts < API_KEYS.length; attempts++) {
+    try {
+      console.log(`[Gemini] Using API key #${currentKeyIndex + 1} (ending ...${API_KEYS[currentKeyIndex]?.slice(-4) || '????'})`);
+      return await fn(getCurrentGenAI());
+    } catch (error: any) {
+      lastError = error;
+      if (isQuotaError(error)) {
+        console.warn(`[Gemini] Key #${currentKeyIndex + 1} quota exhausted`);
+        if (!rotateApiKey() || currentKeyIndex === startIndex) {
+          // All keys tried
+          break;
+        }
+        // Retry with next key
+        continue;
+      }
+      // Non-quota error — don't retry
+      throw error;
+    }
+  }
+
+  // All keys exhausted
+  throw lastError;
+}
+
+// Keep a backward-compatible reference (used by code that checks `if (!API_KEY)`)
+const API_KEY = API_KEYS.length > 0 ? API_KEYS[0] : undefined;
+const genAI = getCurrentGenAI();
 
 interface NutritionData {
   protein: number;
@@ -89,13 +185,15 @@ export async function generateChecklist(metricId: string, context: any = {}): Pr
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+    const { text } = await withKeyRotation(async (ai) => {
+      const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
-    const prompt = `Generate a concise checklist (3-8 items) of actionable, user-friendly steps the user can take to improve or monitor their ${metricId} metric. Return only a JSON array of strings, for example:\n["Item 1","Item 2"]\n\nInclude simple, practical items and avoid medical advice. Use the provided context if available: ${JSON.stringify(context)}`;
+      const prompt = `Generate a concise checklist (3-8 items) of actionable, user-friendly steps the user can take to improve or monitor their ${metricId} metric. Return only a JSON array of strings, for example:\n["Item 1","Item 2"]\n\nInclude simple, practical items and avoid medical advice. Use the provided context if available: ${JSON.stringify(context)}`;
 
-    const result = await model.generateContent([prompt]);
-    const response = await result.response;
-    const text = response.text();
+      const result = await model.generateContent([prompt]);
+      const response = await result.response;
+      return { text: response.text() };
+    });
 
     // Try to parse JSON from model output
     try {
@@ -241,8 +339,6 @@ export async function analyzeFood(
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
-
     const imagePart = await imageToGenerativePart(base64Image, mimeType);
 
     const dishContext = dishName ? `\nThe user indicated this is: "${dishName}". Use this as context to help with identification.` : '';
@@ -370,9 +466,12 @@ Analyze this food image and provide the following information in JSON format:${d
     Provide at least 2-3 healthy alternatives when possible, with specific nutritional reasons.
     Return ONLY valid JSON, no additional text or markdown.`;
 
-    const result = await model.generateContent([prompt, imagePart]);
-    const response = await result.response;
-    const text = response.text();
+    const text = await withKeyRotation(async (ai) => {
+      const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+      const result = await model.generateContent([prompt, imagePart]);
+      const response = await result.response;
+      return response.text();
+    });
 
     try {
       const cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
@@ -429,7 +528,7 @@ Analyze this food image and provide the following information in JSON format:${d
     if (error.message?.includes('API key')) {
       throw new Error('Invalid API key. Please check your Gemini API key.');
     } else if (error.message?.includes('quota')) {
-      throw new Error('API quota exceeded. Please try again later.');
+      throw new Error('All API keys exhausted. Please try again later.');
     } else {
       throw new Error('Failed to analyze image. Please try again.');
     }
@@ -449,8 +548,6 @@ export async function analyzeIngredients(
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
-
     const dishContext = dishName ? `\nDish Name: ${dishName}` : '';
     const allergyContext = allergyInfo.length > 0 ? `\nUser has the following allergies/dietary restrictions: ${allergyInfo.join(', ')}. Check if any ingredients contain these allergens.` : '';
 
@@ -540,9 +637,12 @@ Calculate the total nutritional values for all listed ingredients combined.
     Provide at least 2-3 healthy alternatives or ingredient substitutions when possible, with specific nutritional reasons.
     Return ONLY valid JSON, no additional text or markdown.`;
 
-    const result = await model.generateContent([prompt]);
-    const response = await result.response;
-    const text = response.text();
+    const text = await withKeyRotation(async (ai) => {
+      const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+      const result = await model.generateContent([prompt]);
+      const response = await result.response;
+      return response.text();
+    });
 
     try {
       const cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
@@ -599,7 +699,7 @@ Calculate the total nutritional values for all listed ingredients combined.
     if (error.message?.includes('API key')) {
       throw new Error('Invalid API key. Please check your Gemini API key.');
     } else if (error.message?.includes('quota')) {
-      throw new Error('API quota exceeded. Please try again later.');
+      throw new Error('All API keys exhausted. Please try again later.');
     } else {
       throw new Error('Failed to analyze ingredients. Please try again.');
     }
@@ -657,8 +757,6 @@ export async function generateProgram(
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
-
     const categoriesContext = preferences.selectedCategories.length > 0
       ? `Categories: ${preferences.selectedCategories.join(', ')}`
       : 'Any category';
@@ -768,9 +866,12 @@ GUIDELINES:
 
 Return ONLY valid JSON, no additional text or markdown.`;
 
-    const result = await model.generateContent([prompt]);
-    const response = await result.response;
-    const text = response.text();
+    const text = await withKeyRotation(async (ai) => {
+      const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+      const result = await model.generateContent([prompt]);
+      const response = await result.response;
+      return response.text();
+    });
 
     try {
       const cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
@@ -794,7 +895,7 @@ Return ONLY valid JSON, no additional text or markdown.`;
     if (error.message?.includes('API key')) {
       throw new Error('Invalid API key. Please check your Gemini API key.');
     } else if (error.message?.includes('quota')) {
-      throw new Error('API quota exceeded. Please try again later.');
+      throw new Error('All API keys exhausted. Please try again later.');
     } else {
       throw new Error(error.message || 'Failed to generate program. Please try again.');
     }
@@ -875,8 +976,6 @@ export async function analyzeMultipleDishes(
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
-
     // Analyze each dish
     const dishResults: DishAnalysisResult[] = [];
 
@@ -985,9 +1084,12 @@ Provide the response in this exact JSON format:
 
 Return ONLY valid JSON, no additional text or markdown.`;
 
-      const result = await model.generateContent([prompt, ...imageParts]);
-      const response = await result.response;
-      const text = response.text();
+      const text = await withKeyRotation(async (ai) => {
+        const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+        const result = await model.generateContent([prompt, ...imageParts]);
+        const response = await result.response;
+        return response.text();
+      });
 
       try {
         const cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
@@ -1074,7 +1176,7 @@ Return ONLY valid JSON, no additional text or markdown.`;
     if (error.message?.includes('API key')) {
       throw new Error('Invalid API key. Please check your Gemini API key.');
     } else if (error.message?.includes('quota')) {
-      throw new Error('API quota exceeded. Please try again later.');
+      throw new Error('All API keys exhausted. Please try again later.');
     } else {
       throw new Error(error.message || 'Failed to analyze dishes. Please try again.');
     }

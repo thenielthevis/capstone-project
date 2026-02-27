@@ -80,10 +80,10 @@ const MiniCalorieProgress = ({
     calorieBalance.status === 'over' ? '#ef4444' : theme.colors.primary;
   const remaining = Math.max(0, calorieBalance.goal_kcal - calorieBalance.consumed_kcal + calorieBalance.burned_kcal);
 
-  const proteinConsumed = calorieBalance.consumed_protein_g || 0;
-  const proteinGoal = calorieBalance.goal_protein_g || 0;
+  const proteinConsumed = Math.round(calorieBalance.consumed_protein_g || 0);
+  const proteinGoal = Math.round(calorieBalance.goal_protein_g || 0);
   const proteinPercentage = proteinGoal > 0 ? Math.min((proteinConsumed / proteinGoal) * 100, 100) : 0;
-  const proteinRemaining = Math.max(0, proteinGoal - proteinConsumed);
+  const proteinRemaining = Math.round(Math.max(0, proteinGoal - proteinConsumed));
 
   return (
     <View style={{
@@ -947,26 +947,22 @@ export default function Food() {
           const newNutritionValue = profileAfter.profile?.gamification?.batteries?.[0]?.nutrition || 0;
           console.log('[Food] New nutrition battery:', newNutritionValue);
 
-          // Show animation if value changed
-          if (newNutritionValue !== previousNutritionValue) {
-            const coins = profileAfter.profile?.gamification?.coins || 0;
-            // Estimate coins awarded based on nutrition score change
-            const coinsAwarded = Math.floor((newNutritionValue - previousNutritionValue) / 2);
-            setGamificationData({
-              previousBattery: previousNutritionValue,
-              newBattery: newNutritionValue,
-              coinsAwarded: coinsAwarded > 0 ? coinsAwarded : 0,
-              totalCoins: coins,
-              label: 'Nutrition',
-            });
-            setShowGamificationAnimation(true);
-          }
+          const coins = profileAfter.profile?.gamification?.coins || 0;
+          const coinsAwarded = Math.max(0, Math.floor((newNutritionValue - previousNutritionValue) / 2));
+          setGamificationData({
+            previousBattery: previousNutritionValue,
+            newBattery: newNutritionValue,
+            coinsAwarded,
+            totalCoins: coins,
+            label: 'Nutrition',
+          });
+          setShowGamificationAnimation(true);
         } catch (err) {
           console.warn('[Food] Could not fetch profile after save:', err);
         } finally {
           setIsCalculating(false);
         }
-      }, 2000); // Wait 2 seconds for backend processing
+      }, 3000); // Wait 3 seconds for backend processing
 
     } catch (err: any) {
       console.error('Error saving food log:', err);

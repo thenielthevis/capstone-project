@@ -1,13 +1,83 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { getNutritionData } from './fatSecretService'
 
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY
+// ── Gemini API Key Rotation ──────────────────────────────────────────
+// Collects all VITE_GEMINI_API_KEY, VITE_GEMINI_API_KEY2, etc.
+// When a key hits its quota, the next key is used automatically.
+const API_KEYS: string[] = (() => {
+  const keys: string[] = []
+  const env = import.meta.env
+  // Primary key
+  if (env.VITE_GEMINI_API_KEY) keys.push(env.VITE_GEMINI_API_KEY)
+  // Additional keys: VITE_GEMINI_API_KEY2 through VITE_GEMINI_API_KEY10
+  for (let i = 2; i <= 10; i++) {
+    const k = env[`VITE_GEMINI_API_KEY${i}`]
+    if (k) keys.push(k)
+  }
+  return keys
+})()
 
-if (!API_KEY) {
+if (API_KEYS.length === 0) {
   console.error('Gemini API key is not set. Please add VITE_GEMINI_API_KEY to your .env file')
 }
 
-const genAI = new GoogleGenerativeAI(API_KEY)
+console.log(`[Gemini] Loaded ${API_KEYS.length} API key(s) for rotation`)
+
+// Key rotation state
+let currentKeyIndex = 0
+
+function getCurrentGenAI(): GoogleGenerativeAI {
+  if (API_KEYS.length === 0) return new GoogleGenerativeAI('')
+  return new GoogleGenerativeAI(API_KEYS[currentKeyIndex])
+}
+
+function isQuotaError(error: any): boolean {
+  const msg = error?.message?.toLowerCase() || ''
+  const status = error?.status || error?.httpStatusCode
+  return (
+    status === 429 ||
+    msg.includes('quota') ||
+    msg.includes('rate limit') ||
+    msg.includes('resource exhausted') ||
+    msg.includes('too many requests')
+  )
+}
+
+function rotateApiKey(): boolean {
+  if (API_KEYS.length <= 1) return false
+  const nextIndex = (currentKeyIndex + 1) % API_KEYS.length
+  if (nextIndex === 0) {
+    console.warn('[Gemini] All API keys exhausted')
+    return false
+  }
+  currentKeyIndex = nextIndex
+  console.log(`[Gemini] Rotated to API key #${currentKeyIndex + 1}`)
+  return true
+}
+
+async function withKeyRotation<T>(fn: (genAI: GoogleGenerativeAI) => Promise<T>): Promise<T> {
+  const startIndex = currentKeyIndex
+  let lastError: any
+
+  for (let attempts = 0; attempts < API_KEYS.length; attempts++) {
+    try {
+      console.log(`[Gemini] Using API key #${currentKeyIndex + 1} (ending ...${API_KEYS[currentKeyIndex]?.slice(-4) || '????'})`)
+      return await fn(getCurrentGenAI())
+    } catch (error: any) {
+      lastError = error
+      if (isQuotaError(error)) {
+        console.warn(`[Gemini] Key #${currentKeyIndex + 1} quota exhausted`)
+        if (!rotateApiKey() || currentKeyIndex === startIndex) break
+        continue
+      }
+      throw error
+    }
+  }
+  throw lastError
+}
+
+// Backward-compatible reference
+const API_KEY = API_KEYS.length > 0 ? API_KEYS[0] : undefined
 
 /**
  * Convert file to base64 string
@@ -39,9 +109,6 @@ export async function analyzeFood(imageFile: File, dishName: string = '', allerg
   }
 
   try {
-    // Get the generative model (Gemini 1.5 Flash supports image analysis and is more stable)
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' })
-
     // Convert image to format Gemini can process
     const imagePart = await fileToGenerativePart(imageFile)
 
@@ -132,9 +199,12 @@ export async function analyzeFood(imageFile: File, dishName: string = '', allerg
     Return ONLY valid JSON, no additional text or markdown.`
 
     // Generate content with both text and image
-    const result = await model.generateContent([prompt, imagePart as any])
-    const response = await result.response
-    const text = response.text()
+    const text = await withKeyRotation(async (ai) => {
+      const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash-lite' })
+      const result = await model.generateContent([prompt, imagePart as any])
+      const response = await result.response
+      return response.text()
+    })
 
     // Parse the JSON response
     try {
@@ -277,7 +347,7 @@ export async function analyzeFood(imageFile: File, dishName: string = '', allerg
     if (error.message?.includes('API key')) {
       throw new Error('Invalid API key. Please check your Gemini API key.')
     } else if (error.message?.includes('quota')) {
-      throw new Error('API quota exceeded. Please try again later.')
+      throw new Error('All API keys exhausted. Please try again later.')
     } else {
       throw new Error('Failed to analyze image. Please try again.')
     }
@@ -293,8 +363,6 @@ export async function analyzeIngredients(ingredientsList: string, dishName: stri
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' })
-
     const dishContext = dishName ? `\nDish Name: ${dishName}` : '';
     const allergyContext = allergyInfo.length > 0 ? `\nUser has the following allergies/dietary restrictions: ${allergyInfo.join(', ')}. Check if any ingredients contain these allergens.` : '';
     
@@ -361,9 +429,12 @@ Provide 2-3 recipeLinks using Google search:
     Provide at least 2-3 healthy alternatives or ingredient substitutions when possible, with specific nutritional reasons.
     Return ONLY valid JSON, no additional text or markdown.`
 
-    const result = await model.generateContent([prompt])
-    const response = await result.response
-    const text = response.text()
+    const text = await withKeyRotation(async (ai) => {
+      const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash-lite' })
+      const result = await model.generateContent([prompt])
+      const response = await result.response
+      return response.text()
+    })
 
     try {
       const cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
@@ -431,7 +502,7 @@ Provide 2-3 recipeLinks using Google search:
     if (error.message?.includes('API key')) {
       throw new Error('Invalid API key. Please check your Gemini API key.')
     } else if (error.message?.includes('quota')) {
-      throw new Error('API quota exceeded. Please try again later.')
+      throw new Error('All API keys exhausted. Please try again later.')
     } else {
       throw new Error('Failed to analyze ingredients. Please try again.')
     }
@@ -490,8 +561,6 @@ export async function generateProgram(
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' })
-
     const categoriesContext = preferences.selectedCategories.length > 0 
       ? `Categories: ${preferences.selectedCategories.join(', ')}`
       : 'Any category';
@@ -598,9 +667,12 @@ GUIDELINES:
 
 Return ONLY valid JSON, no additional text or markdown.`;
 
-    const result = await model.generateContent([prompt])
-    const response = await result.response
-    const text = response.text()
+    const text = await withKeyRotation(async (ai) => {
+      const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash-lite' })
+      const result = await model.generateContent([prompt])
+      const response = await result.response
+      return response.text()
+    })
 
     try {
       const cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
@@ -624,7 +696,7 @@ Return ONLY valid JSON, no additional text or markdown.`;
     if (error.message?.includes('API key')) {
       throw new Error('Invalid API key. Please check your Gemini API key.')
     } else if (error.message?.includes('quota')) {
-      throw new Error('API quota exceeded. Please try again later.')
+      throw new Error('All API keys exhausted. Please try again later.')
     } else {
       throw new Error(error.message || 'Failed to generate program. Please try again.')
     }
@@ -780,8 +852,6 @@ export async function analyzeMultipleDishes(
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' })
-    
     // Analyze each dish
     const dishResults: DishAnalysisResult[] = []
     
@@ -789,7 +859,7 @@ export async function analyzeMultipleDishes(
       if (!dish.file) continue
       
       // Prepare all images for this dish (main + additional)
-      const imageParts = []
+      const imageParts: any[] = []
       
       // Add main image
       const mainImagePart = await fileToGenerativePart(dish.file)
@@ -878,9 +948,12 @@ Provide the response in this exact JSON format:
 
 Return ONLY valid JSON, no additional text or markdown.`
 
-      const result = await model.generateContent([prompt, ...imageParts as any[]])
-      const response = await result.response
-      const text = response.text()
+      const text = await withKeyRotation(async (ai) => {
+        const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash-lite' })
+        const result = await model.generateContent([prompt, ...imageParts as any[]])
+        const response = await result.response
+        return response.text()
+      })
       
       try {
         const cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
@@ -1053,7 +1126,7 @@ Return ONLY valid JSON, no additional text or markdown.`
     if (error.message?.includes('API key')) {
       throw new Error('Invalid API key. Please check your Gemini API key.')
     } else if (error.message?.includes('quota')) {
-      throw new Error('API quota exceeded. Please try again later.')
+      throw new Error('All API keys exhausted. Please try again later.')
     } else {
       throw new Error('Failed to analyze dishes. Please try again.')
     }

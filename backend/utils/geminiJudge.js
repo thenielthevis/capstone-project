@@ -1,8 +1,80 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+// ── Gemini API Key Rotation ──────────────────────────────────────────
+// Collects GEMINI_API_KEY, GEMINI_API_KEY2, ... GEMINI_API_KEY10.
+// When a key hits its quota, the next key is used automatically.
+const API_KEYS = (() => {
+  const keys = [];
+  if (process.env.GEMINI_API_KEY) keys.push(process.env.GEMINI_API_KEY);
+  for (let i = 2; i <= 10; i++) {
+    const k = process.env[`GEMINI_API_KEY${i}`];
+    if (k) keys.push(k);
+  }
+  return keys;
+})();
 
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+if (API_KEYS.length === 0) {
+  console.error('[Gemini Backend] No API keys found. Set GEMINI_API_KEY in your .env');
+}
+
+console.log(`[Gemini Backend] Loaded ${API_KEYS.length} API key(s) for rotation`);
+
+let currentKeyIndex = 0;
+
+function getCurrentGenAI() {
+  if (API_KEYS.length === 0) return new GoogleGenerativeAI('');
+  return new GoogleGenerativeAI(API_KEYS[currentKeyIndex]);
+}
+
+function isQuotaError(error) {
+  const msg = (error?.message || '').toLowerCase();
+  const status = error?.status || error?.httpStatusCode;
+  return (
+    status === 429 ||
+    msg.includes('quota') ||
+    msg.includes('rate limit') ||
+    msg.includes('resource exhausted') ||
+    msg.includes('too many requests')
+  );
+}
+
+function rotateApiKey() {
+  if (API_KEYS.length <= 1) return false;
+  const nextIndex = (currentKeyIndex + 1) % API_KEYS.length;
+  if (nextIndex === 0) {
+    console.warn('[Gemini Backend] All API keys exhausted');
+    return false;
+  }
+  currentKeyIndex = nextIndex;
+  console.log(`[Gemini Backend] Rotated to API key #${currentKeyIndex + 1}`);
+  return true;
+}
+
+/**
+ * Execute a Gemini API call with automatic key rotation on quota errors.
+ */
+async function withKeyRotation(fn) {
+  const startIndex = currentKeyIndex;
+  let lastError;
+
+  for (let attempts = 0; attempts < Math.max(API_KEYS.length, 1); attempts++) {
+    try {
+      console.log(`[Gemini Backend] Using API key #${currentKeyIndex + 1} (ending ...${API_KEYS[currentKeyIndex]?.slice(-4) || '????'})`);
+      const genAI = getCurrentGenAI();
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+      return await fn(model);
+    } catch (error) {
+      lastError = error;
+      if (isQuotaError(error)) {
+        console.warn(`[Gemini Backend] Key #${currentKeyIndex + 1} quota exhausted`);
+        if (!rotateApiKey() || currentKeyIndex === startIndex) break;
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw lastError;
+}
 
 /**
  * Evaluates user metrics using Gemini to generate gamification scores (batteries).
@@ -15,8 +87,8 @@ const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
  * @returns {Promise<Object>} Scores for activity, nutrition, health, sleep (0-100)
  */
 exports.evaluateGamification = async (data) => {
-    if (!process.env.GEMINI_API_KEY) {
-        console.warn('Gemini API key is not set. Returning default scores.');
+    if (API_KEYS.length === 0) {
+        console.warn('[Gemini Backend] No API keys set. Returning default scores.');
         return {
             activity: 50,
             nutrition: 50,
@@ -35,17 +107,39 @@ exports.evaluateGamification = async (data) => {
 
     try {
         const prompt = `
-        You are a health and fitness AI expert. Judge the user's daily performance on a scale of 0 to 100 for four categories: Activity, Nutrition, Health, and Sleep.
+        You are a health and fitness AI expert. Judge the user's daily performance on a scale of 0 to 100 for two categories: Activity and Nutrition.
         Additionally, you must compute the user's avatar "responsive_dna" values (each 0.0 to 1.0) that reflect how the user's 3D avatar body should look based on their real-world BMI, exercise habits, and nutrition.
         
         CONTEXT DATA:
         ${JSON.stringify(data, null, 2)}
         
         SCORING CRITERIA:
-        1. Activity: Based on calories burned and active time relative to implicit BMR/Maintenance. >500 active cals is usually good. (Impacts Coin Rewards: 1 coin per 10 kcal).
-        2. Nutrition: Based on food choices (healthy/unhealthy), balance of macros, and caloric intake vs goal. (Impacts Coin Rewards: Score / 2).
+        1. Activity (0-100): Based on calories burned and active time. >500 active cals is excellent. 0 activity = 0 score.
         
-        Note: Health and Sleep scores are now handled deterministically by the backend. You do NOT need to provide scores for 'health' or 'sleep' in the JSON, but you can see them in context to inform your reasoning for Activity/Nutrition if relevant.
+        2. Nutrition (0-100): Score based on the QUALITY and HEALTHINESS of the foods logged today, NOT on total caloric intake vs daily goal.
+           IMPORTANT RULES FOR NUTRITION SCORING:
+           - Judge each food item on its nutritional quality (whole foods, balance of macros, vitamins, fiber).
+           - Be STRICT about unhealthy cooking methods (deep frying, heavy oil) and high saturated fat / cholesterol / sodium.
+           
+           SCORING EXAMPLES (follow these closely):
+           - Fresh fruit (banana, apple): 65-75 (healthy, natural, but simple sugars)
+           - Grilled chicken breast + vegetables: 80-90 (lean protein, balanced)
+           - Salad with lean protein: 75-90
+           - Steamed/grilled fish: 70-80 (great protein, omega-3)
+           - Fried fish: 35-50 (protein is good, but frying adds unhealthy fat)
+           - Pork sisig / crispy pata / lechon: 25-40 (very high saturated fat, cholesterol, sodium)
+           - Rice-heavy meal with little protein/veggies: 30-45
+           - Fast food / junk food (burger, fries, pizza): 15-30
+           - Sugary drinks / desserts: 10-25
+           
+           OTHER RULES:
+           - DO NOT penalize users for not eating enough total calories. A user who logged 1 healthy food at 8am should still get 60-75, not 10.
+           - The score should reflect the AVERAGE quality of all foods logged, not how close they are to their calorie goal.
+           - If only 1 food is logged, score that food's healthiness directly.
+           - More variety of healthy foods = small bonus (up to +10).
+           - Consider the user's health conditions when scoring (e.g., high sodium food is worse for someone with hypertension).
+
+        Note: Health and Sleep scores are handled deterministically by the backend. Do NOT include them in your response.
 
         RESPONSIVE DNA CRITERIA (each value 0.0 to 1.0, where 0.5 is the neutral/average state):
         These values control a 3D humanoid avatar's body proportions. They should realistically reflect the user's current physical state.
@@ -61,7 +155,7 @@ exports.evaluateGamification = async (data) => {
         - Changes should be gradual — prefer small adjustments from the current values provided in context.
 
         OUTPUT FORMAT:
-        Return ONLY a JSON object with integer scores (0-100), responsive_dna (floats 0.0-1.0), and a brief reasoning string. The reasoning should mention the coins earned if applicable.
+        Return ONLY a JSON object with integer scores (0-100), responsive_dna (floats 0.0-1.0), and a brief reasoning string.
         {
             "activity": 85,
             "nutrition": 70,
@@ -71,18 +165,20 @@ exports.evaluateGamification = async (data) => {
                 "lowerbody": 0.55,
                 "arms": 0.6
             },
-            "reasoning": "Great job! Your high activity earned you a lot of coins today. Your nutrition was solid as well."
+            "reasoning": "Banana is a great healthy choice! Rich in potassium and fiber. Keep it up!"
         }
 
         `;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
+        const parsed = await withKeyRotation(async (model) => {
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            const text = response.text();
 
-        // Clean markdown if present
-        const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-        const parsed = JSON.parse(cleaned);
+            // Clean markdown if present
+            const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+            return JSON.parse(cleaned);
+        });
 
         // Ensure responsive_dna values are clamped between 0 and 1
         if (parsed.responsive_dna) {
@@ -125,8 +221,8 @@ exports.evaluateGamification = async (data) => {
  * @returns {Promise<Array>} Array of 10 assessment questions with choices and suggestions
  */
 exports.generateAssessmentQuestions = async (userContext) => {
-    if (!process.env.GEMINI_API_KEY) {
-        console.warn('Gemini API key is not set. Returning default questions.');
+    if (API_KEYS.length === 0) {
+        console.warn('[Gemini Backend] No API keys set. Returning default questions.');
         return getDefaultAssessmentQuestions();
     }
 
@@ -177,16 +273,18 @@ exports.generateAssessmentQuestions = async (userContext) => {
         - Suggestions should be empathetic and supportive
         `;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
+        const questions = await withKeyRotation(async (model) => {
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            const text = response.text();
 
-        console.log('[Assessment] Raw Gemini response length:', text.length);
-        console.log('[Assessment] Raw response preview:', text.substring(0, 200));
+            console.log('[Assessment] Raw Gemini response length:', text.length);
+            console.log('[Assessment] Raw response preview:', text.substring(0, 200));
 
-        // Clean markdown if present
-        const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-        const questions = JSON.parse(cleaned);
+            // Clean markdown if present
+            const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+            return JSON.parse(cleaned);
+        });
 
         // Validate we have exactly 10 questions
         if (!Array.isArray(questions)) {
@@ -372,8 +470,8 @@ function getDefaultAssessmentQuestions() {
  * @returns {Promise<Object>} Object with disease names as keys and descriptions as values
  */
 exports.generateDiseaseDescriptions = async (diseaseNames) => {
-    if (!process.env.GEMINI_API_KEY) {
-        console.warn('Gemini API key is not set. Returning default descriptions.');
+    if (API_KEYS.length === 0) {
+        console.warn('[Gemini Backend] No API keys set. Returning default descriptions.');
         return {};
     }
 
@@ -395,17 +493,18 @@ Example format:
 
 Generate descriptions for all diseases, keeping them brief and informative.`;
 
-        const response = await model.generateContent(prompt);
-        const text = response.response.text();
+        return await withKeyRotation(async (model) => {
+            const response = await model.generateContent(prompt);
+            const text = response.response.text();
 
-        // Parse JSON response
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-            const descriptions = JSON.parse(jsonMatch[0]);
-            return descriptions;
-        }
+            // Parse JSON response
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                return JSON.parse(jsonMatch[0]);
+            }
 
-        return {};
+            return {};
+        });
     } catch (err) {
         console.error('Error generating disease descriptions:', err);
         return {};
@@ -419,8 +518,8 @@ Generate descriptions for all diseases, keeping them brief and informative.`;
  * @returns {Promise<string>} Translated English text
  */
 exports.translateTagalogToEnglish = async (text) => {
-    if (!process.env.GEMINI_API_KEY) {
-        console.warn('Gemini API key is not set. Returning original text.');
+    if (API_KEYS.length === 0) {
+        console.warn('[Gemini Backend] No API keys set. Returning original text.');
         return text;
     }
 
@@ -432,8 +531,10 @@ ${text}
 
 Return ONLY the translated text, nothing else.`;
 
-        const response = await model.generateContent(prompt);
-        const translated = response.response.text().trim();
+        const translated = await withKeyRotation(async (model) => {
+            const response = await model.generateContent(prompt);
+            return response.response.text().trim();
+        });
 
         console.log('[Translation] Translated to English:', text.substring(0, 50), '...', 'to:', translated.substring(0, 50), '...');
         return translated;
@@ -450,8 +551,8 @@ Return ONLY the translated text, nothing else.`;
  * @returns {Promise<string>} Translated Tagalog text
  */
 exports.translateEnglishToTagalog = async (text) => {
-    if (!process.env.GEMINI_API_KEY) {
-        console.warn('Gemini API key is not set. Returning original text.');
+    if (API_KEYS.length === 0) {
+        console.warn('[Gemini Backend] No API keys set. Returning original text.');
         return text;
     }
 
@@ -463,8 +564,10 @@ ${text}
 
 Return ONLY the translated text in Tagalog, nothing else.`;
 
-        const response = await model.generateContent(prompt);
-        const translated = response.response.text().trim();
+        const translated = await withKeyRotation(async (model) => {
+            const response = await model.generateContent(prompt);
+            return response.response.text().trim();
+        });
 
         console.log('[Translation] Translated to Tagalog:', text.substring(0, 50), '...', 'to:', translated.substring(0, 50), '...');
         return translated;
