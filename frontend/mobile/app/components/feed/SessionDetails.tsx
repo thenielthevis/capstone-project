@@ -10,6 +10,7 @@ import Constants from "expo-constants";
 import MapLibreGL from '@maplibre/maplibre-react-native';
 import LottieView from "lottie-react-native";
 import { ActivityIcon } from '../../components/ActivityIcon';
+import { BarChart } from "react-native-gifted-charts";
 
 const MAPTILER_KEY =
     Constants?.expoConfig?.extra?.MAPTILER_KEY ||
@@ -103,6 +104,26 @@ export default function SessionDetails() {
     const params = useLocalSearchParams();
     const { sessionType } = params;
 
+    // ── Haversine distance (km) between two GPS points ──
+    const haversineKm = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+        const R = 6371;
+        const dLat = ((lat2 - lat1) * Math.PI) / 180;
+        const dLon = ((lon2 - lon1) * Math.PI) / 180;
+        const a =
+            Math.sin(dLat / 2) ** 2 +
+            Math.cos((lat1 * Math.PI) / 180) *
+            Math.cos((lat2 * Math.PI) / 180) *
+            Math.sin(dLon / 2) ** 2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    };
+
+    // Format pace seconds → MM:SS
+    const formatPace = (seconds: number): string => {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
     // Parse session data safely
     const session = useMemo(() => {
         try {
@@ -120,6 +141,57 @@ export default function SessionDetails() {
     }, [params.images]);
 
     const postId = params.postId as string;
+
+    // ── Compute 1km splits from route_coordinates for GeoSession ──
+    const splitsChartData = useMemo(() => {
+        if (sessionType !== 'GeoSession' || !session) return [];
+        const coords = session.route_coordinates;
+        if (!coords || coords.length < 2) return [];
+
+        const totalDistance = session.distance_km || 0;
+        const totalTime = session.moving_time_sec || 0;
+        if (totalDistance < 0.01 || totalTime === 0) return [];
+
+        // Walk through route coords, accumulate distance, cut at every 1 km
+        const SPLIT_KM = 1;
+        let accumulated = 0;
+        let splitStart = 0; // index
+        const splits: { km: number; pace: number }[] = [];
+
+        for (let i = 1; i < coords.length; i++) {
+            const d = haversineKm(
+                coords[i - 1].latitude, coords[i - 1].longitude,
+                coords[i].latitude, coords[i].longitude
+            );
+            accumulated += d;
+
+            if (accumulated >= SPLIT_KM) {
+                // Estimate time for this split proportionally
+                // (route points are ~evenly spaced in time by GPS interval)
+                const pointsInSplit = i - splitStart;
+                const totalPoints = coords.length - 1;
+                const splitTimeSec = (pointsInSplit / totalPoints) * totalTime;
+                const pace = splitTimeSec / SPLIT_KM; // sec per km
+
+                splits.push({ km: splits.length + 1, pace });
+                accumulated -= SPLIT_KM;
+                splitStart = i;
+            }
+        }
+
+        // Build chart data
+        return splits.map(s => ({
+            value: s.pace / 60, // minutes per km
+            label: s.km.toString(),
+            spacing: 20,
+            frontColor: theme.colors.primary,
+            topLabelComponent: () => (
+                <Text style={{ color: theme.colors.text, fontSize: 10, marginBottom: 4, fontFamily: theme.fonts.body }}>
+                    {formatPace(s.pace)}
+                </Text>
+            ),
+        }));
+    }, [session, sessionType, theme]);
 
     const handleOpenImages = () => {
         if (images && images.length > 0 && postId) {
@@ -282,6 +354,42 @@ export default function SessionDetails() {
                             <Text style={{ fontFamily: theme.fonts.heading, fontSize: 24, color: theme.colors.primary }}>{session.calories_burned} <Text style={{ fontSize: 14 }}>kcal</Text></Text>
                         </View>
                     </View>
+
+                    {/* Splits Chart */}
+                    {splitsChartData.length > 0 ? (
+                        <View style={{ marginTop: 8 }}>
+                            <Text style={{ fontFamily: theme.fonts.heading, fontSize: 18, color: theme.colors.text, marginBottom: 16 }}>
+                                Splits (/km)
+                            </Text>
+                            <View style={{
+                                backgroundColor: theme.colors.background,
+                                borderRadius: 16,
+                                paddingVertical: 20,
+                                paddingHorizontal: 10,
+                                overflow: 'hidden',
+                            }}>
+                                <SplitsChart data={splitsChartData} theme={theme} />
+                            </View>
+                        </View>
+                    ) : (
+                        <View style={{ marginTop: 8 }}>
+                            <Text style={{ fontFamily: theme.fonts.heading, fontSize: 18, color: theme.colors.text, marginBottom: 16 }}>
+                                Splits (/km)
+                            </Text>
+                            <View style={{
+                                backgroundColor: theme.colors.background,
+                                borderRadius: 16,
+                                paddingVertical: 32,
+                                paddingHorizontal: 20,
+                                alignItems: 'center',
+                            }}>
+                                <Ionicons name="walk-outline" size={32} color={theme.colors.text + '33'} style={{ marginBottom: 8 }} />
+                                <Text style={{ fontFamily: theme.fonts.body, fontSize: 14, color: theme.colors.text + '55', textAlign: 'center' }}>
+                                    Didn't complete a km
+                                </Text>
+                            </View>
+                        </View>
+                    )}
                 </View>
             );
         }
@@ -532,3 +640,30 @@ export default function SessionDetails() {
         </SafeAreaView>
     );
 }
+
+// Memoized splits bar chart for SessionDetails
+const SplitsChart = React.memo(({ data, theme }: { data: any[]; theme: any }) => {
+    const maxDataValue = Math.max(...data.map((d: any) => d.value), 1);
+    const maxValue = maxDataValue * 1.2;
+
+    return (
+        <BarChart
+            data={data}
+            barWidth={75}
+            spacing={20}
+            roundedTop={false}
+            roundedBottom={false}
+            hideRules
+            hideYAxisText
+            xAxisThickness={0}
+            yAxisThickness={0}
+            xAxisLabelTextStyle={{ color: theme.colors.text, fontSize: 10, fontFamily: theme.fonts.body }}
+            noOfSections={3}
+            maxValue={maxValue}
+            isAnimated={false}
+            width={Dimensions.get('window').width - 80}
+            height={220}
+            frontColor={theme.colors.primary}
+        />
+    );
+});

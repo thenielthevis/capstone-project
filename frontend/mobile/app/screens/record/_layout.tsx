@@ -10,7 +10,10 @@ export default function RecordLayout() {
           animation: 'fade',
           animationDuration: 150,
         }}
-      />
+      >
+        {/* Activity screen stays mounted when ActivityMetrics is pushed */}
+        <Stack.Screen name="ActivityMetrics" options={{ presentation: 'fullScreenModal' }} />
+      </Stack>
     </ActivityMetricsProvider>
   );
 }

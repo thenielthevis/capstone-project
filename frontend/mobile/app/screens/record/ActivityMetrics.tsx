@@ -172,9 +172,9 @@ export default function ActivityMetrics() {
     if (data.length === 0) {
       // Placeholder data
       return [
-        { value: 0, label: '0.1', spacing: 20 },
-        { value: 0, label: '0.2', spacing: 20 },
-        { value: 0, label: '0.3', spacing: 20 },
+        { value: 0, label: '1', spacing: 20 },
+        { value: 0, label: '2', spacing: 20 },
+        { value: 0, label: '3', spacing: 20 },
       ];
     }
 

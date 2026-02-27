@@ -217,7 +217,7 @@ export const ActivityMetricsProvider = ({ children }: { children: ReactNode }) =
     clearInProgressSession();
   }, []);
 
-  const SPLIT_DISTANCE_KM = 0.1;
+  const SPLIT_DISTANCE_KM = 1;
 
   // Memoize isDistanceBased so it only recalculates when activityType/activities change
   const isDistanceBased = useMemo(() => {

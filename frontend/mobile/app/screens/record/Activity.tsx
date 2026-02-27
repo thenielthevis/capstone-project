@@ -76,6 +76,7 @@ export default function TestMap() {
   // A throttled GeoJSON state is used only for map rendering
   const [routeGeoJSON, setRouteGeoJSON] = useState<any>(null);
   const [heading, setHeading] = useState<number>(0);
+  const headingRef = useRef<number>(0);
   const [loading, setLoading] = useState(true);
   const [following, setFollowing] = useState<boolean>(true);
   const [mapBearing, setMapBearing] = useState<number>(0);
@@ -138,11 +139,17 @@ export default function TestMap() {
   useEffect(() => {
     if (!contextRecording) return;
     const id = setInterval(() => {
-      // 1. Update map marker position
+      // 1. Update map marker position + heading
       const latest = latestCoordsRef.current;
       if (latest) {
         setLocation(latest);
       }
+      setHeading(headingRef.current);
+      Animated.timing(compassAnim, {
+        toValue: headingRef.current,
+        duration: 400,
+        useNativeDriver: true,
+      }).start();
 
       // 2. Update route polyline
       const route = refs.routeCoords.current;
@@ -307,13 +314,21 @@ export default function TestMap() {
 
       headSubRef.current = await Location.watchHeadingAsync((h) => {
         const newHeading = h.trueHeading ?? h.magHeading ?? 0;
-        setHeading(newHeading);
-        Animated.timing(compassAnim, {
-          toValue: newHeading,
-          duration: 200,
-          useNativeDriver: true,
-        }).start();
+        headingRef.current = newHeading;
 
+        // During recording, heading is flushed to state every 2 s
+        // by the throttled UI updater. Only update immediately when
+        // NOT recording (marker updates are realtime then).
+        if (!refs.recording.current) {
+          setHeading(newHeading);
+          Animated.timing(compassAnim, {
+            toValue: newHeading,
+            duration: 200,
+            useNativeDriver: true,
+          }).start();
+        }
+
+        // Camera heading follow (compass mode) — always immediate
         if (followingRef.current && mapBearingRef.current === -1) {
           if (cameraRef.current) {
             try {
