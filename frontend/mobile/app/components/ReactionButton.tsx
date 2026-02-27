@@ -82,11 +82,11 @@ export default function ReactionButton({ userReaction, reactionCount, onReact, c
     };
 
     const reactionData = userReaction ? REACTIONS.find(r => r.type === userReaction) : null;
-    const iconSize = compact ? 10 : 20;
+    const iconSize = compact ? 22 : 22;
 
     const renderReactionIcon = (reaction: typeof REACTIONS[0], size: number = 24) => {
         if (reaction.library === "ionicons") {
-            return <Ionicons name={reaction.icon as any} size={size} color={theme.colors.text} />;
+            return <Ionicons name={reaction.icon as any} size={size} color={theme.colors.primary} />;
         } else {
             return <MaterialCommunityIcons name={reaction.icon as any} size={size} color={theme.colors.text} />;
         }

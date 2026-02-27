@@ -12,9 +12,10 @@ interface Reaction {
 interface ReactionCounterProps {
     reactions?: Reaction[];
     onReactionPress?: (reactionType: string) => void;
+    transparent?: boolean;
 }
 
-export default function ReactionCounter({ reactions = [], onReactionPress }: ReactionCounterProps) {
+export default function ReactionCounter({ reactions = [], onReactionPress, transparent = false }: ReactionCounterProps) {
     const { theme } = useTheme();
     const [modalVisible, setModalVisible] = React.useState(false);
     const [selectedReactionType, setSelectedReactionType] = React.useState<string | null>(null);
@@ -111,13 +112,14 @@ export default function ReactionCounter({ reactions = [], onReactionPress }: Rea
                 style={{
                     flexDirection: 'row',
                     alignItems: 'center',
+                    alignSelf: 'flex-start',
                     marginTop: 8,
                     paddingVertical: 6,
                     paddingHorizontal: 10,
-                    backgroundColor: theme.colors.background,
+                    backgroundColor: transparent ? 'transparent' : theme.colors.background,
                     borderRadius: 16,
                     borderWidth: 1,
-                    borderColor: theme.colors.border,
+                    borderColor: transparent ? 'rgba(255,255,255,0.3)' : theme.colors.border,
                 }}
             >
                 {/* Top 3 Reaction Emojis */}

@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { View, Text, Image, SafeAreaView, ActivityIndicator, Dimensions, TouchableOpacity } from "react-native";
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import { postApi } from "../../api/postApi";
 import { useUser } from "../../context/UserContext";
 import ReactionButton, { REACTIONS } from "../../components/ReactionButton";
+import ReactionCounter from "../../components/ReactionCounter";
 import ImageViewer from "react-native-image-zoom-viewer";
 import Modal from "react-native-modal";
 import { ScrollView } from "react-native-gesture-handler";
@@ -28,10 +29,6 @@ export default function ImageMax() {
   const [voteLoading, setVoteLoading] = useState(false);
   const [reactionLoading, setReactionLoading] = useState(false);
   const [showOverlay, setShowOverlay] = useState(true);
-  // Double tap handler using new Gesture API
-  const doubleTap = Gesture.Tap()
-    .numberOfTaps(2)
-    .onEnd(() => setShowOverlay(v => !v));
 
   React.useEffect(() => {
     fetchPost();
@@ -105,7 +102,6 @@ export default function ImageMax() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#000" }}>
       <View style={{ flex: 1 }}>
-        <GestureDetector gesture={doubleTap}>
           <View style={{ flex: 1 }}>
             <ImageViewer
               imageUrls={images.map((url: string) => ({ url }))}
@@ -113,22 +109,50 @@ export default function ImageMax() {
               onChange={idx => typeof idx === 'number' && setCurrentIndex(idx)}
               enableSwipeDown={true}
               onSwipeDown={() => router.back()}
+              onClick={() => setShowOverlay(v => !v)}
               saveToLocalByLongPress={false}
               backgroundColor="#000"
               renderIndicator={(currentIndex, allSize) => {
                 if (!showOverlay) return <View />;
                 return (
-                  <View style={{ position: "absolute", top: 40, alignSelf: "center" }}>
+                  <View style={{ position: "absolute", top: 40, left: 16, right: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                     <Text style={{ color: "#fff", fontSize: 16 }}>{currentIndex} / {allSize}</Text>
+                    {post?.reference && (
+                      <TouchableOpacity
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          backgroundColor: 'rgba(255,255,255,0.2)',
+                          paddingVertical: 6,
+                          paddingHorizontal: 10,
+                          borderRadius: 8,
+                        }}
+                        onPress={() => {
+                          router.replace({
+                            pathname: "/components/feed/SessionDetails",
+                            params: {
+                              sessionType: post.reference.item_type,
+                              sessionData: JSON.stringify(post.reference.item_id),
+                              images: JSON.stringify(post.images),
+                              postId: post._id
+                            }
+                          });
+                        }}
+                      >
+                        <Ionicons name="barbell-outline" size={14} color={theme.colors.primary} />
+                        <Text style={{ fontFamily: theme.fonts.bodyBold, color: theme.colors.primary, marginLeft: 4, fontSize: 12 }}>
+                          View Session
+                        </Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 );
               }}
             />
           </View>
-        </GestureDetector>
         {/* Overlay for post actions */}
         {showOverlay && (
-          <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: 16, borderTopLeftRadius: 20, borderTopRightRadius: 20 }}>
+          <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, paddingHorizontal: 16, paddingTop: 20, paddingBottom: 12, borderTopLeftRadius: 20, borderTopRightRadius: 20, backgroundColor: "rgba(0,0,0,0.7)", borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.15)" }}>
             {/* Post Header (User Info, Title, Content) */}
             <View style={{ marginBottom: 8 }}>
               <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
@@ -159,67 +183,21 @@ export default function ImageMax() {
                   {post.title}
                 </Text>
               )}
-              {/* Post Content */}
-              {post.content && (
-                <Text style={{ fontFamily: theme.fonts.body, color: "#FFFFFF" + '77', fontSize: 14, marginBottom: 2 }}>
-                  {post.content}
-                </Text>
-              )}
             </View>
-
-            {/* View Session Link */}
-            {post.reference && (
-              <TouchableOpacity
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  backgroundColor: "#FFFFFF" + '20',
-                  padding: 8,
-                  borderRadius: 8,
-                  alignSelf: 'flex-start',
-                  marginBottom: 12
-                }}
-                onPress={() => {
-                  router.replace({
-                    pathname: "/components/feed/SessionDetails",
-                    params: {
-                      sessionType: post.reference.item_type,
-                      sessionData: JSON.stringify(post.reference.item_id),
-                      images: JSON.stringify(post.images), // Pass images back so loop is complete? Or maybe not needed if going back?
-                      postId: post._id
-                    }
-                  });
-                }}
-              >
-                <Ionicons name="barbell-outline" size={16} color={theme.colors.primary} />
-                <Text style={{ fontFamily: theme.fonts.bodyBold, color: theme.colors.primary, marginLeft: 6 }}>
-                  View Session Details
-                </Text>
-              </TouchableOpacity>
-            )}
 
             {/* Post Stats Row */}
             {(post.reactions?.length > 0 || ((post as any).commentCount || 0) > 0) && (
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8, paddingHorizontal: 4 }}>
-                {/* Left: Reactions */}
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  {post.reactions?.length > 0 && (
-                    <>
-                      <View style={{ flexDirection: "row" }}>
-                        {REACTIONS.filter(r => post.reactions.some((pr: any) => pr.type === r.type))
-                          .slice(0, 3)
-                          .map((r, i) => (
-                            <Text key={r.type} style={{ fontSize: 15, marginLeft: i === 0 ? 0 : -5, zIndex: 3 - i }}>
-                              {r.emoji}
-                            </Text>
-                          ))}
-                      </View>
-                      <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '99', fontSize: 13, marginLeft: 4 }}>
-                        {post.reactions.length > 1000 ? (post.reactions.length / 1000).toFixed(1) + 'k' : post.reactions.length}
-                      </Text>
-                    </>
-                  )}
-                </View>
+                {/* Left: Reaction Counter */}
+                {post.reactions?.length > 0 && (
+                  <View style={{ flex: 1 }}>
+                    <ReactionCounter
+                      reactions={post.reactions}
+                      onReactionPress={(reactionType) => handleReaction(reactionType)}
+                      transparent
+                    />
+                  </View>
+                )}
 
                 {/* Right: Comments */}
                 <TouchableOpacity onPress={() => router.push(`/screens/post/discussion_section?postId=${post._id}` as any)}>
@@ -236,9 +214,9 @@ export default function ImageMax() {
             )}
 
             {/* Interaction Bar */}
-            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 8, marginBottom: 8 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 20, marginTop: 8, marginBottom: 8 }}>
               {/* Upvote */}
-              <TouchableOpacity onPress={() => handleVote("up")} style={{ flexDirection: "row", alignItems: "center", marginRight: 16 }} disabled={voteLoading}>
+              <TouchableOpacity onPress={() => handleVote("up")} style={{ flexDirection: "row", alignItems: "center" }} disabled={voteLoading}>
                 <Ionicons
                   name={post.votes?.upvotes?.some((v: any) => v.toString() === userId) ? "arrow-up-circle" : "arrow-up-circle-outline"}
                   size={22}
@@ -247,7 +225,7 @@ export default function ImageMax() {
                 <Text style={{ fontFamily: theme.fonts.body, color: "#FFFFFF" + '77', marginLeft: 4 }}>{upvoteCount}</Text>
               </TouchableOpacity>
               {/* Downvote */}
-              <TouchableOpacity onPress={() => handleVote("down")} style={{ flexDirection: "row", alignItems: "center", marginRight: 16 }} disabled={voteLoading}>
+              <TouchableOpacity onPress={() => handleVote("down")} style={{ flexDirection: "row", alignItems: "center" }} disabled={voteLoading}>
                 <Ionicons
                   name={post.votes?.downvotes?.some((v: any) => v.toString() === userId) ? "arrow-down-circle" : "arrow-down-circle-outline"}
                   size={22}
@@ -263,14 +241,14 @@ export default function ImageMax() {
                 compact={true}
               />
               {/* Comments */}
-              <TouchableOpacity onPress={() => router.push(`/screens/post/discussion_section?postId=${post._id}` as any)} style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+              <TouchableOpacity onPress={() => router.push(`/screens/post/discussion_section?postId=${post._id}` as any)} style={{ flexDirection: "row", alignItems: "center" }}>
                 <Ionicons name="chatbubble-outline" size={20} color={"#FFFFFF" + '77'} />
                 <Text style={{ fontFamily: theme.fonts.body, color: "#FFFFFF" + '77', marginLeft: 4 }}>Comment</Text>
               </TouchableOpacity>
-              {/* Share */}
+              {/* Share
               <TouchableOpacity>
                 <MaterialCommunityIcons name="share-outline" size={24} color={"#FFFFFF" + '77'} />
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
           </View>
         )}
