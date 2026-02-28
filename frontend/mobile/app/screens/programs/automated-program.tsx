@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, RefreshControl } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, RefreshControl, Platform } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
 import { useRouter } from "expo-router";
@@ -191,6 +192,11 @@ export default function AutomatedProgramScreen() {
 
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: theme.colors.background }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+      >
       <View className="px-6 pt-3">
         <TouchableOpacity onPress={() => router.back()} className="flex-row items-center mb-4">
           <Ionicons name="chevron-back" size={theme.fontSizes.xl + 4} color={theme.colors.text} />
@@ -683,6 +689,7 @@ export default function AutomatedProgramScreen() {
           </View>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

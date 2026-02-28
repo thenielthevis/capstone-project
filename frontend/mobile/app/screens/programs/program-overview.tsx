@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator, Image, ScrollView, TextInput, Modal, Alert, RefreshControl } from "react-native";
+import { View, Text, TouchableOpacity, ActivityIndicator, Image, ScrollView, TextInput, Modal, Alert, RefreshControl, Platform } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -666,6 +667,11 @@ export default function ProgramInterface() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+      >
       <View className="px-6 pt-4">
         <View className="flex-row items-center justify-between mb-4">
           <TouchableOpacity onPress={() => router.back()} className="flex-row items-center">
@@ -956,6 +962,7 @@ export default function ProgramInterface() {
           <Text style={{ color: theme.colors.text, fontFamily: theme.fonts.body }}>Saving...</Text>
         </View>
       )}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

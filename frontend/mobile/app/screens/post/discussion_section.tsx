@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { View, Text, TouchableOpacity, ScrollView, TextInput, Image, RefreshControl, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, TextInput, Image, RefreshControl, ActivityIndicator, Alert, Platform } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
 import { Ionicons, MaterialCommunityIcons, Entypo } from "@expo/vector-icons";
@@ -508,9 +509,9 @@ export default function DiscussionSection() {
             </View>
 
             <KeyboardAvoidingView
-                className="flex-1"
-                behavior={Platform.OS === "ios" ? "padding" : undefined}
-                keyboardVerticalOffset={90}
+                style={{ flex: 1 }}
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
             >
                 <ScrollView
                     className="flex-1"

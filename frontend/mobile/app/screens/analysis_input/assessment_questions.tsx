@@ -9,6 +9,7 @@ import {
   Platform,
   TextInput,
 } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
@@ -1089,6 +1090,11 @@ export default function AssessmentQuestions({ onClose, useSafeArea = true }: Ass
 
   return (
     <Wrapper style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+      >
       {/* Header */}
       <View
         style={{
@@ -1148,7 +1154,7 @@ export default function AssessmentQuestions({ onClose, useSafeArea = true }: Ass
         contentContainerStyle={{
           paddingHorizontal: 16,
           paddingVertical: 16,
-          paddingBottom: 120,
+          paddingBottom: 16,
         }}
       >
         {/* Question Info */}
@@ -1396,10 +1402,6 @@ export default function AssessmentQuestions({ onClose, useSafeArea = true }: Ass
       {/* Bottom Actions */}
       <View
         style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
           paddingHorizontal: 16,
           paddingVertical: 12,
           backgroundColor: theme.colors.background,
@@ -1537,6 +1539,7 @@ export default function AssessmentQuestions({ onClose, useSafeArea = true }: Ass
       </View>
 
       <Toast />
+      </KeyboardAvoidingView>
     </Wrapper>
   );
 }

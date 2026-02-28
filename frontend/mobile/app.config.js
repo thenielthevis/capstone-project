@@ -58,11 +58,9 @@ export default {
         "expo-notifications",
         {
           icon: "./assets/images/icon.png",
-          backgroundColor: "#ffffff",
           sound: true,
-          vibrate: true,
           priority: "high",
-          channelId: "default"
+          vibrate: true,
         }
       ],
       "expo-background-fetch",
