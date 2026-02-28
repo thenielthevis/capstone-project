@@ -17,7 +17,7 @@ exports.createProgram = async (req, res) => {
     console.log("[CREATE PROGRAM] User ID:", user_id);
 
     let members = [];
-    
+
     // If this is a group program, add all group members as pending
     if (group_id) {
       const chat = await Chat.findById(group_id);
@@ -63,26 +63,21 @@ exports.getUserPrograms = async (req, res) => {
     const userRole = req.user.role;
     console.log('[GET USER PROGRAMS] User ID:', userId);
     console.log('[GET USER PROGRAMS] User Role:', userRole);
-    
-    let query = {};
-    // If not an admin, show user's own programs + accepted group programs
-    if (userRole !== 'admin') {
-      query = {
-        $or: [
-          { user_id: userId },
-          // Include group programs where user has accepted
-          {
-            group_id: { $exists: true, $ne: null },
-            'members.user_id': new mongoose.Types.ObjectId(userId),
-            'members.status': 'accepted'
-          }
-        ]
-      };
-      console.log('[GET USER PROGRAMS] Regular user - filtering by user_id and accepted group programs');
-    } else {
-      console.log('[GET USER PROGRAMS] Admin user - returning all programs');
-    }
-    
+
+    // Show user's own programs + accepted group programs for all roles (including admin)
+    const query = {
+      $or: [
+        { user_id: userId },
+        // Include group programs where user has accepted
+        {
+          group_id: { $exists: true, $ne: null },
+          'members.user_id': new mongoose.Types.ObjectId(userId),
+          'members.status': 'accepted'
+        }
+      ]
+    };
+    console.log('[GET USER PROGRAMS] Filtering by user_id and accepted group programs');
+
     const programs = await Program.find(query)
       .populate({
         path: 'workouts.workout_id',
@@ -104,7 +99,7 @@ exports.getUserPrograms = async (req, res) => {
         path: 'last_edited_by',
         select: 'username profilePicture'
       });
-    
+
     console.log('[GET USER PROGRAMS] Found', programs.length, 'programs');
     res.status(200).json(programs);
   } catch (error) {
@@ -161,12 +156,12 @@ exports.updateProgram = async (req, res) => {
     } = req.body;
     console.log('[UPDATE PROGRAM] Updating program:', programId);
     console.log('[UPDATE PROGRAM] User ID:', userId);
-    
+
     const program = await Program.findById(programId);
     if (!program) {
       return res.status(404).json({ message: 'Program not found' });
     }
-    
+
     // For group programs, any accepted group member can edit
     // For personal programs, only the owner can edit
     if (program.group_id) {
@@ -183,19 +178,19 @@ exports.updateProgram = async (req, res) => {
         return res.status(403).json({ message: 'Unauthorized' });
       }
     }
-    
+
     program.group_id = group_id || program.group_id;
     program.name = name || program.name;
     program.description = description || program.description;
     program.workouts = workouts || program.workouts;
     program.geo_activities = geo_activities || program.geo_activities;
-    
+
     // Track who last edited the program
     program.last_edited_by = userId;
     program.last_edited_at = new Date();
-    
+
     const savedProgram = await program.save();
-    
+
     // Populate the last_edited_by field before returning
     const updatedProgram = await Program.findById(programId)
       .populate({
@@ -218,7 +213,7 @@ exports.updateProgram = async (req, res) => {
         path: 'last_edited_by',
         select: 'username profilePicture'
       });
-    
+
     console.log('[UPDATE PROGRAM] Program updated successfully');
     res.status(200).json(updatedProgram);
   } catch (error) {
@@ -234,7 +229,7 @@ exports.deleteProgram = async (req, res) => {
     const userId = req.user._id || req.user.id;
     console.log('[DELETE PROGRAM] Deleting program:', programId);
     console.log('[DELETE PROGRAM] User ID:', userId);
-    
+
     const program = await Program.findById(programId);
     if (!program) {
       return res.status(404).json({ message: 'Program not found' });
@@ -308,9 +303,9 @@ exports.acceptProgram = async (req, res) => {
       return res.status(400).json({ message: 'This is not a group program' });
     }
 
-    console.log('[ACCEPT PROGRAM] Program members:', program.members.map(m => ({ 
-      user_id: m.user_id?.toString(), 
-      status: m.status 
+    console.log('[ACCEPT PROGRAM] Program members:', program.members.map(m => ({
+      user_id: m.user_id?.toString(),
+      status: m.status
     })));
 
     // Find the member entry for this user
@@ -324,11 +319,11 @@ exports.acceptProgram = async (req, res) => {
       // User not found in members, try to add them if they're in the group chat
       const Chat = require('../models/chatModel');
       const chat = await Chat.findById(program.group_id);
-      
+
       if (chat) {
         const isInGroup = chat.users.some(u => u.toString() === userId);
         console.log('[ACCEPT PROGRAM] User in group chat:', isInGroup);
-        
+
         if (isInGroup) {
           // Add user to members and accept
           program.members.push({
@@ -337,7 +332,7 @@ exports.acceptProgram = async (req, res) => {
             responded_at: new Date(),
           });
           await program.save();
-          
+
           const updatedProgram = await Program.findById(programId)
             .populate({
               path: 'user_id',
@@ -352,7 +347,7 @@ exports.acceptProgram = async (req, res) => {
           return res.status(200).json(updatedProgram);
         }
       }
-      
+
       return res.status(403).json({ message: 'You are not a member of this group program' });
     }
 
@@ -361,7 +356,7 @@ exports.acceptProgram = async (req, res) => {
     program.members[memberIndex].responded_at = new Date();
 
     await program.save();
-    
+
     const updatedProgram = await Program.findById(programId)
       .populate({
         path: 'user_id',
@@ -406,10 +401,10 @@ exports.declineProgram = async (req, res) => {
       // User not found in members, try to add them if they're in the group chat
       const Chat = require('../models/chatModel');
       const chat = await Chat.findById(program.group_id);
-      
+
       if (chat) {
         const isInGroup = chat.users.some(u => u.toString() === userId);
-        
+
         if (isInGroup) {
           // Add user to members and decline
           program.members.push({
@@ -418,7 +413,7 @@ exports.declineProgram = async (req, res) => {
             responded_at: new Date(),
           });
           await program.save();
-          
+
           const updatedProgram = await Program.findById(programId)
             .populate({
               path: 'user_id',
@@ -433,7 +428,7 @@ exports.declineProgram = async (req, res) => {
           return res.status(200).json(updatedProgram);
         }
       }
-      
+
       return res.status(403).json({ message: 'You are not a member of this group program' });
     }
 
@@ -442,7 +437,7 @@ exports.declineProgram = async (req, res) => {
     program.members[memberIndex].responded_at = new Date();
 
     await program.save();
-    
+
     const updatedProgram = await Program.findById(programId)
       .populate({
         path: 'user_id',
@@ -541,7 +536,7 @@ exports.getGroupProgramProgress = async (req, res) => {
     const sessions = await ProgramSession.find({
       $or: [
         { program_id: programId },
-        { 
+        {
           user_id: { $in: acceptedMemberIds },
           program_name: program.name
         }
@@ -555,7 +550,7 @@ exports.getGroupProgramProgress = async (req, res) => {
       .filter(m => m.status === 'accepted')
       .map(member => {
         const memberId = member.user_id?._id?.toString() || member.user_id?.toString();
-        const memberSessions = sessions.filter(s => 
+        const memberSessions = sessions.filter(s =>
           (s.user_id?._id?.toString() || s.user_id?.toString()) === memberId
         );
 

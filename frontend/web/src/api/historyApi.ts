@@ -26,6 +26,18 @@ export interface HistoryItem {
             weight_kg?: number;
         }>;
     }>;
+    geo_activities?: Array<{
+        activity_id: {
+            _id: string;
+            name: string;
+            type: string;
+        };
+        preferences?: {
+            distance_km?: number;
+            avg_pace?: string;
+            countdown_seconds?: number;
+        };
+    }>;
     distance_km?: number;
     moving_time_sec?: number;
     total_calories_burned?: number;

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
-import { getUserPrograms, Program } from "../api/programApi";
+import { getUserPrograms, deleteProgram as deleteProgramApi, Program } from "../api/programApi";
 import { useUser } from "./UserContext";
 
 
@@ -8,6 +8,7 @@ type ProgramContextType = {
     guestProgram: any | null;
     isLoading: boolean;
     refreshPrograms: () => Promise<void>;
+    deleteProgram: (id: string) => Promise<void>;
     setGuestProgram: (program: any) => void;
 };
 
@@ -36,6 +37,16 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [user, programs.length]);
 
+    const deleteProgram = useCallback(async (id: string) => {
+        try {
+            await deleteProgramApi(id);
+            await refreshPrograms();
+        } catch (err) {
+            console.error("[ProgramContext] Error deleting program:", err);
+            throw err;
+        }
+    }, [refreshPrograms]);
+
     // Initial fetch when user is available
     useEffect(() => {
         if (user && !user.isGuest) {
@@ -47,7 +58,7 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
     }, [user, refreshPrograms]);
 
     return (
-        <ProgramContext.Provider value={{ programs, guestProgram, isLoading, refreshPrograms, setGuestProgram }}>
+        <ProgramContext.Provider value={{ programs, guestProgram, isLoading, refreshPrograms, deleteProgram, setGuestProgram }}>
             {children}
         </ProgramContext.Provider>
     );

@@ -351,7 +351,7 @@ export default function SessionDetails() {
                         </View>
                         <View style={{ width: '48%', marginBottom: 16, padding: 16, backgroundColor: theme.colors.background, borderRadius: 16 }}>
                             <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + '99' }}>Calories</Text>
-                            <Text style={{ fontFamily: theme.fonts.heading, fontSize: 24, color: theme.colors.primary }}>{session.calories_burned} <Text style={{ fontSize: 14 }}>kcal</Text></Text>
+                            <Text style={{ fontFamily: theme.fonts.heading, fontSize: 24, color: theme.colors.primary }}>{Math.round(session.calories_burned || 0)} <Text style={{ fontSize: 14 }}>kcal</Text></Text>
                         </View>
                     </View>
 
@@ -521,7 +521,7 @@ export default function SessionDetails() {
                     {/* Stats Row */}
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24, backgroundColor: theme.colors.background, padding: 16, borderRadius: 16 }}>
                         <View style={{ alignItems: 'center' }}>
-                            <Text style={{ fontFamily: theme.fonts.heading, fontSize: 20, color: theme.colors.text }}>{session.total_duration_minutes}</Text>
+                            <Text style={{ fontFamily: theme.fonts.heading, fontSize: 20, color: theme.colors.text }}>{Math.round(session.total_duration_minutes || 0)}</Text>
                             <Text style={{ fontSize: 12, color: theme.colors.text + '77' }}>Minutes</Text>
                         </View>
                         <View style={{ width: 1, backgroundColor: theme.colors.text + '20' }} />
@@ -531,7 +531,7 @@ export default function SessionDetails() {
                         </View>
                         <View style={{ width: 1, backgroundColor: theme.colors.text + '20' }} />
                         <View style={{ alignItems: 'center' }}>
-                            <Text style={{ fontFamily: theme.fonts.heading, fontSize: 20, color: theme.colors.primary }}>{session.total_calories_burned}</Text>
+                            <Text style={{ fontFamily: theme.fonts.heading, fontSize: 20, color: theme.colors.primary }}>{Math.round(session.total_calories_burned || 0)}</Text>
                             <Text style={{ fontSize: 12, color: theme.colors.text + '77' }}>Calories</Text>
                         </View>
                     </View>
@@ -595,7 +595,7 @@ export default function SessionDetails() {
                                 {!isWorkout && (
                                     <View style={{ backgroundColor: theme.colors.surface, borderRadius: 8, padding: 12, flexDirection: 'row', justifyContent: 'space-around' }}>
                                         <View style={{ alignItems: 'center' }}>
-                                            <Text style={{ fontFamily: theme.fonts.heading, fontSize: 16, color: theme.colors.text }}>{item.distance_km}</Text>
+                                            <Text style={{ fontFamily: theme.fonts.heading, fontSize: 16, color: theme.colors.text }}>{(item.distance_km || 0).toFixed(2)}</Text>
                                             <Text style={{ fontSize: 10, color: theme.colors.text + '77' }}>km</Text>
                                         </View>
                                         <View style={{ alignItems: 'center' }}>
@@ -603,8 +603,8 @@ export default function SessionDetails() {
                                             <Text style={{ fontSize: 10, color: theme.colors.text + '77' }}>min</Text>
                                         </View>
                                         <View style={{ alignItems: 'center' }}>
-                                            <Text style={{ fontFamily: theme.fonts.heading, fontSize: 16, color: theme.colors.text }}>{item.avg_pace || '-'}</Text>
-                                            <Text style={{ fontSize: 10, color: theme.colors.text + '77' }}>/km</Text>
+                                            <Text style={{ fontFamily: theme.fonts.heading, fontSize: 16, color: theme.colors.text }}>{item.avg_pace ? Number(item.avg_pace).toFixed(2) : '-'}</Text>
+                                            <Text style={{ fontSize: 10, color: theme.colors.text + '77' }}>average pace</Text>
                                         </View>
                                     </View>
                                 )}

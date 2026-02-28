@@ -155,7 +155,7 @@ export default function SessionDetailsModal({ isOpen, onClose, sessionType, sess
           <div className="p-4 rounded-2xl" style={{ backgroundColor: theme.colors.background }}>
             <p className="text-sm" style={{ color: theme.colors.text + '99' }}>Calories</p>
             <p className="text-2xl font-bold" style={{ color: theme.colors.primary }}>
-              {session.calories_burned} <span className="text-sm font-normal">kcal</span>
+              {Math.round(session.calories_burned || 0)} <span className="text-sm font-normal">kcal</span>
             </p>
           </div>
         </div>
@@ -393,7 +393,7 @@ export default function SessionDetailsModal({ isOpen, onClose, sessionType, sess
         >
           <div className="text-center">
             <p className="text-xl font-bold" style={{ color: theme.colors.text }}>
-              {session.total_duration_minutes}
+              {Math.round(session.total_duration_minutes || 0)}
             </p>
             <p className="text-xs" style={{ color: theme.colors.text + '77' }}>Minutes</p>
           </div>
@@ -407,7 +407,7 @@ export default function SessionDetailsModal({ isOpen, onClose, sessionType, sess
           <div className="w-px" style={{ backgroundColor: theme.colors.text + '20' }} />
           <div className="text-center">
             <p className="text-xl font-bold" style={{ color: theme.colors.primary }}>
-              {session.total_calories_burned}
+              {Math.round(session.total_calories_burned || 0)}
             </p>
             <p className="text-xs" style={{ color: theme.colors.text + '77' }}>Calories</p>
           </div>

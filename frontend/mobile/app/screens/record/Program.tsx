@@ -1,16 +1,18 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, RefreshControl } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, RefreshControl, Alert } from "react-native";
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons, MaterialCommunityIcons, FontAwesome6 } from "@expo/vector-icons";
 import { usePrograms } from "../../context/ProgramContext";
+import { useUser } from "../../context/UserContext";
 
 export default function ProgramRecordScreen() {
   const { theme } = useTheme();
   const router = useRouter();
-  const { programs, refreshPrograms } = usePrograms();
+  const { programs, refreshPrograms, deleteProgram } = usePrograms();
+  const { user } = useUser();
   const [fabOpen, setFabOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -24,6 +26,27 @@ export default function ProgramRecordScreen() {
     setRefreshing(false);
   }, [refreshPrograms]);
 
+  const handleDeleteProgram = (id: string, name: string) => {
+    Alert.alert(
+      "Delete Program",
+      `Are you sure you want to delete "${name}"? This action cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteProgram(id);
+            } catch (err) {
+              Alert.alert("Error", "Failed to delete program. Please try again.");
+            }
+          }
+        }
+      ]
+    );
+  };
+
   useEffect(() => {
     if (fabOpen) {
       fabOptionsTranslateY.value = withSpring(-20, { damping: 12 });
@@ -33,6 +56,12 @@ export default function ProgramRecordScreen() {
       fabOptionsOpacity.value = withTiming(0, { duration: 200 });
     }
   }, [fabOpen]);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshPrograms();
+    }, [refreshPrograms])
+  );
 
   const animatedOptionsStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: fabOptionsTranslateY.value }],
@@ -137,12 +166,23 @@ export default function ProgramRecordScreen() {
             >
               <Text style={{ fontFamily: theme.fonts.heading, color: theme.colors.primary, fontSize: 18 }}>{program.name}</Text>
               <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.text + "99", marginBottom: 6 }}>{program.description}</Text>
-              <TouchableOpacity
-                style={{ alignSelf: "flex-end", marginTop: 4 }}
-                onPress={() => router.push(`/screens/programs/program-overview?id=${program._id}`)}
-              >
-                <Text style={{ color: theme.colors.primary, fontFamily: theme.fonts.body }}>View Details</Text>
-              </TouchableOpacity>
+
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginTop: 4 }}>
+                {((typeof program.user_id === 'object' ? program.user_id?._id : program.user_id) === (user?._id || user?.id)) && (
+                  <TouchableOpacity
+                    style={{ marginRight: 16 }}
+                    onPress={() => handleDeleteProgram(program._id, program.name)}
+                  >
+                    <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                  </TouchableOpacity>
+                )}
+
+                <TouchableOpacity
+                  onPress={() => router.push(`/screens/programs/program-overview?id=${program._id}`)}
+                >
+                  <Text style={{ color: theme.colors.primary, fontFamily: theme.fonts.body }}>View Details</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           ))
         )}

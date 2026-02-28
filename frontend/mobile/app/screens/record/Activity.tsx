@@ -69,6 +69,9 @@ export default function TestMap() {
     flushToState,
     SPLIT_DISTANCE_KM,
     isDistanceBased,
+    programMode,
+    programGeoPreferences,
+    setProgramGeoResult,
   } = useActivityMetrics();
 
   const [location, setLocation] = useState<[number, number] | null>(null);
@@ -615,6 +618,30 @@ export default function TestMap() {
           prevTimestampRef.current = null;
           setRouteGeoJSON(null);
         };
+
+        // Program mode: store result in context and navigate back to program coach
+        if (programMode) {
+          const routeForResult = refs.routeCoords.current.map(([lon, lat]) => ({
+            latitude: lat,
+            longitude: lon,
+          }));
+
+          setProgramGeoResult({
+            activity_id: getActivityId(activityType),
+            distance_km: finalDistance,
+            avg_pace: (isDistanceBased && finalDistance > 0) ? (finalTime / 60) / finalDistance : 0,
+            moving_time_sec: finalTime,
+            route_coordinates: routeForResult,
+            calories_burned: caloriesBurned,
+            started_at: new Date(Date.now() - finalTime * 1000).toISOString(),
+            ended_at: new Date().toISOString(),
+            geo_session_id: response?._id,
+          });
+
+          cleanupAndReset();
+          router.back();
+          return;
+        }
 
         if (savedOffline) {
           Alert.alert(

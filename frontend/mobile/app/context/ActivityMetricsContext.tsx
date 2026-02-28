@@ -13,6 +13,27 @@ export type Split = {
 
 type ActivityType = string;
 
+// ─── Program Mode Types ────────────────────────────────────────
+export type ProgramGeoPreferences = {
+  activity_id: string;
+  activity_name: string;
+  distance_km?: number;
+  avg_pace?: string;
+  countdown_seconds?: number;
+};
+
+export type ProgramGeoResult = {
+  activity_id: string;
+  distance_km: number;
+  avg_pace: number;
+  moving_time_sec: number;
+  route_coordinates: Array<{ latitude: number; longitude: number }>;
+  calories_burned: number;
+  started_at: string;
+  ended_at: string;
+  geo_session_id?: string;
+};
+
 /**
  * Refs for high-frequency data that recording logic writes to.
  * UI never reads these directly — it reads the throttled state.
@@ -54,6 +75,14 @@ type ActivityMetricsContextType = {
   flushToState: () => void;
   calculateCaloriesBurned: (weightKg?: number) => number;
   refreshActivities: () => Promise<void>;
+
+  // ── Program mode ──
+  programMode: boolean;
+  programGeoPreferences: ProgramGeoPreferences | null;
+  programGeoResult: ProgramGeoResult | null;
+  setProgramMode: (prefs: ProgramGeoPreferences) => void;
+  clearProgramMode: () => void;
+  setProgramGeoResult: (result: ProgramGeoResult) => void;
 };
 
 const ActivityMetricsContext = createContext<ActivityMetricsContextType | undefined>(undefined);
@@ -74,6 +103,11 @@ export const ActivityMetricsProvider = ({ children }: { children: ReactNode }) =
   const [splits, _setSplits] = useState<Split[]>([]);
   const [activityType, setActivityType] = useState<ActivityType>("Select");
   const [activities, setActivities] = useState<GeoActivity[]>([]);
+
+  // ── Program mode state ──
+  const [programMode, _setProgramMode] = useState<boolean>(false);
+  const [programGeoPreferences, _setProgramGeoPreferences] = useState<ProgramGeoPreferences | null>(null);
+  const [programGeoResult, _setProgramGeoResult] = useState<ProgramGeoResult | null>(null);
 
   // ── High-frequency refs (written to by GPS / timer callbacks) ──
   const speedRef = useRef<number>(0);
@@ -219,6 +253,27 @@ export const ActivityMetricsProvider = ({ children }: { children: ReactNode }) =
 
   const SPLIT_DISTANCE_KM = 1;
 
+  // ── Program mode helpers ──
+  const setProgramMode = useCallback((prefs: ProgramGeoPreferences) => {
+    _setProgramMode(true);
+    _setProgramGeoPreferences(prefs);
+    _setProgramGeoResult(null);
+    // Set the activity type to match the program's activity
+    if (prefs.activity_name) {
+      setActivityType(prefs.activity_name);
+    }
+  }, []);
+
+  const clearProgramMode = useCallback(() => {
+    _setProgramMode(false);
+    _setProgramGeoPreferences(null);
+    _setProgramGeoResult(null);
+  }, []);
+
+  const setProgramGeoResult = useCallback((result: ProgramGeoResult) => {
+    _setProgramGeoResult(result);
+  }, []);
+
   // Memoize isDistanceBased so it only recalculates when activityType/activities change
   const isDistanceBased = useMemo(() => {
     const activity = activities.find(a => a.name === activityType);
@@ -248,11 +303,19 @@ export const ActivityMetricsProvider = ({ children }: { children: ReactNode }) =
     flushToState,
     calculateCaloriesBurned,
     refreshActivities,
+    programMode,
+    programGeoPreferences,
+    programGeoResult,
+    setProgramMode,
+    clearProgramMode,
+    setProgramGeoResult,
   }), [
     speed, distance, time, recording, splits,
     activityType, activities, isDistanceBased,
     refs, setSpeed, setDistance, setTime, setRecording,
     addSplit, resetMetrics, flushToState, calculateCaloriesBurned,
+    programMode, programGeoPreferences, programGeoResult,
+    setProgramMode, clearProgramMode, setProgramGeoResult,
   ]);
 
   return (

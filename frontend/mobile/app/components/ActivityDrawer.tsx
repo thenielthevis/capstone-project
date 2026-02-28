@@ -47,7 +47,7 @@ export default function ActivityDrawer({
   const router = useRouter();
 
   // Read metrics from context to avoid prop updates
-  const { activityType, setActivityType, activities, speed, distance, time, isDistanceBased, calculateCaloriesBurned } = useActivityMetrics();
+  const { activityType, setActivityType, activities, speed, distance, time, isDistanceBased, calculateCaloriesBurned, programMode, programGeoPreferences } = useActivityMetrics();
   const { user } = useUser(); // Get user for calories
 
   // Calculate calories for drawer display
@@ -252,9 +252,9 @@ export default function ActivityDrawer({
                 {/* Activity Selector */}
                 <View style={{ alignItems: "center", flex: 1 }}>
                   <TouchableOpacity
-                    onPress={hasStartedRecording ? undefined : handleActivityPress}
-                    activeOpacity={hasStartedRecording ? 1 : 0.7}
-                    style={{ alignItems: "center", opacity: hasStartedRecording ? 0.5 : 1 }}
+                    onPress={(hasStartedRecording || programMode) ? undefined : handleActivityPress}
+                    activeOpacity={(hasStartedRecording || programMode) ? 1 : 0.7}
+                    style={{ alignItems: "center", opacity: (hasStartedRecording || programMode) ? 0.5 : 1 }}
                   >
                     <View style={{
                       width: 60,
@@ -372,6 +372,30 @@ export default function ActivityDrawer({
 
               {/* Metrics Row - Independent of Buttons */}
               <View style={{ marginTop: 24 }}>
+                {/* Program Mode Target Banner */}
+                {programMode && programGeoPreferences && (
+                  <View style={{
+                    flexDirection: 'row',
+                    justifyContent: 'center',
+                    marginBottom: 12,
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    backgroundColor: theme.colors.primary + '15',
+                    borderRadius: 12,
+                    marginHorizontal: 16,
+                  }}>
+                    <Ionicons name="flag" size={14} color={theme.colors.primary} style={{ marginRight: 6, marginTop: 2 }} />
+                    <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.primary, fontSize: 13 }}>
+                      Target:{' '}
+                      {programGeoPreferences.distance_km ? `${programGeoPreferences.distance_km} km` : ''}
+                      {programGeoPreferences.distance_km && programGeoPreferences.countdown_seconds ? ' • ' : ''}
+                      {programGeoPreferences.countdown_seconds ? `${Math.floor(programGeoPreferences.countdown_seconds / 60)}min` : ''}
+                      {(programGeoPreferences.distance_km || programGeoPreferences.countdown_seconds) && programGeoPreferences.avg_pace ? ' • ' : ''}
+                      {programGeoPreferences.avg_pace ? `Pace: ${programGeoPreferences.avg_pace}` : ''}
+                      {!programGeoPreferences.distance_km && !programGeoPreferences.countdown_seconds && !programGeoPreferences.avg_pace ? 'Free run' : ''}
+                    </Text>
+                  </View>
+                )}
                 {isDistanceBased ? (
                   // Distance Sports: 3 Columns matched to buttons
                   <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>

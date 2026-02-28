@@ -80,12 +80,12 @@ export default function ProgramHistory() {
 
   const handlePostSession = (item: HistoryItem) => {
     // Navigate to post creation page
-    const title = item.type === 'ProgramSession' 
+    const title = item.type === 'ProgramSession'
       ? item.program_name || 'Workout'
       : item.activity_type?.name || 'Activity';
-    
+
     const subtitle = item.type === 'ProgramSession'
-      ? `${item.workouts?.length || 0} Exercises`
+      ? `${(item.workouts?.length || 0) + (item.geo_activities?.length || 0)} Exercises`
       : `${item.distance_km?.toFixed(2)} km`;
 
     navigate(`/feed?post=true&type=${item.type}&id=${item._id}&title=${encodeURIComponent(title)}&subtitle=${encodeURIComponent(subtitle)}`);
@@ -103,7 +103,7 @@ export default function ProgramHistory() {
     else title = item.activity_type?.name || 'Outdoor Activity';
 
     let subtitle = '';
-    if (isProgram) subtitle = `${item.workouts?.length || 0} Exercises`;
+    if (isProgram) subtitle = `${(item.workouts?.length || 0) + (item.geo_activities?.length || 0)} Exercises`;
     else subtitle = `${item.distance_km?.toFixed(2) || '0.00'} km • ${Math.floor((item.moving_time_sec || 0) / 60)} min`;
 
     let calories = 0;
@@ -114,7 +114,7 @@ export default function ProgramHistory() {
       <div
         key={item._id}
         className="rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer flex"
-        style={{ 
+        style={{
           backgroundColor: theme.colors.surface,
           border: `1px solid ${theme.colors.border}`
         }}
@@ -124,7 +124,7 @@ export default function ProgramHistory() {
         }}
       >
         {/* Left Icon Area */}
-        <div 
+        <div
           className="w-16 flex items-center justify-center"
           style={{ backgroundColor: theme.colors.primary + '15' }}
         >
@@ -141,13 +141,13 @@ export default function ProgramHistory() {
             <div className="flex-1 mr-2">
               {/* Activity Type Badge */}
               <div className="flex items-center gap-2 mb-1">
-                <span 
+                <span
                   className="text-xs font-bold uppercase"
                   style={{ color: theme.colors.primary }}
                 >
                   {isProgram ? 'Program' : 'Outdoor'}
                 </span>
-                <span 
+                <span
                   className="text-xs"
                   style={{ color: theme.colors.textSecondary }}
                 >
@@ -156,7 +156,7 @@ export default function ProgramHistory() {
               </div>
 
               {/* Title */}
-              <h3 
+              <h3
                 className="font-semibold text-base truncate"
                 style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}
               >
@@ -164,7 +164,7 @@ export default function ProgramHistory() {
               </h3>
 
               {/* Subtitle */}
-              <p 
+              <p
                 className="text-sm"
                 style={{ color: theme.colors.textSecondary }}
               >
@@ -198,7 +198,7 @@ export default function ProgramHistory() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: theme.colors.background }}>
-      <Header 
+      <Header
         title="History"
         showBackButton
         backTo="/programs"
@@ -212,7 +212,7 @@ export default function ProgramHistory() {
             onClick={handleRefresh}
             disabled={refreshing}
             className="flex items-center gap-2 px-4 py-2 rounded-lg transition hover:opacity-90"
-            style={{ 
+            style={{
               backgroundColor: theme.colors.surface,
               color: theme.colors.text,
               border: `1px solid ${theme.colors.border}`
@@ -226,7 +226,7 @@ export default function ProgramHistory() {
         {/* Loading State */}
         {loading && (
           <div className="flex justify-center items-center h-64">
-            <div 
+            <div
               className="animate-spin rounded-full h-12 w-12 border-b-2"
               style={{ borderColor: theme.colors.primary }}
             />
@@ -237,13 +237,13 @@ export default function ProgramHistory() {
         {!loading && history.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16">
             <Clock className="w-16 h-16 mb-4" style={{ color: theme.colors.textSecondary + '40' }} />
-            <h2 
+            <h2
               className="text-xl font-semibold mb-2"
               style={{ color: theme.colors.textSecondary, fontFamily: theme.fonts.heading }}
             >
               No history yet
             </h2>
-            <p 
+            <p
               className="text-center max-w-sm"
               style={{ color: theme.colors.textSecondary }}
             >
@@ -264,7 +264,7 @@ export default function ProgramHistory() {
                   onClick={handleLoadMore}
                   disabled={loadingMore}
                   className="flex items-center gap-2 px-6 py-3 rounded-lg transition hover:opacity-90"
-                  style={{ 
+                  style={{
                     backgroundColor: theme.colors.primary,
                     color: '#FFFFFF'
                   }}

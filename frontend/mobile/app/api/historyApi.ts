@@ -11,6 +11,7 @@ export interface HistoryItem {
         [key: string]: any;
     };
     workouts?: any[];
+    geo_activities?: any[];
     distance_km?: number;
     moving_time_sec?: number;
     total_calories_burned?: number;

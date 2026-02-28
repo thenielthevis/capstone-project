@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { View, Text, TouchableOpacity, ActivityIndicator, Image, Animated, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import LottieView from "lottie-react-native";
 import * as Speech from "expo-speech";
@@ -17,6 +17,7 @@ import GamificationLoading from '../../components/animation/gamification-loading
 import { ActivityIcon } from "../../components/ActivityIcon";
 import { usePrograms } from "../../context/ProgramContext";
 import { useUser } from "../../context/UserContext";
+import { useActivityMetrics, ProgramGeoResult } from "../../context/ActivityMetricsContext";
 
 type ExerciseItem = {
   type: 'workout' | 'geo';
@@ -61,6 +62,12 @@ export default function ProgramCoach() {
   const startTimeRef = useRef<Date | null>(null);
   const sessionResponseRef = useRef<any>(null);
 
+  // Activity metrics context for program mode geo exercises
+  const { setProgramMode, clearProgramMode, programGeoResult, setProgramGeoResult } = useActivityMetrics();
+  const geoResultsRef = useRef<Map<number, ProgramGeoResult>>(new Map());
+  const waitingForGeoResultRef = useRef<boolean>(false);
+  const geoExerciseIndexRef = useRef<number>(-1);
+
   // Gamification animation state
   const [showGamificationAnimation, setShowGamificationAnimation] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
@@ -87,6 +94,40 @@ export default function ProgramCoach() {
       Speech.stop();
     };
   }, []);
+
+  // Handle return from Activity screen - detect geo result
+  useFocusEffect(
+    useCallback(() => {
+      if (waitingForGeoResultRef.current && programGeoResult) {
+        // Collect the result
+        const exerciseIdx = geoExerciseIndexRef.current;
+        geoResultsRef.current.set(exerciseIdx, programGeoResult);
+
+        // Clear program mode
+        clearProgramMode();
+        waitingForGeoResultRef.current = false;
+        geoExerciseIndexRef.current = -1;
+
+        // Check if this was the last exercise
+        const isLastExercise = exerciseIdx === (exercises || []).length - 1;
+        if (isLastExercise) {
+          setIsLastExerciseDone(true);
+          playClapping();
+          speak("Program complete!");
+          setIsPlaying(false);
+
+          // Auto-trigger the finish flow (save session + gamification + post alert)
+          setTimeout(() => {
+            handleFinishProgram(true);
+          }, 500);
+        } else {
+          // Move to next exercise
+          speak("Outdoor activity complete. Moving to next exercise.");
+          nextExercise();
+        }
+      }
+    }, [programGeoResult, (exercises || []).length])
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -297,7 +338,7 @@ export default function ProgramCoach() {
     const workoutSessions: ProgramSessionPayload["workouts"] = [];
     const geoSessions: ProgramSessionPayload["geo_activities"] = [];
 
-    exercises.forEach((exercise) => {
+    exercises.forEach((exercise, exerciseIndex) => {
       if (exercise.type === "workout") {
         const workoutId = getEntityId(exercise.workout_id);
         if (!workoutId) return;
@@ -325,23 +366,43 @@ export default function ProgramCoach() {
 
         const aObj = typeof exercise.activity_id === 'object' ? exercise.activity_id : {};
 
-        const preferences = exercise.preferences || {};
-        const distance = toNumber(preferences.distance_km);
-        const avgPace = toOptionalNumber(preferences.avg_pace);
-        const movingTime = toNumber(preferences.countdown_seconds);
+        // Check if we have actual recorded data from the Activity screen
+        const recordedResult = geoResultsRef.current.get(exerciseIndex);
 
-        geoSessions.push({
-          activity_id: activityId,
-          name: aObj?.name,
-          exercise_type: aObj?.type, // e.g., "Run", "Bike"
-          distance_km: distance,
-          avg_pace: avgPace,
-          moving_time_sec: movingTime,
-          route_coordinates: [],
-          calories_burned: 0,
-          started_at: null,
-          ended_at: null,
-        });
+        if (recordedResult) {
+          // Use actual recorded GPS data
+          geoSessions.push({
+            activity_id: activityId,
+            name: aObj?.name,
+            exercise_type: aObj?.type,
+            distance_km: recordedResult.distance_km,
+            avg_pace: recordedResult.avg_pace,
+            moving_time_sec: recordedResult.moving_time_sec,
+            route_coordinates: recordedResult.route_coordinates,
+            calories_burned: recordedResult.calories_burned,
+            started_at: recordedResult.started_at,
+            ended_at: recordedResult.ended_at,
+          });
+        } else {
+          // Fallback to program preferences (exercise was skipped or not recorded)
+          const preferences = exercise.preferences || {};
+          const distance = toNumber(preferences.distance_km);
+          const avgPace = toOptionalNumber(preferences.avg_pace);
+          const movingTime = toNumber(preferences.countdown_seconds);
+
+          geoSessions.push({
+            activity_id: activityId,
+            name: aObj?.name,
+            exercise_type: aObj?.type,
+            distance_km: distance,
+            avg_pace: avgPace,
+            moving_time_sec: movingTime,
+            route_coordinates: [],
+            calories_burned: 0,
+            started_at: null,
+            ended_at: null,
+          });
+        }
       }
     });
 
@@ -456,7 +517,7 @@ export default function ProgramCoach() {
     let speech = `Rest for ${seconds} seconds.`;
 
     // Check if up next is a new exercise
-    const isSwitchingExercise = isWorkout ? currentSet >= sets.length - 1 : true;
+    const isSwitchingExercise = isWorkout ? currentSet >= (sets || []).length - 1 : true;
     if (isSwitchingExercise && currentIndex < exercises.length - 1) {
       const nextEx = exercises[currentIndex + 1];
       const nextName = nextEx.type === 'workout' ? nextEx.workout_id?.name : nextEx.activity_id?.name;
@@ -487,26 +548,64 @@ export default function ProgramCoach() {
     }
 
     // Default: Proceed to next set or exercise logic
-    if (isWorkout && sets.length > 0) {
-      if (currentSet < sets.length - 1) {
+    if (isWorkout && (sets || []).length > 0) {
+      if (currentSet < (sets || []).length - 1) {
         // Next set
         setCurrentSet((prev) => prev + 1);
         // Pre-emptively set rep/time state to avoid timer flash
-        const nextSet = sets[currentSet + 1];
-        if (nextSet.reps) {
+        const nextSet = (sets || [])[currentSet + 1];
+        if (nextSet?.reps) {
           setIsRepExercise(true);
           setExerciseTime(0);
-        } else {
+        } else if (nextSet) {
           setIsRepExercise(false);
           setExerciseTime(nextSet.time_seconds ? Number(nextSet.time_seconds) : 0);
         }
 
       } else {
         // Next exercise
-        if (currentIndex < exercises.length - 1) {
-          // Pre-emptively set state for the NEXT exercise to prevent timer bug
+        if (currentIndex < (exercises || []).length - 1) {
           const nextEx = exercises[currentIndex + 1];
-          if (nextEx.type === 'workout') {
+          if (nextEx && nextEx.type === 'geo') {
+            // Next exercise is a geo activity — advance index, then trigger geo flow with rest+callback
+            setCurrentSet(0);
+            setCurrentRep(0);
+            setIsRepExercise(false);
+            setExerciseTime(0);
+            setCountdown(0);
+            announcementKeyRef.current = null;
+            const nextIndex = currentIndex + 1;
+            setCurrentIndex(nextIndex);
+
+            // Set up geo exercise flow (same as handleGeoExercise but using the next exercise data)
+            const activityId = getEntityId(nextEx.activity_id) || '';
+            const activityObj = typeof nextEx.activity_id === 'object' ? nextEx.activity_id : {} as any;
+            const prefs = nextEx.preferences || {};
+
+            setProgramMode({
+              activity_id: activityId,
+              activity_name: activityObj?.name || 'Activity',
+              distance_km: prefs.distance_km ? parseFloat(prefs.distance_km) : undefined,
+              avg_pace: prefs.avg_pace || undefined,
+              countdown_seconds: prefs.countdown_seconds ? parseFloat(prefs.countdown_seconds) : undefined,
+            });
+
+            waitingForGeoResultRef.current = true;
+            geoExerciseIndexRef.current = nextIndex;
+
+            // Show rest, then navigate to Activity screen
+            onRestCompleteRef.current = () => {
+              announcementKeyRef.current = null;
+              router.push('/screens/record/Activity');
+            };
+            setRestTime(30);
+            setViewMode('rest');
+            Speech.speak(`Rest for 30 seconds. Up next, ${activityObj?.name || 'Outdoor Activity'}.`);
+            // Don't auto-play after this rest — geo handles its own flow
+            return;
+          }
+          // Pre-emptively set state for the NEXT exercise to prevent timer bug
+          if (nextEx && nextEx.type === 'workout') {
             const nextSets = nextEx.sets || [];
             if (nextSets.length > 0) {
               const firstSet = nextSets[0];
@@ -549,8 +648,8 @@ export default function ProgramCoach() {
           speak("Set complete.");
 
           // Check if this is the last set of the last exercise
-          const isLastExercise = currentIndex === exercises.length - 1;
-          const isLastSet = currentSet >= sets.length - 1;
+          const isLastExercise = currentIndex === (exercises || []).length - 1;
+          const isLastSet = currentSet >= (sets || []).length - 1;
 
           if (isLastExercise && isLastSet) {
             setIsLastExerciseDone(true);
@@ -685,8 +784,8 @@ export default function ProgramCoach() {
     speak("Set complete.");
 
     // Check if this is the last set of the last exercise
-    const isLastExercise = currentIndex === exercises.length - 1;
-    const isLastSet = currentSet >= sets.length - 1;
+    const isLastExercise = currentIndex === (exercises || []).length - 1;
+    const isLastSet = currentSet >= (sets || []).length - 1;
 
     if (isLastExercise && isLastSet) {
       setIsLastExerciseDone(true);
@@ -698,7 +797,23 @@ export default function ProgramCoach() {
     }
   };
 
-  const handleGeoExercise = async (_exercise: ExerciseItem) => {
+  const handleGeoExercise = async (exercise: ExerciseItem) => {
+    // Set program mode in activity context with the program's geo preferences
+    const activityId = getEntityId(exercise.activity_id) || '';
+    const activityObj = typeof exercise.activity_id === 'object' ? exercise.activity_id : {};
+    const prefs = exercise.preferences || {};
+
+    setProgramMode({
+      activity_id: activityId,
+      activity_name: activityObj?.name || 'Activity',
+      distance_km: prefs.distance_km ? parseFloat(prefs.distance_km) : undefined,
+      avg_pace: prefs.avg_pace || undefined,
+      countdown_seconds: prefs.countdown_seconds ? parseFloat(prefs.countdown_seconds) : undefined,
+    });
+
+    waitingForGeoResultRef.current = true;
+    geoExerciseIndexRef.current = currentIndex;
+
     startRest(30, () => {
       announcementKeyRef.current = null;
       router.push('/screens/record/Activity');
@@ -875,8 +990,8 @@ export default function ProgramCoach() {
     return countdown === 0 && restTime === 0;
   };
 
-  const handleFinishProgram = async () => {
-    if (isRecordingSession || !isLastExerciseCompleted()) return;
+  const handleFinishProgram = async (autoFinish: boolean = false) => {
+    if (isRecordingSession || (!autoFinish && !isLastExerciseCompleted())) return;
 
     if (user?.isGuest) {
       Alert.alert(
@@ -987,11 +1102,11 @@ export default function ProgramCoach() {
   // Determine next exercise details for ProgramRest
   // Determine next exercise details for ProgramRest
   const getNextExerciseDetails = () => {
-    if (isWorkout && sets.length > 0 && currentSet < sets.length - 1) {
+    if (isWorkout && (sets || []).length > 0 && currentSet < (sets || []).length - 1) {
       // Next set of same workout
       return {
         name: workout?.name,
-        info: `Set ${currentSet + 2} of ${sets.length}`,
+        info: `Set ${currentSet + 2} of ${(sets || []).length}`,
         image: workout?.animation_url,
         isLottie: true
       };
@@ -1056,7 +1171,7 @@ export default function ProgramCoach() {
           {/* Finish button - only show when last exercise is completed */}
           {isLastExerciseCompleted() ? (
             <TouchableOpacity
-              onPress={handleFinishProgram}
+              onPress={() => handleFinishProgram()}
               disabled={isRecordingSession}
               className="flex-row items-center justify-center"
               style={{
@@ -1178,12 +1293,12 @@ export default function ProgramCoach() {
         </View>
 
         {/* Exercise Info Row: Set | Reps | Timer | Weight */}
-        {isWorkout && sets.length > 0 && (
+        {isWorkout && (sets || []).length > 0 && (
           <View className="flex-row items-center justify-center" style={{ flexWrap: "wrap", gap: 16 }}>
             {/* Set Info */}
             <View className="flex-row items-center" style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: theme.colors.surface, borderRadius: 8 }}>
               <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: 14, color: theme.colors.text, marginRight: 4 }}>
-                Set {currentSet + 1} of {sets.length}
+                Set {currentSet + 1} of {(sets || []).length}
               </Text>
             </View>
 

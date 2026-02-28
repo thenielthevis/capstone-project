@@ -74,7 +74,7 @@ export default function ProgramHistory() {
                 id: item._id,
                 title: item.program_name || item.activity_type?.name || "Activity",
                 subtitle: item.type === "ProgramSession"
-                    ? `${item.workouts?.length || 0} Exercises`
+                    ? `${(item.workouts?.length || 0) + (item.geo_activities?.length || 0)} Exercises`
                     : `${item.distance_km?.toFixed(2)} km`,
             }
         });
@@ -104,7 +104,7 @@ export default function ProgramHistory() {
         else title = item.activity_type?.name || "Outdoor Activity";
 
         let subtitle = "";
-        if (isProgram) subtitle = `${item.workouts?.length || 0} Exercises`;
+        if (isProgram) subtitle = `${(item.workouts?.length || 0) + (item.geo_activities?.length || 0)} Exercises`;
         else subtitle = `${item.distance_km?.toFixed(2)} km • ${Math.floor((item.moving_time_sec || 0) / 60)} min`;
 
         let calories = 0;
