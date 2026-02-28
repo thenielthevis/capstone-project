@@ -10,9 +10,7 @@ export default {
     scheme: "mobile",
     userInterfaceStyle: "automatic",
     splash: {
-      image: "./assets/images/splash.png",
-      resizeMode: "cover",
-      backgroundColor: "#000000" // your brand color
+      backgroundColor: "#111827"
     },
     newArchEnabled: false,
     ios: {
@@ -80,7 +78,7 @@ export default {
       "expo-font",
       "expo-sqlite"
     ],
-    assetBundlePatterns: ["assets/fonts/*"],
+    assetBundlePatterns: ["assets/fonts/*", "assets/sounds/*"],
     experiments: {
       typedRoutes: true
     },
