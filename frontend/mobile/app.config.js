@@ -76,7 +76,8 @@ export default {
         }
       ],
       "expo-font",
-      "expo-sqlite"
+      "expo-sqlite",
+      "./withAndroidQueries.js"
     ],
     assetBundlePatterns: ["assets/fonts/*", "assets/sounds/*"],
     experiments: {
