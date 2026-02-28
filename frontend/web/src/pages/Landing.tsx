@@ -103,9 +103,9 @@ export default function Landing() {
   };
 
   const teamMembers = [
-    { name: 'Rene Cian Baloloy', role: 'Backend Developer', img: images.team.member1 },
-    { name: 'Rean Joy Cicat', role: 'UI/UX Designer', img: images.team.member2 },
-    { name: 'Mark Al Bartolome', role: 'Frontend Developer', img: images.team.member3 },
+    { name: 'Rene Cian Baloloy', role: '3D Avatar Developer', img: images.team.member1 },
+    { name: 'Rean Joy Cicat', role: 'AI Models Developer', img: images.team.member2 },
+    { name: 'Mark Al Bartolome', role: 'Full Stack Developer', img: images.team.member3 },
     { name: 'Daniel Davis', role: 'Full Stack Developer', img: images.team.member4 },
   ];
 
