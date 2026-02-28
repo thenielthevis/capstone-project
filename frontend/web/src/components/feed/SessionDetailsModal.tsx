@@ -1,9 +1,56 @@
 import { useTheme } from '@/context/ThemeContext';
 import { X, MapPin, Clock, TrendingUp, Dumbbell, Scale, AlertTriangle, Lightbulb, ChefHat, ExternalLink } from 'lucide-react';
 import CloudinaryLottie from '@/components/CloudinaryLottie';
-import CloudinarySVG from '@/components/CloudinarySVG';
+import ActivityIcon from '@/components/ActivityIcon';
+import { useMemo } from 'react';
 
 import RouteMap from './RouteMap';
+
+// --- Helpers ---
+const haversineKm = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+const formatPace = (seconds: number): string => {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
+
+const SplitsChart = ({ data, theme }: { data: any[]; theme: any }) => {
+  if (!data.length) return null;
+  const maxPace = Math.max(...data.map(d => d.paceMinutes), 1);
+
+  return (
+    <div className="space-y-3 mt-4">
+      {data.map((split, i) => (
+        <div key={i} className="flex items-center gap-3">
+          <span className="text-xs font-medium w-8" style={{ color: theme.colors.textSecondary }}>{split.km} km</span>
+          <div className="flex-1 h-6 bg-gray-100 rounded-lg overflow-hidden relative" style={{ backgroundColor: theme.colors.background }}>
+            <div
+              className="h-full rounded-r-lg transition-all duration-500"
+              style={{
+                width: `${(split.paceMinutes / maxPace) * 100}%`,
+                backgroundColor: theme.colors.primary + 'CC'
+              }}
+            />
+            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-white drop-shadow-sm">
+              {split.pace}
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 interface SessionDetailsModalProps {
   isOpen: boolean;
@@ -97,15 +144,67 @@ export default function SessionDetailsModal({ isOpen, onClose, sessionType, sess
     const coordinates = session.route_coordinates?.map((c: any) => [c.longitude, c.latitude]) || [];
     const staticMap = session.preview_image || session.static_map_url;
 
+    // Split calculations
+    const splits = useMemo(() => {
+      if (!session.route_coordinates || session.route_coordinates.length < 2) return [];
+      const coords = session.route_coordinates;
+      const totalDistance = session.distance_km || 0;
+      const totalTime = session.moving_time_sec || 0;
+      if (totalDistance < 0.01 || totalTime === 0) return [];
+
+      const SPLIT_KM = 1;
+      let accumulated = 0;
+      let splitStart = 0;
+      const result: any[] = [];
+
+      for (let i = 1; i < coords.length; i++) {
+        const d = haversineKm(
+          coords[i - 1].latitude, coords[i - 1].longitude,
+          coords[i].latitude, coords[i].longitude
+        );
+        accumulated += d;
+
+        if (accumulated >= SPLIT_KM) {
+          const pointsInSplit = i - splitStart;
+          const totalPoints = coords.length - 1;
+          const splitTimeSec = (pointsInSplit / totalPoints) * totalTime;
+          const paceSec = splitTimeSec / SPLIT_KM;
+
+          result.push({
+            km: result.length + 1,
+            pace: formatPace(paceSec),
+            paceMinutes: paceSec / 60
+          });
+          accumulated -= SPLIT_KM;
+          splitStart = i;
+        }
+      }
+      return result;
+    }, [session]);
+
     return (
       <div className="space-y-6">
         {/* Header */}
         <div className="flex justify-between items-start">
           <div>
-            <h2 className="text-2xl font-bold" style={{ color: theme.colors.text }}>
-              {session.activity_type?.name || 'Activity'}
-            </h2>
-            <p className="text-sm" style={{ color: theme.colors.text + '99' }}>
+            <div className="flex items-center gap-3">
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0"
+                style={{ backgroundColor: theme.colors.primary + '15' }}
+              >
+                <ActivityIcon
+                  activityName={session.activity_type?.name}
+                  activityType={session.activity_type?.type}
+                  iconUrl={session.activity_type?.icon}
+                  size={24}
+                  color={theme.colors.primary}
+                />
+              </div>
+              <h2 className="text-2xl font-bold" style={{ color: theme.colors.text }}>
+                {session.activity_type?.name || 'Activity'}
+              </h2>
+            </div>
+            <p className="text-sm mt-1" style={{ color: theme.colors.text + '99' }}>
               {new Date(session.started_at).toLocaleDateString()}
             </p>
           </div>
@@ -159,6 +258,16 @@ export default function SessionDetailsModal({ isOpen, onClose, sessionType, sess
             </p>
           </div>
         </div>
+
+        {/* Splits Chart */}
+        {splits.length > 0 && (
+          <div className="p-5 rounded-3xl" style={{ backgroundColor: theme.colors.background }}>
+            <h3 className="text-lg font-semibold" style={{ color: theme.colors.text }}>
+              Splits (/km)
+            </h3>
+            <SplitsChart data={splits} theme={theme} />
+          </div>
+        )}
       </div>
     );
   };
@@ -431,9 +540,11 @@ export default function SessionDetailsModal({ isOpen, onClose, sessionType, sess
                   type = item.exercise_type || item.type || item.workout_id?.type || 'Strength';
                   animationUrl = item.animation_url || item.workout_id?.animation_url;
                 } else {
-                  name = item.name || item.activity_id?.name || 'Outdoor Activity';
-                  type = 'Outdoor';
-                  icon = item.icon || item.activity_id?.icon;
+                  // For geo activities, we need name and type for proper icon fallback
+                  name = item.name || item.activity_name || item.activity_id?.name || 'Outdoor Activity';
+                  const activityType = item.activity_type || item.activity_id?.type || 'Other Sports';
+                  type = activityType;
+                  icon = item.icon || item.activity_icon || item.activity_id?.icon;
                 }
 
                 return (
@@ -458,12 +569,13 @@ export default function SessionDetailsModal({ isOpen, onClose, sessionType, sess
                             height={56}
                             className="w-full h-full"
                           />
-                        ) : !isWorkout && icon ? (
-                          <CloudinarySVG
-                            src={icon}
-                            width={32}
-                            height={32}
-                            fallbackColor={theme.colors.primary}
+                        ) : !isWorkout && (icon || name) ? (
+                          <ActivityIcon
+                            activityName={name}
+                            activityType={type}
+                            iconUrl={icon}
+                            size={24}
+                            color={theme.colors.primary}
                           />
                         ) : (
                           isWorkout ? (
@@ -518,25 +630,52 @@ export default function SessionDetailsModal({ isOpen, onClose, sessionType, sess
                       </div>
                     )}
 
-                    {/* Preferences (For Geo Activities) */}
-                    {!isWorkout && item.preferences && (
+                    {/* Stats (For Geo Activities) */}
+                    {!isWorkout && (
                       <div
-                        className="p-3 rounded-lg flex flex-wrap gap-4 text-sm"
+                        className="p-3 rounded-lg grid grid-cols-3 gap-2 text-center"
+                        style={{ backgroundColor: theme.colors.surface }}
+                      >
+                        <div>
+                          <p className="font-bold" style={{ color: theme.colors.text }}>
+                            {item.distance_km?.toFixed(2) || '0.00'}
+                          </p>
+                          <p className="text-[10px]" style={{ color: theme.colors.text + '99' }}>km</p>
+                        </div>
+                        <div>
+                          <p className="font-bold" style={{ color: theme.colors.text }}>
+                            {Math.floor((item.moving_time_sec || 0) / 60)}
+                          </p>
+                          <p className="text-[10px]" style={{ color: theme.colors.text + '99' }}>min</p>
+                        </div>
+                        <div>
+                          <p className="font-bold" style={{ color: theme.colors.text }}>
+                            {item.avg_pace?.toFixed(2) || '-'}
+                          </p>
+                          <p className="text-[10px]" style={{ color: theme.colors.text + '99' }}>pace</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Preferences (For Geo Activities - fallback targets) */}
+                    {!isWorkout && !item.distance_km && item.preferences && (
+                      <div
+                        className="p-3 mt-2 rounded-lg flex flex-wrap gap-4 text-sm"
                         style={{ backgroundColor: theme.colors.surface }}
                       >
                         {item.preferences.distance_km && (
                           <span style={{ color: theme.colors.text }}>
-                            Distance: <strong>{item.preferences.distance_km}km</strong>
+                            Target: <strong>{item.preferences.distance_km}km</strong>
                           </span>
                         )}
                         {item.preferences.avg_pace && (
                           <span style={{ color: theme.colors.text }}>
-                            Pace: <strong>{item.preferences.avg_pace}</strong>
+                            Target Pace: <strong>{item.preferences.avg_pace}</strong>
                           </span>
                         )}
                         {item.preferences.countdown_seconds && (
                           <span style={{ color: theme.colors.text }}>
-                            Time: <strong>{Math.floor(item.preferences.countdown_seconds / 60)}m</strong>
+                            Target Time: <strong>{Math.floor(item.preferences.countdown_seconds / 60)}m</strong>
                           </span>
                         )}
                       </div>

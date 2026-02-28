@@ -8,9 +8,9 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import Footer from '../components/Footer';
 import Header from '@/components/Header';
-import { Search, Filter, ChevronDown, ChevronUp, Plus, Trash2, MapPin, Dumbbell, Info } from 'lucide-react';
+import { Filter, ChevronDown, ChevronUp, Plus, Trash2, Dumbbell, MapPin, Search, Info } from 'lucide-react';
+import ActivityIcon from '@/components/ActivityIcon';
 import CloudinaryLottie from '@/components/CloudinaryLottie';
-import CloudinarySVG from '@/components/CloudinarySVG';
 
 type WorkoutSet = {
   reps?: string;
@@ -856,22 +856,22 @@ function GeoActivityCard({
     >
       <div className="flex gap-3">
         {/* Icon */}
-        {activity.icon ? (
-          <CloudinarySVG
-            src={activity.icon}
-            alt={activity.name}
-            width={56}
-            height={56}
-            className="rounded-lg flex-shrink-0"
-          />
-        ) : (
-          <div
-            className="w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: theme.colors.surface }}
-          >
+        <div
+          className="w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ backgroundColor: theme.colors.surface }}
+        >
+          {activity.icon || activity.name ? (
+            <ActivityIcon
+              activityName={activity.name}
+              activityType={activity.type}
+              iconUrl={activity.icon}
+              size={32}
+              color={theme.colors.primary}
+            />
+          ) : (
             <MapPin className="w-6 h-6" style={{ color: theme.colors.textSecondary }} />
-          </div>
-        )}
+          )}
+        </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-2">

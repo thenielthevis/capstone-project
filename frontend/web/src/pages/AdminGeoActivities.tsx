@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { 
+import {
   MapPin, Search, Calendar, Trash2, ChevronLeft, ChevronRight,
   Filter, TrendingUp, Users, Activity, RefreshCw, Clock, Flame, Navigation, Download, Plus
 } from 'lucide-react';
@@ -12,7 +12,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { adminApi, GeoSession, GeoActivityStats, GeoActivity } from '@/api/adminApi';
 import { showToast } from '@/components/Toast/Toast';
 import { exportGeoActivitiesReport, GeoSessionData, GeoActivityData } from '@/utils/pdfExport';
-import CloudinarySVG from '@/components/CloudinarySVG';
+import ActivityIcon from '@/components/ActivityIcon';
 
 export default function AdminGeoActivities() {
   const navigate = useNavigate();
@@ -64,7 +64,7 @@ export default function AdminGeoActivities() {
 
       console.log('[AdminGeoActivities] Fetching geo sessions with filters:', filters);
       const data = await adminApi.getAllGeoSessions(currentPage, 20, filters);
-      
+
       console.log('[AdminGeoActivities] Received sessions:', data.sessions.length, 'Total items:', data.pagination.totalItems);
       setSessions(data.sessions);
       setTotalPages(data.pagination.totalPages);
@@ -87,7 +87,7 @@ export default function AdminGeoActivities() {
 
       console.log('[AdminGeoActivities] Fetching geo activities with filters:', filters);
       const data = await adminApi.getAllGeoActivities(currentPage, 20, filters);
-      
+
       console.log('[AdminGeoActivities] Received activities:', data.activities.length, 'Total items:', data.pagination.totalItems);
       setActivities(data.activities);
       setTotalPages(data.pagination.totalPages);
@@ -125,7 +125,7 @@ export default function AdminGeoActivities() {
       console.log('[AdminGeoActivities] Deleting session:', sessionId);
       await adminApi.deleteGeoSession(sessionId);
       showToast({ type: 'success', text1: 'Geo session deleted successfully' });
-      
+
       // Refresh both sessions and stats after deletion
       fetchSessions();
       fetchStats();
@@ -142,7 +142,7 @@ export default function AdminGeoActivities() {
       console.log('[AdminGeoActivities] Deleting activity:', activityId);
       await adminApi.deleteGeoActivity(activityId);
       showToast({ type: 'success', text1: 'Geo activity deleted successfully' });
-      
+
       // Refresh both activities and stats after deletion
       fetchActivities();
       fetchStats();
@@ -176,31 +176,31 @@ export default function AdminGeoActivities() {
     try {
       setExporting(true);
       showToast({ type: 'info', text1: 'Fetching all data for export...' });
-      
+
       // Fetch all sessions (up to 500)
       let allSessions: GeoSession[] = [];
       let page = 1;
       let hasMore = true;
-      
+
       while (hasMore && page <= 25) {
         const data = await adminApi.getAllGeoSessions(page, 20);
         allSessions = [...allSessions, ...data.sessions];
         hasMore = data.pagination.currentPage < data.pagination.totalPages;
         page++;
       }
-      
+
       // Fetch all activities
       let allActivities: GeoActivity[] = [];
       page = 1;
       hasMore = true;
-      
+
       while (hasMore && page <= 10) {
         const data = await adminApi.getAllGeoActivities(page, 20);
         allActivities = [...allActivities, ...data.activities];
         hasMore = data.pagination.currentPage < data.pagination.totalPages;
         page++;
       }
-      
+
       exportGeoActivitiesReport(
         allSessions as GeoSessionData[],
         allActivities as GeoActivityData[],
@@ -229,7 +229,7 @@ export default function AdminGeoActivities() {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
-    
+
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
     } else if (minutes > 0) {
@@ -460,7 +460,7 @@ export default function AdminGeoActivities() {
                       </Button>
                     </div>
                   </div>
-                  
+
                   <div className="mt-4 pt-4 border-t" style={{ borderColor: theme.colors.border }}>
                     <div className="flex items-center gap-4">
                       <label className="text-sm font-medium" style={{ color: theme.colors.text }}>
@@ -481,7 +481,7 @@ export default function AdminGeoActivities() {
                         <option value="calories_burned">Calories</option>
                         <option value="moving_time_sec">Duration</option>
                       </select>
-                      
+
                       <Button
                         variant="outline"
                         size="sm"
@@ -527,22 +527,18 @@ export default function AdminGeoActivities() {
                           <div className="flex items-start justify-between">
                             <div className="flex gap-4 flex-1">
                               {/* Activity Icon */}
-                              {session.activity_type?.icon ? (
-                                <CloudinarySVG
-                                  src={session.activity_type.icon}
-                                  alt={session.activity_type?.name || 'Activity'}
-                                  width={64}
-                                  height={64}
-                                  className="rounded-lg"
+                              <div
+                                className="w-16 h-16 rounded-lg flex items-center justify-center flex-shrink-0"
+                                style={{ backgroundColor: theme.colors.surface }}
+                              >
+                                <ActivityIcon
+                                  activityName={session.activity_type?.name}
+                                  activityType={session.activity_type?.type}
+                                  iconUrl={session.activity_type?.icon}
+                                  size={40}
+                                  color={theme.colors.primary}
                                 />
-                              ) : (
-                                <div 
-                                  className="w-16 h-16 rounded-lg flex items-center justify-center"
-                                  style={{ backgroundColor: theme.colors.surface }}
-                                >
-                                  <MapPin className="w-8 h-8" style={{ color: theme.colors.textSecondary }} />
-                                </div>
-                              )}
+                              </div>
 
                               {/* Session Details */}
                               <div className="flex-1">
@@ -551,9 +547,9 @@ export default function AdminGeoActivities() {
                                     {session.activity_type?.name || 'Unknown Activity'}
                                   </h3>
                                   {session.activity_type?.met && (
-                                    <span 
+                                    <span
                                       className="text-sm px-2 py-1 rounded"
-                                      style={{ 
+                                      style={{
                                         backgroundColor: `${theme.colors.primary}20`,
                                         color: theme.colors.primary
                                       }}
@@ -682,22 +678,18 @@ export default function AdminGeoActivities() {
                         <Card key={activity._id} style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}>
                           <CardContent className="pt-6">
                             <div className="flex items-start justify-between mb-4">
-                              {activity.icon ? (
-                                <CloudinarySVG
-                                  src={activity.icon}
-                                  alt={activity.name}
-                                  width={48}
-                                  height={48}
-                                  className="rounded-lg"
+                              <div
+                                className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0"
+                                style={{ backgroundColor: theme.colors.surface }}
+                              >
+                                <ActivityIcon
+                                  activityName={activity.name}
+                                  activityType={activity.type}
+                                  iconUrl={activity.icon}
+                                  size={32}
+                                  color={theme.colors.primary}
                                 />
-                              ) : (
-                                <div 
-                                  className="w-12 h-12 rounded-lg flex items-center justify-center"
-                                  style={{ backgroundColor: theme.colors.surface }}
-                                >
-                                  <MapPin className="w-6 h-6" style={{ color: theme.colors.textSecondary }} />
-                                </div>
-                              )}
+                              </div>
                               <div className="flex gap-1">
                                 <Button
                                   variant="ghost"
@@ -717,21 +709,21 @@ export default function AdminGeoActivities() {
                                 </Button>
                               </div>
                             </div>
-                            
+
                             <h3 className="font-semibold text-lg mb-2" style={{ color: theme.colors.text }}>
                               {activity.name}
                             </h3>
-                            
+
                             {activity.description && (
                               <p className="text-sm mb-3" style={{ color: theme.colors.textSecondary }}>
                                 {activity.description}
                               </p>
                             )}
-                            
+
                             <div className="flex items-center gap-2">
-                              <span 
+                              <span
                                 className="text-sm px-2 py-1 rounded font-medium"
-                                style={{ 
+                                style={{
                                   backgroundColor: `${theme.colors.primary}20`,
                                   color: theme.colors.primary
                                 }}
@@ -797,7 +789,7 @@ export default function AdminGeoActivities() {
                 <CardContent>
                   <div className="space-y-2">
                     {stats.topActivities.map((activity, index) => (
-                      <div 
+                      <div
                         key={index}
                         className="flex items-center justify-between p-3 rounded"
                         style={{ backgroundColor: theme.colors.background }}
@@ -815,9 +807,9 @@ export default function AdminGeoActivities() {
                             </p>
                           </div>
                         </div>
-                        <span 
+                        <span
                           className="px-3 py-1 rounded text-sm font-medium"
-                          style={{ 
+                          style={{
                             backgroundColor: `${theme.colors.primary}20`,
                             color: theme.colors.primary
                           }}
@@ -840,7 +832,7 @@ export default function AdminGeoActivities() {
                 <CardContent>
                   <div className="space-y-2">
                     {stats.topUsers.map((user, index) => (
-                      <div 
+                      <div
                         key={user.userId}
                         className="flex items-center justify-between p-3 rounded"
                         style={{ backgroundColor: theme.colors.background }}
@@ -858,9 +850,9 @@ export default function AdminGeoActivities() {
                             </p>
                           </div>
                         </div>
-                        <span 
+                        <span
                           className="px-3 py-1 rounded text-sm font-medium"
-                          style={{ 
+                          style={{
                             backgroundColor: `${theme.colors.success}20`,
                             color: theme.colors.success
                           }}

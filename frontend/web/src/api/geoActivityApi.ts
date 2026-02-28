@@ -3,6 +3,7 @@ import axiosInstance from "./axiosInstance";
 export type GeoActivity = {
   _id: string;
   name: string;
+  type: string;
   description?: string;
   icon?: string;
   animation?: string;

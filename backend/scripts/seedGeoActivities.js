@@ -111,6 +111,54 @@ const activities = [
         description: 'Resistance training using free weights or machines to build muscular strength, increase bone density, and boost metabolism.',
         met: 6.0
     },
+    {
+        name: 'Arnis',
+        type: 'Other Sports',
+        description: 'A Filipino martial art emphasizing weapon-based fighting with sticks, blades, and improvised weapons, improving coordination and reflexes.',
+        met: 6.0
+    },
+    {
+        name: 'Basketball',
+        type: 'Other Sports',
+        description: 'A dynamic team sport involving running, jumping, and shooting, providing a high-intensity cardiovascular and full-body workout.',
+        met: 8.0
+    },
+    {
+        name: 'Boxing',
+        type: 'Other Sports',
+        description: 'Combat sport and exercise involving punching, footwork, and defensive movements, offering extreme cardiovascular and strength benefits.',
+        met: 12.0
+    },
+    {
+        name: 'Football',
+        type: 'Other Sports',
+        description: 'A high-endurance team sport involving continuous running, agility, and leg strength, played on a large outdoor field.',
+        met: 9.0
+    },
+    {
+        name: 'Softball',
+        type: 'Other Sports',
+        description: 'A bat-and-ball sport played on a smaller field than baseball, requiring explosive movements, throwing accuracy, and teamwork.',
+        met: 5.0
+    },
+    {
+        name: 'Table Tennis',
+        type: 'Other Sports',
+        description: 'A high-speed racquet sport played on a table, requiring intense focus, quick reflexes, and rapid lateral movements.',
+        met: 4.0
+    },
+    {
+        name: 'Taekwondo',
+        type: 'Other Sports',
+        description: 'A Korean martial art known for its emphasis on head-height kicks, jumping and spinning kicks, and fast kicking techniques.',
+        met: 10.0
+    },
+    {
+        name: 'Volleyball',
+        type: 'Other Sports',
+        description: 'A team sport involving jumping, hitting, and quick reactions, building upper body strength, agility, and communication.',
+        met: 4.0
+    },
 ];
 
 module.exports = activities;

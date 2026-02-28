@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { ArrowLeft, Upload, MapPin } from 'lucide-react';
+import ActivityIcon from '@/components/ActivityIcon';
 import AdminSidebar from '@/components/AdminSidebar';
 import { useTheme } from '@/context/ThemeContext';
 import logoImg from '../assets/logo.png';
@@ -12,6 +13,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 interface GeoActivity {
   _id?: string;
   name: string;
+  type: string;
   description: string;
   icon?: string;
   animation?: string;
@@ -32,6 +34,7 @@ export default function GeoActivityForm() {
 
   const [formData, setFormData] = useState<GeoActivity>({
     name: '',
+    type: 'Other Sports',
     description: '',
     met: 0,
   });
@@ -72,7 +75,7 @@ export default function GeoActivityForm() {
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -110,7 +113,7 @@ export default function GeoActivityForm() {
     try {
       setSubmitting(true);
       const token = localStorage.getItem('token');
-      
+
       if (!token) {
         throw new Error('No authentication token found. Please log in again.');
       }
@@ -119,6 +122,7 @@ export default function GeoActivityForm() {
 
       // Always append all fields
       formDataToSend.append('name', formData.name.trim());
+      formDataToSend.append('type', formData.type || 'Other Sports');
       formDataToSend.append('description', formData.description || '');
       formDataToSend.append('met', String(formData.met || 0));
 
@@ -178,10 +182,10 @@ export default function GeoActivityForm() {
 
       const responseData = JSON.parse(responseText);
       console.log('[GeoActivityForm] Success! Updated data:', responseData);
-      
+
       setSuccess(true);
       console.log('[GeoActivityForm] Update/Create successful, redirecting...');
-      
+
       // Wait a moment to show success message, then redirect
       setTimeout(() => {
         navigate('/admin/geo-activities', { replace: true });
@@ -264,19 +268,40 @@ export default function GeoActivityForm() {
                     )}
 
                     {/* Name Field */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Activity Name *
-                      </label>
-                      <input
-                        type="text"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleInputChange}
-                        placeholder="e.g., Running, Cycling, Swimming"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        required
-                      />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium" style={{ color: theme.colors.text }}>
+                          Activity Name
+                        </label>
+                        <input
+                          type="text"
+                          name="name"
+                          value={formData.name}
+                          onChange={handleInputChange}
+                          placeholder="e.g. Morning Run"
+                          className="w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium" style={{ color: theme.colors.text }}>
+                          Activity Category / Type
+                        </label>
+                        <select
+                          name="type"
+                          value={formData.type}
+                          style={{backgroundColor: theme.colors.surface}}
+                          onChange={handleInputChange}
+                          className="w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          required
+                        >
+                          <option value="Foot Sports">Foot Sports (Run, Walk, Hiking)</option>
+                          <option value="Cycle Sports">Cycle Sports (Cycling, MTB)</option>
+                          <option value="Water Sports">Water Sports (Swimming, Kayaking)</option>
+                          <option value="Other Sports">Other Sports (Tennis, Gym, etc.)</option>
+                        </select>
+                      </div>
                     </div>
 
                     {/* Description Field */}
@@ -327,15 +352,24 @@ export default function GeoActivityForm() {
                             </div>
                             <input
                               type="file"
-                              accept="image/*"
+                              accept="image/*,.svg"
                               onChange={(e) => handleFileChange(e, 'icon')}
                               className="hidden"
                             />
                           </label>
                         </div>
                         {iconPreview && (
-                          <div className="w-24 h-24 rounded-lg overflow-hidden border border-gray-300 flex-shrink-0">
-                            <img src={iconPreview} alt="Preview" className="w-full h-full object-cover" />
+                          <div className="w-24 h-24 rounded-lg overflow-hidden border border-gray-300 flex-shrink-0 flex items-center justify-center bg-gray-50">
+                            {iconPreview.startsWith('data:') ? (
+                              <img src={iconPreview} alt="Preview" className="w-full h-full object-contain" />
+                            ) : (
+                              <ActivityIcon
+                                activityName={formData.name}
+                                iconUrl={iconPreview}
+                                size={48}
+                                color={theme.colors.primary}
+                              />
+                            )}
                           </div>
                         )}
                       </div>

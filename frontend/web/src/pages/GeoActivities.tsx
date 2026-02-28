@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Plus, Trash2, Search, MapPin, Mail, Edit2, RotateCcw } from 'lucide-react';
 import AdminSidebar from '@/components/AdminSidebar';
+import ActivityIcon from '@/components/ActivityIcon';
 import { useTheme } from '@/context/ThemeContext';
 import logoImg from '../assets/logo.png';
 
@@ -12,6 +13,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 interface GeoActivity {
   _id: string;
   name: string;
+  type: string;
   description: string;
   icon?: string;
   animation?: string;
@@ -202,10 +204,19 @@ export default function GeoActivities() {
                       <CardHeader>
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <CardTitle className="text-lg flex items-center gap-2">
-                              {activity.icon && (
-                                <img src={activity.icon} alt={activity.name} className="w-6 h-6 rounded" />
-                              )}
+                            <CardTitle className="text-lg flex items-center gap-3">
+                              <div
+                                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                                style={{ backgroundColor: theme.colors.primary + '15' }}
+                              >
+                                <ActivityIcon
+                                  activityName={activity.name}
+                                  activityType={activity.type}
+                                  iconUrl={activity.icon}
+                                  size={20}
+                                  color={theme.colors.primary}
+                                />
+                              </div>
                               {activity.name}
                             </CardTitle>
                           </div>
@@ -227,8 +238,8 @@ export default function GeoActivities() {
                             size="sm"
                             variant="outline"
                             onClick={() => navigate(`/admin/geo-activities/edit/${activity._id}`)}
-                           className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 rounded-lg flex items-center justify-center gap-2"
-                      >
+                            className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 rounded-lg flex items-center justify-center gap-2"
+                          >
                             <Edit2 className="w-4 h-4 mr-1" />
                             Edit
                           </Button>
@@ -237,8 +248,8 @@ export default function GeoActivities() {
                             variant="outline"
                             onClick={() => handleDeleteActivity(activity._id)}
                             disabled={deleting === activity._id}
-                           className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-2 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50"
-                      >
+                            className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-2 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50"
+                          >
                             {deleting === activity._id ? (
                               <span className="flex items-center gap-1">
                                 <div className="w-3 h-3 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>

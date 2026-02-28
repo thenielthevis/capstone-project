@@ -13,6 +13,14 @@ import KayakingIcon from "@/assets/icons/kayaking.svg";
 import TennisIcon from "@/assets/icons/tennis.svg";
 import BadmintonIcon from "@/assets/icons/badminton.svg";
 import WeightliftingIcon from "@/assets/icons/weightlifting.svg";
+import ArnisIcon from "@/assets/icons/arnis.svg";
+import BasketballIcon from "@/assets/icons/basketball.svg";
+import BoxingIcon from "@/assets/icons/boxing.svg";
+import FootballIcon from "@/assets/icons/football.svg";
+import SoftballIcon from "@/assets/icons/softball.svg";
+import TableTennisIcon from "@/assets/icons/table-tennis.svg";
+import TaekwondoIcon from "@/assets/icons/taekwondo.svg";
+import VolleyballIcon from "@/assets/icons/volleyball.svg";
 
 // Map activity names to local SVG components
 const ACTIVITY_ICONS: Record<string, React.FC<SvgProps>> = {
@@ -31,6 +39,14 @@ const ACTIVITY_ICONS: Record<string, React.FC<SvgProps>> = {
     'Weightlifting': WeightliftingIcon,
     'Pilates': WeightliftingIcon, // Reuse
     'Golf': TennisIcon, // Reuse tennis icon for now
+    'Arnis': ArnisIcon,
+    'Basketball': BasketballIcon,
+    'Boxing': BoxingIcon,
+    'Football': FootballIcon,
+    'Softball': SoftballIcon,
+    'Table Tennis': TableTennisIcon,
+    'Taekwondo': TaekwondoIcon,
+    'Volleyball': VolleyballIcon,
 };
 
 // Fallback icons by activity type (using Ionicons)

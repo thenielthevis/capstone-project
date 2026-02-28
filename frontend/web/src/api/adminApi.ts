@@ -169,6 +169,7 @@ export interface FoodLogStats {
 export interface GeoActivity {
   _id: string;
   name: string;
+  type: string;
   description: string;
   icon?: string;
   animation?: string;
@@ -188,6 +189,7 @@ export interface GeoSession {
   activity_type: {
     _id: string;
     name: string;
+    type: string;
     description: string;
     icon?: string;
     met: number;
@@ -914,7 +916,7 @@ class AdminAPI {
     if (filters?.searchQuery) params.searchQuery = filters.searchQuery;
     if (filters?.sortBy) params.sortBy = filters.sortBy;
     if (filters?.sortOrder) params.sortOrder = filters.sortOrder;
-    
+
     console.log('[adminApi.getAllAchievements] Request params:', params);
     try {
       const response = await axiosInstance.get<PaginatedAchievementsResponse>('/admin/achievements', { params });
