@@ -1065,25 +1065,48 @@ export default function ProfileScreen() {
                   padding: 16,
                 }}
               >
-                {profile.lastPrediction.disease?.length > 0 && (
-                  <View style={{ marginBottom: 12 }}>
-                    <Text
-                      style={{
-                        fontFamily: theme.fonts.body,
-                        fontSize: 12,
-                        color: theme.colors.text + "77",
-                        marginBottom: 8,
-                      }}
-                    >
-                      Risk Areas
-                    </Text>
-                    <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
-                      {profile.lastPrediction.disease.map((d, idx) => (
-                        <Tag key={idx} text={d} color={theme.colors.primary} theme={theme} />
-                      ))}
-                    </View>
-                  </View>
-                )}
+                {(() => {
+                  const preds = profile.lastPrediction?.predictions || [];
+                  const RISK_THRESHOLD = 30;
+
+                  // If we have actual prediction objects with probabilities from the model
+                  if (preds && preds.length > 0) {
+                    const filteredPredNames = preds.filter((p: any) => {
+                      const prob = p.probability <= 1 ? p.probability * 100 : p.probability;
+                      return prob >= RISK_THRESHOLD;
+                    }).map((p: any) => p.name);
+
+                    if (filteredPredNames.length === 0) return null;
+
+                    return (
+                      <View style={{ marginBottom: 12 }}>
+                        <Text
+                          style={{
+                            fontFamily: theme.fonts.body,
+                            fontSize: 12,
+                            color: theme.colors.text + "77",
+                            marginBottom: 8,
+                          }}
+                        >
+                          Risk Areas
+                        </Text>
+                        <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+                          {filteredPredNames.map((d: string, idx: number) => (
+                            <Tag key={idx} text={d.replace(/_/g, ' ')} color={theme.colors.primary} theme={theme} />
+                          ))}
+                        </View>
+                      </View>
+                    );
+                  }
+
+                  // If we don't have predictions array, we don't know the probabilities.
+                  // According to the standard, we should only show risks >= 30%.
+                  // If we only have the legacy disease array without probabilities, 
+                  // it's safer to show nothing or only if we are sure it's pre-filtered.
+                  // However, for consistency with the requirement "It must only show the predicted risks with 30 percentage",
+                  // if we don't have probability data, we shouldn't show them as "confirmed" risks.
+                  return null;
+                })()}
                 <View
                   style={{
                     flexDirection: "row",

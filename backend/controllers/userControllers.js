@@ -661,6 +661,7 @@ exports.getUserProfile = async (req, res) => {
                 lastPrediction: user.lastPrediction ? {
                     disease: user.lastPrediction.disease,
                     probability: user.lastPrediction.probability,
+                    predictions: user.lastPrediction.predictions || [],
                     predictedAt: user.lastPrediction.predictedAt,
                     source: user.lastPrediction.source,
                 } : null,

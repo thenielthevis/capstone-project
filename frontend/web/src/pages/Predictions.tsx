@@ -681,35 +681,49 @@ export default function Predictions() {
                         Based on your health profile, here are your predicted health risks:
                       </p>
                       <div className="space-y-4">
-                        {predictions.filter((p: any) => p.probability > 0).map((prediction, index) => (
-                          <div
-                            key={index}
-                            className={`p-4 rounded-lg border-2 ${getRiskColor(prediction.probability)}`}
-                          >
-                            <div className="flex justify-between items-start mb-2">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <h3 className="font-semibold text-lg">{normalizeName(prediction.name)}</h3>
-                                </div>
-                                {prediction.description && (
-                                  <p className="text-xs mb-2" style={{ color: '#666' }}>
-                                    {prediction.description}
-                                  </p>
-                                )}
-                                {prediction.factors && prediction.factors.length > 0 && (
-                                  <div className="mt-2">
-                                    <p className="text-xs font-medium mb-1">Contributing Factors:</p>
-                                    <ul className="text-xs list-disc list-inside space-y-0.5">
-                                      {prediction.factors.map((factor, idx) => (
-                                        <li key={idx}>{factor}</li>
-                                      ))}
-                                    </ul>
+                        {predictions.filter((p: any) => {
+                          const prob = p.probability <= 1 ? p.probability * 100 : p.probability;
+                          return prob >= 30;
+                        }).length > 0 ? (
+                          predictions.filter((p: any) => {
+                            const prob = p.probability <= 1 ? p.probability * 100 : p.probability;
+                            return prob >= 30;
+                          }).map((prediction, index) => (
+                            <div
+                              key={index}
+                              className={`p-4 rounded-lg border-2 ${getRiskColor(prediction.probability)}`}
+                            >
+                              <div className="flex justify-between items-start mb-2">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <h3 className="font-semibold text-lg">{normalizeName(prediction.name)}</h3>
                                   </div>
-                                )}
+                                  {prediction.description && (
+                                    <p className="text-xs mb-2" style={{ color: '#666' }}>
+                                      {prediction.description}
+                                    </p>
+                                  )}
+                                  {prediction.factors && prediction.factors.length > 0 && (
+                                    <div className="mt-2">
+                                      <p className="text-xs font-medium mb-1">Contributing Factors:</p>
+                                      <ul className="text-xs list-disc list-inside space-y-0.5">
+                                        {prediction.factors.map((factor, idx) => (
+                                          <li key={idx}>{factor}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </div>
+                          ))
+                        ) : (
+                          <div className="text-center py-6 bg-green-50 rounded-lg border border-green-100">
+                            <Heart className="w-8 h-8 text-green-500 mx-auto mb-2 opacity-80" />
+                            <h3 className="text-md font-medium text-green-900">No Significant Risks Detected</h3>
+                            <p className="text-xs text-green-700 mt-1">Based on our analysis, you have no health risks above our 30% threshold.</p>
                           </div>
-                        ))}
+                        )}
                       </div>
                     </CardContent>
                   </Card>

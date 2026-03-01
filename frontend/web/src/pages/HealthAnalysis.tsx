@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { 
-  Activity, Moon, Droplets, Brain, Apple, Heart, Globe, AlertCircle, HeartPulse, 
+import {
+  Activity, Moon, Droplets, Brain, Apple, Heart, Globe, AlertCircle, HeartPulse,
   Scale, RefreshCw, ChevronRight, CheckCircle, X, Clipboard
 } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
@@ -670,7 +670,7 @@ export default function HealthAnalysis() {
       loadHealthData();
       setTimeout(() => setShowUpdateSuccess(false), 5000);
     };
-    
+
     window.addEventListener('assessmentUpdated', handleAssessmentUpdate);
     return () => window.removeEventListener('assessmentUpdated', handleAssessmentUpdate);
   }, []);
@@ -679,10 +679,10 @@ export default function HealthAnalysis() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await getCachedPredictions();
       const data = response.data;
-      
+
       setProfile(data.profile || null);
       setPredictions(data.predictions || []);
     } catch (err: any) {
@@ -712,7 +712,7 @@ export default function HealthAnalysis() {
 
   const getMetricValue = (metricId: string): string => {
     if (!profile) return 'N/A';
-    
+
     switch (metricId) {
       case 'bmi':
         return profile.physicalMetrics?.bmi?.toFixed(1) || 'N/A';
@@ -727,15 +727,22 @@ export default function HealthAnalysis() {
       case 'dietary':
         return profile.dietaryProfile?.preferences?.length ? 'Set' : 'Not Set';
       case 'health':
-        return profile.healthProfile?.currentConditions?.length ? 
+        return profile.healthProfile?.currentConditions?.length ?
           `${profile.healthProfile.currentConditions.length} conditions` : 'None';
       case 'environment':
         return profile.environmentalFactors?.pollutionExposure || 'N/A';
       case 'addiction':
-        return profile.riskFactors?.addictions?.length ? 
+        return profile.riskFactors?.addictions?.length ?
           `${profile.riskFactors.addictions.length} tracked` : 'None';
-      case 'risks':
-        return predictions.length ? `${predictions.length} risks` : 'N/A';
+      case 'risks': {
+        const RISK_THRESHOLD = 30;
+        const activeCount = predictions.filter(p => {
+          const prob = p.probability <= 1 ? p.probability * 100 : p.probability;
+          return prob >= RISK_THRESHOLD;
+        }).length;
+        if (activeCount === 0) return predictions.length ? 'No Risks' : 'N/A';
+        return `${activeCount} risk${activeCount > 1 ? 's' : ''}`;
+      }
       default:
         return 'N/A';
     }
@@ -748,14 +755,14 @@ export default function HealthAnalysis() {
 
   if (loading) {
     return (
-      <div 
+      <div
         className="min-h-screen flex items-center justify-center"
-        style={{ 
+        style={{
           background: `linear-gradient(135deg, ${theme.colors.surface} 0%, ${theme.colors.background} 100%)`
         }}
       >
         <div className="text-center">
-          <div 
+          <div
             className="animate-spin rounded-full h-16 w-16 border-b-2 mx-auto mb-4"
             style={{ borderColor: theme.colors.primary }}
           ></div>
@@ -767,15 +774,15 @@ export default function HealthAnalysis() {
 
   if (error) {
     return (
-      <div 
+      <div
         className="min-h-screen flex items-center justify-center"
-        style={{ 
+        style={{
           background: `linear-gradient(135deg, ${theme.colors.surface} 0%, ${theme.colors.background} 100%)`
         }}
       >
         <div className="text-center px-6">
           <AlertCircle className="w-16 h-16 mx-auto mb-4" style={{ color: theme.colors.error }} />
-          <h2 
+          <h2
             className="text-xl font-semibold mb-2"
             style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}
           >
@@ -785,14 +792,14 @@ export default function HealthAnalysis() {
             {error}
           </p>
           <div className="flex gap-3 justify-center">
-            <Button 
+            <Button
               onClick={loadHealthData}
               style={{ backgroundColor: theme.colors.primary, color: '#fff' }}
             >
               <RefreshCw className="w-4 h-4 mr-2" />
               Retry
             </Button>
-            <Button 
+            <Button
               variant="outline"
               onClick={() => navigate('/health-assessment')}
               style={{ borderColor: theme.colors.border, color: theme.colors.text }}
@@ -806,13 +813,13 @@ export default function HealthAnalysis() {
   }
 
   return (
-    <div 
+    <div
       className="min-h-screen"
-      style={{ 
+      style={{
         background: `linear-gradient(135deg, ${theme.colors.surface} 0%, ${theme.colors.background} 100%)`
       }}
     >
-      <Header 
+      <Header
         title="Health Analysis"
         showBackButton
         showHomeButton
@@ -821,7 +828,7 @@ export default function HealthAnalysis() {
       <main className="container mx-auto px-4 py-6 max-w-6xl">
         {/* Success Banner */}
         {showUpdateSuccess && (
-          <div 
+          <div
             className="flex items-center gap-3 p-4 mb-6 rounded-lg shadow-lg"
             style={{ backgroundColor: '#4CAF50' }}
           >
@@ -837,9 +844,9 @@ export default function HealthAnalysis() {
         )}
 
         {/* Update Health Metrics Button */}
-        <Card 
+        <Card
           className="mb-6 cursor-pointer hover:shadow-lg transition-all"
-          style={{ 
+          style={{
             background: `linear-gradient(135deg, ${theme.colors.primary} 0%, ${theme.colors.secondary} 100%)`,
             borderColor: 'transparent'
           }}
@@ -866,9 +873,9 @@ export default function HealthAnalysis() {
         </Card>
 
         {/* Daily Assessment Button */}
-        <Card 
+        <Card
           className="mb-6 cursor-pointer hover:shadow-lg transition-all"
-          style={{ 
+          style={{
             background: `linear-gradient(135deg, #06B6D4 0%, #0891B2 100%)`,
             borderColor: 'transparent'
           }}
@@ -894,14 +901,14 @@ export default function HealthAnalysis() {
           </CardContent>
         </Card>
 
-       
+
         {/* Health Metrics Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {HEALTH_METRICS.map((metric) => {
             const Icon = metric.icon;
             const gradient = theme.gradients?.[metric.gradientKey] || ['#E3F2FD', '#BBDEFB', '#90CAF9'];
             const value = getMetricValue(metric.id);
-            
+
             return (
               <Card
                 key={metric.id}
@@ -914,7 +921,7 @@ export default function HealthAnalysis() {
                 <CardContent className="p-4 flex flex-col justify-between min-h-[180px]">
                   {/* Icon */}
                   <div className="mb-3">
-                    <div 
+                    <div
                       className="w-10 h-10 rounded-xl flex items-center justify-center"
                       style={{ backgroundColor: 'rgba(255,255,255,0.8)' }}
                     >
@@ -924,13 +931,13 @@ export default function HealthAnalysis() {
 
                   {/* Title & Description */}
                   <div className="flex-1">
-                    <h4 
+                    <h4
                       className="font-semibold text-sm mb-1"
                       style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}
                     >
                       {metric.title}
                     </h4>
-                    <p 
+                    <p
                       className="text-xs mb-2"
                       style={{ color: theme.colors.text + '88' }}
                     >
@@ -939,9 +946,9 @@ export default function HealthAnalysis() {
                   </div>
 
                   {/* Value Badge */}
-                  <div 
+                  <div
                     className="inline-flex self-start px-2 py-1 rounded-lg text-xs font-semibold"
-                    style={{ 
+                    style={{
                       backgroundColor: 'rgba(255,255,255,0.9)',
                       color: theme.colors.primary
                     }}
@@ -956,41 +963,47 @@ export default function HealthAnalysis() {
 
         {/* Health History Chart */}
         {profile && profile.physicalMetrics?.bmi && (
-          <Card 
+          <Card
             className="mt-6"
             style={{ backgroundColor: theme.colors.card, borderColor: theme.colors.border }}
           >
             <CardContent className="pt-6">
               <div className="flex items-center gap-3 mb-4">
                 <HeartPulse className="w-6 h-6" style={{ color: theme.colors.error }} />
-                <h3 
+                <h3
                   className="font-semibold text-lg"
                   style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}
                 >
                   Risk Predictions Summary
                 </h3>
               </div>
-              
+
               <div className="space-y-3">
-                {predictions.filter((p: any) => p.probability > 0).slice(0, 5).map((prediction: any, index: number) => (
-                  <div 
-                    key={index}
-                    className="flex items-center gap-3 p-3 rounded-lg"
-                    style={{ backgroundColor: theme.colors.surface }}
-                  >
-                    <div 
-                      className="w-2 h-2 rounded-full"
-                      style={{ 
-                        backgroundColor: prediction.probability >= 0.7 ? '#ef4444' : 
-                          prediction.probability >= 0.4 ? '#f97316' : '#eab308'
-                      }}
-                    />
-                    <span style={{ color: theme.colors.text }}>{prediction.name}</span>
-                  </div>
-                ))}
+                {predictions.filter((p: any) => {
+                  const prob = p.probability <= 1 ? p.probability * 100 : p.probability;
+                  return prob >= 30;
+                }).slice(0, 5).map((prediction: any, index: number) => {
+                  const prob = prediction.probability <= 1 ? prediction.probability * 100 : prediction.probability;
+                  return (
+                    <div
+                      key={index}
+                      className="flex items-center gap-3 p-3 rounded-lg"
+                      style={{ backgroundColor: theme.colors.surface }}
+                    >
+                      <div
+                        className="w-2 h-2 rounded-full"
+                        style={{
+                          backgroundColor: prob >= 70 ? '#ef4444' :
+                            prob >= 40 ? '#f97316' : '#eab308'
+                        }}
+                      />
+                      <span style={{ color: theme.colors.text }}>{prediction.name}</span>
+                    </div>
+                  )
+                })}
               </div>
 
-              <Button 
+              <Button
                 className="w-full mt-4"
                 variant="outline"
                 onClick={() => navigate('/predictions')}
@@ -1004,15 +1017,15 @@ export default function HealthAnalysis() {
         )}
 
         {/* Quick Tips Card */}
-        <Card 
+        <Card
           className="mt-6"
-          style={{ 
+          style={{
             backgroundColor: theme.colors.primary + '10',
             borderColor: theme.colors.primary + '30'
           }}
         >
           <CardContent className="pt-6">
-            <h3 
+            <h3
               className="font-semibold text-lg mb-3"
               style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}
             >
@@ -1036,7 +1049,7 @@ export default function HealthAnalysis() {
         </Card>
 
         {/* Daily Assessment Modal */}
-        <DailyAssessmentModal 
+        <DailyAssessmentModal
           isOpen={showAssessmentModal}
           onClose={() => setShowAssessmentModal(false)}
         />
