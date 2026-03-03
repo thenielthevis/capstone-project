@@ -57,8 +57,8 @@ export default {
       [
         "expo-notifications",
         {
-          icon: "./assets/images/icon.png",
-          backgroundColor: "#111827",
+          icon: "./assets/images/notification-icon.png",
+          color: "#6366f1",
         }
       ],
       "expo-background-fetch",

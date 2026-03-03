@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator, Image } from "react-native";
+import { View, Text, TouchableOpacity, ActivityIndicator, Image, ScrollView, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { TextInput, Button } from "react-native-paper";
 import { loginUser, handleGoogleSignInShared } from "../../../utils/auth";
@@ -7,6 +7,7 @@ import { useUser } from "../../context/UserContext";
 import { tokenStorage } from "@/utils/tokenStorage";
 import { useTheme } from "../../context/ThemeContext";
 import { executePendingNavigation } from "../../services/notificationRouter";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -101,9 +102,18 @@ export default function LoginScreen() {
   };
 
   return (
-    <View className="flex-1 justify-center items-center px-6" style={{ backgroundColor: theme.colors.background }}>
-      <View className="w-full max-w-md rounded-3xl p-8" style={{ backgroundColor: theme.colors.background }}>
-        <Text className="mb-2 text-center" style={{ color: theme.colors.primary, fontFamily: theme.fonts.heading, fontSize: theme.fontSizes["2xl"] }}>Sign In</Text>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+    >
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24 }}
+        style={{ backgroundColor: theme.colors.background }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View className="w-full max-w-md mx-auto rounded-3xl p-8" style={{ backgroundColor: theme.colors.background }}>
+          <Text className="mb-2 text-center" style={{ color: theme.colors.primary, fontFamily: theme.fonts.heading, fontSize: theme.fontSizes["2xl"] }}>Sign In</Text>
 
         <View className="w-full">
           <TextInput
@@ -190,6 +200,7 @@ export default function LoginScreen() {
 
         </View>
       </View>
+      </ScrollView>
 
       {loading && (
         <View className="absolute left-0 right-0 top-0 bottom-0 justify-center items-center" style={{ backgroundColor: theme.colors.overlay }}>
@@ -197,6 +208,6 @@ export default function LoginScreen() {
           <Text className="mt-2" style={{ color: "#fff" }}>Please wait...</Text>
         </View>
       )}
-    </View>
+    </KeyboardAvoidingView>
   );
 }

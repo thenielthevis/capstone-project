@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from "react";
 import { View, Text, TouchableOpacity, ScrollView, Linking, Alert } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTheme } from "../../context/ThemeContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useForegroundPermissions } from 'expo-location';
@@ -119,6 +119,8 @@ const SectionHeader = ({ title, theme }: { title: string; theme: any }) => (
 export default function PermissionsScreen() {
     const router = useRouter();
     const { theme } = useTheme();
+    const { onboarding } = useLocalSearchParams<{ onboarding?: string }>();
+    const isOnboarding = onboarding === 'true';
 
     // Use hooks for permissions where available
     const [cameraPermission, requestCameraPermission, getCameraPermission] = useCameraPermissions();
@@ -222,7 +224,10 @@ export default function PermissionsScreen() {
                     marginBottom: 24,
                     lineHeight: 20,
                 }}>
-                    Manage which features Lifora can access. To revoke a permission, tap 'Allowed' to open system settings.
+                    {isOnboarding
+                        ? 'Allow Lifora to access the following features for the best experience. You can change these later in Settings.'
+                        : "Manage which features Lifora can access. To revoke a permission, tap 'Allowed' to open system settings."
+                    }
                 </Text>
 
                 {/* Essential Permissions */}
@@ -281,7 +286,38 @@ export default function PermissionsScreen() {
                     theme={theme}
                 />
 
+                {isOnboarding && <View style={{ height: 80 }} />}
             </ScrollView>
+
+            {/* Continue button for onboarding flow */}
+            {isOnboarding && (
+                <View style={{
+                    paddingHorizontal: 20,
+                    paddingBottom: 24,
+                    paddingTop: 12,
+                    backgroundColor: theme.colors.background,
+                }}>
+                    <TouchableOpacity
+                        onPress={() => router.replace('/(tabs)/Home')}
+                        activeOpacity={0.8}
+                        style={{
+                            backgroundColor: theme.colors.primary,
+                            borderRadius: 14,
+                            paddingVertical: 16,
+                            alignItems: 'center',
+                        }}
+                    >
+                        <Text style={{
+                            fontFamily: theme.fonts.heading,
+                            fontSize: 16,
+                            color: '#FFFFFF',
+                            fontWeight: '600',
+                        }}>
+                            Continue
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+            )}
         </SafeAreaView>
     );
 }

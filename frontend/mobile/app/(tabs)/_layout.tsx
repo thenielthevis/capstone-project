@@ -1,6 +1,7 @@
 import { Tabs, useRouter, Href } from "expo-router";
 import { Ionicons, MaterialCommunityIcons, FontAwesome6 } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
 import Header from "../components/Header";
 import { useTheme } from "../context/ThemeContext";
 import { useFonts } from "expo-font";
@@ -87,6 +88,11 @@ export default function HomeTabs() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.surface }}>
+        <StatusBar
+          style={theme.mode === 'dark' ? 'light' : 'dark'}
+          backgroundColor={theme.colors.surface}
+          translucent={false}
+        />
         <Header />
         <View style={{ flex: 1 }}>
           <Tabs

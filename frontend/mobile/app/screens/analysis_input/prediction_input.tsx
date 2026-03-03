@@ -10,6 +10,9 @@ import { useTheme } from "../../context/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as Notifications from 'expo-notifications';
+import { Camera } from 'expo-camera';
+import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 import GeneticalConditionsInfoModal from "@/app/components/Modals/GeneticalConditionsInfoModal";
 import ActivityLevelInfoModal from "@/app/components/Modals/ActivityLevelInfoModal";
 import DietaryPreferencesInfoModal from "@/app/components/Modals/DietaryPreferencesInfoModal";
@@ -42,6 +45,27 @@ export function getPredictionUpdateFlag() {
 
 export function setPredictionUpdateFlag(value: boolean) {
   predictionWasUpdated = value;
+}
+
+// Check if any app permission is not yet granted
+async function hasAnyDeniedPermission(): Promise<boolean> {
+  try {
+    const [cam, media, loc, notif] = await Promise.all([
+      Camera.getCameraPermissionsAsync(),
+      ImagePicker.getMediaLibraryPermissionsAsync(),
+      Location.getForegroundPermissionsAsync(),
+      Notifications.getPermissionsAsync(),
+    ]);
+    // 'undetermined' means never asked — treat as denied for onboarding
+    return (
+      cam.status !== 'granted' ||
+      media.status !== 'granted' ||
+      loc.status !== 'granted' ||
+      notif.status !== 'granted'
+    );
+  } catch {
+    return true; // err on the side of showing permissions
+  }
 }
 
 // Use your machine IP by default so physical devices can reach the backend.
@@ -375,7 +399,9 @@ export default function PredictionInputScreen() {
         const storedU = await tokenStorage.getUser();
         if (storedU) { storedU.hasCompletedAssessment = true; await tokenStorage.saveUser(storedU); }
         if (user) { setUser({ ...user, hasCompletedAssessment: true }); }
-        router.replace('/(tabs)/Home');
+        // Navigate to permissions screen only if any permission is missing
+        const needsPermissions = await hasAnyDeniedPermission();
+        router.replace(needsPermissions ? '/screens/settings/permissions?onboarding=true' : '/(tabs)/Home');
         return;
       }
 
@@ -397,8 +423,9 @@ export default function PredictionInputScreen() {
       }
       // Set flag to show notification in Analysis screen
       setPredictionUpdateFlag(true);
-      // Navigate to Home tab (or Analysis for returning users)
-      router.replace('/(tabs)/Home');
+      // Navigate to permissions screen only if any permission is missing
+      const needsPermissions = await hasAnyDeniedPermission();
+      router.replace(needsPermissions ? '/screens/settings/permissions?onboarding=true' : '/(tabs)/Home');
 
     } catch (error) {
       console.error("Error submitting health assessment:", error);
@@ -407,7 +434,9 @@ export default function PredictionInputScreen() {
       const storedU = await tokenStorage.getUser();
       if (storedU) { storedU.hasCompletedAssessment = true; await tokenStorage.saveUser(storedU); }
       if (user) { setUser({ ...user, hasCompletedAssessment: true }); }
-      router.replace('/(tabs)/Home');
+      // Navigate to permissions screen only if any permission is missing
+      const needsPermissions = await hasAnyDeniedPermission();
+      router.replace(needsPermissions ? '/screens/settings/permissions?onboarding=true' : '/(tabs)/Home');
     }
   };
 
