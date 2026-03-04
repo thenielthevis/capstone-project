@@ -3,9 +3,11 @@ const jwt = require('jsonwebtoken');
 
 // Models
 const User = require('../models/userModel');
-const GeoActivity = require('../models/geoActivityModel');
-const GeoSession = require('../models/geoSessionModel');
 const FoodLog = require('../models/foodLogModel');
+const GeoSession = require('../models/geoSessionModel');
+const GeoActivity = require('../models/geoActivityModel');
+const HealthCheckup = require('../models/healthCheckupModel');
+const MoodCheckin = require('../models/moodCheckinModel');
 const Program = require('../models/programModel');
 const Achievement = require('../models/achievementModel');
 const UserAchievement = require('../models/userAchievementModel');
@@ -1613,6 +1615,610 @@ router.get('/user-achievements', checkAuth, async (req, res) => {
     } catch (error) {
         console.error('[ADMIN USER ACHIEVEMENTS] ✗ Error:', error.message);
         res.status(500).json({ message: 'Failed to fetch user achievements', error: error.message });
+    }
+});
+
+// ============= COMPREHENSIVE DASHBOARD CATEGORIES =============
+router.get('/dashboard-categories', checkAuth, async (req, res) => {
+    console.log('[ADMIN DASHBOARD CATEGORIES] Route handler hit!');
+    try {
+        // ---- 1. Users by Age Bracket ----
+        const usersByAgeBracket = await User.aggregate([
+            { $match: { role: 'user', age: { $exists: true, $ne: null } } },
+            {
+                $bucket: {
+                    groupBy: '$age',
+                    boundaries: [0, 18, 25, 35, 45, 55, 65, 120],
+                    default: 'Unknown',
+                    output: { count: { $sum: 1 } }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    bracket: {
+                        $switch: {
+                            branches: [
+                                { case: { $eq: ['$_id', 0] }, then: 'Under 18' },
+                                { case: { $eq: ['$_id', 18] }, then: '18-24' },
+                                { case: { $eq: ['$_id', 25] }, then: '25-34' },
+                                { case: { $eq: ['$_id', 35] }, then: '35-44' },
+                                { case: { $eq: ['$_id', 45] }, then: '45-54' },
+                                { case: { $eq: ['$_id', 55] }, then: '55-64' },
+                                { case: { $eq: ['$_id', 65] }, then: '65+' },
+                            ],
+                            default: 'Unknown'
+                        }
+                    },
+                    count: 1
+                }
+            },
+            { $sort: { bracket: 1 } }
+        ]);
+
+        // ---- 2. Users by Gender ----
+        const usersByGender = await User.aggregate([
+            { $match: { role: 'user' } },
+            {
+                $group: {
+                    _id: { $ifNull: ['$gender', 'unspecified'] },
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    gender: '$_id',
+                    count: 1
+                }
+            },
+            { $sort: { count: -1 } }
+        ]);
+
+        // ---- 3. Most Predicted Diseases ----
+        const mostPredictedDiseases = await User.aggregate([
+            { $match: { role: 'user', 'lastPrediction.disease': { $exists: true, $ne: null } } },
+            { $unwind: '$lastPrediction.disease' },
+            {
+                $group: {
+                    _id: '$lastPrediction.disease',
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { count: -1 } },
+            { $limit: 15 },
+            {
+                $project: {
+                    _id: 0,
+                    disease: '$_id',
+                    count: 1
+                }
+            }
+        ]);
+
+        // ---- 4. Most Popular Foods (from food logs) ----
+        const mostPopularFoods = await FoodLog.aggregate([
+            {
+                $group: {
+                    _id: '$foodName',
+                    count: { $sum: 1 },
+                    avgCalories: { $avg: '$calories' }
+                }
+            },
+            { $sort: { count: -1 } },
+            { $limit: 15 },
+            {
+                $project: {
+                    _id: 0,
+                    foodName: '$_id',
+                    count: 1,
+                    avgCalories: { $round: ['$avgCalories', 0] }
+                }
+            }
+        ]);
+
+        // ---- 5. Most Popular Geo Activities (from sessions) ----
+        const mostPopularActivities = await GeoSession.aggregate([
+            {
+                $group: {
+                    _id: '$activity_type',
+                    sessionCount: { $sum: 1 },
+                    totalDistance: { $sum: '$distance_km' },
+                    totalCalories: { $sum: '$calories_burned' },
+                    avgDistance: { $avg: '$distance_km' }
+                }
+            },
+            { $sort: { sessionCount: -1 } },
+            { $limit: 10 },
+            {
+                $lookup: {
+                    from: 'geoactivities',
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'activity'
+                }
+            },
+            { $unwind: { path: '$activity', preserveNullAndEmptyArrays: true } },
+            {
+                $project: {
+                    _id: 0,
+                    activityName: { $ifNull: ['$activity.name', 'Unknown'] },
+                    activityType: { $ifNull: ['$activity.type', 'Unknown'] },
+                    sessionCount: 1,
+                    totalDistance: { $round: ['$totalDistance', 2] },
+                    totalCalories: { $round: ['$totalCalories', 0] },
+                    avgDistance: { $round: ['$avgDistance', 2] }
+                }
+            }
+        ]);
+
+        // ---- 6. Top Users by kcal Burned (from geo sessions) ----
+        const mostKcalBurned = await GeoSession.aggregate([
+            {
+                $group: {
+                    _id: '$user_id',
+                    totalCaloriesBurned: { $sum: '$calories_burned' },
+                    totalSessions: { $sum: 1 },
+                    totalDistance: { $sum: '$distance_km' }
+                }
+            },
+            { $sort: { totalCaloriesBurned: -1 } },
+            { $limit: 10 },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'user'
+                }
+            },
+            { $unwind: '$user' },
+            {
+                $project: {
+                    _id: 0,
+                    userId: '$_id',
+                    username: '$user.username',
+                    email: '$user.email',
+                    profilePicture: '$user.profilePicture',
+                    totalCaloriesBurned: { $round: ['$totalCaloriesBurned', 0] },
+                    totalSessions: 1,
+                    totalDistance: { $round: ['$totalDistance', 2] }
+                }
+            }
+        ]);
+
+        // ---- 7. Top Users by kcal Consumed (from food logs) ----
+        const mostKcalConsumed = await FoodLog.aggregate([
+            {
+                $group: {
+                    _id: '$userId',
+                    totalCaloriesConsumed: { $sum: '$calories' },
+                    totalLogs: { $sum: 1 },
+                    avgCaloriesPerMeal: { $avg: '$calories' }
+                }
+            },
+            { $sort: { totalCaloriesConsumed: -1 } },
+            { $limit: 10 },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'user'
+                }
+            },
+            { $unwind: '$user' },
+            {
+                $project: {
+                    _id: 0,
+                    userId: '$_id',
+                    username: '$user.username',
+                    email: '$user.email',
+                    profilePicture: '$user.profilePicture',
+                    totalCaloriesConsumed: { $round: ['$totalCaloriesConsumed', 0] },
+                    totalLogs: 1,
+                    avgCaloriesPerMeal: { $round: ['$avgCaloriesPerMeal', 0] }
+                }
+            }
+        ]);
+
+        // ---- 8. Most Daily Water Intake (from user profile) ----
+        const mostDailyWaterIntake = await User.aggregate([
+            { $match: { role: 'user', 'dietaryProfile.dailyWaterIntake': { $exists: true, $gt: 0 } } },
+            { $sort: { 'dietaryProfile.dailyWaterIntake': -1 } },
+            { $limit: 10 },
+            {
+                $project: {
+                    _id: 0,
+                    userId: '$_id',
+                    username: 1,
+                    email: 1,
+                    profilePicture: 1,
+                    dailyWaterIntake: '$dietaryProfile.dailyWaterIntake'
+                }
+            }
+        ]);
+
+        // ---- 9. Water Intake Distribution (from health checkups) ----
+        const waterIntakeDistribution = await HealthCheckup.aggregate([
+            { $match: { 'water.amount': { $exists: true, $gt: 0 } } },
+            {
+                $bucket: {
+                    groupBy: '$water.amount',
+                    boundaries: [0, 500, 1000, 1500, 2000, 2500, 3000, 5000, 10000],
+                    default: '10000+',
+                    output: { count: { $sum: 1 } }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    range: {
+                        $switch: {
+                            branches: [
+                                { case: { $eq: ['$_id', 0] }, then: '0-500ml' },
+                                { case: { $eq: ['$_id', 500] }, then: '500-1000ml' },
+                                { case: { $eq: ['$_id', 1000] }, then: '1000-1500ml' },
+                                { case: { $eq: ['$_id', 1500] }, then: '1500-2000ml' },
+                                { case: { $eq: ['$_id', 2000] }, then: '2000-2500ml' },
+                                { case: { $eq: ['$_id', 2500] }, then: '2500-3000ml' },
+                                { case: { $eq: ['$_id', 3000] }, then: '3000-5000ml' },
+                                { case: { $eq: ['$_id', 5000] }, then: '5000-10000ml' },
+                            ],
+                            default: '10000+ml'
+                        }
+                    },
+                    count: 1
+                }
+            }
+        ]);
+
+        // ---- 10. Users by BMI Category ----
+        const usersByBMI = await User.aggregate([
+            { $match: { role: 'user', 'physicalMetrics.bmi': { $exists: true, $gt: 0 } } },
+            {
+                $bucket: {
+                    groupBy: '$physicalMetrics.bmi',
+                    boundaries: [0, 18.5, 25, 30, 35, 40, 100],
+                    default: 'Unknown',
+                    output: { count: { $sum: 1 } }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    category: {
+                        $switch: {
+                            branches: [
+                                { case: { $eq: ['$_id', 0] }, then: 'Underweight (<18.5)' },
+                                { case: { $eq: ['$_id', 18.5] }, then: 'Normal (18.5-24.9)' },
+                                { case: { $eq: ['$_id', 25] }, then: 'Overweight (25-29.9)' },
+                                { case: { $eq: ['$_id', 30] }, then: 'Obese I (30-34.9)' },
+                                { case: { $eq: ['$_id', 35] }, then: 'Obese II (35-39.9)' },
+                                { case: { $eq: ['$_id', 40] }, then: 'Obese III (40+)' },
+                            ],
+                            default: 'Unknown'
+                        }
+                    },
+                    count: 1
+                }
+            }
+        ]);
+
+        // ---- 11. Users by Activity Level ----
+        const usersByActivityLevel = await User.aggregate([
+            { $match: { role: 'user', 'lifestyle.activityLevel': { $exists: true, $ne: null } } },
+            {
+                $group: {
+                    _id: '$lifestyle.activityLevel',
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    activityLevel: '$_id',
+                    count: 1
+                }
+            },
+            { $sort: { count: -1 } }
+        ]);
+
+        // ---- 12. Users by Blood Type ----
+        const usersByBloodType = await User.aggregate([
+            { $match: { role: 'user', 'healthProfile.bloodType': { $exists: true, $ne: null } } },
+            {
+                $group: {
+                    _id: '$healthProfile.bloodType',
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    bloodType: '$_id',
+                    count: 1
+                }
+            },
+            { $sort: { count: -1 } }
+        ]);
+
+        // ---- 13. Users by Stress Level ----
+        const usersByStressLevel = await User.aggregate([
+            { $match: { role: 'user', 'riskFactors.stressLevel': { $exists: true, $ne: null } } },
+            {
+                $group: {
+                    _id: '$riskFactors.stressLevel',
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    stressLevel: '$_id',
+                    count: 1
+                }
+            },
+            { $sort: { count: -1 } }
+        ]);
+
+        // ---- 14. Average Sleep Hours Distribution ----
+        const sleepDistribution = await User.aggregate([
+            { $match: { role: 'user', 'lifestyle.sleepHours': { $exists: true, $gt: 0 } } },
+            {
+                $bucket: {
+                    groupBy: '$lifestyle.sleepHours',
+                    boundaries: [0, 4, 5, 6, 7, 8, 9, 10, 24],
+                    default: 'Unknown',
+                    output: { count: { $sum: 1 } }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    range: {
+                        $switch: {
+                            branches: [
+                                { case: { $eq: ['$_id', 0] }, then: '<4 hrs' },
+                                { case: { $eq: ['$_id', 4] }, then: '4-5 hrs' },
+                                { case: { $eq: ['$_id', 5] }, then: '5-6 hrs' },
+                                { case: { $eq: ['$_id', 6] }, then: '6-7 hrs' },
+                                { case: { $eq: ['$_id', 7] }, then: '7-8 hrs' },
+                                { case: { $eq: ['$_id', 8] }, then: '8-9 hrs' },
+                                { case: { $eq: ['$_id', 9] }, then: '9-10 hrs' },
+                                { case: { $eq: ['$_id', 10] }, then: '10+ hrs' },
+                            ],
+                            default: 'Unknown'
+                        }
+                    },
+                    count: 1
+                }
+            }
+        ]);
+
+        // ---- 15. Most Common Health Conditions ----
+        const mostCommonConditions = await User.aggregate([
+            { $match: { role: 'user', 'healthProfile.currentConditions': { $exists: true, $ne: [] } } },
+            { $unwind: '$healthProfile.currentConditions' },
+            {
+                $group: {
+                    _id: '$healthProfile.currentConditions',
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { count: -1 } },
+            { $limit: 15 },
+            {
+                $project: {
+                    _id: 0,
+                    condition: '$_id',
+                    count: 1
+                }
+            }
+        ]);
+
+        // ---- 16. Most Common Family History ----
+        const mostCommonFamilyHistory = await User.aggregate([
+            { $match: { role: 'user', 'healthProfile.familyHistory': { $exists: true, $ne: [] } } },
+            { $unwind: '$healthProfile.familyHistory' },
+            {
+                $group: {
+                    _id: '$healthProfile.familyHistory',
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { count: -1 } },
+            { $limit: 15 },
+            {
+                $project: {
+                    _id: 0,
+                    condition: '$_id',
+                    count: 1
+                }
+            }
+        ]);
+
+        // ---- 17. Dietary Preferences Distribution ----
+        const dietaryPreferences = await User.aggregate([
+            { $match: { role: 'user', 'dietaryProfile.preferences': { $exists: true, $ne: [] } } },
+            { $unwind: '$dietaryProfile.preferences' },
+            {
+                $group: {
+                    _id: '$dietaryProfile.preferences',
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { count: -1 } },
+            {
+                $project: {
+                    _id: 0,
+                    preference: '$_id',
+                    count: 1
+                }
+            }
+        ]);
+
+        // ---- 18. Pollution Exposure Distribution ----
+        const pollutionExposure = await User.aggregate([
+            { $match: { role: 'user', 'environmentalFactors.pollutionExposure': { $exists: true, $ne: null } } },
+            {
+                $group: {
+                    _id: '$environmentalFactors.pollutionExposure',
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    level: '$_id',
+                    count: 1
+                }
+            },
+            { $sort: { count: -1 } }
+        ]);
+
+        // ---- 19. Occupation Type Distribution ----
+        const occupationTypes = await User.aggregate([
+            { $match: { role: 'user', 'environmentalFactors.occupationType': { $exists: true, $ne: null } } },
+            {
+                $group: {
+                    _id: '$environmentalFactors.occupationType',
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    type: '$_id',
+                    count: 1
+                }
+            },
+            { $sort: { count: -1 } }
+        ]);
+
+        // ---- 20. Mood Distribution (from mood check-ins) ----
+        const moodDistribution = await MoodCheckin.aggregate([
+            {
+                $group: {
+                    _id: '$mood.label',
+                    count: { $sum: 1 },
+                    avgValue: { $avg: '$mood.value' }
+                }
+            },
+            { $sort: { avgValue: 1 } },
+            {
+                $project: {
+                    _id: 0,
+                    mood: '$_id',
+                    count: 1,
+                    avgValue: { $round: ['$avgValue', 2] }
+                }
+            }
+        ]);
+
+        // ---- 21. Meal Frequency Distribution ----
+        const mealFrequency = await User.aggregate([
+            { $match: { role: 'user', 'dietaryProfile.mealFrequency': { $exists: true, $gt: 0 } } },
+            {
+                $group: {
+                    _id: '$dietaryProfile.mealFrequency',
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { _id: 1 } },
+            {
+                $project: {
+                    _id: 0,
+                    mealsPerDay: '$_id',
+                    count: 1
+                }
+            }
+        ]);
+
+        // ---- 22. Top Nutrients Consumed (averages from food logs) ----
+        const avgNutrients = await FoodLog.aggregate([
+            {
+                $group: {
+                    _id: null,
+                    avgProtein: { $avg: '$nutrients.protein' },
+                    avgCarbs: { $avg: '$nutrients.carbs' },
+                    avgFat: { $avg: '$nutrients.fat' },
+                    avgFiber: { $avg: '$nutrients.fiber' },
+                    avgSugar: { $avg: '$nutrients.sugar' },
+                    avgSodium: { $avg: '$nutrients.sodium' },
+                    avgCholesterol: { $avg: '$nutrients.cholesterol' },
+                    totalLogs: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    avgProtein: { $round: ['$avgProtein', 1] },
+                    avgCarbs: { $round: ['$avgCarbs', 1] },
+                    avgFat: { $round: ['$avgFat', 1] },
+                    avgFiber: { $round: ['$avgFiber', 1] },
+                    avgSugar: { $round: ['$avgSugar', 1] },
+                    avgSodium: { $round: ['$avgSodium', 1] },
+                    avgCholesterol: { $round: ['$avgCholesterol', 1] },
+                    totalLogs: 1
+                }
+            }
+        ]);
+
+        // ---- 23. Addiction/Substance Distribution ----
+        const addictionDistribution = await User.aggregate([
+            { $match: { role: 'user', 'riskFactors.addictions': { $exists: true, $ne: [] } } },
+            { $unwind: '$riskFactors.addictions' },
+            {
+                $group: {
+                    _id: '$riskFactors.addictions.substance',
+                    count: { $sum: 1 },
+                    avgSeverity: {
+                        $push: '$riskFactors.addictions.severity'
+                    }
+                }
+            },
+            { $sort: { count: -1 } },
+            { $limit: 10 },
+            {
+                $project: {
+                    _id: 0,
+                    substance: '$_id',
+                    count: 1
+                }
+            }
+        ]);
+
+        console.log('[ADMIN DASHBOARD CATEGORIES] ✓ All categories retrieved successfully');
+
+        res.json({
+            usersByAgeBracket,
+            usersByGender,
+            mostPredictedDiseases,
+            mostPopularFoods,
+            mostPopularActivities,
+            mostKcalBurned,
+            mostKcalConsumed,
+            mostDailyWaterIntake,
+            waterIntakeDistribution,
+            usersByBMI,
+            usersByActivityLevel,
+            usersByBloodType,
+            usersByStressLevel,
+            sleepDistribution,
+            mostCommonConditions,
+            mostCommonFamilyHistory,
+            dietaryPreferences,
+            pollutionExposure,
+            occupationTypes,
+            moodDistribution,
+            mealFrequency,
+            avgNutrients: avgNutrients[0] || null,
+            addictionDistribution
+        });
+    } catch (error) {
+        console.error('[ADMIN DASHBOARD CATEGORIES] ✗ Error:', error.message);
+        res.status(500).json({ message: 'Failed to fetch dashboard categories', error: error.message });
     }
 });
 

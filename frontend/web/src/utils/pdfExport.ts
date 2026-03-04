@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import type { DashboardCategories } from '@/api/adminApi';
 
 // Extend jsPDF type to include autoTable
 declare module 'jspdf' {
@@ -974,7 +975,22 @@ export interface DashboardStatsData {
     totalSessions: number;
     totalUsers: number;
   };
+  categories?: DashboardCategories | null;
 }
+
+// Helper to capitalize strings for PDF
+const capitalize = (s: string): string => {
+  if (!s) return 'Unknown';
+  return s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+};
+
+const activityLevelMap: Record<string, string> = {
+  sedentary: 'Sedentary',
+  lightly_active: 'Lightly Active',
+  moderately_active: 'Moderately Active',
+  very_active: 'Very Active',
+  extremely_active: 'Extremely Active',
+};
 
 /**
  * Export comprehensive dashboard summary to PDF
@@ -1150,6 +1166,446 @@ export const exportDashboardSummary = (stats: DashboardStatsData): void => {
       ...getTableStyles(COLORS.orange),
       columnStyles: { 0: { cellWidth: 120 }, 1: { cellWidth: 50, halign: 'right' as const, fontStyle: 'bold' as const } }
     });
+    
+    yPos = (doc as any).lastAutoTable.finalY + sectionGap;
+  }
+  
+  // ============ DASHBOARD CATEGORIES ============
+  if (stats.categories) {
+    const cat = stats.categories;
+    
+    // Pre-check which sections have data to avoid empty pages
+    const hasDemographics = cat.usersByAgeBracket.length > 0 || cat.usersByGender.length > 0 || cat.usersByBMI.length > 0 || cat.usersByActivityLevel.length > 0 || cat.usersByBloodType.length > 0 || cat.usersByStressLevel.length > 0 || cat.sleepDistribution.length > 0;
+    const hasHealth = cat.mostPredictedDiseases.length > 0 || cat.mostCommonConditions.length > 0 || cat.mostCommonFamilyHistory.length > 0 || cat.moodDistribution.length > 0;
+    const hasNutrition = cat.mostPopularFoods.length > 0 || cat.mostKcalConsumed.length > 0 || cat.avgNutrients !== null || cat.dietaryPreferences.length > 0 || cat.mealFrequency.length > 0;
+    const hasActivity = cat.mostPopularActivities.length > 0 || cat.mostKcalBurned.length > 0 || cat.mostDailyWaterIntake.length > 0 || cat.waterIntakeDistribution.length > 0;
+    const hasEnvironmental = cat.pollutionExposure.length > 0 || cat.occupationTypes.length > 0 || cat.addictionDistribution.length > 0;
+    
+    // ----- DEMOGRAPHICS -----
+    if (hasDemographics) {
+    doc.addPage();
+    yPos = 25;
+    
+    // Page section title
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+    doc.text('User Demographics & Categories', doc.internal.pageSize.getWidth() / 2, yPos, { align: 'center' });
+    yPos += 14;
+    
+    // Users by Age Bracket
+    if (cat.usersByAgeBracket.length > 0) {
+      checkPageBreak(40 + cat.usersByAgeBracket.length * 10);
+      yPos = addSectionHeader(doc, 'Users by Age Bracket', yPos, COLORS.primary);
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Age Bracket', 'Users']],
+        body: cat.usersByAgeBracket.map(a => [a.bracket, a.count.toLocaleString()]),
+        ...getTableStyles(COLORS.primary),
+        columnStyles: { 0: { cellWidth: 120 }, 1: { cellWidth: 50, halign: 'right' as const, fontStyle: 'bold' as const } }
+      });
+      yPos = (doc as any).lastAutoTable.finalY + sectionGap;
+    }
+    
+    // Users by Gender
+    if (cat.usersByGender.length > 0) {
+      checkPageBreak(40 + cat.usersByGender.length * 10);
+      yPos = addSectionHeader(doc, 'Users by Gender', yPos, [236, 72, 153]);
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Gender', 'Users']],
+        body: cat.usersByGender.map(g => [capitalize(g.gender), g.count.toLocaleString()]),
+        ...getTableStyles([236, 72, 153]),
+        columnStyles: { 0: { cellWidth: 120 }, 1: { cellWidth: 50, halign: 'right' as const, fontStyle: 'bold' as const } }
+      });
+      yPos = (doc as any).lastAutoTable.finalY + sectionGap;
+    }
+    
+    // Users by BMI Category
+    if (cat.usersByBMI.length > 0) {
+      checkPageBreak(40 + cat.usersByBMI.length * 10);
+      yPos = addSectionHeader(doc, 'Users by BMI Category', yPos, [20, 184, 166]);
+      autoTable(doc, {
+        startY: yPos,
+        head: [['BMI Category', 'Users']],
+        body: cat.usersByBMI.map(b => [b.category, b.count.toLocaleString()]),
+        ...getTableStyles([20, 184, 166]),
+        columnStyles: { 0: { cellWidth: 120 }, 1: { cellWidth: 50, halign: 'right' as const, fontStyle: 'bold' as const } }
+      });
+      yPos = (doc as any).lastAutoTable.finalY + sectionGap;
+    }
+    
+    // Users by Activity Level
+    if (cat.usersByActivityLevel.length > 0) {
+      checkPageBreak(40 + cat.usersByActivityLevel.length * 10);
+      yPos = addSectionHeader(doc, 'Users by Activity Level', yPos, COLORS.orange);
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Activity Level', 'Users']],
+        body: cat.usersByActivityLevel.map(a => [activityLevelMap[a.activityLevel] || capitalize(a.activityLevel), a.count.toLocaleString()]),
+        ...getTableStyles(COLORS.orange),
+        columnStyles: { 0: { cellWidth: 120 }, 1: { cellWidth: 50, halign: 'right' as const, fontStyle: 'bold' as const } }
+      });
+      yPos = (doc as any).lastAutoTable.finalY + sectionGap;
+    }
+    
+    // Users by Blood Type
+    if (cat.usersByBloodType.length > 0) {
+      checkPageBreak(40 + cat.usersByBloodType.length * 10);
+      yPos = addSectionHeader(doc, 'Users by Blood Type', yPos, COLORS.danger);
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Blood Type', 'Users']],
+        body: cat.usersByBloodType.map(b => [b.bloodType, b.count.toLocaleString()]),
+        ...getTableStyles(COLORS.danger),
+        columnStyles: { 0: { cellWidth: 120 }, 1: { cellWidth: 50, halign: 'right' as const, fontStyle: 'bold' as const } }
+      });
+      yPos = (doc as any).lastAutoTable.finalY + sectionGap;
+    }
+    
+    // Users by Stress Level
+    if (cat.usersByStressLevel.length > 0) {
+      checkPageBreak(40 + cat.usersByStressLevel.length * 10);
+      yPos = addSectionHeader(doc, 'Users by Stress Level', yPos, COLORS.purple);
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Stress Level', 'Users']],
+        body: cat.usersByStressLevel.map(s => [capitalize(s.stressLevel), s.count.toLocaleString()]),
+        ...getTableStyles(COLORS.purple),
+        columnStyles: { 0: { cellWidth: 120 }, 1: { cellWidth: 50, halign: 'right' as const, fontStyle: 'bold' as const } }
+      });
+      yPos = (doc as any).lastAutoTable.finalY + sectionGap;
+    }
+    
+    // Sleep Distribution
+    if (cat.sleepDistribution.length > 0) {
+      checkPageBreak(40 + cat.sleepDistribution.length * 10);
+      yPos = addSectionHeader(doc, 'Sleep Hours Distribution', yPos, [99, 102, 241]);
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Sleep Range', 'Users']],
+        body: cat.sleepDistribution.map(s => [s.range, s.count.toLocaleString()]),
+        ...getTableStyles([99, 102, 241]),
+        columnStyles: { 0: { cellWidth: 120 }, 1: { cellWidth: 50, halign: 'right' as const, fontStyle: 'bold' as const } }
+      });
+      yPos = (doc as any).lastAutoTable.finalY + sectionGap;
+    }
+    } // end hasDemographics
+    
+    // ----- HEALTH & PREDICTIONS -----
+    if (hasHealth) {
+    doc.addPage();
+    yPos = 25;
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(COLORS.danger[0], COLORS.danger[1], COLORS.danger[2]);
+    doc.text('Health & Predictions', doc.internal.pageSize.getWidth() / 2, yPos, { align: 'center' });
+    yPos += 14;
+    
+    // Most Predicted Diseases
+    if (cat.mostPredictedDiseases.length > 0) {
+      checkPageBreak(40 + cat.mostPredictedDiseases.length * 10);
+      yPos = addSectionHeader(doc, 'Most Predicted Diseases', yPos, COLORS.danger);
+      autoTable(doc, {
+        startY: yPos,
+        head: [['#', 'Disease', 'Predictions']],
+        body: cat.mostPredictedDiseases.map((d, i) => [(i + 1).toString(), d.disease, d.count.toLocaleString()]),
+        ...getTableStyles(COLORS.danger),
+        columnStyles: { 0: { cellWidth: 15, halign: 'center' as const }, 1: { cellWidth: 120 }, 2: { cellWidth: 35, halign: 'right' as const, fontStyle: 'bold' as const } }
+      });
+      yPos = (doc as any).lastAutoTable.finalY + sectionGap;
+    }
+    
+    // Most Common Health Conditions
+    if (cat.mostCommonConditions.length > 0) {
+      checkPageBreak(40 + cat.mostCommonConditions.length * 10);
+      yPos = addSectionHeader(doc, 'Most Common Health Conditions', yPos, COLORS.orange);
+      autoTable(doc, {
+        startY: yPos,
+        head: [['#', 'Condition', 'Users']],
+        body: cat.mostCommonConditions.map((c, i) => [(i + 1).toString(), c.condition, c.count.toLocaleString()]),
+        ...getTableStyles(COLORS.orange),
+        columnStyles: { 0: { cellWidth: 15, halign: 'center' as const }, 1: { cellWidth: 120 }, 2: { cellWidth: 35, halign: 'right' as const, fontStyle: 'bold' as const } }
+      });
+      yPos = (doc as any).lastAutoTable.finalY + sectionGap;
+    }
+    
+    // Most Common Family History
+    if (cat.mostCommonFamilyHistory.length > 0) {
+      checkPageBreak(40 + cat.mostCommonFamilyHistory.length * 10);
+      yPos = addSectionHeader(doc, 'Most Common Family History', yPos, COLORS.purple);
+      autoTable(doc, {
+        startY: yPos,
+        head: [['#', 'Condition', 'Users']],
+        body: cat.mostCommonFamilyHistory.map((f, i) => [(i + 1).toString(), f.condition, f.count.toLocaleString()]),
+        ...getTableStyles(COLORS.purple),
+        columnStyles: { 0: { cellWidth: 15, halign: 'center' as const }, 1: { cellWidth: 120 }, 2: { cellWidth: 35, halign: 'right' as const, fontStyle: 'bold' as const } }
+      });
+      yPos = (doc as any).lastAutoTable.finalY + sectionGap;
+    }
+    
+    // Mood Distribution
+    if (cat.moodDistribution.length > 0) {
+      checkPageBreak(40 + cat.moodDistribution.length * 10);
+      yPos = addSectionHeader(doc, 'Mood Check-in Distribution', yPos, COLORS.warning);
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Mood', 'Check-ins', 'Avg Value']],
+        body: cat.moodDistribution.map(m => [capitalize(m.mood), m.count.toLocaleString(), m.avgValue.toString()]),
+        ...getTableStyles(COLORS.warning),
+        columnStyles: { 0: { cellWidth: 80 }, 1: { cellWidth: 45, halign: 'right' as const, fontStyle: 'bold' as const }, 2: { cellWidth: 45, halign: 'right' as const } }
+      });
+      yPos = (doc as any).lastAutoTable.finalY + sectionGap;
+    }
+    } // end hasHealth
+    
+    // ----- NUTRITION & FOOD -----
+    if (hasNutrition) {
+    doc.addPage();
+    yPos = 25;
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(COLORS.warning[0], COLORS.warning[1], COLORS.warning[2]);
+    doc.text('Nutrition & Food', doc.internal.pageSize.getWidth() / 2, yPos, { align: 'center' });
+    yPos += 14;
+    
+    // Most Popular Foods
+    if (cat.mostPopularFoods.length > 0) {
+      checkPageBreak(40 + cat.mostPopularFoods.length * 10);
+      yPos = addSectionHeader(doc, 'Most Popular Foods', yPos, COLORS.accent);
+      autoTable(doc, {
+        startY: yPos,
+        head: [['#', 'Food Name', 'Logged', 'Avg kcal']],
+        body: cat.mostPopularFoods.map((f, i) => [(i + 1).toString(), f.foodName, f.count.toLocaleString(), f.avgCalories.toLocaleString()]),
+        ...getTableStyles(COLORS.accent),
+        columnStyles: { 0: { cellWidth: 15, halign: 'center' as const }, 1: { cellWidth: 90 }, 2: { cellWidth: 30, halign: 'right' as const, fontStyle: 'bold' as const }, 3: { cellWidth: 35, halign: 'right' as const } }
+      });
+      yPos = (doc as any).lastAutoTable.finalY + sectionGap;
+    }
+    
+    // Top Users by kcal Consumed
+    if (cat.mostKcalConsumed.length > 0) {
+      checkPageBreak(40 + cat.mostKcalConsumed.length * 10);
+      yPos = addSectionHeader(doc, 'Top Users by Calories Consumed', yPos, COLORS.orange);
+      autoTable(doc, {
+        startY: yPos,
+        head: [['#', 'Username', 'Total kcal', 'Logs', 'Avg kcal/Meal']],
+        body: cat.mostKcalConsumed.map((u, i) => [
+          (i + 1).toString(),
+          u.username,
+          u.totalCaloriesConsumed.toLocaleString(),
+          u.totalLogs.toLocaleString(),
+          u.avgCaloriesPerMeal.toLocaleString()
+        ]),
+        ...getTableStyles(COLORS.orange),
+        columnStyles: { 0: { cellWidth: 12, halign: 'center' as const }, 1: { cellWidth: 55 }, 2: { cellWidth: 40, halign: 'right' as const, fontStyle: 'bold' as const }, 3: { cellWidth: 25, halign: 'right' as const }, 4: { cellWidth: 38, halign: 'right' as const } }
+      });
+      yPos = (doc as any).lastAutoTable.finalY + sectionGap;
+    }
+    
+    // Average Nutrients per Food Log
+    if (cat.avgNutrients) {
+      checkPageBreak(100);
+      yPos = addSectionHeader(doc, 'Average Nutrients per Food Log', yPos, [20, 184, 166]);
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Nutrient', 'Average per Log']],
+        body: [
+          ['Protein', `${cat.avgNutrients.avgProtein ?? 0}g`],
+          ['Carbohydrates', `${cat.avgNutrients.avgCarbs ?? 0}g`],
+          ['Fat', `${cat.avgNutrients.avgFat ?? 0}g`],
+          ['Fiber', `${cat.avgNutrients.avgFiber ?? 0}g`],
+          ['Sugar', `${cat.avgNutrients.avgSugar ?? 0}g`],
+          ['Sodium', `${cat.avgNutrients.avgSodium ?? 0}mg`],
+          ['Cholesterol', `${cat.avgNutrients.avgCholesterol ?? 0}mg`],
+        ],
+        ...getTableStyles([20, 184, 166]),
+        columnStyles: { 0: { cellWidth: 120 }, 1: { cellWidth: 50, halign: 'right' as const, fontStyle: 'bold' as const } }
+      });
+      // Footer note
+      const nutY = (doc as any).lastAutoTable.finalY + 4;
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(COLORS.textLight[0], COLORS.textLight[1], COLORS.textLight[2]);
+      doc.text(`Based on ${cat.avgNutrients.totalLogs.toLocaleString()} food logs`, 15, nutY);
+      yPos = nutY + sectionGap;
+    }
+    
+    // Dietary Preferences
+    if (cat.dietaryPreferences.length > 0) {
+      checkPageBreak(40 + cat.dietaryPreferences.length * 10);
+      yPos = addSectionHeader(doc, 'Dietary Preferences', yPos, COLORS.accent);
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Preference', 'Users']],
+        body: cat.dietaryPreferences.map(d => [capitalize(d.preference), d.count.toLocaleString()]),
+        ...getTableStyles(COLORS.accent),
+        columnStyles: { 0: { cellWidth: 120 }, 1: { cellWidth: 50, halign: 'right' as const, fontStyle: 'bold' as const } }
+      });
+      yPos = (doc as any).lastAutoTable.finalY + sectionGap;
+    }
+    
+    // Meal Frequency
+    if (cat.mealFrequency.length > 0) {
+      checkPageBreak(40 + cat.mealFrequency.length * 10);
+      yPos = addSectionHeader(doc, 'Meals Per Day Distribution', yPos, COLORS.warning);
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Meals/Day', 'Users']],
+        body: cat.mealFrequency.map(m => [`${m.mealsPerDay} meals/day`, m.count.toLocaleString()]),
+        ...getTableStyles(COLORS.warning),
+        columnStyles: { 0: { cellWidth: 120 }, 1: { cellWidth: 50, halign: 'right' as const, fontStyle: 'bold' as const } }
+      });
+      yPos = (doc as any).lastAutoTable.finalY + sectionGap;
+    }
+    } // end hasNutrition
+    
+    // ----- ACTIVITY & FITNESS -----
+    if (hasActivity) {
+    doc.addPage();
+    yPos = 25;
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(COLORS.danger[0], COLORS.danger[1], COLORS.danger[2]);
+    doc.text('Activity & Fitness', doc.internal.pageSize.getWidth() / 2, yPos, { align: 'center' });
+    yPos += 14;
+    
+    // Most Popular Geo Activities
+    if (cat.mostPopularActivities.length > 0) {
+      checkPageBreak(40 + cat.mostPopularActivities.length * 10);
+      yPos = addSectionHeader(doc, 'Most Popular Activities', yPos, COLORS.info);
+      autoTable(doc, {
+        startY: yPos,
+        head: [['#', 'Activity', 'Type', 'Sessions', 'Total km', 'Total kcal']],
+        body: cat.mostPopularActivities.map((a, i) => [
+          (i + 1).toString(),
+          a.activityName,
+          a.activityType,
+          a.sessionCount.toLocaleString(),
+          a.totalDistance.toLocaleString(),
+          a.totalCalories.toLocaleString()
+        ]),
+        ...getTableStyles(COLORS.info),
+        columnStyles: {
+          0: { cellWidth: 12, halign: 'center' as const },
+          1: { cellWidth: 45 },
+          2: { cellWidth: 35 },
+          3: { cellWidth: 28, halign: 'right' as const, fontStyle: 'bold' as const },
+          4: { cellWidth: 28, halign: 'right' as const },
+          5: { cellWidth: 28, halign: 'right' as const }
+        }
+      });
+      yPos = (doc as any).lastAutoTable.finalY + sectionGap;
+    }
+    
+    // Top Users by kcal Burned
+    if (cat.mostKcalBurned.length > 0) {
+      checkPageBreak(40 + cat.mostKcalBurned.length * 10);
+      yPos = addSectionHeader(doc, 'Top Users by Calories Burned', yPos, COLORS.danger);
+      autoTable(doc, {
+        startY: yPos,
+        head: [['#', 'Username', 'Total kcal', 'Sessions', 'Total km']],
+        body: cat.mostKcalBurned.map((u, i) => [
+          (i + 1).toString(),
+          u.username,
+          u.totalCaloriesBurned.toLocaleString(),
+          u.totalSessions.toLocaleString(),
+          u.totalDistance.toLocaleString()
+        ]),
+        ...getTableStyles(COLORS.danger),
+        columnStyles: {
+          0: { cellWidth: 12, halign: 'center' as const },
+          1: { cellWidth: 55 },
+          2: { cellWidth: 40, halign: 'right' as const, fontStyle: 'bold' as const },
+          3: { cellWidth: 30, halign: 'right' as const },
+          4: { cellWidth: 33, halign: 'right' as const }
+        }
+      });
+      yPos = (doc as any).lastAutoTable.finalY + sectionGap;
+    }
+    
+    // ----- HYDRATION -----
+    // Top Daily Water Intake
+    if (cat.mostDailyWaterIntake.length > 0) {
+      checkPageBreak(40 + cat.mostDailyWaterIntake.length * 10);
+      yPos = addSectionHeader(doc, 'Top Users by Daily Water Intake', yPos, [6, 182, 212]);
+      autoTable(doc, {
+        startY: yPos,
+        head: [['#', 'Username', 'Daily Intake (L)']],
+        body: cat.mostDailyWaterIntake.map((u, i) => [(i + 1).toString(), u.username, `${u.dailyWaterIntake}L`]),
+        ...getTableStyles([6, 182, 212]),
+        columnStyles: { 0: { cellWidth: 15, halign: 'center' as const }, 1: { cellWidth: 100 }, 2: { cellWidth: 55, halign: 'right' as const, fontStyle: 'bold' as const } }
+      });
+      yPos = (doc as any).lastAutoTable.finalY + sectionGap;
+    }
+    
+    // Water Intake Distribution (from health checkups)
+    if (cat.waterIntakeDistribution.length > 0) {
+      checkPageBreak(40 + cat.waterIntakeDistribution.length * 10);
+      yPos = addSectionHeader(doc, 'Water Intake Distribution (Health Checkups)', yPos, [14, 165, 233]);
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Range', 'Entries']],
+        body: cat.waterIntakeDistribution.map(w => [w.range, w.count.toLocaleString()]),
+        ...getTableStyles([14, 165, 233]),
+        columnStyles: { 0: { cellWidth: 120 }, 1: { cellWidth: 50, halign: 'right' as const, fontStyle: 'bold' as const } }
+      });
+      yPos = (doc as any).lastAutoTable.finalY + sectionGap;
+    }
+    } // end hasActivity
+    
+    // ----- ENVIRONMENTAL & LIFESTYLE -----
+    if (hasEnvironmental) {
+    doc.addPage();
+    yPos = 25;
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(COLORS.textLight[0], COLORS.textLight[1], COLORS.textLight[2]);
+    doc.text('Environmental & Lifestyle', doc.internal.pageSize.getWidth() / 2, yPos, { align: 'center' });
+    yPos += 14;
+    
+    // Pollution Exposure
+    if (cat.pollutionExposure.length > 0) {
+      checkPageBreak(40 + cat.pollutionExposure.length * 10);
+      yPos = addSectionHeader(doc, 'Pollution Exposure', yPos, COLORS.textLight);
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Exposure Level', 'Users']],
+        body: cat.pollutionExposure.map(p => [capitalize(p.level), p.count.toLocaleString()]),
+        ...getTableStyles(COLORS.textLight),
+        columnStyles: { 0: { cellWidth: 120 }, 1: { cellWidth: 50, halign: 'right' as const, fontStyle: 'bold' as const } }
+      });
+      yPos = (doc as any).lastAutoTable.finalY + sectionGap;
+    }
+    
+    // Occupation Type
+    if (cat.occupationTypes.length > 0) {
+      checkPageBreak(40 + cat.occupationTypes.length * 10);
+      yPos = addSectionHeader(doc, 'Occupation Type', yPos, COLORS.purple);
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Occupation', 'Users']],
+        body: cat.occupationTypes.map(o => [capitalize(o.type), o.count.toLocaleString()]),
+        ...getTableStyles(COLORS.purple),
+        columnStyles: { 0: { cellWidth: 120 }, 1: { cellWidth: 50, halign: 'right' as const, fontStyle: 'bold' as const } }
+      });
+      yPos = (doc as any).lastAutoTable.finalY + sectionGap;
+    }
+    
+    // Addiction Distribution
+    if (cat.addictionDistribution.length > 0) {
+      checkPageBreak(40 + cat.addictionDistribution.length * 10);
+      yPos = addSectionHeader(doc, 'Substance / Addiction Reports', yPos, [244, 63, 94]);
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Substance', 'Reports']],
+        body: cat.addictionDistribution.map(a => [capitalize(a.substance), a.count.toLocaleString()]),
+        ...getTableStyles([244, 63, 94]),
+        columnStyles: { 0: { cellWidth: 120 }, 1: { cellWidth: 50, halign: 'right' as const, fontStyle: 'bold' as const } }
+      });
+      yPos = (doc as any).lastAutoTable.finalY + sectionGap;
+    }
+    } // end hasEnvironmental
   }
   
   addFooter(doc);
