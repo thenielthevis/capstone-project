@@ -1,7 +1,16 @@
 const express = require('express');
-const User = require('../models/userModel');
-const FoodLog = require('../models/foodLogModel');
 const jwt = require('jsonwebtoken');
+
+// Models
+const User = require('../models/userModel');
+const GeoActivity = require('../models/geoActivityModel');
+const GeoSession = require('../models/geoSessionModel');
+const FoodLog = require('../models/foodLogModel');
+const Program = require('../models/programModel');
+const Achievement = require('../models/achievementModel');
+const UserAchievement = require('../models/userAchievementModel');
+const upload = require('../middleware/multer');
+const { uploadWorkoutAnimation } = require('../utils/cloudinary');
 
 const router = express.Router();
 
@@ -278,8 +287,6 @@ router.delete('/users/:userId', checkAuth, async (req, res) => {
 });
 
 // ============= GEO ACTIVITY ENDPOINTS =============
-const GeoActivity = require('../models/geoActivityModel');
-const GeoSession = require('../models/geoSessionModel');
 
 // Get geo activities statistics
 router.get('/geo-activities/stats', checkAuth, async (req, res) => {
@@ -717,7 +724,6 @@ router.delete('/foodlogs/:foodLogId', checkAuth, async (req, res) => {
 });
 
 // ============= PROGRAM ENDPOINTS =============
-const Program = require('../models/programModel');
 
 // Get program statistics
 router.get('/programs/stats', checkAuth, async (req, res) => {
@@ -968,8 +974,6 @@ router.delete('/programs/:programId', checkAuth, async (req, res) => {
 
 // ============= WORKOUT ENDPOINTS =============
 // Create a new workout
-const upload = require('../middleware/multer');
-const { uploadWorkoutAnimation } = require('../utils/cloudinary');
 
 router.post('/workouts', checkAuth, upload.single('animation'), async (req, res) => {
     console.log('[ADMIN] POST /workouts - Creating new workout');
@@ -1236,8 +1240,6 @@ router.delete('/workouts/:workoutId', checkAuth, async (req, res) => {
 });
 
 // ============= ACHIEVEMENT ENDPOINTS =============
-const Achievement = require('../models/achievementModel');
-const UserAchievement = require('../models/userAchievementModel');
 
 // Get achievement statistics
 router.get('/achievements/stats', checkAuth, async (req, res) => {
