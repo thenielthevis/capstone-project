@@ -966,6 +966,85 @@ class AdminAPI {
     const response = await axiosInstance.delete(`/admin/achievements/${achievementId}`);
     return response.data;
   }
+
+  /**
+   * Get comprehensive dashboard categories
+   */
+  async getDashboardCategories(): Promise<DashboardCategories> {
+    console.log('[adminApi.getDashboardCategories] Requesting from /admin/dashboard-categories');
+    try {
+      const response = await axiosInstance.get<DashboardCategories>('/admin/dashboard-categories');
+      console.log('[adminApi.getDashboardCategories] Response received');
+      return response.data;
+    } catch (error: any) {
+      console.error('[adminApi.getDashboardCategories] Error:', error);
+      throw error;
+    }
+  }
+}
+
+export interface DashboardCategories {
+  usersByAgeBracket: Array<{ bracket: string; count: number }>;
+  usersByGender: Array<{ gender: string; count: number }>;
+  mostPredictedDiseases: Array<{ disease: string; count: number }>;
+  mostPopularFoods: Array<{ foodName: string; count: number; avgCalories: number }>;
+  mostPopularActivities: Array<{
+    activityName: string;
+    activityType: string;
+    sessionCount: number;
+    totalDistance: number;
+    totalCalories: number;
+    avgDistance: number;
+  }>;
+  mostKcalBurned: Array<{
+    userId: string;
+    username: string;
+    email: string;
+    profilePicture?: string;
+    totalCaloriesBurned: number;
+    totalSessions: number;
+    totalDistance: number;
+  }>;
+  mostKcalConsumed: Array<{
+    userId: string;
+    username: string;
+    email: string;
+    profilePicture?: string;
+    totalCaloriesConsumed: number;
+    totalLogs: number;
+    avgCaloriesPerMeal: number;
+  }>;
+  mostDailyWaterIntake: Array<{
+    userId: string;
+    username: string;
+    email: string;
+    profilePicture?: string;
+    dailyWaterIntake: number;
+  }>;
+  waterIntakeDistribution: Array<{ range: string; count: number }>;
+  usersByBMI: Array<{ category: string; count: number }>;
+  usersByActivityLevel: Array<{ activityLevel: string; count: number }>;
+  usersByBloodType: Array<{ bloodType: string; count: number }>;
+  usersByStressLevel: Array<{ stressLevel: string; count: number }>;
+  sleepDistribution: Array<{ range: string; count: number }>;
+  mostCommonConditions: Array<{ condition: string; count: number }>;
+  mostCommonFamilyHistory: Array<{ condition: string; count: number }>;
+  dietaryPreferences: Array<{ preference: string; count: number }>;
+  pollutionExposure: Array<{ level: string; count: number }>;
+  occupationTypes: Array<{ type: string; count: number }>;
+  moodDistribution: Array<{ mood: string; count: number; avgValue: number }>;
+  mealFrequency: Array<{ mealsPerDay: number; count: number }>;
+  avgNutrients: {
+    avgProtein: number;
+    avgCarbs: number;
+    avgFat: number;
+    avgFiber: number;
+    avgSugar: number;
+    avgSodium: number;
+    avgCholesterol: number;
+    totalLogs: number;
+  } | null;
+  addictionDistribution: Array<{ substance: string; count: number }>;
 }
 
 export const adminApi = new AdminAPI();
