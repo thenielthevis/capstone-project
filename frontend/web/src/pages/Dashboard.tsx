@@ -683,6 +683,7 @@ export default function Dashboard() {
                 { title: 'Predict', icon: Heart, color: '#ef4444', path: '/predictions' },
                 { title: 'Food', icon: Utensils, color: '#f59e0b', path: '/food-tracking' },
                 { title: 'Programs', icon: Dumbbell, color: '#14b8a6', path: '/programs' },
+                { title: 'Leaderboard', icon: Trophy, color: '#eab308', path: '/leaderboard' },
               ].map((action) => {
                 const Icon = action.icon;
                 return (
