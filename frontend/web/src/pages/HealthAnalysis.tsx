@@ -519,7 +519,23 @@ interface HealthMetric {
   detailKey: string;
   stats?: string;
   gradientKey: 'bmi' | 'activity' | 'sleep' | 'water' | 'stress' | 'dietary' | 'health' | 'environment' | 'addiction' | 'risks';
+  solidColor: string;
+  iconColor: string;
 }
+
+// Solid color palette for health metric cards
+const METRIC_COLORS: Record<string, { bg: string; icon: string; badge: string }> = {
+  bmi:         { bg: '#EFF6FF', icon: '#3B82F6', badge: '#3B82F6' },
+  activity:    { bg: '#ECFDF5', icon: '#10B981', badge: '#10B981' },
+  sleep:       { bg: '#F5F3FF', icon: '#8B5CF6', badge: '#8B5CF6' },
+  water:       { bg: '#ECFEFF', icon: '#06B6D4', badge: '#06B6D4' },
+  stress:      { bg: '#FFF7ED', icon: '#F97316', badge: '#F97316' },
+  dietary:     { bg: '#F0FDF4', icon: '#22C55E', badge: '#22C55E' },
+  health:      { bg: '#FFF1F2', icon: '#F43F5E', badge: '#F43F5E' },
+  environment: { bg: '#F0FDFA', icon: '#14B8A6', badge: '#14B8A6' },
+  addiction:   { bg: '#FDF2F8', icon: '#EC4899', badge: '#EC4899' },
+  risks:       { bg: '#FFFBEB', icon: '#F59E0B', badge: '#F59E0B' },
+};
 
 interface UserProfile {
   age: number | null;
@@ -565,6 +581,8 @@ const HEALTH_METRICS: HealthMetric[] = [
     detailKey: 'BMI_Weight_Management',
     stats: 'Healthy Range',
     gradientKey: 'bmi',
+    solidColor: '#EFF6FF',
+    iconColor: '#3B82F6',
   },
   {
     id: 'activity',
@@ -574,6 +592,8 @@ const HEALTH_METRICS: HealthMetric[] = [
     detailKey: 'Physical_Activity',
     stats: 'Moderate',
     gradientKey: 'activity',
+    solidColor: '#ECFDF5',
+    iconColor: '#10B981',
   },
   {
     id: 'sleep',
@@ -583,6 +603,8 @@ const HEALTH_METRICS: HealthMetric[] = [
     detailKey: 'Sleep_Quality',
     stats: '7-9 hours',
     gradientKey: 'sleep',
+    solidColor: '#F5F3FF',
+    iconColor: '#8B5CF6',
   },
   {
     id: 'water',
@@ -592,6 +614,8 @@ const HEALTH_METRICS: HealthMetric[] = [
     detailKey: 'Hydration_Water',
     stats: '2L target',
     gradientKey: 'water',
+    solidColor: '#ECFEFF',
+    iconColor: '#06B6D4',
   },
   {
     id: 'stress',
@@ -601,6 +625,8 @@ const HEALTH_METRICS: HealthMetric[] = [
     detailKey: 'Stress_Management',
     stats: 'Low',
     gradientKey: 'stress',
+    solidColor: '#FFF7ED',
+    iconColor: '#F97316',
   },
   {
     id: 'dietary',
@@ -610,6 +636,8 @@ const HEALTH_METRICS: HealthMetric[] = [
     detailKey: 'Dietary_Habits',
     stats: 'Balanced',
     gradientKey: 'dietary',
+    solidColor: '#F0FDF4',
+    iconColor: '#22C55E',
   },
   {
     id: 'health',
@@ -619,6 +647,8 @@ const HEALTH_METRICS: HealthMetric[] = [
     detailKey: 'Health_Monitoring',
     stats: 'Monitored',
     gradientKey: 'health',
+    solidColor: '#FFF1F2',
+    iconColor: '#F43F5E',
   },
   {
     id: 'environment',
@@ -628,6 +658,8 @@ const HEALTH_METRICS: HealthMetric[] = [
     detailKey: 'Environmental_Health',
     stats: 'Clean',
     gradientKey: 'environment',
+    solidColor: '#F0FDFA',
+    iconColor: '#14B8A6',
   },
   {
     id: 'addiction',
@@ -637,6 +669,8 @@ const HEALTH_METRICS: HealthMetric[] = [
     detailKey: 'Addiction_Risk_Management',
     stats: 'Assessment',
     gradientKey: 'addiction',
+    solidColor: '#FDF2F8',
+    iconColor: '#EC4899',
   },
   {
     id: 'risks',
@@ -646,6 +680,8 @@ const HEALTH_METRICS: HealthMetric[] = [
     detailKey: 'Disease_Risk_Assessment',
     stats: 'Analysis',
     gradientKey: 'risks',
+    solidColor: '#FFFBEB',
+    iconColor: '#F59E0B',
   },
 ];
 
@@ -906,15 +942,17 @@ export default function HealthAnalysis() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {HEALTH_METRICS.map((metric) => {
             const Icon = metric.icon;
-            const gradient = theme.gradients?.[metric.gradientKey] || ['#E3F2FD', '#BBDEFB', '#90CAF9'];
+            const colors = METRIC_COLORS[metric.id] || { bg: '#F8FAFC', icon: '#64748B', badge: '#64748B' };
             const value = getMetricValue(metric.id);
 
             return (
               <Card
                 key={metric.id}
-                className="cursor-pointer hover:shadow-xl transition-all hover:scale-105 overflow-hidden border-0"
+                className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-[1.03] overflow-hidden"
                 style={{
-                  background: `linear-gradient(135deg, ${gradient[0]} 0%, ${gradient[1]} 50%, ${gradient[2]} 100%)`,
+                  backgroundColor: theme.mode === 'dark' ? theme.colors.surface : colors.bg,
+                  borderColor: theme.mode === 'dark' ? theme.colors.border : colors.icon + '20',
+                  borderWidth: 1,
                 }}
                 onClick={() => handleMetricClick(metric.id)}
               >
@@ -922,10 +960,10 @@ export default function HealthAnalysis() {
                   {/* Icon */}
                   <div className="mb-3">
                     <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center"
-                      style={{ backgroundColor: 'rgba(255,255,255,0.8)' }}
+                      className="w-10 h-10 rounded-full flex items-center justify-center"
+                      style={{ backgroundColor: colors.icon + '15' }}
                     >
-                      <Icon className="w-5 h-5" style={{ color: theme.colors.primary }} />
+                      <Icon className="w-5 h-5" style={{ color: colors.icon }} />
                     </div>
                   </div>
 
@@ -939,7 +977,7 @@ export default function HealthAnalysis() {
                     </h4>
                     <p
                       className="text-xs mb-2"
-                      style={{ color: theme.colors.text + '88' }}
+                      style={{ color: theme.colors.textSecondary }}
                     >
                       {metric.description}
                     </p>
@@ -947,10 +985,10 @@ export default function HealthAnalysis() {
 
                   {/* Value Badge */}
                   <div
-                    className="inline-flex self-start px-2 py-1 rounded-lg text-xs font-semibold"
+                    className="inline-flex self-start px-3 py-1 rounded-full text-xs font-semibold"
                     style={{
-                      backgroundColor: 'rgba(255,255,255,0.9)',
-                      color: theme.colors.primary
+                      backgroundColor: colors.icon + '15',
+                      color: colors.badge
                     }}
                   >
                     {value}
