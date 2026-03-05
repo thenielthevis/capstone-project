@@ -131,11 +131,12 @@ export default function Leaderboard() {
     }
   }, []);
 
-  // Initial load
+  // Initial load — refresh stats first so scores exist before querying leaderboard
   useEffect(() => {
     const loadAll = async () => {
       setLoading(true);
-      await Promise.all([fetchLeaderboard(), fetchNearby(), fetchAchievements(), fetchMyStats()]);
+      await fetchMyStats();
+      await Promise.all([fetchLeaderboard(), fetchNearby(), fetchAchievements()]);
       setLoading(false);
     };
     loadAll();

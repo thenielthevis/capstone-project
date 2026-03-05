@@ -116,7 +116,7 @@ exports.getLeaderboard = async (req, res) => {
     // Build query based on category
     // Filter out users with no activity (must have some score or activity)
     let query = { 
-      'privacy.show_on_leaderboard': true,
+      'privacy.show_on_leaderboard': { $ne: false },
       $or: [
         { 'scores.daily_score': { $gt: 0 } },
         { 'scores.weekly_score': { $gt: 0 } },
@@ -169,8 +169,11 @@ exports.getLeaderboard = async (req, res) => {
       LeaderboardStats.countDocuments(query)
     ]);
     
+    // Filter out entries where the user has been deleted (populate returned null)
+    const validLeaderboard = leaderboard.filter(entry => entry.user_id != null);
+    
     // Format response with ranks
-    const formattedLeaderboard = leaderboard.map((entry, index) => ({
+    const formattedLeaderboard = validLeaderboard.map((entry, index) => ({
       rank: skip + index + 1,
       user: {
         id: entry.user_id._id,
@@ -279,7 +282,7 @@ exports.getNearbyCompetitors = async (req, res) => {
     
     // Get users ranked higher
     const higher = await LeaderboardStats.find({
-      'privacy.show_on_leaderboard': true,
+      'privacy.show_on_leaderboard': { $ne: false },
       [sortField]: { $gt: userScore }
     })
       .sort({ [sortField]: 1 })
@@ -289,7 +292,7 @@ exports.getNearbyCompetitors = async (req, res) => {
     
     // Get users ranked lower
     const lower = await LeaderboardStats.find({
-      'privacy.show_on_leaderboard': true,
+      'privacy.show_on_leaderboard': { $ne: false },
       [sortField]: { $lt: userScore },
       user_id: { $ne: userId }
     })
@@ -300,14 +303,16 @@ exports.getNearbyCompetitors = async (req, res) => {
     
     // Get user's rank
     const userRank = await LeaderboardStats.countDocuments({
-      'privacy.show_on_leaderboard': true,
+      'privacy.show_on_leaderboard': { $ne: false },
       [sortField]: { $gt: userScore }
     }) + 1;
     
-    // Combine and format
+    // Combine and format (filter out deleted users)
+    const validHigher = higher.filter(e => e.user_id != null);
+    const validLower = lower.filter(e => e.user_id != null);
     const nearby = [
-      ...higher.reverse().map((entry, index) => ({
-        rank: userRank - higher.length + index,
+      ...validHigher.reverse().map((entry, index) => ({
+        rank: userRank - validHigher.length + index,
         user: {
           id: entry.user_id._id,
           username: entry.user_id.username,
@@ -326,7 +331,7 @@ exports.getNearbyCompetitors = async (req, res) => {
         score: userScore,
         isCurrentUser: true
       },
-      ...lower.map((entry, index) => ({
+      ...validLower.map((entry, index) => ({
         rank: userRank + index + 1,
         user: {
           id: entry.user_id._id,
@@ -363,29 +368,31 @@ exports.getTopPerformers = async (req, res) => {
     
     // Get top by different metrics
     const [topByScore, topByCalories, topByActivity, topByStreak] = await Promise.all([
-      LeaderboardStats.find({ 'privacy.show_on_leaderboard': true })
+      LeaderboardStats.find({ 'privacy.show_on_leaderboard': { $ne: false } })
         .sort({ [`scores.${period}_score`]: -1 })
         .limit(parseInt(limit))
         .populate('user_id', 'username profilePicture')
         .lean(),
-      LeaderboardStats.find({ 'privacy.show_on_leaderboard': true })
+      LeaderboardStats.find({ 'privacy.show_on_leaderboard': { $ne: false } })
         .sort({ [period === 'all_time' ? 'all_time.total_calories_burned' : `${period}.calories_burned`]: -1 })
         .limit(parseInt(limit))
         .populate('user_id', 'username profilePicture')
         .lean(),
-      LeaderboardStats.find({ 'privacy.show_on_leaderboard': true })
+      LeaderboardStats.find({ 'privacy.show_on_leaderboard': { $ne: false } })
         .sort({ [period === 'all_time' ? 'all_time.total_activity_minutes' : `${period}.activity_minutes`]: -1 })
         .limit(parseInt(limit))
         .populate('user_id', 'username profilePicture')
         .lean(),
-      LeaderboardStats.find({ 'privacy.show_on_leaderboard': true })
+      LeaderboardStats.find({ 'privacy.show_on_leaderboard': { $ne: false } })
         .sort({ 'streaks.current_logging_streak': -1 })
         .limit(parseInt(limit))
         .populate('user_id', 'username profilePicture')
         .lean()
     ]);
     
-    const formatEntries = (entries, metricField) => entries.map((entry, index) => ({
+    const formatEntries = (entries, metricField) => entries
+      .filter(entry => entry.user_id != null)
+      .map((entry, index) => ({
       rank: index + 1,
       user: {
         id: entry.user_id._id,
