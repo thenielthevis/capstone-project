@@ -725,11 +725,27 @@ export default function ProgramCoach() {
               </div>
             </div>
 
-            <div className="col-span-2 md:col-span-1 order-first md:order-none flex flex-col items-center justify-center p-5 md:p-10 rounded-2xl md:rounded-[40px] shadow-2xl" style={{ backgroundColor: theme.colors.primary }}>
+            <div className="col-span-2 md:col-span-1 order-first md:order-none flex flex-col items-center justify-center p-5 md:p-10 rounded-2xl md:rounded-[40px] shadow-2xl" style={{ backgroundColor: theme.colors.surface }}>
               <span className="text-[10px] md:text-xs uppercase font-bold tracking-widest mb-1 text-white opacity-60">Status</span>
-              <div className="text-3xl md:text-5xl font-black text-white">
-                {countdown > 0 ? `Ready in ${countdown}` : exerciseTime > 0 ? formatTime(exerciseTime) : isRepExercise ? `${currentExercise.sets?.[currentSet]?.reps} Reps` : 'Active'}
-              </div>
+              {/* Done Button or Countdown/Timer */}
+              {countdown > 0 ? (
+                <div className="text-3xl md:text-5xl font-black text-white">Ready in {countdown}</div>
+              ) : exerciseTime > 0 ? (
+                <div className="text-3xl md:text-5xl font-black text-white">{formatTime(exerciseTime)}</div>
+              ) : isRepExercise ? (
+                <div className="flex flex-col items-center gap-3 md:gap-4">
+                  <div className="text-3xl md:text-5xl font-black text-white">x{currentExercise.sets?.[currentSet]?.reps}</div>
+                  <Button
+                    className="cursor-pointer h-14 md:h-16 w-32 md:w-40 rounded-[24px] text-lg md:text-xl font-black shadow-xl"
+                    style={{ backgroundColor: theme.colors.success, color: 'white' }}
+                    onClick={handleDoneSet}
+                  >
+                    DONE
+                  </Button>
+                </div>
+              ) : (
+                <div className="text-3xl md:text-5xl font-black text-white">Active</div>
+              )}
             </div>
 
             <div className="flex flex-col items-center justify-center p-4 md:p-8 rounded-2xl md:rounded-[32px]" style={{ backgroundColor: theme.colors.surface }}>
