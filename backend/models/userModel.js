@@ -208,7 +208,8 @@ const userSchema = new mongoose.Schema({
         hair: { type: [String], default: [] },
         top: { type: [String], default: [] },
         bottom: { type: [String], default: [] },
-        shoes: { type: [String], default: [] }
+        shoes: { type: [String], default: [] },
+        animations: { type: [String], default: [] } // <-- ADD THIS LINE
     },
     // Health Checkup Reminder Settings
     healthCheckupReminders: {
