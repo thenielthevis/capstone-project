@@ -28,7 +28,8 @@ import {
   Flag,
   Smile,
   Activity,
-  Bell
+  Bell,
+  Trophy
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -88,6 +89,7 @@ export default function Dashboard() {
     { title: 'Health Check-up', icon: Activity, path: '/health-checkup' },
     { title: 'Food Tracking', icon: Utensils, path: '/food-tracking' },
     { title: 'Programs', icon: Dumbbell, path: '/programs' },
+    { title: 'Leaderboard', icon: Trophy, path: '/leaderboard' },
     { title: 'Settings', icon: SettingsIcon, path: '/settings' },
   ];
 
