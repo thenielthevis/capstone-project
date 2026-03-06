@@ -617,6 +617,60 @@ router.get('/foodlogs/stats', checkAuth, async (req, res) => {
             }
         ]);
 
+        // Get confidence/accuracy breakdown
+        const confidenceBreakdown = await FoodLog.aggregate([
+            {
+                $group: {
+                    _id: '$confidence',
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    level: '$_id',
+                    count: 1,
+                    _id: 0
+                }
+            }
+        ]);
+
+        // Get input method breakdown
+        const inputMethodBreakdown = await FoodLog.aggregate([
+            {
+                $group: {
+                    _id: '$inputMethod',
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    method: '$_id',
+                    count: 1,
+                    _id: 0
+                }
+            }
+        ]);
+
+        // Get average calories
+        const avgCaloriesResult = await FoodLog.aggregate([
+            {
+                $group: {
+                    _id: null,
+                    avgCalories: { $avg: '$calories' },
+                    avgProtein: { $avg: '$nutrients.protein' },
+                    avgCarbs: { $avg: '$nutrients.carbs' },
+                    avgFat: { $avg: '$nutrients.fat' }
+                }
+            }
+        ]);
+
+        const avgNutrition = avgCaloriesResult.length > 0 ? {
+            avgCalories: Math.round(avgCaloriesResult[0].avgCalories || 0),
+            avgProtein: Math.round(avgCaloriesResult[0].avgProtein || 0),
+            avgCarbs: Math.round(avgCaloriesResult[0].avgCarbs || 0),
+            avgFat: Math.round(avgCaloriesResult[0].avgFat || 0)
+        } : { avgCalories: 0, avgProtein: 0, avgCarbs: 0, avgFat: 0 };
+
         console.log('[ADMIN FOODLOG STATS] ✓ Stats retrieved');
 
         res.json({
@@ -625,7 +679,10 @@ router.get('/foodlogs/stats', checkAuth, async (req, res) => {
             recentLogs,
             averageLogsPerUser: totalUsers > 0 ? (totalFoodLogs / totalUsers).toFixed(2) : '0',
             topUsers,
-            topFoods
+            topFoods,
+            confidenceBreakdown,
+            inputMethodBreakdown,
+            avgNutrition
         });
     } catch (error) {
         console.error('[ADMIN FOODLOG STATS] ✗ Error:', error.message);

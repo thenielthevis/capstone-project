@@ -98,7 +98,7 @@ export interface FoodLog {
     profilePicture?: string;
   };
   analyzedAt: string;
-  inputMethod: 'image' | 'manual';
+  inputMethod: 'image' | 'manual' | 'multi-dish';
   imageUrl?: string;
   foodName: string;
   dishName?: string;
@@ -126,14 +126,36 @@ export interface FoodLog {
     sodium?: number;
     cholesterol?: number;
     potassium?: number;
+    vitaminA?: number;
+    vitaminC?: number;
+    vitaminD?: number;
+    calcium?: number;
+    iron?: number;
   };
+  nutritionSources?: Array<{
+    source: string;
+    url: string;
+    reliability: 'high' | 'medium' | 'low';
+  }>;
+  recipeLinks?: Array<{
+    title: string;
+    source: string;
+    url: string;
+  }>;
   allergyWarnings?: {
     detected: string[];
     mayContain: string[];
     warning?: string;
   };
+  userAllergies?: string[];
+  healthyAlternatives?: Array<{
+    name: string;
+    reason: string;
+    caloriesSaved: number;
+  }>;
   confidence?: 'high' | 'medium' | 'low';
   notes?: string;
+  ingredientsList?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -164,6 +186,20 @@ export interface FoodLogStats {
     foodName: string;
     count: number;
   }>;
+  confidenceBreakdown?: Array<{
+    level: string;
+    count: number;
+  }>;
+  inputMethodBreakdown?: Array<{
+    method: string;
+    count: number;
+  }>;
+  avgNutrition?: {
+    avgCalories: number;
+    avgProtein: number;
+    avgCarbs: number;
+    avgFat: number;
+  };
 }
 
 export interface GeoActivity {
