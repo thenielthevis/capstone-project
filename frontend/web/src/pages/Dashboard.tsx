@@ -290,8 +290,9 @@ export default function Dashboard() {
       >
         {/* Post Header */}
         <div className="flex items-center p-3">
-          <div
-            className="w-10 h-10 rounded-full flex items-center justify-center mr-3 overflow-hidden"
+          <button
+            onClick={() => post.user?._id && navigate(`/profile/${post.user._id}`)}
+            className="w-10 h-10 rounded-full flex items-center justify-center mr-3 overflow-hidden cursor-pointer hover:opacity-80 transition"
             style={{ backgroundColor: theme.colors.primary + '20' }}
           >
             {post.user?.profilePicture ? (
@@ -299,14 +300,15 @@ export default function Dashboard() {
             ) : (
               <UserIcon className="w-5 h-5" style={{ color: theme.colors.primary }} />
             )}
-          </div>
+          </button>
           <div className="flex-1">
-            <span
+            <button
+              onClick={() => post.user?._id && navigate(`/profile/${post.user._id}`)}
               style={{ color: theme.colors.text }}
-              className="text-sm font-semibold"
+              className="text-sm font-semibold hover:underline cursor-pointer text-left"
             >
               {post.user?.username || 'Unknown User'}
-            </span>
+            </button>
             <div className="flex items-center gap-1">
               <p className="text-xs" style={{ color: theme.colors.textSecondary }}>
                 {getTimeAgo(post.createdAt)}
