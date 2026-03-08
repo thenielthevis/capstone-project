@@ -205,7 +205,7 @@ export default function SettingsScreen() {
           iconColor="#3b82f6"
           title="Terms and Conditions"
           subtitle="Usage terms and policies"
-          onPress={() => openInAppBrowser("https://lifora-web.vercel.app/terms")}
+          onPress={() => openInAppBrowser("https://lyniva-web.vercel.app/terms")}
           theme={theme}
         />
         <SettingsItem
@@ -213,7 +213,7 @@ export default function SettingsScreen() {
           iconColor="#10b981"
           title="Privacy Policy"
           subtitle="How we handle your data"
-          onPress={() => openInAppBrowser("https://lifora-web.vercel.app/privacy")}
+          onPress={() => openInAppBrowser("https://lyniva-web.vercel.app/privacy")}
           theme={theme}
         />
 

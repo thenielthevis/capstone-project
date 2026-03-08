@@ -453,14 +453,14 @@ const TRIGGER_DEFINITIONS = {
             id: 'social_above_average',
             priority: 4,
             title: 'You\'re Ahead! 🌟',
-            messageTemplate: "You're sleeping {difference}+ hours more than the average Lifora user! Your commitment to rest is paying off.",
+            messageTemplate: "You're sleeping {difference}+ hours more than the average Lyniva user! Your commitment to rest is paying off.",
             cooldownHours: 168
         },
         peer_motivation: {
             id: 'social_peer_motivation',
             priority: 6,
             title: 'You Can Do It!',
-            messageTemplate: "{communityPercent}% of Lifora users met their goals this week. You can do it too! Small steps lead to big changes.",
+            messageTemplate: "{communityPercent}% of Lyniva users met their goals this week. You can do it too! Small steps lead to big changes.",
             cooldownHours: 168
         }
     }

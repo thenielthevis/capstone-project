@@ -15,8 +15,8 @@ export default function PrivacyPolicy() {
                     <div className="flex items-center justify-between h-20">
                         {/* Logo */}
                         <Link to="/" className="flex items-center gap-3">
-                            <img src={logoImg} alt="Lifora Logo" className="w-10 h-10" />
-                            <h1 className="text-2xl font-bold" style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}>Lifora</h1>
+                            <img src={logoImg} alt="Lyniva Logo" className="w-10 h-10" />
+                            <h1 className="text-2xl font-bold" style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}>Lyniva</h1>
                         </Link>
 
                         {/* Back Button */}
@@ -46,7 +46,7 @@ export default function PrivacyPolicy() {
                         <section>
                             <h2 className="text-2xl font-bold mb-4" style={{ color: theme.colors.text }}>1. Introduction</h2>
                             <p className="leading-relaxed" style={{ color: theme.colors.text }}>
-                                At Lifora, we take your privacy seriously. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application and website. Please read this privacy policy carefully. If you do not agree with the terms of this privacy policy, please do not access the application.
+                                At Lyniva, we take your privacy seriously. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application and website. Please read this privacy policy carefully. If you do not agree with the terms of this privacy policy, please do not access the application.
                                 Please also read our <Link to="/terms" className="font-semibold underline" style={{ color: theme.colors.primary }}>Terms & Conditions</Link> for more information about our services.
                             </p>
                         </section>
@@ -137,7 +137,7 @@ export default function PrivacyPolicy() {
                                 If you have any questions about this Privacy Policy or how we handle your data, please contact us at:
                             </p>
                             <div className="mt-4 p-6 rounded-lg" style={{ backgroundColor: theme.colors.surface, borderColor: theme.colors.border, border: '1px solid' }}>
-                                <p className="font-semibold mb-2" style={{ color: theme.colors.text }}>Lifora Support Team</p>
+                                <p className="font-semibold mb-2" style={{ color: theme.colors.text }}>Lyniva Support Team</p>
                                 <p style={{ color: theme.colors.text }}>Email:</p>
                                 <Link className="font-semibold underline" style={{ color: theme.colors.primary }} to="mailto:capsproject123@gmail.com">capsproject123@gmail.com</Link>
                             </div>
@@ -160,7 +160,7 @@ export default function PrivacyPolicy() {
                 <div className="container mx-auto px-6 lg:px-12">
                     <div className="text-center">
                         <p className="text-sm" style={{ color: theme.colors.text }}>
-                            © 2026 Lifora. All rights reserved.
+                            © 2026 Lyniva. All rights reserved.
                         </p>
                     </div>
                 </div>

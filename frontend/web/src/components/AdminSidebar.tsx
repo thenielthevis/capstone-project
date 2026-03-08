@@ -89,11 +89,11 @@ export default function AdminSidebar({ activeNav = 'home', onSidebarToggle }: Ad
           }}
           title={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
         >
-          <img src={logoImg} alt="Lifora" className="w-7 h-7" />
+          <img src={logoImg} alt="Lyniva" className="w-7 h-7" />
         </button>
         {sidebarOpen && (
           <div className="flex-1 min-w-0">
-            <p className="font-bold text-base" style={{ color: theme.colors.text }}>Lifora</p>
+            <p className="font-bold text-base" style={{ color: theme.colors.text }}>Lyniva</p>
             <div className="flex items-center gap-1.5">
               <Shield className="w-3 h-3" style={{ color: theme.colors.primary }} />
               <p className="text-xs font-medium" style={{ color: theme.colors.primary }}>Admin Panel</p>

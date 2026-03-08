@@ -16,7 +16,7 @@ export default function TermsAndConditions() {
             {/* Logo */}
             <Link to="/" className="flex items-center gap-3">
               <img src={logoImg} alt="Lifora Logo" className="w-10 h-10" />
-              <h1 className="text-2xl font-bold" style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}>Lifora</h1>
+              <h1 className="text-2xl font-bold" style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}>Lyniva</h1>
             </Link>
 
             {/* Back Button */}
@@ -46,7 +46,7 @@ export default function TermsAndConditions() {
             <section>
               <h2 className="text-2xl font-bold mb-4" style={{ color: theme.colors.text }}>1. Introduction</h2>
               <p className="leading-relaxed" style={{ color: theme.colors.text }}>
-                Welcome to Lifora ("we," "our," or "us"). These Terms and Conditions ("Terms") govern your access to and use of the Lifora mobile and web applications, including any content, functionality, and services offered on or through the Lifora platform (collectively, the "Service").
+                Welcome to Lyniva ("we," "our," or "us"). These Terms and Conditions ("Terms") govern your access to and use of the Lyniva mobile and web applications, including any content, functionality, and services offered on or through the Lyniva platform (collectively, the "Service").
               </p>
               <p className="leading-relaxed mt-4" style={{ color: theme.colors.text }}>
                 By accessing or using our Service, you agree to be bound by these Terms. If you disagree with any part of these Terms, you may not access the Service.
@@ -57,7 +57,7 @@ export default function TermsAndConditions() {
             <section>
               <h2 className="text-2xl font-bold mb-4" style={{ color: theme.colors.text }}>2. Acceptance of Terms</h2>
               <p className="leading-relaxed" style={{ color: theme.colors.text }}>
-                By creating an account or using Lifora, you acknowledge that you have read, understood, and agree to be bound by these Terms and our Privacy Policy. If you are using Lifora on behalf of an organization, you represent and warrant that you have the authority to bind that organization to these Terms.
+                By creating an account or using Lyniva, you acknowledge that you have read, understood, and agree to be bound by these Terms and our Privacy Policy. If you are using Lyniva on behalf of an organization, you represent and warrant that you have the authority to bind that organization to these Terms.
               </p>
             </section>
 
@@ -102,7 +102,7 @@ export default function TermsAndConditions() {
                 <li>Attempt to gain unauthorized access to any portion of the Service</li>
                 <li>Interfere with or disrupt the Service or servers connected to the Service</li>
                 <li>Use any automated system to access the Service without our express written permission</li>
-                <li>Impersonate or attempt to impersonate Lifora, a Lifora employee, another user, or any other person or entity</li>
+                <li>Impersonate or attempt to impersonate Lyniva, a Lyniva employee, another user, or any other person or entity</li>
                 <li>Use the Service to transmit spam, chain letters, or other unsolicited communications</li>
               </ul>
             </section>
@@ -111,7 +111,7 @@ export default function TermsAndConditions() {
             <section>
               <h2 className="text-2xl font-bold text-gray-900 mb-4">6. User-Generated Content</h2>
               <p className="leading-relaxed" style={{ color: theme.colors.text }}>
-                You may have the opportunity to post, upload, or submit content, including photos, activity logs, comments, and other materials ("User Content"). You retain ownership of your User Content, but by submitting User Content to Lifora, you grant us a worldwide, non-exclusive, royalty-free license to use, reproduce, modify, and display such User Content in connection with operating and providing the Service.
+                You may have the opportunity to post, upload, or submit content, including photos, activity logs, comments, and other materials ("User Content"). You retain ownership of your User Content, but by submitting User Content to Lyniva, you grant us a worldwide, non-exclusive, royalty-free license to use, reproduce, modify, and display such User Content in connection with operating and providing the Service.
               </p>
               <p className="leading-relaxed mt-4" style={{ color: theme.colors.text }}>
                 You represent and warrant that you own or have the necessary rights to submit User Content and that your User Content does not violate any third-party rights or applicable laws.
@@ -130,7 +130,7 @@ export default function TermsAndConditions() {
             <section>
               <h2 className="text-2xl font-bold text-gray-900 mb-4">8. Intellectual Property</h2>
               <p className="leading-relaxed" style={{ color: theme.colors.text }}>
-                The Service and its original content (excluding User Content), features, and functionality are owned by Lifora and are protected by international copyright, trademark, patent, trade secret, and other intellectual property laws.
+                The Service and its original content (excluding User Content), features, and functionality are owned by Lyniva and are protected by international copyright, trademark, patent, trade secret, and other intellectual property laws.
               </p>
               <p className="leading-relaxed mt-4" style={{ color: theme.colors.text }}>
                 Our trademarks and trade dress may not be used in connection with any product or service without our prior written consent. You may not use, copy, reproduce, modify, or distribute any content from the Service without our express written permission.
@@ -141,7 +141,7 @@ export default function TermsAndConditions() {
             <section>
               <h2 className="text-2xl font-bold text-gray-900 mb-4">9. Third-Party Services</h2>
               <p className="leading-relaxed" style={{ color: theme.colors.text }}>
-                Lifora may integrate with or contain links to third-party services, websites, or applications. We are not responsible for the content, privacy policies, or practices of any third-party services. You acknowledge and agree that Lifora shall not be liable for any damage or loss caused by your use of any third-party services.
+                Lyniva may integrate with or contain links to third-party services, websites, or applications. We are not responsible for the content, privacy policies, or practices of any third-party services. You acknowledge and agree that Lyniva shall not be liable for any damage or loss caused by your use of any third-party services.
               </p>
             </section>
 
@@ -160,7 +160,7 @@ export default function TermsAndConditions() {
             <section>
               <h2 className="text-2xl font-bold text-gray-900 mb-4">11. Limitation of Liability</h2>
               <p className="leading-relaxed" style={{ color: theme.colors.text }}>
-                TO THE MAXIMUM EXTENT PERMITTED BY LAW, LIFORA SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS OR REVENUES, WHETHER INCURRED DIRECTLY OR INDIRECTLY, OR ANY LOSS OF DATA, USE, GOODWILL, OR OTHER INTANGIBLE LOSSES, RESULTING FROM:
+                TO THE MAXIMUM EXTENT PERMITTED BY LAW, LYNIVA SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS OR REVENUES, WHETHER INCURRED DIRECTLY OR INDIRECTLY, OR ANY LOSS OF DATA, USE, GOODWILL, OR OTHER INTANGIBLE LOSSES, RESULTING FROM:
               </p>
               <ul className="list-disc pl-6 space-y-2 mt-4" style={{ color: theme.colors.text }}>
                 <li>Your access to or use of or inability to access or use the Service</li>
@@ -174,7 +174,7 @@ export default function TermsAndConditions() {
             <section>
               <h2 className="text-2xl font-bold text-gray-900 mb-4">12. Disclaimer of Warranties</h2>
               <p className="leading-relaxed" style={{ color: theme.colors.text }}>
-                THE SERVICE IS PROVIDED ON AN "AS IS" AND "AS AVAILABLE" BASIS WITHOUT ANY WARRANTIES OF ANY KIND, WHETHER EXPRESS OR IMPLIED. LIFORA DISCLAIMS ALL WARRANTIES, INCLUDING BUT NOT LIMITED TO MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
+                THE SERVICE IS PROVIDED ON AN "AS IS" AND "AS AVAILABLE" BASIS WITHOUT ANY WARRANTIES OF ANY KIND, WHETHER EXPRESS OR IMPLIED. LYNIVA DISCLAIMS ALL WARRANTIES, INCLUDING BUT NOT LIMITED TO MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
               </p>
               <p className="leading-relaxed mt-4" style={{ color: theme.colors.text }}>
                 We do not warrant that the Service will be uninterrupted, secure, or error-free, or that any defects will be corrected. We make no warranties about the accuracy or completeness of the content provided through the Service.
@@ -185,7 +185,7 @@ export default function TermsAndConditions() {
             <section>
               <h2 className="text-2xl font-bold text-gray-900 mb-4">13. Indemnification</h2>
               <p className="leading-relaxed" style={{ color: theme.colors.text }}>
-                You agree to defend, indemnify, and hold harmless Lifora and its affiliates, officers, directors, employees, and agents from and against any claims, liabilities, damages, losses, and expenses, including reasonable attorneys' fees, arising out of or in any way connected with your access to or use of the Service, your violation of these Terms, or your violation of any rights of another party.
+                You agree to defend, indemnify, and hold harmless Lyniva and its affiliates, officers, directors, employees, and agents from and against any claims, liabilities, damages, losses, and expenses, including reasonable attorneys' fees, arising out of or in any way connected with your access to or use of the Service, your violation of these Terms, or your violation of any rights of another party.
               </p>
             </section>
 
@@ -204,7 +204,7 @@ export default function TermsAndConditions() {
             <section>
               <h2 className="text-2xl font-bold text-gray-900 mb-4">15. Governing Law</h2>
               <p className="leading-relaxed" style={{ color: theme.colors.text }}>
-                These Terms shall be governed by and construed in accordance with the laws of the jurisdiction in which Lifora operates, without regard to its conflict of law provisions. Any disputes arising from these Terms or the Service shall be resolved in the courts of that jurisdiction.
+                These Terms shall be governed by and construed in accordance with the laws of the jurisdiction in which Lyniva operates, without regard to its conflict of law provisions. Any disputes arising from these Terms or the Service shall be resolved in the courts of that jurisdiction.
               </p>
             </section>
 
@@ -215,7 +215,7 @@ export default function TermsAndConditions() {
                 If you have any questions about these Terms, please contact us at:
               </p>
               <div className="mt-4 p-6 rounded-lg" style={{ backgroundColor: theme.colors.surface, borderColor: theme.colors.border, border: '1px solid' }}>
-                <p className="font-semibold mb-2" style={{ color: theme.colors.text }}>Lifora Support Team</p>
+                <p className="font-semibold mb-2" style={{ color: theme.colors.text }}>Lyniva Support Team</p>
                 <p style={{ color: theme.colors.text }}>Email:</p>
                 <Link className="font-semibold underline" style={{ color: theme.colors.primary }} to="mailto:capsproject123@gmail.com">capsproject123@gmail.com</Link>
               </div>
@@ -233,7 +233,7 @@ export default function TermsAndConditions() {
             <section>
               <h2 className="text-2xl font-bold text-gray-900 mb-4">18. Entire Agreement</h2>
               <p className="leading-relaxed" style={{ color: theme.colors.text }}>
-                These Terms, together with our Privacy Policy, constitute the entire agreement between you and Lifora regarding the use of the Service and supersede all prior agreements and understandings, whether written or oral.
+                These Terms, together with our Privacy Policy, constitute the entire agreement between you and Lyniva regarding the use of the Service and supersede all prior agreements and understandings, whether written or oral.
               </p>
             </section>
           </div>
@@ -254,7 +254,7 @@ export default function TermsAndConditions() {
         <div className="container mx-auto px-6 lg:px-12">
           <div className="text-center">
             <p className="text-sm" style={{ color: theme.colors.text }}>
-              © 2026 Lifora. All rights reserved.
+              © 2026 Lyniva. All rights reserved.
             </p>
           </div>
         </div>
