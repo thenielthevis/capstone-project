@@ -225,8 +225,8 @@ export default function PermissionsScreen() {
                     lineHeight: 20,
                 }}>
                     {isOnboarding
-                        ? 'Allow Lifora to access the following features for the best experience. You can change these later in Settings.'
-                        : "Manage which features Lifora can access. To revoke a permission, tap 'Allowed' to open system settings."
+                        ? 'Allow Lyniva to access the following features for the best experience. You can change these later in Settings.'
+                        : "Manage which features Lyniva can access. To revoke a permission, tap 'Allowed' to open system settings."
                     }
                 </Text>
 

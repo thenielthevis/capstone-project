@@ -179,7 +179,7 @@ const addFooter = (doc: jsPDF) => {
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(COLORS.textLight[0], COLORS.textLight[1], COLORS.textLight[2]);
-    doc.text('Lifora Health Platform', 20, pageHeight - 10);
+    doc.text('Lyniva Health Platform', 20, pageHeight - 10);
     
     // Page number on right
     doc.setFont('helvetica', 'bold');

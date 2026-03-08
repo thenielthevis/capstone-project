@@ -552,12 +552,12 @@ export default function Dashboard() {
             onClick={() => navigate('/dashboard')}
           >
             <div className="flex items-center gap-2">
-              <img src={logoImg} alt="Lifora" className="w-8 h-8" />
+              <img src={logoImg} alt="Lyniva" className="w-8 h-8" />
               <h1
                 className="text-xl font-semibold hidden xl:block"
                 style={{ color: theme.colors.text }}
               >
-                Lifora
+                Lyniva
               </h1>
             </div>
           </div>
@@ -920,7 +920,7 @@ export default function Dashboard() {
               </button>
             </div>
             <p className="text-xs" style={{ color: theme.colors.textTertiary }}>
-              © 2026 LIFORA
+              © 2026 LYNIVA
             </p>
           </div>
         </aside>

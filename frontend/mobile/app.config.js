@@ -2,7 +2,7 @@ import 'dotenv/config';
 
 export default {
   expo: {
-    name: "Lifora",
+    name: "Lyniva",
     slug: "mobile",
     version: "1.0.0",
     orientation: "portrait",
@@ -50,8 +50,8 @@ export default {
       [
         "expo-location",
         {
-          locationAlwaysAndWhenInUsePermission: "Allow Lifora to use your location",
-          locationAlwaysPermission: "Allow Lifora to use your location"
+          locationAlwaysAndWhenInUsePermission: "Allow Lyniva to use your location",
+          locationAlwaysPermission: "Allow Lyniva to use your location"
         }
       ],
       [
@@ -65,14 +65,14 @@ export default {
       [
         "expo-image-picker",
         {
-          photosPermission: "Allow Lifora to access your photos",
-          cameraPermission: "Allow Lifora to access your camera"
+          photosPermission: "Allow Lyniva to access your photos",
+          cameraPermission: "Allow Lyniva to access your camera"
         }
       ],
       [
         "expo-sensors",
         {
-          motionPermission: "Allow Lifora to access your motion sensors"
+          motionPermission: "Allow Lyniva to access your motion sensors"
         }
       ],
       "expo-font",

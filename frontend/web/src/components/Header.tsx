@@ -32,7 +32,7 @@ interface HeaderProps {
 }
 
 export default function Header({
-  title = 'Lifora',
+  title = 'Lyniva',
   showBackButton = false,
   backTo = '/dashboard',
   showHomeButton = false,

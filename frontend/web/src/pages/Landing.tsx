@@ -117,8 +117,8 @@ export default function Landing() {
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
             <div className="flex items-center gap-3">
-              <img src={images.logo} alt="Lifora Logo" className="w-10 h-10" />
-              <h1 className="text-2xl font-bold" style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}>Lifora</h1>
+              <img src={images.logo} alt="Lyniva Logo" className="w-10 h-10" />
+              <h1 className="text-2xl font-bold" style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}>Lyniva</h1>
             </div>
 
             {/* Desktop Navigation */}
@@ -285,7 +285,7 @@ export default function Landing() {
               <div className="space-y-10">
                 <div className="space-y-4">
                   <div className="inline-block px-4 py-1 rounded-full text-xs font-bold tracking-widest uppercase" style={{ backgroundColor: theme.colors.primary + '20', color: theme.colors.primary }}>
-                    Lifora Mobile App
+                    Lyniva Mobile App
                   </div>
                   <h2 className="text-4xl md:text-5xl font-bold leading-tight text-white">
                     Wellness in the <span style={{ color: theme.colors.primary }}>Palm of Your Hand</span>
@@ -317,7 +317,7 @@ export default function Landing() {
                 {/* QR Code Download */}
                 <div className="flex items-center gap-5 p-5 rounded-2xl mt-2" style={{ backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
                   <div className="flex-shrink-0 bg-white rounded-xl p-2">
-                    <img src={qrCodeImg} alt="Download Lifora Mobile App" className="w-28 h-28" />
+                    <img src={qrCodeImg} alt="Download Lyniva Mobile App" className="w-28 h-28" />
                   </div>
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
@@ -325,7 +325,7 @@ export default function Landing() {
                       <span className="text-sm font-bold text-white">Download the App</span>
                     </div>
                     <p className="text-xs text-landing-muted leading-relaxed">
-                      Scan this QR code with your phone's camera to download the Lifora mobile app (APK).
+                      Scan this QR code with your phone's camera to download the Lyniva mobile app (APK).
                     </p>
                   </div>
                 </div>
@@ -348,7 +348,7 @@ export default function Landing() {
             <div className="max-w-5xl mx-auto space-y-12">
               {/* About Header */}
               <div className="text-center space-y-4">
-                <h2 className="text-4xl md:text-5xl font-bold" style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}>About Lifora</h2>
+                <h2 className="text-4xl md:text-5xl font-bold" style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}>About Lyniva</h2>
                 <p className="text-lg md:text-xl max-w-3xl mx-auto leading-relaxed text-landing-muted">
                   We are dedicated to transforming personal health by making wellness an engaging and insightful journey.
                   Our platform combines gamification, nutritional tracking, and daily assessments to empower you with the knowledge
@@ -399,7 +399,7 @@ export default function Landing() {
                 Meet Our Team
               </h2>
               <p className="text-lg text-landing-muted">
-                The amazing people behind Lifora, dedicated to your wellness journey
+                The amazing people behind Lyniva, dedicated to your wellness journey
               </p>
             </div>
 
@@ -429,7 +429,7 @@ export default function Landing() {
           <div className="container mx-auto px-6 lg:px-12">
             <div className="max-w-4xl mx-auto text-center space-y-8">
               <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold">
-                Start Your Wellness Journey with Lifora Today
+                Start Your Wellness Journey with Lyniva Today
               </h2>
               <p className="text-xl leading-relaxed text-landing-muted">
                 No credit card required. Join us in transforming your health.
@@ -464,8 +464,8 @@ export default function Landing() {
               {/* Logo and Brand Section */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                  <img src={images.logo} alt="Lifora Logo" className="w-8 h-8" />
-                  <h3 className="text-xl font-bold" style={{ color: theme.colors.text }}>Lifora</h3>
+                  <img src={images.logo} alt="Lyniva Logo" className="w-8 h-8" />
+                  <h3 className="text-xl font-bold" style={{ color: theme.colors.text }}>Lyniva</h3>
                 </div>
                 <p className="text-sm leading-relaxed">
                   Embrace a Healthier You—Strong, Resilient, Future-Ready
@@ -515,7 +515,7 @@ export default function Landing() {
                   </li>
                   <li>
                     <a
-                      href="mailto:contact@lifora.com"
+                      href="mailto:contact@lyniva.com"
                       className="text-sm transition-colors"
                       style={{ color: theme.colors.textSecondary }}
                     >
@@ -541,7 +541,7 @@ export default function Landing() {
             <div className="pt-8" style={{ borderTop: `1px solid ${theme.colors.border}` }}>
               <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                 <p className="text-sm">
-                  © 2026 Lifora. All rights reserved.
+                  © 2026 Lyniva. All rights reserved.
                 </p>
                 <div className="flex gap-6">
                   <a href="#" className="text-sm hover:text-blue-400 transition-colors">

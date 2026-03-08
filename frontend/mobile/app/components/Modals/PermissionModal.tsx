@@ -108,19 +108,19 @@ export default function PermissionModal({ visible, onAccept }: Props) {
                     title="Terms and Conditions"
                 >
                     <BulletPoint theme={theme} bold="Health Disclaimer:">
-                        Lifora is designed for wellness tracking only. It is not intended to diagnose, treat, cure, or prevent any disease. AI-powered insights are for informational purposes only — always consult a qualified health professional.
+                        Lyniva is designed for wellness tracking only. It is not intended to diagnose, treat, cure, or prevent any disease. AI-powered insights are for informational purposes only — always consult a qualified health professional.
                     </BulletPoint>
                     <BulletPoint theme={theme} bold="Your Account:">
                         You are responsible for maintaining accurate account information and safeguarding your credentials. We may terminate accounts that violate our terms.
                     </BulletPoint>
                     <BulletPoint theme={theme} bold="Your Content:">
-                        You retain ownership of content you submit (photos, logs, comments). By posting, you grant Lifora a non-exclusive license to use it in connection with the service.
+                        You retain ownership of content you submit (photos, logs, comments). By posting, you grant Lyniva a non-exclusive license to use it in connection with the service.
                     </BulletPoint>
                     <BulletPoint theme={theme} bold="Acceptable Use:">
                         You agree not to use the service for unlawful purposes, upload malicious code, or attempt unauthorized access.
                     </BulletPoint>
                     <BulletPoint theme={theme} bold="Liability:">
-                        Lifora is provided "as is." We are not liable for indirect or consequential damages arising from your use of the service.
+                        Lyniva is provided "as is." We are not liable for indirect or consequential damages arising from your use of the service.
                     </BulletPoint>
                     <BulletPoint theme={theme} bold="Changes:">
                         We may update these terms with 30 days notice. Continued use constitutes acceptance.

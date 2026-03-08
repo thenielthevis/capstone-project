@@ -64,7 +64,7 @@ export default function Header({
             marginLeft: 10,
           }}
         >
-          LIFORA
+          LYNIVA
         </Text>
       </View>
 

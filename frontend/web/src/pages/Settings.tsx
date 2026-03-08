@@ -500,7 +500,7 @@ export default function Settings() {
                     className="text-sm"
                     style={{ color: theme.colors.textSecondary }}
                   >
-                    Rules and guidelines for using Lifora
+                    Rules and guidelines for using Lyniva
                   </p>
                 </div>
               </div>
