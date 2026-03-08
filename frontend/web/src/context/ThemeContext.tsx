@@ -1,10 +1,13 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { lightTheme, darkTheme, oceanTheme, Theme, ThemeMode } from '../design/tokens';
+import { lightTheme, darkTheme, oceanTheme, protanopiaTheme, deuteranopiaTheme, tritanopiaTheme, Theme, ThemeMode } from '../design/tokens';
 
 const THEMES = {
   light: lightTheme,
   dark: darkTheme,
   ocean: oceanTheme,
+  protanopia: protanopiaTheme,
+  deuteranopia: deuteranopiaTheme,
+  tritanopia: tritanopiaTheme,
 };
 
 type ThemeContextType = {

@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
-import { lightTheme, darkTheme, oceanTheme } from "../../../design/tokens";
+import { lightTheme, darkTheme, oceanTheme, protanopiaTheme, deuteranopiaTheme, tritanopiaTheme } from "../../../design/tokens";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -27,6 +27,27 @@ const themeOptions = [
     description: "Calm & serene",
     icon: "waves",
     theme: oceanTheme,
+  },
+  {
+    key: "protanopia",
+    label: "Protanopia",
+    description: "Red-blind accessible",
+    icon: "eye-outline",
+    theme: protanopiaTheme,
+  },
+  {
+    key: "deuteranopia",
+    label: "Deuteranopia",
+    description: "Green-blind accessible",
+    icon: "eye-check-outline",
+    theme: deuteranopiaTheme,
+  },
+  {
+    key: "tritanopia",
+    label: "Tritanopia",
+    description: "Blue-blind accessible",
+    icon: "eye-settings-outline",
+    theme: tritanopiaTheme,
   },
 ];
 

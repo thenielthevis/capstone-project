@@ -959,7 +959,7 @@ function AnalysisDetailContent() {
         </Card>
 
         {/* Medical Advice (from mobile) */}
-        <div className="p-4 rounded-xl border-l-4" style={{ borderLeftColor: '#FF9800', backgroundColor: '#FFF8E1' }}>
+        <div className="p-4 rounded-xl border-l-4" style={{ borderLeftColor: '#FF9800', backgroundColor: '#FF9800' + '10' }}>
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle className="w-4 h-4" style={{ color: '#FF9800' }} />
             <span className="font-semibold text-sm" style={{ color: theme.colors.text }}>Medical Advice</span>
@@ -974,7 +974,7 @@ function AnalysisDetailContent() {
         </div>
 
         {/* Prevention Tips (from mobile) */}
-        <div className="p-4 rounded-xl border-l-4" style={{ borderLeftColor: '#4CAF50', backgroundColor: '#E8F5E9' }}>
+        <div className="p-4 rounded-xl border-l-4" style={{ borderLeftColor: '#4CAF50', backgroundColor: '#4CAF50' + '10' }}>
           <div className="flex items-center gap-2 mb-2">
             <CheckCircle className="w-4 h-4" style={{ color: '#4CAF50' }} />
             <span className="font-semibold text-sm" style={{ color: theme.colors.text }}>Prevention Tips</span>

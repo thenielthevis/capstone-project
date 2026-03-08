@@ -215,7 +215,9 @@ const userSchema = new mongoose.Schema({
     healthCheckupReminders: {
         enabled: { type: Boolean, default: true },
         morningTime: { type: String, default: '08:00' }, // HH:mm format - for sleep logging
+        noonTime: { type: String, default: '12:00' }, // HH:mm format - for daily checkup
         eveningTime: { type: String, default: '19:00' }, // HH:mm format - for water/stress/weight
+        foodIntakeReminder: { type: Boolean, default: true }, // Always-on food intake reminder
         timezone: { type: String, default: 'Asia/Manila' }
     },
     // Follow system

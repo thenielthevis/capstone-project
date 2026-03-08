@@ -435,7 +435,9 @@ export const editPreviousEntry = async (
 export interface ReminderSettings {
     enabled: boolean;
     morningTime: string; // HH:mm format
+    noonTime: string; // HH:mm format
     eveningTime: string; // HH:mm format
+    foodIntakeReminder: boolean;
     timezone?: string;
 }
 
