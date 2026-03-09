@@ -31,9 +31,9 @@ export default function UserHeader() {
         <div className="flex items-center justify-between">
           {/* Logo Section */}
           <div className="flex items-center gap-2">
-            <img src={logoImg} alt="Lifora Logo" className="w-10 h-10" />
+            <img src={logoImg} alt="Lyniva Logo" className="w-10 h-10" />
             <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              Lifora
+              Lyniva
             </h1>
           </div>
 

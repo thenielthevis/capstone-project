@@ -15,7 +15,7 @@ export default function TermsAndConditions() {
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-3">
-              <img src={logoImg} alt="Lifora Logo" className="w-10 h-10" />
+              <img src={logoImg} alt="Lyniva Logo" className="w-10 h-10" />
               <h1 className="text-2xl font-bold" style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}>Lyniva</h1>
             </Link>
 
@@ -83,10 +83,10 @@ export default function TermsAndConditions() {
             <section>
               <h2 className="text-2xl font-bold mb-4" style={{ color: theme.colors.text }}>4. Health Information Disclaimer</h2>
               <p className="leading-relaxed" style={{ color: theme.colors.text }}>
-                <strong className="font-semibold">IMPORTANT:</strong> Lifora is designed to help you track and manage your wellness journey. However, the Service is not intended to diagnose, treat, cure, or prevent any disease or health condition.
+                <strong className="font-semibold">IMPORTANT:</strong> Lyniva is designed to help you track and manage your wellness journey. However, the Service is not intended to diagnose, treat, cure, or prevent any disease or health condition.
               </p>
               <p className="leading-relaxed mt-4" style={{ color: theme.colors.text }}>
-                The information provided through Lifora, including AI-powered insights and recommendations, is for informational and educational purposes only. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition. Never disregard professional medical advice or delay seeking it because of information provided by Lifora.
+                The information provided through Lyniva, including AI-powered insights and recommendations, is for informational and educational purposes only. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition. Never disregard professional medical advice or delay seeking it because of information provided by Lyniva.
               </p>
             </section>
 
