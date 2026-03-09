@@ -45,6 +45,7 @@ const feedbackRoutes = require('./routes/feedbackRoutes');
 const leaderboardRoutes = require('./routes/leaderboardRoutes');
 const profileRoutes = require('./routes/profileRoutes');
 const achievementRoutes = require('./routes/achievementRoutes');
+const sentimentDashboardRoutes = require('./routes/sentimentDashboardRoutes');
 
 const corsOptions = {
     origin: process.env.NODE_ENV === 'production'
@@ -87,6 +88,7 @@ app.use('/api/feedback', feedbackRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/achievements', achievementRoutes);
+app.use('/api/sentiment-dashboard', sentimentDashboardRoutes);
 console.log('[APP] Registered /api/achievements routes');
 console.log('[APP] Registered /api/profile routes');
 console.log('[APP] Registered /api/leaderboard routes');

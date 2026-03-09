@@ -20,6 +20,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminUsers from './pages/AdminUsers';
 import AdminAssessments from './pages/AdminAssessments';
+import SentimentDashboard from './pages/SentimentDashboard';
 import AdminReports from './pages/AdminReports';
 import AdminHealthReports from './pages/AdminHealthReports';
 import CreateAdmin from './pages/CreateAdmin';
@@ -272,6 +273,14 @@ function App() {
         element={
           <ProtectedRoute>
             <AdminAssessments />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/sentiment"
+        element={
+          <ProtectedRoute>
+            <SentimentDashboard />
           </ProtectedRoute>
         }
       />
