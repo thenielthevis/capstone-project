@@ -1,12 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import { lightTheme, darkTheme, oceanTheme } from '../../design/tokens';
+import { lightTheme, darkTheme, oceanTheme, protanopiaTheme, deuteranopiaTheme, tritanopiaTheme } from '../../design/tokens';
 
 const THEMES = {
   light: lightTheme,
   dark: darkTheme,
   ocean: oceanTheme,
+  protanopia: protanopiaTheme,
+  deuteranopia: deuteranopiaTheme,
+  tritanopia: tritanopiaTheme,
 };
 
 type ThemeKey = keyof typeof THEMES;

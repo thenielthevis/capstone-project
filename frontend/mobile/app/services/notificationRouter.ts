@@ -44,10 +44,12 @@ export interface PendingNavigation {
  */
 const SCREEN_MAP: Record<string, string> = {
     'health_checkup_morning': '/screens/record/HealthCheckup',
+    'health_checkup_noon': '/screens/record/HealthCheckup',
     'health_checkup_evening': '/screens/record/HealthCheckup',
     'checkin_reminder': '/screens/record/HealthCheckup',
     'day_summary': '/(tabs)/Analysis',
     'feedback': '/screens/record/HealthCheckup',
+    'food_intake_reminder': '/screens/record/Food',
 };
 
 /**

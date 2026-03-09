@@ -170,8 +170,8 @@ export default function SettingsScreen() {
         <SettingsItem
           icon="bell-outline"
           iconColor="#0ea5e9"
-          title="Health Checkup Reminders"
-          subtitle="Set daily reminder times"
+          title="Notification Reminders"
+          subtitle="Checkup, food intake & reminder times"
           onPress={() => router.push("/screens/settings/health-checkup-reminders")}
           theme={theme}
         />
