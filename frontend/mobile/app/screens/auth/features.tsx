@@ -224,7 +224,7 @@ export default function FeaturesScreen() {
     };
 
     const startGuestSession = async (path: string) => {
-        const guestUser = { isGuest: true, name: "Guest User", email: "guest@lifora.com" };
+            const guestUser = { isGuest: true, name: "Guest User", email: "guest@lyniva.com" };
         await tokenStorage.saveUser(guestUser);
         setUser(guestUser);
         router.replace(path as any);

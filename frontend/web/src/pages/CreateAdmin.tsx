@@ -81,8 +81,8 @@ export default function CreateAdmin() {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <img src={logoImg} alt="Lifora Logo" className="w-10 h-10" />
-              <h1 className="text-2xl font-bold text-gray-900">Lifora</h1>
+              <img src={logoImg} alt="Lyniva Logo" className="w-10 h-10" />
+              <h1 className="text-2xl font-bold text-gray-900">Lyniva</h1>
             </div>
             <Button variant="ghost" onClick={() => navigate('/admin/dashboard')}>
               <ArrowLeft className="w-4 h-4 mr-2" />

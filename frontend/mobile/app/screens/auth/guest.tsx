@@ -170,7 +170,7 @@ export default function GuestScreen() {
               marginBottom: 12,
             }}
           >
-            LIFORA
+            LYNIVA
           </Text>
 
           <Text

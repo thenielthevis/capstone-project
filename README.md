@@ -1,6 +1,6 @@
-# Lifora Capstone Project
+# Lyniva Capstone Project
 
-Lifora is an innovative application that combines the features of Strava and Pou to help users track and improve their well-being. The app reflects the user's self-care through a virtual character that evolves based on recorded activities, food intake, and other lifestyle choices.
+Lyniva is an innovative application that combines the features of Strava and Pou to help users track and improve their well-being. The app reflects the user's self-care through a virtual character that evolves based on recorded activities, food intake, and other lifestyle choices.
 
 ## Key Functionalities
 
@@ -31,6 +31,6 @@ Lifora is an innovative application that combines the features of Strava and Pou
 
 ## Project Overview
 
-Lifora motivates users to take care of themselves by making healthy choices visible and rewarding. The more users engage in positive activities and habits, the healthier and happier their virtual character becomes.
+Lyniva motivates users to take care of themselves by making healthy choices visible and rewarding. The more users engage in positive activities and habits, the healthier and happier their virtual character becomes.
 
 ---

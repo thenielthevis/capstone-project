@@ -32,7 +32,7 @@ interface HeaderProps {
 }
 
 export default function Header({
-  title = 'Lifora',
+  title = 'Lyniva',
   showBackButton = false,
   backTo = '/dashboard',
   showHomeButton = false,
@@ -123,7 +123,7 @@ export default function Header({
               onClick={() => user?.isGuest ? navigate('/') : navigate('/dashboard')}
               className="flex items-center gap-2 hover:opacity-80 transition-opacity"
             >
-              <img src={logoImg} alt="Lifora" className="w-9 h-9" />
+              <img src={logoImg} alt="Lyniva" className="w-9 h-9" />
               <span
                 className="text-xl font-bold hidden sm:inline"
                 style={{ color: theme.colors.text }}

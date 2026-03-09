@@ -5,7 +5,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { getReminderSettings, updateReminderSettings } from "../../api/healthCheckupApi";
-import { scheduleHealthCheckupReminders, cancelAllHealthCheckupReminders } from "../../../utils/healthCheckupNotifications";
+import { scheduleHealthCheckupReminders, cancelAllHealthCheckupReminders, scheduleFoodIntakeReminder } from "../../../utils/healthCheckupNotifications";
 
 // Custom Time Picker Modal Component
 const TimePickerModal = ({
@@ -227,9 +227,12 @@ export default function HealthCheckupSettingsScreen() {
     const [saving, setSaving] = useState(false);
     const [enabled, setEnabled] = useState(true);
     const [morningTime, setMorningTime] = useState("08:00");
+    const [noonTime, setNoonTime] = useState("12:00");
     const [eveningTime, setEveningTime] = useState("19:00");
+    const [foodIntakeReminder, setFoodIntakeReminder] = useState(true);
 
     const [showMorningPicker, setShowMorningPicker] = useState(false);
+    const [showNoonPicker, setShowNoonPicker] = useState(false);
     const [showEveningPicker, setShowEveningPicker] = useState(false);
 
     useEffect(() => {
@@ -242,7 +245,9 @@ export default function HealthCheckupSettingsScreen() {
             if (response.success) {
                 setEnabled(response.settings.enabled);
                 setMorningTime(response.settings.morningTime);
+                setNoonTime(response.settings.noonTime || "12:00");
                 setEveningTime(response.settings.eveningTime);
+                setFoodIntakeReminder(response.settings.foodIntakeReminder ?? true);
             }
         } catch (error) {
             console.error("Error loading reminder settings:", error);
@@ -264,7 +269,9 @@ export default function HealthCheckupSettingsScreen() {
             const response = await updateReminderSettings({
                 enabled,
                 morningTime,
+                noonTime,
                 eveningTime,
+                foodIntakeReminder,
             });
 
             if (response.success) {
@@ -272,11 +279,16 @@ export default function HealthCheckupSettingsScreen() {
                     await scheduleHealthCheckupReminders({
                         enabled,
                         morningTime,
+                        noonTime,
                         eveningTime,
+                        foodIntakeReminder,
                     });
                 } else {
                     await cancelAllHealthCheckupReminders();
                 }
+
+                // Food intake reminder is always scheduled independently
+                await scheduleFoodIntakeReminder(foodIntakeReminder);
 
                 Alert.alert("Success", "Reminder settings saved successfully!");
                 router.back();
@@ -453,6 +465,62 @@ export default function HealthCheckupSettingsScreen() {
                             </View>
                         </TouchableOpacity>
 
+                        {/* Noon Time */}
+                        <TouchableOpacity
+                            onPress={() => setShowNoonPicker(true)}
+                            activeOpacity={0.7}
+                            style={{
+                                backgroundColor: theme.colors.surface,
+                                borderRadius: 16,
+                                padding: 16,
+                                marginBottom: 12,
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                            }}
+                        >
+                            <View style={{
+                                width: 44,
+                                height: 44,
+                                borderRadius: 12,
+                                backgroundColor: '#f97316' + '20',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                marginRight: 12,
+                            }}>
+                                <MaterialCommunityIcons name="white-balance-sunny" size={24} color="#f97316" />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={{
+                                    fontFamily: theme.fonts.bodyBold,
+                                    fontSize: 15,
+                                    color: theme.colors.text,
+                                }}>
+                                    Daily Checkup
+                                </Text>
+                                <Text style={{
+                                    fontFamily: theme.fonts.body,
+                                    fontSize: 12,
+                                    color: theme.colors.text + '77',
+                                }}>
+                                    Midday health check reminder
+                                </Text>
+                            </View>
+                            <View style={{
+                                backgroundColor: theme.colors.background,
+                                paddingHorizontal: 14,
+                                paddingVertical: 8,
+                                borderRadius: 10,
+                            }}>
+                                <Text style={{
+                                    fontFamily: theme.fonts.heading,
+                                    fontSize: 15,
+                                    color: theme.colors.primary,
+                                }}>
+                                    {formatTimeDisplay(noonTime)}
+                                </Text>
+                            </View>
+                        </TouchableOpacity>
+
                         {/* Evening Time */}
                         <TouchableOpacity
                             onPress={() => setShowEveningPicker(true)}
@@ -526,11 +594,90 @@ export default function HealthCheckupSettingsScreen() {
                                 flex: 1,
                                 lineHeight: 18,
                             }}>
-                                Morning reminders prompt you to log sleep. Evening reminders are for water, stress, and weight tracking.
+                                Morning reminders prompt you to log sleep. Daily checkup is your midday health check. Evening reminders are for water, stress, and weight tracking.
                             </Text>
                         </View>
                     </>
                 )}
+
+                {/* Food Intake Reminders Section */}
+                <Text style={{
+                    fontFamily: theme.fonts.heading,
+                    fontSize: 13,
+                    color: theme.colors.primary,
+                    marginBottom: 12,
+                    marginTop: 24,
+                    marginLeft: 4,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                }}>
+                    Food Intake Reminders
+                </Text>
+
+                <View style={{
+                    backgroundColor: theme.colors.surface,
+                    borderRadius: 20,
+                    padding: 16,
+                    marginBottom: 12,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                        <View style={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: 12,
+                            backgroundColor: '#10b981' + '15',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginRight: 12,
+                        }}>
+                            <MaterialCommunityIcons name="food-apple-outline" size={24} color="#10b981" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={{
+                                fontFamily: theme.fonts.bodyBold,
+                                fontSize: 16,
+                                color: theme.colors.text,
+                            }}>
+                                Meal Logging Reminders
+                            </Text>
+                            <Text style={{
+                                fontFamily: theme.fonts.body,
+                                fontSize: 13,
+                                color: theme.colors.text + '77',
+                            }}>
+                                Get reminded to log breakfast, lunch & dinner
+                            </Text>
+                        </View>
+                    </View>
+                    <Switch
+                        value={foodIntakeReminder}
+                        onValueChange={setFoodIntakeReminder}
+                        trackColor={{ false: theme.colors.text + '22', true: '#10b981' + '55' }}
+                        thumbColor={foodIntakeReminder ? '#10b981' : '#f4f3f4'}
+                    />
+                </View>
+
+                <View style={{
+                    backgroundColor: '#10b981' + '10',
+                    borderRadius: 14,
+                    padding: 14,
+                    flexDirection: 'row',
+                    alignItems: 'flex-start',
+                }}>
+                    <MaterialCommunityIcons name="information-outline" size={20} color="#10b981" style={{ marginRight: 10, marginTop: 2 }} />
+                    <Text style={{
+                        fontFamily: theme.fonts.body,
+                        fontSize: 13,
+                        color: theme.colors.text + '99',
+                        flex: 1,
+                        lineHeight: 18,
+                    }}>
+                        You'll receive reminders at 8:00 AM (breakfast), 12:00 PM (lunch), and 6:00 PM (dinner) to log your food intake.
+                    </Text>
+                </View>
 
                 {/* Save Button */}
                 <TouchableOpacity
@@ -564,6 +711,14 @@ export default function HealthCheckupSettingsScreen() {
                 initialTime={morningTime}
                 theme={theme}
                 title="Morning Reminder Time"
+            />
+            <TimePickerModal
+                visible={showNoonPicker}
+                onClose={() => setShowNoonPicker(false)}
+                onSelect={setNoonTime}
+                initialTime={noonTime}
+                theme={theme}
+                title="Daily Checkup Time"
             />
             <TimePickerModal
                 visible={showEveningPicker}

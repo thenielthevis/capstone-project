@@ -189,3 +189,165 @@ export const oceanTheme = {
   fontSizes: fontSizes,
   fontWeights: fontWeights,
 };
+
+// ─── Accessibility Theme: Protanopia (Red-blind) ───────────────────────────────
+// Optimized for users who cannot perceive red light.
+// Avoids red-green combinations. Uses blue, yellow/amber, and high-contrast neutrals.
+// Status indicators should always pair with icons/patterns: ✓ success, ⚠ warning, ✕ error, ℹ info.
+export const protanopiaTheme = {
+  mode: 'protanopia',
+  colors: {
+    primary: '#0077BB',
+    secondary: '#33576B',
+    accent: '#EE7733',
+    background: '#FAFAFA',
+    surface: '#F0F4F7',
+    text: '#1B1B1B',
+    textSecondary: '#4A4A4A',
+    input: '#EDF1F5',
+    border: '#C8CED3',
+    overlay: 'rgba(27, 27, 27, 0.45)',
+    error: '#CC3311',
+    success: '#009988',
+  },
+  semanticColors: {
+    success: '#009988',
+    warning: '#EE7733',
+    danger: '#CC3311',
+    info: '#0077BB',
+    secondary: '#33576B',
+    accent: '#EE7733',
+  },
+  gradients: {
+    bmi: ['#E1F0FA', '#B3D9F2', '#7ABCE0'],
+    activity: ['#E1F0FA', '#B3D9F2', '#7ABCE0'],
+    sleep: ['#E1F0FA', '#B3D9F2', '#7ABCE0'],
+    water: ['#E1F0FA', '#B3D9F2', '#7ABCE0'],
+    stress: ['#E1F0FA', '#B3D9F2', '#7ABCE0'],
+    dietary: ['#E1F0FA', '#B3D9F2', '#7ABCE0'],
+    health: ['#E1F0FA', '#B3D9F2', '#7ABCE0'],
+    environment: ['#E1F0FA', '#B3D9F2', '#7ABCE0'],
+    addiction: ['#E1F0FA', '#B3D9F2', '#7ABCE0'],
+    risks: ['#E1F0FA', '#B3D9F2', '#7ABCE0'],
+    prediction: ['#E1F0FA', '#B3D9F2', '#7ABCE0'],
+  },
+  statusBackgrounds: {
+    success: '#E0F5F3',
+    warning: '#FFF3E0',
+    danger: '#FDE8E0',
+    info: '#E1F0FA',
+    secondary: '#E8EEF2',
+    accent: '#FFF3E0',
+  },
+  fonts: fontFamilies,
+  fontSizes: fontSizes,
+  fontWeights: fontWeights,
+};
+
+// ─── Accessibility Theme: Deuteranopia (Green-blind) ───────────────────────────
+// Optimized for users who cannot perceive green light (most common CVD).
+// Avoids red-green combinations. Uses blue, orange/amber, and purple.
+// Status indicators should always pair with icons/patterns: ✓ success, ⚠ warning, ✕ error, ℹ info.
+export const deuteranopiaTheme = {
+  mode: 'deuteranopia',
+  colors: {
+    primary: '#3366CC',
+    secondary: '#44355B',
+    accent: '#DDAA33',
+    background: '#FAF9F7',
+    surface: '#F2F0ED',
+    text: '#1A1A2E',
+    textSecondary: '#4A4A5A',
+    input: '#EFEEE9',
+    border: '#CCC9C1',
+    overlay: 'rgba(26, 26, 46, 0.45)',
+    error: '#D4500A',
+    success: '#0077BB',
+  },
+  semanticColors: {
+    success: '#0077BB',
+    warning: '#DDAA33',
+    danger: '#D4500A',
+    info: '#3366CC',
+    secondary: '#7755AA',
+    accent: '#DDAA33',
+  },
+  gradients: {
+    bmi: ['#E2E8F5', '#BCC8E8', '#8FA6D9'],
+    activity: ['#E2E8F5', '#BCC8E8', '#8FA6D9'],
+    sleep: ['#E2E8F5', '#BCC8E8', '#8FA6D9'],
+    water: ['#E2E8F5', '#BCC8E8', '#8FA6D9'],
+    stress: ['#E2E8F5', '#BCC8E8', '#8FA6D9'],
+    dietary: ['#E2E8F5', '#BCC8E8', '#8FA6D9'],
+    health: ['#E2E8F5', '#BCC8E8', '#8FA6D9'],
+    environment: ['#E2E8F5', '#BCC8E8', '#8FA6D9'],
+    addiction: ['#E2E8F5', '#BCC8E8', '#8FA6D9'],
+    risks: ['#E2E8F5', '#BCC8E8', '#8FA6D9'],
+    prediction: ['#E2E8F5', '#BCC8E8', '#8FA6D9'],
+  },
+  statusBackgrounds: {
+    success: '#E1F0FA',
+    warning: '#FFF5DA',
+    danger: '#FDE8D8',
+    info: '#E2E8F5',
+    secondary: '#EDE6F5',
+    accent: '#FFF5DA',
+  },
+  fonts: fontFamilies,
+  fontSizes: fontSizes,
+  fontWeights: fontWeights,
+};
+
+// ─── Accessibility Theme: Tritanopia (Blue-blind) ──────────────────────────────
+// Optimized for users who cannot perceive blue light.
+// Avoids blue-yellow combinations. Uses red/pink, teal/green, and high-contrast neutrals.
+// Status indicators should always pair with icons/patterns: ✓ success, ⚠ warning, ✕ error, ℹ info.
+export const tritanopiaTheme = {
+  mode: 'tritanopia',
+  colors: {
+    primary: '#CC3366',
+    secondary: '#2E5E4E',
+    accent: '#11AA66',
+    background: '#FAFAF8',
+    surface: '#F3F2EE',
+    text: '#1C1C1C',
+    textSecondary: '#4B4B4B',
+    input: '#EFEEEA',
+    border: '#CBC9C3',
+    overlay: 'rgba(28, 28, 28, 0.45)',
+    error: '#CC2200',
+    success: '#118844',
+  },
+  semanticColors: {
+    success: '#118844',
+    warning: '#CC7700',
+    danger: '#CC2200',
+    info: '#CC3366',
+    secondary: '#2E5E4E',
+    accent: '#11AA66',
+  },
+  gradients: {
+    bmi: ['#FCE4EC', '#F8BBD0', '#F48FB1'],
+    activity: ['#FCE4EC', '#F8BBD0', '#F48FB1'],
+    sleep: ['#FCE4EC', '#F8BBD0', '#F48FB1'],
+    water: ['#FCE4EC', '#F8BBD0', '#F48FB1'],
+    stress: ['#FCE4EC', '#F8BBD0', '#F48FB1'],
+    dietary: ['#FCE4EC', '#F8BBD0', '#F48FB1'],
+    health: ['#FCE4EC', '#F8BBD0', '#F48FB1'],
+    environment: ['#FCE4EC', '#F8BBD0', '#F48FB1'],
+    addiction: ['#FCE4EC', '#F8BBD0', '#F48FB1'],
+    risks: ['#FCE4EC', '#F8BBD0', '#F48FB1'],
+    prediction: ['#FCE4EC', '#F8BBD0', '#F48FB1'],
+  },
+  statusBackgrounds: {
+    success: '#E0F2E9',
+    warning: '#FFF0D9',
+    danger: '#FDEAEA',
+    info: '#FCE4EC',
+    secondary: '#E8F0EC',
+    accent: '#E0F2E9',
+  },
+  fonts: fontFamilies,
+  fontSizes: fontSizes,
+  fontWeights: fontWeights,
+};

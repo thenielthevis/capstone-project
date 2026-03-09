@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { Moon, Sun, Droplets, Check, FileText, Shield, ChevronRight, Globe, Users, EyeOff, Loader2, Pencil } from 'lucide-react';
+import { Moon, Sun, Droplets, Check, FileText, Shield, ChevronRight, Globe, Users, EyeOff, Loader2, Pencil, Eye, Scan, Focus } from 'lucide-react';
 import Header from '@/components/Header';
 import { profileApi } from '@/api/profileApi';
 
@@ -24,6 +24,24 @@ const themeOptions = [
     label: 'Ocean',
     icon: Droplets,
     description: 'Calm and refreshing blue theme',
+  },
+  {
+    key: 'protanopia' as const,
+    label: 'Protanopia',
+    icon: Eye,
+    description: 'Optimized for red-blind vision',
+  },
+  {
+    key: 'deuteranopia' as const,
+    label: 'Deuteranopia',
+    icon: Scan,
+    description: 'Optimized for green-blind vision',
+  },
+  {
+    key: 'tritanopia' as const,
+    label: 'Tritanopia',
+    icon: Focus,
+    description: 'Optimized for blue-blind vision',
   },
 ];
 
@@ -482,7 +500,7 @@ export default function Settings() {
                     className="text-sm"
                     style={{ color: theme.colors.textSecondary }}
                   >
-                    Rules and guidelines for using Lifora
+                    Rules and guidelines for using Lyniva
                   </p>
                 </div>
               </div>

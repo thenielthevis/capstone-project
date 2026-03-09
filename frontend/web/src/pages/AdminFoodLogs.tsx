@@ -4,7 +4,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { 
   UtensilsCrossed, Search, Calendar, Trash2, ChevronLeft, ChevronRight,
-  Filter, TrendingUp, Users, Apple, RefreshCw, Download
+  Filter, TrendingUp, Users, Apple, RefreshCw, Download, ShieldCheck,
+  Camera, PenLine, Layers, AlertTriangle, Tag, Leaf, Info
 } from 'lucide-react';
 import AdminSidebar from '@/components/AdminSidebar';
 import { useTheme } from '@/context/ThemeContext';
@@ -291,6 +292,119 @@ export default function AdminFoodLogs() {
               </div>
             )}
 
+            {/* Accuracy & Nutrition Breakdown */}
+            {!statsLoading && stats && (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Accuracy/Confidence Breakdown */}
+                {stats.confidenceBreakdown && stats.confidenceBreakdown.length > 0 && (
+                  <Card style={{ backgroundColor: theme.colors.card, borderColor: theme.colors.border }}>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium flex items-center gap-2" style={{ color: theme.colors.text }}>
+                        <ShieldCheck className="w-4 h-4" style={{ color: theme.colors.primary }} />
+                        Analysis Accuracy
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {stats.confidenceBreakdown.map((item) => {
+                          const total = stats.confidenceBreakdown!.reduce((sum, i) => sum + i.count, 0);
+                          const percentage = total > 0 ? Math.round((item.count / total) * 100) : 0;
+                          const color = item.level === 'high' ? '#22c55e' : item.level === 'medium' ? '#f59e0b' : '#ef4444';
+                          return (
+                            <div key={item.level} className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
+                                <span className="text-sm capitalize" style={{ color: theme.colors.text }}>{item.level || 'unset'}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="w-24 h-2 rounded-full overflow-hidden" style={{ backgroundColor: `${color}20` }}>
+                                  <div className="h-full rounded-full" style={{ width: `${percentage}%`, backgroundColor: color }} />
+                                </div>
+                                <span className="text-xs font-medium w-12 text-right" style={{ color: theme.colors.textSecondary }}>
+                                  {item.count} ({percentage}%)
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Input Method Breakdown */}
+                {stats.inputMethodBreakdown && stats.inputMethodBreakdown.length > 0 && (
+                  <Card style={{ backgroundColor: theme.colors.card, borderColor: theme.colors.border }}>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium flex items-center gap-2" style={{ color: theme.colors.text }}>
+                        <Camera className="w-4 h-4" style={{ color: theme.colors.primary }} />
+                        Input Methods
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {stats.inputMethodBreakdown.map((item) => {
+                          const total = stats.inputMethodBreakdown!.reduce((sum, i) => sum + i.count, 0);
+                          const percentage = total > 0 ? Math.round((item.count / total) * 100) : 0;
+                          const color = item.method === 'image' ? '#3b82f6' : item.method === 'multi-dish' ? '#8b5cf6' : '#6b7280';
+                          const icon = item.method === 'image' ? '📷' : item.method === 'multi-dish' ? '🍱' : '✏️';
+                          return (
+                            <div key={item.method} className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span>{icon}</span>
+                                <span className="text-sm capitalize" style={{ color: theme.colors.text }}>{item.method}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="w-24 h-2 rounded-full overflow-hidden" style={{ backgroundColor: `${color}20` }}>
+                                  <div className="h-full rounded-full" style={{ width: `${percentage}%`, backgroundColor: color }} />
+                                </div>
+                                <span className="text-xs font-medium w-12 text-right" style={{ color: theme.colors.textSecondary }}>
+                                  {item.count} ({percentage}%)
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Average Nutrition */}
+                {stats.avgNutrition && (
+                  <Card style={{ backgroundColor: theme.colors.card, borderColor: theme.colors.border }}>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium flex items-center gap-2" style={{ color: theme.colors.text }}>
+                        <Apple className="w-4 h-4" style={{ color: theme.colors.primary }} />
+                        Average Nutrition per Log
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="text-center p-2 rounded" style={{ backgroundColor: `${theme.colors.primary}10` }}>
+                          <p className="text-xs" style={{ color: theme.colors.textSecondary }}>Calories</p>
+                          <p className="text-lg font-bold" style={{ color: theme.colors.primary }}>{stats.avgNutrition.avgCalories}</p>
+                          <p className="text-xs" style={{ color: theme.colors.textSecondary }}>kcal</p>
+                        </div>
+                        <div className="text-center p-2 rounded" style={{ backgroundColor: '#ef444410' }}>
+                          <p className="text-xs" style={{ color: theme.colors.textSecondary }}>Protein</p>
+                          <p className="text-lg font-bold" style={{ color: '#ef4444' }}>{stats.avgNutrition.avgProtein}g</p>
+                        </div>
+                        <div className="text-center p-2 rounded" style={{ backgroundColor: '#f59e0b10' }}>
+                          <p className="text-xs" style={{ color: theme.colors.textSecondary }}>Carbs</p>
+                          <p className="text-lg font-bold" style={{ color: '#f59e0b' }}>{stats.avgNutrition.avgCarbs}g</p>
+                        </div>
+                        <div className="text-center p-2 rounded" style={{ backgroundColor: '#3b82f610' }}>
+                          <p className="text-xs" style={{ color: theme.colors.textSecondary }}>Fat</p>
+                          <p className="text-lg font-bold" style={{ color: '#3b82f6' }}>{stats.avgNutrition.avgFat}g</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
+
             {/* Filters */}
             {showFilters && (
               <Card style={{ backgroundColor: theme.colors.card, borderColor: theme.colors.border }}>
@@ -444,13 +558,14 @@ export default function AdminFoodLogs() {
 
                             {/* Food Details */}
                             <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
+                              {/* Title row with badges */}
+                              <div className="flex items-center gap-2 mb-2 flex-wrap">
                                 <h3 className="font-semibold text-lg" style={{ color: theme.colors.text }}>
                                   {log.foodName}
                                 </h3>
                                 {log.dishName && (
                                   <span 
-                                    className="text-sm px-2 py-1 rounded"
+                                    className="text-xs px-2 py-1 rounded"
                                     style={{ 
                                       backgroundColor: `${theme.colors.primary}20`,
                                       color: theme.colors.primary
@@ -459,8 +574,46 @@ export default function AdminFoodLogs() {
                                     {log.dishName}
                                   </span>
                                 )}
+                                {/* Input Method Badge */}
+                                <span 
+                                  className="text-xs px-2 py-1 rounded inline-flex items-center gap-1"
+                                  style={{ 
+                                    backgroundColor: log.inputMethod === 'image' ? '#3b82f620' : log.inputMethod === 'multi-dish' ? '#8b5cf620' : '#6b728020',
+                                    color: log.inputMethod === 'image' ? '#3b82f6' : log.inputMethod === 'multi-dish' ? '#8b5cf6' : '#6b7280'
+                                  }}
+                                >
+                                  {log.inputMethod === 'image' ? <Camera className="w-3 h-3" /> : log.inputMethod === 'multi-dish' ? <Layers className="w-3 h-3" /> : <PenLine className="w-3 h-3" />}
+                                  {log.inputMethod}
+                                </span>
+                                {/* Accuracy / Confidence Badge */}
+                                {log.confidence && (
+                                  <span 
+                                    className="text-xs px-2 py-1 rounded inline-flex items-center gap-1 font-medium"
+                                    style={{ 
+                                      backgroundColor: log.confidence === 'high' ? '#22c55e20' : log.confidence === 'medium' ? '#f59e0b20' : '#ef444420',
+                                      color: log.confidence === 'high' ? '#22c55e' : log.confidence === 'medium' ? '#f59e0b' : '#ef4444'
+                                    }}
+                                  >
+                                    <ShieldCheck className="w-3 h-3" />
+                                    Accuracy: {log.confidence}
+                                  </span>
+                                )}
+                                {/* Branded badge */}
+                                {log.brandedProduct?.isBranded && (
+                                  <span 
+                                    className="text-xs px-2 py-1 rounded inline-flex items-center gap-1"
+                                    style={{ 
+                                      backgroundColor: '#0ea5e920',
+                                      color: '#0ea5e9'
+                                    }}
+                                  >
+                                    <Tag className="w-3 h-3" />
+                                    {log.brandedProduct.brandName || 'Branded'}
+                                  </span>
+                                )}
                               </div>
 
+                              {/* User & Date info */}
                               <div className="grid md:grid-cols-2 gap-2 text-sm" style={{ color: theme.colors.textSecondary }}>
                                 <div className="flex items-center gap-2">
                                   <Users className="w-4 h-4" />
@@ -474,32 +627,99 @@ export default function AdminFoodLogs() {
                                 </div>
                               </div>
 
-                              <div className="mt-2 flex gap-4 text-sm">
-                                <span style={{ color: theme.colors.text }}>
-                                  <strong>Calories:</strong> {log.calories} kcal
+                              {/* Primary Nutrition */}
+                              <div className="mt-2 flex flex-wrap gap-3 text-sm">
+                                <span className="font-medium px-2 py-0.5 rounded" style={{ backgroundColor: `${theme.colors.primary}10`, color: theme.colors.text }}>
+                                  🔥 {log.calories} kcal
                                 </span>
                                 <span style={{ color: theme.colors.text }}>
                                   <strong>Serving:</strong> {log.servingSize}
                                 </span>
-                                {log.nutrients?.protein && (
+                                {!!log.nutrients?.protein && (
                                   <span style={{ color: theme.colors.text }}>
                                     <strong>Protein:</strong> {log.nutrients.protein}g
                                   </span>
                                 )}
-                                {log.nutrients?.carbs && (
+                                {!!log.nutrients?.carbs && (
                                   <span style={{ color: theme.colors.text }}>
                                     <strong>Carbs:</strong> {log.nutrients.carbs}g
                                   </span>
                                 )}
-                                {log.nutrients?.fat && (
+                                {!!log.nutrients?.fat && (
                                   <span style={{ color: theme.colors.text }}>
                                     <strong>Fat:</strong> {log.nutrients.fat}g
                                   </span>
                                 )}
+                                {!!log.nutrients?.fiber && (
+                                  <span style={{ color: theme.colors.text }}>
+                                    <strong>Fiber:</strong> {log.nutrients.fiber}g
+                                  </span>
+                                )}
+                                {!!log.nutrients?.sugar && (
+                                  <span style={{ color: theme.colors.text }}>
+                                    <strong>Sugar:</strong> {log.nutrients.sugar}g
+                                  </span>
+                                )}
                               </div>
 
+                              {/* Extended Nutrients (micronutrients) */}
+                              {(log.nutrients?.sodium || log.nutrients?.cholesterol || log.nutrients?.potassium || log.nutrients?.saturatedFat || log.nutrients?.transFat || log.nutrients?.vitaminA || log.nutrients?.vitaminC || log.nutrients?.vitaminD || log.nutrients?.calcium || log.nutrients?.iron) && (
+                                <div className="mt-1 flex flex-wrap gap-3 text-xs" style={{ color: theme.colors.textSecondary }}>
+                                  {!!log.nutrients?.saturatedFat && <span>Sat. Fat: {log.nutrients.saturatedFat}g</span>}
+                                  {!!log.nutrients?.transFat && <span>Trans Fat: {log.nutrients.transFat}g</span>}
+                                  {!!log.nutrients?.sodium && <span>Sodium: {log.nutrients.sodium}mg</span>}
+                                  {!!log.nutrients?.cholesterol && <span>Cholesterol: {log.nutrients.cholesterol}mg</span>}
+                                  {!!log.nutrients?.potassium && <span>Potassium: {log.nutrients.potassium}mg</span>}
+                                  {!!log.nutrients?.vitaminA && <span>Vit A: {log.nutrients.vitaminA}%</span>}
+                                  {!!log.nutrients?.vitaminC && <span>Vit C: {log.nutrients.vitaminC}%</span>}
+                                  {!!log.nutrients?.vitaminD && <span>Vit D: {log.nutrients.vitaminD}%</span>}
+                                  {!!log.nutrients?.calcium && <span>Calcium: {log.nutrients.calcium}mg</span>}
+                                  {!!log.nutrients?.iron && <span>Iron: {log.nutrients.iron}mg</span>}
+                                </div>
+                              )}
+
+                              {/* Allergy Warnings */}
+                              {log.allergyWarnings && (log.allergyWarnings.detected?.length > 0 || log.allergyWarnings.mayContain?.length > 0 || log.allergyWarnings.warning) && (
+                                <div className="mt-2 flex items-start gap-2 text-xs p-2 rounded" style={{ backgroundColor: '#ef444410', color: '#ef4444' }}>
+                                  <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                  <div>
+                                    {log.allergyWarnings.detected?.length > 0 && (
+                                      <span className="font-medium">Allergens: {log.allergyWarnings.detected.join(', ')}</span>
+                                    )}
+                                    {log.allergyWarnings.mayContain?.length > 0 && (
+                                      <span className="block">May contain: {log.allergyWarnings.mayContain.join(', ')}</span>
+                                    )}
+                                    {log.allergyWarnings.warning && (
+                                      <span className="block">{log.allergyWarnings.warning}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Healthy Alternatives */}
+                              {log.healthyAlternatives && log.healthyAlternatives.length > 0 && (
+                                <div className="mt-2 flex items-start gap-2 text-xs p-2 rounded" style={{ backgroundColor: '#22c55e10', color: '#22c55e' }}>
+                                  <Leaf className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                  <div>
+                                    <span className="font-medium">Alternatives: </span>
+                                    {log.healthyAlternatives.map((alt, i) => (
+                                      <span key={i}>{alt.name} (saves {alt.caloriesSaved} cal){i < log.healthyAlternatives!.length - 1 ? ', ' : ''}</span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Ingredients List */}
+                              {log.ingredientsList && (
+                                <div className="mt-1 flex items-start gap-2 text-xs" style={{ color: theme.colors.textSecondary }}>
+                                  <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                                  <span><strong>Ingredients:</strong> {log.ingredientsList}</span>
+                                </div>
+                              )}
+
+                              {/* Notes */}
                               {log.notes && (
-                                <p className="mt-2 text-sm italic" style={{ color: theme.colors.textSecondary }}>
+                                <p className="mt-1 text-sm italic" style={{ color: theme.colors.textSecondary }}>
                                   Note: {log.notes}
                                 </p>
                               )}

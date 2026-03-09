@@ -121,8 +121,8 @@ export default function Register() {
         {/* Logo and Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <img src={logoImg} alt="Lifora Logo" className="w-12 h-12" />
-            <h1 className="text-3xl font-bold" style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}>Lifora</h1>
+            <img src={logoImg} alt="Lyniva Logo" className="w-12 h-12" />
+            <h1 className="text-3xl font-bold" style={{ color: theme.colors.text, fontFamily: theme.fonts.heading }}>Lyniva</h1>
           </div>
           <p style={{ color: theme.colors.textSecondary }}>Create your account and start your wellness journey</p>
         </div>

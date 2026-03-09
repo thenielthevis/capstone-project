@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { 
   LogOut, Settings, Sun, Moon, Waves, User as UserIcon,
-  ChevronDown, Bell
+  ChevronDown, Bell, Eye, Scan, Focus
 } from 'lucide-react';
 import logoImg from '@/assets/logo.png';
 
@@ -20,7 +20,7 @@ export default function UserHeader() {
     navigate('/login');
   };
 
-  const handleThemeChange = (theme: 'light' | 'dark' | 'ocean') => {
+  const handleThemeChange = (theme: 'light' | 'dark' | 'ocean' | 'protanopia' | 'deuteranopia' | 'tritanopia') => {
     setThemeMode(theme);
     setThemeOpen(false);
   };
@@ -31,9 +31,9 @@ export default function UserHeader() {
         <div className="flex items-center justify-between">
           {/* Logo Section */}
           <div className="flex items-center gap-2">
-            <img src={logoImg} alt="Lifora Logo" className="w-10 h-10" />
+            <img src={logoImg} alt="Lyniva Logo" className="w-10 h-10" />
             <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              Lifora
+              Lyniva
             </h1>
           </div>
 
@@ -102,6 +102,9 @@ export default function UserHeader() {
                           {themeMode === 'light' && <Sun className="w-4 h-4 text-yellow-500" />}
                           {themeMode === 'dark' && <Moon className="w-4 h-4 text-indigo-600" />}
                           {themeMode === 'ocean' && <Waves className="w-4 h-4 text-cyan-500" />}
+                          {themeMode === 'protanopia' && <Eye className="w-4 h-4 text-blue-500" />}
+                          {themeMode === 'deuteranopia' && <Scan className="w-4 h-4 text-blue-600" />}
+                          {themeMode === 'tritanopia' && <Focus className="w-4 h-4 text-pink-500" />}
                           <span className="text-sm font-medium capitalize text-gray-700">{themeMode}</span>
                         </span>
                         <ChevronDown className={`w-4 h-4 text-gray-600 transition-transform ${themeOpen ? 'rotate-180' : ''}`} />
@@ -114,10 +117,13 @@ export default function UserHeader() {
                             { id: 'light', label: 'Light', icon: <Sun className="w-4 h-4" />, color: 'text-yellow-500' },
                             { id: 'dark', label: 'Dark', icon: <Moon className="w-4 h-4" />, color: 'text-indigo-600' },
                             { id: 'ocean', label: 'Ocean', icon: <Waves className="w-4 h-4" />, color: 'text-cyan-500' },
+                            { id: 'protanopia', label: 'Protanopia', icon: <Eye className="w-4 h-4" />, color: 'text-blue-500' },
+                            { id: 'deuteranopia', label: 'Deuteranopia', icon: <Scan className="w-4 h-4" />, color: 'text-blue-600' },
+                            { id: 'tritanopia', label: 'Tritanopia', icon: <Focus className="w-4 h-4" />, color: 'text-pink-500' },
                           ].map((option) => (
                             <button
                               key={option.id}
-                              onClick={() => handleThemeChange(option.id as 'light' | 'dark' | 'ocean')}
+                              onClick={() => handleThemeChange(option.id as 'light' | 'dark' | 'ocean' | 'protanopia' | 'deuteranopia' | 'tritanopia')}
                               className={`w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors border-l-4 ${
                                 themeMode === option.id 
                                   ? 'bg-blue-50 border-l-blue-500' 

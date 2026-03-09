@@ -545,7 +545,9 @@ exports.getReminderSettings = async (req, res) => {
         const settings = user?.healthCheckupReminders || {
             enabled: true,
             morningTime: '08:00',
+            noonTime: '12:00',
             eveningTime: '19:00',
+            foodIntakeReminder: true,
             timezone: 'Asia/Manila'
         };
 
@@ -567,7 +569,7 @@ exports.getReminderSettings = async (req, res) => {
 exports.updateReminderSettings = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { enabled, morningTime, eveningTime, timezone } = req.body;
+        const { enabled, morningTime, noonTime, eveningTime, foodIntakeReminder, timezone } = req.body;
 
         const updateData = {};
 
@@ -583,6 +585,19 @@ exports.updateReminderSettings = async (req, res) => {
                 });
             }
             updateData['healthCheckupReminders.morningTime'] = morningTime;
+        }
+        if (noonTime !== undefined) {
+            // Validate time format (HH:mm)
+            if (!/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(noonTime)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid noon time format. Use HH:mm'
+                });
+            }
+            updateData['healthCheckupReminders.noonTime'] = noonTime;
+        }
+        if (foodIntakeReminder !== undefined) {
+            updateData['healthCheckupReminders.foodIntakeReminder'] = foodIntakeReminder;
         }
         if (eveningTime !== undefined) {
             // Validate time format (HH:mm)

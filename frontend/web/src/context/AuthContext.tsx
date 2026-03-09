@@ -74,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const guestUser: User = {
       id: 'guest_' + Math.random().toString(36).substr(2, 9),
       username: 'Guest User',
-      email: 'guest@lifora.com',
+      email: 'guest@lyniva.com',
       role: 'user',
       isGuest: true,
     };

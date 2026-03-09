@@ -907,15 +907,21 @@ function AnalysisDetailContent() {
         return { ...p, meta };
       });
 
+    // Theme-aware background colors for info boxes
+    const isDarkMode = theme.mode === 'dark' || theme.mode === 'ocean';
+    const infoBgColor = isDarkMode ? 'rgba(33, 150, 243, 0.25)' : '#2196F3' + '10';
+    const warningBgColor = isDarkMode ? 'rgba(255, 152, 0, 0.3)' : '#FFF8E1';
+    const successBgColor = isDarkMode ? 'rgba(76, 175, 80, 0.3)' : '#E8F5E9';
+
     return (
       <div className="space-y-6">
         {/* Disclaimer (from mobile) */}
-        <div className="p-4 rounded-xl border-l-4" style={{ borderLeftColor: '#2196F3', backgroundColor: '#2196F3' + '10' }}>
+        <div className="p-4 rounded-xl border-l-4" style={{ borderLeftColor: '#2196F3', backgroundColor: infoBgColor }}>
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle className="w-4 h-4" style={{ color: '#2196F3' }} />
             <span className="font-semibold text-sm" style={{ color: theme.colors.text }}>Important Note</span>
           </div>
-          <p className="text-xs" style={{ color: theme.colors.textSecondary }}>
+          <p className="text-xs" style={{ color: theme.colors.text }}>
             These predictions are based on your health data analysis. They are NOT a diagnosis. Please consult a healthcare professional for proper medical advice.
           </p>
         </div>
@@ -934,8 +940,8 @@ function AnalysisDetailContent() {
                 {diseasePredictions.map((pred: any, i: number) => {
                   const diseaseColor = pred.meta?.color || '#EF5350';
                   return (
-                    <div key={i} className="flex items-start gap-3 p-3 rounded-lg" style={{ backgroundColor: diseaseColor + '10' }}>
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: diseaseColor + '20' }}>
+                    <div key={i} className="flex items-start gap-3 p-3 rounded-lg" style={{ backgroundColor: isDarkMode ? diseaseColor + '20' : diseaseColor + '10' }}>
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: isDarkMode ? diseaseColor + '30' : diseaseColor + '20' }}>
                         <HeartPulse className="w-5 h-5" style={{ color: diseaseColor }} />
                       </div>
                       <div className="flex-1">
@@ -965,11 +971,11 @@ function AnalysisDetailContent() {
             <span className="font-semibold text-sm" style={{ color: theme.colors.text }}>Medical Advice</span>
           </div>
           <div className="space-y-1">
-            <p className="text-xs" style={{ color: theme.colors.textSecondary }}>• Schedule a health checkup with your doctor</p>
-            <p className="text-xs" style={{ color: theme.colors.textSecondary }}>• Discuss these potential risks</p>
-            <p className="text-xs" style={{ color: theme.colors.textSecondary }}>• Get proper screening tests</p>
-            <p className="text-xs" style={{ color: theme.colors.textSecondary }}>• Create a prevention plan</p>
-            <p className="text-xs" style={{ color: theme.colors.textSecondary }}>• Monitor your health metrics regularly</p>
+            <p className="text-xs" style={{ color: theme.colors.text }}>• Schedule a health checkup with your doctor</p>
+            <p className="text-xs" style={{ color: theme.colors.text }}>• Discuss these potential risks</p>
+            <p className="text-xs" style={{ color: theme.colors.text }}>• Get proper screening tests</p>
+            <p className="text-xs" style={{ color: theme.colors.text }}>• Create a prevention plan</p>
+            <p className="text-xs" style={{ color: theme.colors.text }}>• Monitor your health metrics regularly</p>
           </div>
         </div>
 
@@ -980,11 +986,11 @@ function AnalysisDetailContent() {
             <span className="font-semibold text-sm" style={{ color: theme.colors.text }}>Prevention Tips</span>
           </div>
           <div className="space-y-1">
-            <p className="text-xs" style={{ color: theme.colors.textSecondary }}>• Maintain a healthy diet and exercise regularly</p>
-            <p className="text-xs" style={{ color: theme.colors.textSecondary }}>• Keep your health profile updated</p>
-            <p className="text-xs" style={{ color: theme.colors.textSecondary }}>• Monitor your vital signs</p>
-            <p className="text-xs" style={{ color: theme.colors.textSecondary }}>• Reduce stress and get adequate sleep</p>
-            <p className="text-xs" style={{ color: theme.colors.textSecondary }}>• Avoid harmful substances</p>
+            <p className="text-xs" style={{ color: theme.colors.text }}>• Maintain a healthy diet and exercise regularly</p>
+            <p className="text-xs" style={{ color: theme.colors.text }}>• Keep your health profile updated</p>
+            <p className="text-xs" style={{ color: theme.colors.text }}>• Monitor your vital signs</p>
+            <p className="text-xs" style={{ color: theme.colors.text }}>• Reduce stress and get adequate sleep</p>
+            <p className="text-xs" style={{ color: theme.colors.text }}>• Avoid harmful substances</p>
           </div>
         </div>
 

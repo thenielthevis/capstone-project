@@ -8,11 +8,11 @@ const withAndroidQueries = (config) => {
             androidManifest.queries = [];
         }
 
-        const hasLiforaQuery = androidManifest.queries.some(
-            (query) => query.intent && query.intent.some((intent) => intent.data && intent.data.some((data) => data.$['android:scheme'] === 'liforacc'))
+        const hasLynivaQuery = androidManifest.queries.some(
+            (query) => query.intent && query.intent.some((intent) => intent.data && intent.data.some((data) => data.$['android:scheme'] === 'lynivacc'))
         );
 
-        if (!hasLiforaQuery) {
+        if (!hasLynivaQuery) {
             androidManifest.queries.push({
                 intent: [
                     {
@@ -20,7 +20,7 @@ const withAndroidQueries = (config) => {
                             { $: { 'android:name': 'android.intent.action.VIEW' } }
                         ],
                         data: [
-                            { $: { 'android:scheme': 'liforacc' } }
+                            { $: { 'android:scheme': 'lynivacc' } }
                         ]
                     }
                 ]

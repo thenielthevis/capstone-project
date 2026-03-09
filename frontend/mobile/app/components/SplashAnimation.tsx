@@ -20,7 +20,7 @@ interface SplashAnimationProps {
     onFinish?: () => void;
 }
 
-const LETTERS = ['L', 'I', 'F', 'O', 'R', 'A'];
+const LETTERS = ['L', 'Y', 'N', 'I', 'V', 'A'];
 
 export default function SplashAnimation({ onFinish }: SplashAnimationProps) {
     const { theme } = useTheme();

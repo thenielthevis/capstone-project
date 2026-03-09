@@ -5,7 +5,7 @@ import {
   LogOut, Users,
   Home, Utensils, MapPin, Dumbbell, BookOpen, Award,
   ChevronLeft, Sun, Moon, Waves, Flag,
-  Shield, FileText, Brain
+  Shield, FileText, Brain, Eye, Scan, Focus
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -90,11 +90,11 @@ export default function AdminSidebar({ activeNav = 'home', onSidebarToggle }: Ad
           }}
           title={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
         >
-          <img src={logoImg} alt="Lifora" className="w-7 h-7" />
+          <img src={logoImg} alt="Lyniva" className="w-7 h-7" />
         </button>
         {sidebarOpen && (
           <div className="flex-1 min-w-0">
-            <p className="font-bold text-base" style={{ color: theme.colors.text }}>Lifora</p>
+            <p className="font-bold text-base" style={{ color: theme.colors.text }}>Lyniva</p>
             <div className="flex items-center gap-1.5">
               <Shield className="w-3 h-3" style={{ color: theme.colors.primary }} />
               <p className="text-xs font-medium" style={{ color: theme.colors.primary }}>Admin Panel</p>
@@ -271,11 +271,14 @@ export default function AdminSidebar({ activeNav = 'home', onSidebarToggle }: Ad
                     { id: 'light', icon: <Sun className="w-4 h-4" />, label: 'Light' },
                     { id: 'dark', icon: <Moon className="w-4 h-4" />, label: 'Dark' },
                     { id: 'ocean', icon: <Waves className="w-4 h-4" />, label: 'Ocean' },
+                    { id: 'protanopia', icon: <Eye className="w-4 h-4" />, label: 'Protanopia' },
+                    { id: 'deuteranopia', icon: <Scan className="w-4 h-4" />, label: 'Deuteranopia' },
+                    { id: 'tritanopia', icon: <Focus className="w-4 h-4" />, label: 'Tritanopia' },
                   ].map((option) => (
                     <button
                       key={option.id}
                       onClick={() => {
-                        setThemeMode(option.id as 'light' | 'dark' | 'ocean');
+                        setThemeMode(option.id as 'light' | 'dark' | 'ocean' | 'protanopia' | 'deuteranopia' | 'tritanopia');
                         setThemeMenuOpen(false);
                       }}
                       className="flex items-center gap-2 w-full px-3 py-2 transition-colors text-sm"

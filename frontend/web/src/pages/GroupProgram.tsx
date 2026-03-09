@@ -25,7 +25,7 @@ export default function GroupProgram() {
                 Back
               </button>
               <div className="flex items-center gap-2">
-                <img src={logoImg} alt="Lifora Logo" className="w-10 h-10" />
+                <img src={logoImg} alt="Lyniva Logo" className="w-10 h-10" />
                 <h1 className="text-2xl font-bold text-gray-900">Group Programs</h1>
               </div>
             </div>

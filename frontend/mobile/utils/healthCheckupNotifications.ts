@@ -7,7 +7,9 @@ const NOTIFICATION_IDS_KEY = 'health_checkup_notification_ids';
 export interface ReminderSettings {
     enabled: boolean;
     morningTime: string; // HH:mm format
+    noonTime: string; // HH:mm format
     eveningTime: string; // HH:mm format
+    foodIntakeReminder: boolean;
     timezone?: string;
 }
 
@@ -15,7 +17,9 @@ export interface ReminderSettings {
 export const DEFAULT_REMINDER_SETTINGS: ReminderSettings = {
     enabled: true,
     morningTime: '08:00',
+    noonTime: '12:00',
     eveningTime: '19:00',
+    foodIntakeReminder: true,
     timezone: 'Asia/Manila'
 };
 
@@ -124,6 +128,27 @@ export const scheduleHealthCheckupReminders = async (
         notificationIds.push(morningId);
         console.log('[HealthCheckupNotifications] Scheduled morning reminder at', settings.morningTime);
 
+        // Schedule noon daily checkup reminder
+        const noonId = await Notifications.scheduleNotificationAsync({
+            content: {
+                title: '\u2600\uFE0F Daily Checkup',
+                body: 'Time for your midday health checkup! Log your progress and stay on track.',
+                data: {
+                    type: 'health_checkup_noon',
+                    screen: 'HealthCheckup',
+                    metrics: ['weight', 'water', 'stress']
+                },
+                sound: 'default',
+            },
+            trigger: {
+                type: Notifications.SchedulableTriggerInputTypes.DAILY,
+                hour: parseInt(settings.noonTime.split(':')[0]),
+                minute: parseInt(settings.noonTime.split(':')[1]),
+            },
+        });
+        notificationIds.push(noonId);
+        console.log('[HealthCheckupNotifications] Scheduled noon reminder at', settings.noonTime);
+
         // Schedule evening reminder (for water, stress, weight, vices)
         const eveningId = await Notifications.scheduleNotificationAsync({
             content: {
@@ -149,6 +174,9 @@ export const scheduleHealthCheckupReminders = async (
         await SecureStore.setItemAsync(NOTIFICATION_IDS_KEY, JSON.stringify(notificationIds));
 
         console.log('[HealthCheckupNotifications] Successfully scheduled', notificationIds.length, 'reminders');
+
+        // Schedule food intake reminder (always on, independent of enabled toggle)
+        await scheduleFoodIntakeReminder(settings.foodIntakeReminder);
     } catch (error) {
         console.error('[HealthCheckupNotifications] Error scheduling reminders:', error);
     }
@@ -206,7 +234,118 @@ export const initializeHealthCheckupReminders = async (): Promise<void> => {
         if (settings.enabled) {
             await scheduleHealthCheckupReminders(settings);
         }
+        // Food intake reminder is always scheduled independently
+        await scheduleFoodIntakeReminder(settings.foodIntakeReminder);
     } catch (error) {
         console.error('[HealthCheckupNotifications] Error initializing:', error);
+    }
+};
+
+const FOOD_INTAKE_NOTIFICATION_IDS_KEY = 'food_intake_notification_ids';
+
+/**
+ * Cancel all food intake reminder notifications
+ */
+export const cancelFoodIntakeReminders = async (): Promise<void> => {
+    try {
+        const storedIds = await SecureStore.getItemAsync(FOOD_INTAKE_NOTIFICATION_IDS_KEY);
+        if (storedIds) {
+            const ids: string[] = JSON.parse(storedIds);
+            for (const id of ids) {
+                await Notifications.cancelScheduledNotificationAsync(id);
+            }
+            console.log('[HealthCheckupNotifications] Cancelled', ids.length, 'food intake reminders');
+        }
+        await SecureStore.deleteItemAsync(FOOD_INTAKE_NOTIFICATION_IDS_KEY);
+    } catch (error) {
+        console.error('[HealthCheckupNotifications] Error cancelling food intake reminders:', error);
+    }
+};
+
+/**
+ * Schedule food intake reminder notifications (always-on by default)
+ * Sends reminders at breakfast (8AM), lunch (12PM), and dinner (6PM)
+ */
+export const scheduleFoodIntakeReminder = async (enabled: boolean = true): Promise<void> => {
+    try {
+        await cancelFoodIntakeReminders();
+
+        if (!enabled) {
+            console.log('[HealthCheckupNotifications] Food intake reminders disabled');
+            return;
+        }
+
+        const hasPermission = await requestNotificationPermissions();
+        if (!hasPermission) {
+            console.log('[HealthCheckupNotifications] No permission for food intake reminders');
+            return;
+        }
+
+        const foodNotificationIds: string[] = [];
+
+        // Breakfast reminder - 8:00 AM
+        const breakfastId = await Notifications.scheduleNotificationAsync({
+            content: {
+                title: '\uD83C\uDF73 Log Your Breakfast',
+                body: 'Good morning! Don\'t forget to log what you had for breakfast.',
+                data: {
+                    type: 'food_intake_reminder',
+                    screen: 'Food',
+                    meal: 'breakfast'
+                },
+                sound: 'default',
+            },
+            trigger: {
+                type: Notifications.SchedulableTriggerInputTypes.DAILY,
+                hour: 8,
+                minute: 0,
+            },
+        });
+        foodNotificationIds.push(breakfastId);
+
+        // Lunch reminder - 12:00 PM
+        const lunchId = await Notifications.scheduleNotificationAsync({
+            content: {
+                title: '\uD83C\uDF5C Log Your Lunch',
+                body: 'Lunchtime! Remember to log your food intake to stay on track.',
+                data: {
+                    type: 'food_intake_reminder',
+                    screen: 'Food',
+                    meal: 'lunch'
+                },
+                sound: 'default',
+            },
+            trigger: {
+                type: Notifications.SchedulableTriggerInputTypes.DAILY,
+                hour: 12,
+                minute: 0,
+            },
+        });
+        foodNotificationIds.push(lunchId);
+
+        // Dinner reminder - 6:00 PM
+        const dinnerId = await Notifications.scheduleNotificationAsync({
+            content: {
+                title: '\uD83C\uDF5D Log Your Dinner',
+                body: 'Time for dinner! Log your meal to complete today\'s food tracking.',
+                data: {
+                    type: 'food_intake_reminder',
+                    screen: 'Food',
+                    meal: 'dinner'
+                },
+                sound: 'default',
+            },
+            trigger: {
+                type: Notifications.SchedulableTriggerInputTypes.DAILY,
+                hour: 18,
+                minute: 0,
+            },
+        });
+        foodNotificationIds.push(dinnerId);
+
+        await SecureStore.setItemAsync(FOOD_INTAKE_NOTIFICATION_IDS_KEY, JSON.stringify(foodNotificationIds));
+        console.log('[HealthCheckupNotifications] Scheduled', foodNotificationIds.length, 'food intake reminders');
+    } catch (error) {
+        console.error('[HealthCheckupNotifications] Error scheduling food intake reminders:', error);
     }
 };

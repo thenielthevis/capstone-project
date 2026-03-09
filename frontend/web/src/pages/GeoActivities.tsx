@@ -108,7 +108,7 @@ export default function GeoActivities() {
         <header className="shadow-sm sticky top-0 z-40" style={{ backgroundColor: theme.colors.surface }}>
           <div className="px-8 py-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <img src={logoImg} alt="Lifora Logo" className="w-10 h-10" />
+              <img src={logoImg} alt="Lyniva Logo" className="w-10 h-10" />
               <h1 className="text-2xl font-bold text-gray-900">Geo Activities</h1>
             </div>
             <div className="flex items-center gap-3">

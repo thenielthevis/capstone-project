@@ -1,5 +1,5 @@
 import { useTheme } from '@/context/ThemeContext';
-import { Sun, Moon, Waves, ChevronDown } from 'lucide-react';
+import { Sun, Moon, Waves, ChevronDown, Eye, Scan, Focus } from 'lucide-react';
 import { useState } from 'react';
 
 export default function ThemeSwitcher() {
@@ -10,9 +10,12 @@ export default function ThemeSwitcher() {
     { id: 'light', label: 'Light', icon: <Sun className="w-4 h-4" /> },
     { id: 'dark', label: 'Dark', icon: <Moon className="w-4 h-4" /> },
     { id: 'ocean', label: 'Ocean', icon: <Waves className="w-4 h-4" /> },
+    { id: 'protanopia', label: 'Protanopia', icon: <Eye className="w-4 h-4" /> },
+    { id: 'deuteranopia', label: 'Deuteranopia', icon: <Scan className="w-4 h-4" /> },
+    { id: 'tritanopia', label: 'Tritanopia', icon: <Focus className="w-4 h-4" /> },
   ];
 
-  const handleThemeChange = (theme: 'light' | 'dark' | 'ocean') => {
+  const handleThemeChange = (theme: 'light' | 'dark' | 'ocean' | 'protanopia' | 'deuteranopia' | 'tritanopia') => {
     setThemeMode(theme);
     setIsOpen(false);
   };
@@ -28,6 +31,9 @@ export default function ThemeSwitcher() {
           {themeMode === 'light' && <Sun className="w-4 h-4" />}
           {themeMode === 'dark' && <Moon className="w-4 h-4" />}
           {themeMode === 'ocean' && <Waves className="w-4 h-4" />}
+          {themeMode === 'protanopia' && <Eye className="w-4 h-4" />}
+          {themeMode === 'deuteranopia' && <Scan className="w-4 h-4" />}
+          {themeMode === 'tritanopia' && <Focus className="w-4 h-4" />}
           <span className="capitalize">Theme</span>
         </span>
         <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
@@ -38,7 +44,7 @@ export default function ThemeSwitcher() {
           {themeOptions.map((option, index) => (
             <button
               key={option.id}
-              onClick={() => handleThemeChange(option.id as 'light' | 'dark' | 'ocean')}
+              onClick={() => handleThemeChange(option.id as 'light' | 'dark' | 'ocean' | 'protanopia' | 'deuteranopia' | 'tritanopia')}
               className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-blue-100 transition-colors ${themeMode === option.id ? 'bg-blue-50 text-blue-600 border-l-4 border-blue-600' : 'border-l-4 border-transparent'
                 } ${index < themeOptions.length - 1 ? 'border-b border-gray-100' : ''}`}
             >

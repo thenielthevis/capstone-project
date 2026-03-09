@@ -251,7 +251,7 @@ export default function Predictions() {
     }}>
       {/* Header */}
       <Header
-        title="Lifora"
+        title="Lyniva"
         showBackButton
         showHomeButton
       />
