@@ -44,6 +44,11 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: null,
     },
+    // Before vs Now transformation pictures
+    transformation: {
+        before: { type: String, default: null },
+        after: { type: String, default: null },
+    },
     birthdate: {
         type: Date
     },

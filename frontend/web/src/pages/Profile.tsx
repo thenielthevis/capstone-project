@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import Header from '@/components/Header';
 import GamificationStats from '@/components/GamificationStats';
+import UserAchievementsModal from '@/components/UserAchievementsModal';
 import { getUserProfile, updateProfilePicture, UserProfile } from '@/api/userApi';
+import { profileApi } from '@/api/profileApi';
 import {
   User,
   Camera,
@@ -17,6 +20,12 @@ import {
   Scale,
   Gauge,
   RefreshCw,
+  Trophy,
+  ChevronDown,
+  ChevronUp,
+  ArrowRight,
+  Plus,
+  Loader2,
 } from 'lucide-react';
 
 // Profile Section Component
@@ -145,11 +154,17 @@ const StatCard = ({
 
 export default function Profile() {
   const { theme } = useTheme();
+  const navigate = useNavigate();
   const { user, setUser } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+
+  // New State Features
+  const [achievementsOpen, setAchievementsOpen] = useState(false);
+  const [transformationExpanded, setTransformationExpanded] = useState(false);
+  const [uploadingTransformation, setUploadingTransformation] = useState<'before' | 'after' | null>(null);
 
   const fetchProfile = async () => {
     try {
@@ -216,6 +231,58 @@ export default function Profile() {
       }
     };
     
+    input.click();
+  };
+
+  const handleTransformationUpload = (type: 'before' | 'after') => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+
+    input.onchange = async (e: any) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      try {
+        setUploadingTransformation(type);
+
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          try {
+            const base64Image = reader.result as string;
+
+            // Optimistic update
+            setProfile((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    transformation: {
+                      before: type === 'before' ? base64Image : prev.transformation?.before || null,
+                      after: type === 'after' ? base64Image : prev.transformation?.after || null,
+                    },
+                  }
+                : null
+            );
+
+            if (type === 'before') {
+              await profileApi.updateTransformation(base64Image, null);
+            } else {
+              await profileApi.updateTransformation(null, base64Image);
+            }
+          } catch (error) {
+            console.error('Error updating transformation:', error);
+            alert('Failed to update transformation photo.');
+            fetchProfile(); // Revert on error
+          } finally {
+            setUploadingTransformation(null);
+          }
+        };
+        reader.readAsDataURL(file);
+      } catch (error) {
+        console.error('Error reading file:', error);
+        setUploadingTransformation(null);
+      }
+    };
     input.click();
   };
 
@@ -371,26 +438,146 @@ export default function Profile() {
             Member for {profile?.daysSinceRegistration || 0} days
           </p>
 
-          {/* Refresh Button */}
-          <button
-            onClick={onRefresh}
-            disabled={refreshing}
-            className="mt-4 flex items-center gap-2 px-4 py-2 rounded-lg transition hover:opacity-90 disabled:opacity-50 mx-auto"
-            style={{ backgroundColor: theme.colors.primary, color: '#FFFFFF' }}
-          >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
+          {/* Action Buttons */}
+          <div className="flex gap-3 justify-center mt-4">
+            <button
+              onClick={onRefresh}
+              disabled={refreshing}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg transition hover:opacity-90 disabled:opacity-50"
+              style={{ backgroundColor: theme.colors.primary, color: '#FFFFFF' }}
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+
+            {profile?.id && (
+              <button
+                onClick={() => navigate(`/profile/${profile.id}`)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg transition hover:opacity-90 border"
+                style={{ 
+                  backgroundColor: theme.colors.surface, 
+                  color: theme.colors.primary,
+                  borderColor: theme.colors.primary 
+                }}
+              >
+                <User className="w-4 h-4" />
+                View Public Profile
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Gamification Stats */}
         {profile?.gamification && (
-          <GamificationStats
-            points={profile.gamification.points}
-            coins={profile.gamification.coins}
-            batteries={profile.gamification.batteries}
-          />
+          <div className="mb-4">
+            <GamificationStats
+              points={profile.gamification.points}
+              coins={profile.gamification.coins}
+              batteries={profile.gamification.batteries}
+            />
+            
+             <div className="mt-3 flex justify-end">
+               <button
+                  onClick={() => setAchievementsOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl transition hover:opacity-80 shadow-sm"
+                  style={{ backgroundColor: theme.colors.surface, color: theme.colors.primary }}
+               >
+                 <Trophy className="w-5 h-5" />
+                 <span className="font-semibold">
+                   {profile.achievementsCount || 0} Achievements
+                 </span>
+               </button>
+            </div>
+          </div>
         )}
+
+        {/* Transformation Section */}
+        <div className="rounded-2xl p-6 mb-4" style={{ backgroundColor: theme.colors.surface }}>
+            <button
+                onClick={() => setTransformationExpanded(!transformationExpanded)}
+                className="flex items-center justify-between w-full"
+            >
+                <div className="flex items-center">
+                   <div className="w-10 h-10 rounded-xl flex items-center justify-center mr-3" style={{ backgroundColor: theme.colors.primary + '15' }}>
+                       <RefreshCw className="w-5 h-5" style={{ color: theme.colors.primary }} />
+                   </div>
+                   <h3 className="text-lg font-semibold" style={{ fontFamily: theme.fonts.heading, color: theme.colors.text }}>
+                       Transformation
+                   </h3>
+                </div>
+                {transformationExpanded ? (
+                  <ChevronUp className="w-5 h-5" style={{ color: theme.colors.textSecondary }} />
+                ) : (
+                  <ChevronDown className="w-5 h-5" style={{ color: theme.colors.textSecondary }} />
+                )}
+            </button>
+
+            {transformationExpanded && (
+                <div className="flex items-center justify-between gap-4 mt-6">
+                  {/* Before Image */}
+                  <div 
+                      className="flex-1 aspect-[3/4] bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden relative group cursor-pointer border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-primary transition"
+                      onClick={() => handleTransformationUpload('before')}
+                  >
+                    {profile?.transformation?.before ? (
+                      <>
+                          <img
+                            src={profile.transformation.before}
+                            alt="Before"
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                             <Camera className="w-8 h-8 text-white" />
+                          </div>
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                        {uploadingTransformation === 'before' ? (
+                            <Loader2 className="w-8 h-8 animate-spin" />
+                        ) : (
+                            <>
+                                <Plus className="w-8 h-8 mb-2" />
+                                <span className="text-sm font-medium">Add "Before"</span>
+                            </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <ArrowRight className="w-6 h-6 flex-shrink-0" style={{ color: theme.colors.textSecondary }} />
+
+                  {/* After Image */}
+                  <div 
+                      className="flex-1 aspect-[3/4] bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden relative group cursor-pointer border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-primary transition"
+                      onClick={() => handleTransformationUpload('after')}
+                  >
+                    {profile?.transformation?.after ? (
+                      <>
+                          <img
+                            src={profile.transformation.after}
+                            alt="After"
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                             <Camera className="w-8 h-8 text-white" />
+                          </div>
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                         {uploadingTransformation === 'after' ? (
+                            <Loader2 className="w-8 h-8 animate-spin" />
+                        ) : (
+                            <>
+                                <Plus className="w-8 h-8 mb-2" />
+                                <span className="text-sm font-medium">Add "Now"</span>
+                            </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+            )}
+        </div>
 
         {/* Physical Stats */}
         <ProfileSection title="Physical Stats" icon={Activity} iconColor="#3b82f6">
@@ -626,6 +813,15 @@ export default function Profile() {
             )}
           </ProfileSection>
         )}
+
+      {/* User Achievements Modal */}
+      {achievementsOpen && profile?.id && (
+        <UserAchievementsModal
+          userId={profile.id}
+          isOpen={achievementsOpen}
+          onClose={() => setAchievementsOpen(false)}
+        />
+      )}
       </main>
     </div>
   );

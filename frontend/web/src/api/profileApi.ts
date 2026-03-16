@@ -49,6 +49,11 @@ export interface PublicProfile {
     points: number;
     coins: number;
   };
+  transformation?: {
+    before: string | null;
+    after: string | null;
+  };
+  achievementsCount?: number;
 }
 
 export interface FollowUser {
@@ -91,6 +96,16 @@ export const profileApi = {
 
   updateBio: async (bio: string) => {
     const response = await axiosInstance.patch('/profile/bio', { bio });
+    return response.data;
+  },
+
+  updateTransformation: async (before: string | null, after: string | null) => {
+    const response = await axiosInstance.put('/profile/transformation', { before, after });
+    return response.data;
+  },
+
+  getUserAchievements: async (userId: string) => {
+    const response = await axiosInstance.get(`/profile/${userId}/achievements`);
     return response.data;
   },
 };

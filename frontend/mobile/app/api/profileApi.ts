@@ -21,6 +21,11 @@ export interface PublicProfile {
         points: number;
         coins: number;
     } | null;
+    transformation: {
+        before: string | null;
+        after: string | null;
+    } | null;
+    achievementsCount: number;
 }
 
 export interface ProfilePost {
@@ -97,5 +102,17 @@ export const updateProfileVisibility = async (visibility: 'public' | 'mutuals' |
 // Update bio
 export const updateBio = async (bio: string) => {
     const response = await axiosInstance.patch('/profile/bio', { bio });
+    return response.data;
+};
+
+// Update transformation pictures
+export const updateTransformation = async (before?: string | null, after?: string | null) => {
+    const response = await axiosInstance.put("/profile/transformation", { before, after });
+    return response.data;
+};
+
+// Get user achievements
+export const getUserAchievements = async (userId: string) => {
+    const response = await axiosInstance.get(`/profile/${userId}/achievements`);
     return response.data;
 };

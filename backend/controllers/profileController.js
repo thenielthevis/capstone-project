@@ -1,6 +1,8 @@
 const User = require('../models/userModel');
 const Post = require('../models/postModel');
 const Comment = require('../models/commentModel');
+const UserAchievement = require('../models/userAchievementModel');
+const { uploadProfilePicture } = require('../utils/cloudinary');
 
 // @desc    Get another user's public profile
 // @route   GET /api/profile/:userId
@@ -11,7 +13,7 @@ exports.getPublicProfile = async (req, res) => {
         const currentUserId = req.user.id;
 
         const user = await User.findById(userId)
-            .select('username profilePicture bio profileVisibility followers following registeredDate gamification')
+            .select('username profilePicture bio profileVisibility followers following registeredDate gamification transformation')
             .lean();
 
         if (!user) {
@@ -22,6 +24,12 @@ exports.getPublicProfile = async (req, res) => {
         const isFollowing = user.followers?.some(f => f.toString() === currentUserId) || false;
         const isFollowedBy = user.following?.some(f => f.toString() === currentUserId) || false;
         const isMutual = isFollowing && isFollowedBy;
+
+        // Fetch user achievements count
+        const achievementsCount = await UserAchievement.countDocuments({
+            user_id: userId,
+            completed: true
+        });
 
         // Check profile visibility
         if (!isOwnProfile) {
@@ -116,6 +124,8 @@ exports.getPublicProfile = async (req, res) => {
                     points: user.gamification.points || 0,
                     coins: user.gamification.coins || 0,
                 } : null,
+                transformation: user.transformation || { before: null, after: null },
+                achievementsCount: achievementsCount || 0,
             }
         });
     } catch (error) {
@@ -289,6 +299,90 @@ exports.updateBio = async (req, res) => {
         });
     } catch (error) {
         console.error('updateBio error:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+// @desc    Update transformation photos
+// @route   PUT /api/profile/transformation
+// @access  Protected
+exports.updateTransformation = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        let { before, after } = req.body;
+
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Initialize transformation if it doesn't exist (though schema handles default)
+        if (!user.transformation) {
+            user.transformation = { before: null, after: null };
+        }
+
+        // Handle 'before' image update
+        if (before !== undefined) {
+             if (before && before.startsWith('data:')) {
+                try {
+                    const uploadResult = await uploadProfilePicture(before);
+                    user.transformation.before = uploadResult.secure_url;
+                } catch (err) {
+                    console.error('Error uploading before image:', err);
+                     // Can continue or fail? Let's fail for now to inform user
+                     return res.status(500).json({ message: 'Failed to upload before image' });
+                }
+            } else {
+                user.transformation.before = before;
+            }
+        }
+
+        // Handle 'after' image update
+        if (after !== undefined) {
+            if (after && after.startsWith('data:')) {
+                try {
+                     const uploadResult = await uploadProfilePicture(after);
+                     user.transformation.after = uploadResult.secure_url;
+                } catch (err) {
+                    console.error('Error uploading after image:', err);
+                    return res.status(500).json({ message: 'Failed to upload after image' });
+                }
+            } else {
+                user.transformation.after = after;
+            }
+        }
+
+        await user.save();
+
+        res.status(200).json({
+            message: 'Transformation updated',
+            transformation: user.transformation
+        });
+    } catch (error) {
+        console.error('updateTransformation error:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+// @desc    Get user achievements
+// @route   GET /api/profile/:userId/achievements
+// @access  Protected
+exports.getUserAchievements = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        const achievements = await UserAchievement.find({
+            user_id: userId,
+            completed: true
+        })
+            .populate('achievement_id')
+            .sort({ completed_at: -1 });
+
+        // Transform data if necessary, or just send as is
+        res.status(200).json(achievements);
+    } catch (error) {
+        console.error('getUserAchievements error:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };

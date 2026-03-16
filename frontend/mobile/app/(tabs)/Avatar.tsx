@@ -9,7 +9,7 @@ export default function Avatar() {
   const [error, setError] = useState<string | null>(null);
 
   // Deep-link configuration matching your Unity manifest
-  const deepLink = "lynivacc://lynivagamecc?scene=Main";
+  const deepLink = "liforacc://liforagamecc?scene=Main";
   const androidPackage = "com.UnityTechnologies.UniversalMobile3DTemplate";
 
   useEffect(() => {
@@ -63,8 +63,8 @@ export default function Avatar() {
 
           // As a last-resort fallback for Android, try an Intent URI (standard ACTION_VIEW)
           try {
-            const scheme = "lynivacc";
-            const host = "lynivagamecc";
+            const scheme = "liforacc";
+            const host = "liforagamecc";
             const params = `scene=Main&token=${encodeURIComponent(token || "")}&apiUrl=${encodeURIComponent(apiUrl)}`;
 
             const intentUri = `intent://${host}?${params}#Intent;action=android.intent.action.VIEW;scheme=${scheme};package=${androidPackage};end`;

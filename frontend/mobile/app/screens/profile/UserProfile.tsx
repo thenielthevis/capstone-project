@@ -12,6 +12,7 @@ import {
     Modal,
     FlatList,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker"; // Added
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
@@ -23,6 +24,8 @@ import {
     unfollowUser,
     getFollowers,
     getFollowing,
+    getUserAchievements, // Added
+    updateTransformation, // Added
     PublicProfile,
     FollowUser,
 } from "../../api/profileApi";
@@ -192,6 +195,60 @@ function FollowListModal({
     );
 }
 
+function AchievementsModal({
+    visible,
+    achievements,
+    loading,
+    onClose,
+    theme,
+}: {
+    visible: boolean;
+    achievements: any[];
+    loading: boolean;
+    onClose: () => void;
+    theme: any;
+}) {
+    return (
+        <Modal visible={visible} animationType="slide" transparent>
+            <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
+                <View style={{ backgroundColor: theme.colors.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: "70%", paddingBottom: 30 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
+                        <Text style={{ fontFamily: theme.fonts.heading, fontSize: 18, color: theme.colors.text }}>Achievements</Text>
+                        <TouchableOpacity onPress={onClose}>
+                            <Ionicons name="close" size={24} color={theme.colors.text} />
+                        </TouchableOpacity>
+                    </View>
+                    {loading ? (
+                        <ActivityIndicator size="large" color={theme.colors.primary} style={{ padding: 40 }} />
+                    ) : achievements.length === 0 ? (
+                        <Text style={{ fontFamily: theme.fonts.body, fontSize: 14, color: theme.colors.textSecondary, textAlign: "center", padding: 40 }}>No achievements yet</Text>
+                    ) : (
+                        <FlatList
+                            data={achievements}
+                            keyExtractor={(item) => item._id}
+                            contentContainerStyle={{ padding: 16 }}
+                            renderItem={({ item }) => (
+                                <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16, backgroundColor: theme.colors.surface, padding: 12, borderRadius: 12 }}>
+                                    <View style={{ width: 50, height: 50, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.primary + "20", borderRadius: 25, marginRight: 16 }}>
+                                        <Text style={{ fontSize: 24 }}>{item.achievement_id.icon || "🏆"}</Text>
+                                    </View>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={{ fontFamily: theme.fonts.bodyBold, fontSize: 16, color: theme.colors.text }}>{item.achievement_id.name}</Text>
+                                        <Text style={{ fontFamily: theme.fonts.body, fontSize: 14, color: theme.colors.textSecondary }}>{item.achievement_id.description}</Text>
+                                        <Text style={{ fontFamily: theme.fonts.body, fontSize: 12, color: theme.colors.textSecondary, marginTop: 4 }}>
+                                            Earned on {new Date(item.completed_at).toLocaleDateString()}
+                                        </Text>
+                                    </View>
+                                </View>
+                            )}
+                        />
+                    )}
+                </View>
+            </View>
+        </Modal>
+    );
+}
+
 export default function UserProfileScreen() {
     const { theme } = useTheme();
     const { user: currentUser } = useUser();
@@ -209,6 +266,65 @@ export default function UserProfileScreen() {
     const [followModalTitle, setFollowModalTitle] = useState("");
     const [followList, setFollowList] = useState<FollowUser[]>([]);
     const [followListLoading, setFollowListLoading] = useState(false);
+    
+    // UI State
+    const [isTransformationExpanded, setIsTransformationExpanded] = useState(false);
+
+    // Achievements State
+    const [achievementsModalVisible, setAchievementsModalVisible] = useState(false);
+    const [achievements, setAchievements] = useState<any[]>([]);
+    const [achievementsLoading, setAchievementsLoading] = useState(false);
+
+    const openAchievements = async () => {
+        setAchievementsModalVisible(true);
+        setAchievementsLoading(true);
+        try {
+            const data = await getUserAchievements(userId);
+            setAchievements(data);
+        } catch (error) {
+            console.error("Error fetching achievements:", error);
+            Alert.alert("Error", "Failed to load achievements");
+        } finally {
+            setAchievementsLoading(false);
+        }
+    };
+
+    const pickTransformationImage = async (isBefore: boolean) => {
+        if (!profile?.isOwnProfile) return;
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [3, 4],
+            quality: 0.8,
+            base64: true,
+        });
+
+        if (!result.canceled && result.assets && result.assets[0].base64) {
+            const base64Img = `data:image/jpeg;base64,${result.assets[0].base64}`;
+            
+            // Optimistic update
+            setProfile(prev => prev ? {
+                ...prev,
+                transformation: {
+                    before: isBefore ? base64Img : prev.transformation?.before || null,
+                    after: !isBefore ? base64Img : prev.transformation?.after || null
+                }
+            } : null);
+
+            try {
+                if (isBefore) {
+                    await updateTransformation(base64Img, undefined);
+                } else {
+                    await updateTransformation(undefined, base64Img);
+                }
+            } catch (error) {
+                console.error("Transformation update error:", error);
+                Alert.alert("Error", "Failed to update transformation photo");
+                fetchProfile(); // Revert
+            }
+        }
+    };
 
     const fetchProfile = useCallback(async () => {
         try {
@@ -535,32 +651,102 @@ export default function UserProfileScreen() {
                                 {profile.bio}
                             </Text>
                         ) : null}
-                        {profile.gamification && (
-                            <View
-                                style={{
-                                    flexDirection: "row",
-                                    alignItems: "center",
-                                    marginTop: 4,
+                        {/* Gamification & Achievements */}
+                        <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4, flexWrap: "wrap" }}>
+                            {profile.gamification && (
+                                <View style={{ flexDirection: "row", alignItems: "center", marginRight: 16 }}>
+                                    <MaterialCommunityIcons
+                                        name="star-circle"
+                                        size={16}
+                                        color={theme.colors.primary}
+                                    />
+                                    <Text
+                                        style={{
+                                            fontFamily: theme.fonts.body,
+                                            fontSize: 13,
+                                            color: theme.colors.textSecondary,
+                                            marginLeft: 4,
+                                        }}
+                                    >
+                                        {profile.gamification.points} points
+                                    </Text>
+                                </View>
+                            )}
+                            
+                            <TouchableOpacity onPress={openAchievements} style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <Ionicons name="trophy" size={16} color={theme.colors.primary} />
+                                <Text style={{ fontFamily: theme.fonts.body, fontSize: 13, color: theme.colors.textSecondary, marginLeft: 4 }}>
+                                    {profile.achievementsCount || 0}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
+                    {/* Transformation Section */}
+                    {(profile.transformation?.before || profile.transformation?.after || profile.isOwnProfile) && (
+                        <View style={{ marginTop: 20 }}>
+                            <TouchableOpacity 
+                                onPress={() => setIsTransformationExpanded(!isTransformationExpanded)}
+                                style={{ 
+                                    flexDirection: 'row', 
+                                    justifyContent: 'space-between', 
+                                    alignItems: 'center', 
+                                    marginBottom: 10,
+                                    backgroundColor: theme.colors.surface,
+                                    paddingVertical: 8,
+                                    paddingHorizontal: 12,
+                                    borderRadius: 8
                                 }}
                             >
-                                <MaterialCommunityIcons
-                                    name="star-circle"
-                                    size={16}
-                                    color={theme.colors.primary}
-                                />
-                                <Text
-                                    style={{
-                                        fontFamily: theme.fonts.body,
-                                        fontSize: 13,
-                                        color: theme.colors.textSecondary,
-                                        marginLeft: 4,
-                                    }}
-                                >
-                                    {profile.gamification.points} points
+                                <Text style={{ fontFamily: theme.fonts.heading, fontSize: 16, color: theme.colors.text }}>
+                                    Before vs Now
                                 </Text>
-                            </View>
-                        )}
-                    </View>
+                                <Ionicons 
+                                    name={isTransformationExpanded ? "chevron-up" : "chevron-down"} 
+                                    size={20} 
+                                    color={theme.colors.textSecondary} 
+                                />
+                            </TouchableOpacity>
+                            
+                            {isTransformationExpanded && (
+                                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                                    <TouchableOpacity 
+                                        onPress={() => pickTransformationImage(true)}
+                                        disabled={!profile.isOwnProfile}
+                                        style={{ flex: 1, aspectRatio: 3/4, backgroundColor: theme.colors.surface, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: theme.colors.border }}
+                                    >
+                                        {profile.transformation?.before ? (
+                                            <Image source={{ uri: profile.transformation.before }} style={{ width: '100%', height: '100%' }} />
+                                        ) : (
+                                            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                                                <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.textSecondary }}>Before</Text>
+                                                {profile.isOwnProfile && <Ionicons name="add-circle-outline" size={24} color={theme.colors.primary} style={{ marginTop: 8 }} />}
+                                            </View>
+                                        )}
+                                    </TouchableOpacity>
+                                    
+                                    <View style={{ padding: 10 }}>
+                                        <Ionicons name="arrow-forward" size={24} color={theme.colors.textSecondary} />
+                                    </View>
+
+                                    <TouchableOpacity 
+                                        onPress={() => pickTransformationImage(false)}
+                                        disabled={!profile.isOwnProfile}
+                                        style={{ flex: 1, aspectRatio: 3/4, backgroundColor: theme.colors.surface, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: theme.colors.border }}
+                                    >
+                                        {profile.transformation?.after ? (
+                                            <Image source={{ uri: profile.transformation.after }} style={{ width: '100%', height: '100%' }} />
+                                        ) : (
+                                            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                                                <Text style={{ fontFamily: theme.fonts.body, color: theme.colors.textSecondary }}>Now</Text>
+                                                {profile.isOwnProfile && <Ionicons name="add-circle-outline" size={24} color={theme.colors.primary} style={{ marginTop: 8 }} />}
+                                            </View>
+                                        )}
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+                        </View>
+                    )}
 
                     {/* Action Buttons */}
                     <View
@@ -749,6 +935,15 @@ export default function UserProfileScreen() {
                 loading={followListLoading}
                 onClose={() => setFollowModalVisible(false)}
                 onUserPress={navigateToProfile}
+                theme={theme}
+            />
+
+            {/* Achievements Modal */}
+            <AchievementsModal
+                visible={achievementsModalVisible}
+                achievements={achievements}
+                loading={achievementsLoading}
+                onClose={() => setAchievementsModalVisible(false)}
                 theme={theme}
             />
         </SafeAreaView>

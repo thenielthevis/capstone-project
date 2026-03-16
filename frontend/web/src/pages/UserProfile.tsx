@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import Header from '@/components/Header';
 import PostGrid from '@/components/feed/PostGrid';
 import FollowListModal from '@/components/FollowListModal';
+import UserAchievementsModal from '@/components/UserAchievementsModal';
 import { profileApi, PublicProfile } from '@/api/profileApi';
 import { accessChat } from '@/api/chatApi';
 import {
@@ -19,6 +20,10 @@ import {
   Grid3X3,
   RefreshCw,
   Loader2,
+  Trophy,
+  ChevronDown,
+  ChevronUp,
+  ArrowRight,
 } from 'lucide-react';
 
 export default function UserProfile() {
@@ -33,6 +38,10 @@ export default function UserProfile() {
   const [followLoading, setFollowLoading] = useState(false);
   const [messageLoading, setMessageLoading] = useState(false);
   const [followListType, setFollowListType] = useState<'followers' | 'following' | null>(null);
+  
+  // New State Features
+  const [achievementsOpen, setAchievementsOpen] = useState(false);
+  const [transformationExpanded, setTransformationExpanded] = useState(false);
 
   const currentUserId = user?._id || user?.id;
 
@@ -50,14 +59,9 @@ export default function UserProfile() {
   }, [userId]);
 
   useEffect(() => {
-    // If viewing own profile, redirect to /profile
-    if (userId && userId === currentUserId) {
-      navigate('/profile', { replace: true });
-      return;
-    }
     setLoading(true);
     fetchProfile();
-  }, [userId, currentUserId, fetchProfile, navigate]);
+  }, [userId, fetchProfile]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -262,9 +266,9 @@ export default function UserProfile() {
             )}
           </div>
 
-          {/* Gamification */}
+          {/* Gamification & Achievements */}
           {profile.gamification && !profile.isPrivate && (
-            <div className="flex gap-3 mt-4">
+            <div className="flex flex-wrap items-center mt-4 gap-3">
               <div
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
                 style={{ backgroundColor: '#f59e0b' + '15' }}
@@ -283,6 +287,72 @@ export default function UserProfile() {
                   {profile.gamification.coins} coins
                 </span>
               </div>
+              {/* Achievements Toggle */}
+              <button
+                onClick={() => setAchievementsOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition hover:opacity-80"
+                style={{ backgroundColor: theme.colors.primary + '15' }}
+              >
+                <Trophy className="w-4 h-4" style={{ color: theme.colors.primary }} />
+                <span className="text-xs font-semibold" style={{ color: theme.colors.primary }}>
+                  {profile.achievementsCount || 0}
+                </span>
+              </button>
+            </div>
+          )}
+
+          {/* Transformation Section */}
+          {(profile.transformation?.before || profile.transformation?.after) && !profile.isPrivate && (
+            <div className="mt-5 pt-5 border-t" style={{ borderColor: theme.colors.border }}>
+              <button
+                onClick={() => setTransformationExpanded(!transformationExpanded)}
+                className="flex items-center justify-between w-full py-2"
+              >
+                <h3 className="font-semibold text-sm" style={{ color: theme.colors.text }}>
+                  Before vs Now
+                </h3>
+                {transformationExpanded ? (
+                  <ChevronUp className="w-4 h-4" style={{ color: theme.colors.textSecondary }} />
+                ) : (
+                  <ChevronDown className="w-4 h-4" style={{ color: theme.colors.textSecondary }} />
+                )}
+              </button>
+
+              {transformationExpanded && (
+                <div className="flex items-center justify-between gap-4 mt-3">
+                  {/* Before Image */}
+                  <div className="flex-1 aspect-[3/4] bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden relative">
+                    {profile.transformation?.before ? (
+                      <img
+                        src={profile.transformation.before}
+                        alt="Before"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-xs text-gray-400">
+                        Before
+                      </div>
+                    )}
+                  </div>
+
+                  <ArrowRight className="w-5 h-5 flex-shrink-0" style={{ color: theme.colors.textSecondary }} />
+
+                  {/* After Image */}
+                  <div className="flex-1 aspect-[3/4] bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden relative">
+                    {profile.transformation?.after ? (
+                      <img
+                        src={profile.transformation.after}
+                        alt="After"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-xs text-gray-400">
+                        Now
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -409,6 +479,15 @@ export default function UserProfile() {
           type={followListType}
           isOpen={!!followListType}
           onClose={() => setFollowListType(null)}
+        />
+      )}
+
+      {/* User Achievements Modal */}
+      {achievementsOpen && userId && (
+        <UserAchievementsModal
+          userId={userId}
+          isOpen={achievementsOpen}
+          onClose={() => setAchievementsOpen(false)}
         />
       )}
     </div>

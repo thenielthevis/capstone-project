@@ -140,6 +140,11 @@ export interface UserProfile {
     }>;
   };
   profileCompletion: number;
+  transformation?: {
+    before: string | null;
+    after: string | null;
+  };
+  achievementsCount?: number;
 }
 
 // Daily balance types

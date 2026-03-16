@@ -5,6 +5,7 @@ function calculateNetCalories(consumed, burned) {
 }
 
 const User = require('../models/userModel');
+const UserAchievement = require('../models/userAchievementModel');
 const { uploadProfilePicture } = require('../utils/cloudinary');
 
 //Check logged in user-------------------------------------
@@ -585,6 +586,12 @@ exports.getUserProfile = async (req, res) => {
         const filledFields = profileFields.filter(field => field !== null && field !== undefined).length;
         const profileCompletion = Math.round((filledFields / profileFields.length) * 100);
 
+        // Fetch user achievements count
+        const achievementsCount = await UserAchievement.countDocuments({
+            user_id: userId,
+            completed: true
+        });
+
         res.status(200).json({
             message: 'User profile fetched successfully',
             profile: {
@@ -668,6 +675,10 @@ exports.getUserProfile = async (req, res) => {
 
                 // Gamification
                 gamification: user.gamification,
+
+                // Transformation
+                transformation: user.transformation || { before: null, after: null },
+                achievementsCount: achievementsCount || 0,
 
                 // Assessment flag
                 hasCompletedAssessment: user.hasCompletedAssessment || false,

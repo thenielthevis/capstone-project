@@ -10,14 +10,18 @@ const {
     getFollowing,
     updateProfileVisibility,
     updateBio,
+    updateTransformation,
+    getUserAchievements,
 } = require('../controllers/profileController');
 
 // Profile visibility & bio (must be before :userId routes)
 router.patch('/visibility', auth, updateProfileVisibility);
 router.patch('/bio', auth, updateBio);
+router.put('/transformation', auth, updateTransformation);
 
 // Public profile
 router.get('/:userId', auth, getPublicProfile);
+router.get('/:userId/achievements', auth, getUserAchievements);
 
 // Follow / Unfollow
 router.post('/:userId/follow', auth, followUser);
