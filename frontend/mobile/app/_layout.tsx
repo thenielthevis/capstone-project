@@ -18,7 +18,9 @@ import { ToastProvider } from './components/Toast/Toast';
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { initializeFeedbackNotifications } from './services/feedbackNotifications';
 import { initializeNotificationRouter } from './services/notificationRouter';
+import './services/LocationTask';
 import './globals.css';
+
 
 // Keep the splash screen visible while fonts and app initialize
 SplashScreen.preventAutoHideAsync();

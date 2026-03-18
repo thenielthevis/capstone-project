@@ -89,7 +89,7 @@ export const getPendingSessions = async (): Promise<QueuedSession[]> => {
  * Returns { synced: number; failed: number }.
  */
 export const flushQueue = async (
-  sender: (payload: any) => Promise<any>
+  sender: (payload: any, snapshotUri?: string | null) => Promise<any>
 ): Promise<{ synced: number; failed: number }> => {
   const net = await NetInfo.fetch();
   if (!net.isConnected) {
@@ -106,7 +106,7 @@ export const flushQueue = async (
 
   for (const entry of queue) {
     try {
-      await sender(entry.payload);
+      await sender(entry.payload, entry.snapshotUri);
       synced++;
       console.log('[OfflineQueue] Synced', entry.id);
     } catch (err) {
@@ -168,7 +168,7 @@ let _unsubscribe: (() => void) | null = null;
  * When connection returns, automatically flush the queue.
  */
 export const startAutoSync = (
-  sender: (payload: any) => Promise<any>
+  sender: (payload: any, snapshotUri?: string | null) => Promise<any>
 ): void => {
   if (_unsubscribe) return; // already listening
   _unsubscribe = NetInfo.addEventListener((state) => {

@@ -52,7 +52,30 @@ export const createGeoSessionOffline = async (
 };
 
 /** Attempt to sync all queued sessions now */
-export const syncPendingSessions = () => flushQueue(createGeoSession);
+export const syncPendingSessions = () => flushQueue(sendQueuedSession);
 
 /** Initialize auto-sync listener (call once at app startup) */
-export const initSessionAutoSync = () => startAutoSync(createGeoSession);
+export const initSessionAutoSync = () => startAutoSync(sendQueuedSession);
+
+/**
+ * Reconstruct FormData from plain object + snapshotUri and send.
+ * Used by the offline queue flusher.
+ */
+export const sendQueuedSession = async (data: any, snapshotUri?: string | null) => {
+    const formData = new FormData();
+    
+    // Append all text fields
+    Object.keys(data).forEach(key => {
+        formData.append(key, data[key]);
+    });
+
+    // Append image if present
+    if (snapshotUri) {
+        const filename = snapshotUri.split('/').pop() || "map_snapshot.png";
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : `image/png`;
+        formData.append("preview_image", { uri: snapshotUri, name: filename, type } as any);
+    }
+
+    return createGeoSession(formData);
+};

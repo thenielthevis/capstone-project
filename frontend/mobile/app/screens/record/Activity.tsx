@@ -17,7 +17,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { useRouter } from "expo-router";
 import { useActivityMetrics } from "../../context/ActivityMetricsContext";
 import { useUser } from "../../context/UserContext";
-import { createGeoSession } from "../../api/geoSessionApi";
+import { createGeoSession, sendQueuedSession } from "../../api/geoSessionApi";
 import { getTodayCalorieBalance } from "../../api/userApi";
 import { tokenStorage } from '@/utils/tokenStorage';
 import {
@@ -27,6 +27,9 @@ import {
   flushQueue,
 } from "../../utils/offlineSessionQueue";
 import NetInfo from "@react-native-community/netinfo";
+import * as TaskManager from 'expo-task-manager';
+import { DeviceEventEmitter } from "react-native";
+import { LOCATION_TASK_NAME } from "../../services/LocationTask";
 import {
   downloadTilesForRecording,
   expandIfNeeded,
@@ -117,8 +120,8 @@ export default function TestMap() {
 
   // ── Start auto-sync + clean up old tile packs on mount ──
   useEffect(() => {
-    startAutoSync(createGeoSession);
-    flushQueue(createGeoSession);
+    startAutoSync(sendQueuedSession);
+    flushQueue(sendQueuedSession);
     cleanupOldPacks();
   }, []);
 
@@ -190,6 +193,113 @@ export default function TestMap() {
     return () => clearInterval(id);
   }, [contextRecording]);
 
+  // ── Refactored Location Processor (handles updates from Task or Watcher) ──
+  const processLocation = React.useCallback((pos: Location.LocationObject) => {
+    const coords: [number, number] = [
+      pos.coords.longitude,
+      pos.coords.latitude,
+    ];
+
+    // Always store latest position in ref (UI update throttled to 2 s while recording)
+    latestCoordsRef.current = coords;
+
+    // ── Recording logic (writes to REFS only — zero re-renders) ──
+    if (refs.recording.current) {
+      // Filter out points with poor accuracy (> 20 m)
+      if (pos.coords.accuracy && pos.coords.accuracy > 20) {
+        return;
+      }
+
+      // Append to route ref (no state update — GeoJSON throttled separately)
+      refs.routeCoords.current.push(coords);
+
+      const currentTimestamp = pos.timestamp || Date.now();
+      const currentLat = pos.coords.latitude;
+      const currentLon = pos.coords.longitude;
+
+      let instantaneousSpeed = (pos.coords.speed ?? 0) * 3.6;
+      if (instantaneousSpeed < 0) instantaneousSpeed = 0;
+
+      if (prevLocationRef.current && prevTimestampRef.current) {
+        const [prevLon, prevLat] = prevLocationRef.current;
+        const segmentDistance = calculateDistance(prevLat, prevLon, currentLat, currentLon);
+        const MOVEMENT_THRESHOLD = 0.003; // 3 meters to filtering jitter
+
+        if (segmentDistance > MOVEMENT_THRESHOLD) {
+          totalDistanceRef.current += segmentDistance;
+          // Write to ref — state flushed on interval
+          refs.distance.current = totalDistanceRef.current;
+
+          // Calculate time elapsed since last valid point
+          // This ensures time continues even if app was backgrounded
+          const timeDiffSeconds = (currentTimestamp - prevTimestampRef.current) / 1000;
+          if (timeDiffSeconds > 0 && timeDiffSeconds < 3600) { // sanity check < 1 hour gap
+             refs.time.current += timeDiffSeconds;
+          }
+
+          prevLocationRef.current = coords;
+          prevTimestampRef.current = currentTimestamp;
+
+          // Split detection
+          const currentSplitIndex = Math.floor(totalDistanceRef.current / SPLIT_DISTANCE_KM);
+          if (currentSplitIndex > lastSplitIndexRef.current) {
+            const splitTime = refs.time.current - splitStartTimeRef.current;
+            const splitPace = splitTime / SPLIT_DISTANCE_KM;
+            const splitLabel = currentSplitIndex * SPLIT_DISTANCE_KM;
+
+            console.log(`[Split] Completed split ${currentSplitIndex}: ${splitLabel.toFixed(2)}km, time=${splitTime}s, pace=${splitPace.toFixed(1)}s/km`);
+
+            addSplit({
+              km: Number(splitLabel.toFixed(2)),
+              time: splitTime,
+              pace: splitPace,
+            });
+
+            lastSplitIndexRef.current = currentSplitIndex;
+            splitStartTimeRef.current = refs.time.current;
+          }
+        }
+
+        // Fallback speed from distance if OS speed unavailable
+        if (instantaneousSpeed === 0 && segmentDistance > MOVEMENT_THRESHOLD) {
+          const timeDiff = (currentTimestamp - (prevTimestampRef.current || currentTimestamp)) / 1000 / 3600;
+          if (timeDiff > 0) instantaneousSpeed = segmentDistance / timeDiff;
+        }
+      } else if (!prevLocationRef.current) {
+        prevLocationRef.current = coords;
+        prevTimestampRef.current = currentTimestamp;
+      }
+
+      // EMA smoothing → write to ref
+      const alpha = 0.2;
+      currentSpeedRef.current = alpha * instantaneousSpeed + (1 - alpha) * currentSpeedRef.current;
+      refs.speed.current = currentSpeedRef.current < 1.0 ? 0 : Math.min(currentSpeedRef.current, 120);
+
+    } else {
+      // Not recording — update marker immediately + reset trackers
+      setLocation(coords);
+      prevLocationRef.current = null;
+      prevTimestampRef.current = null;
+      currentSpeedRef.current = 0;
+
+      // Camera follow (while recording this is handled by the 2 s throttle)
+      if (followingRef.current && cameraRef.current) {
+        try {
+          isProgrammaticRef.current = true;
+          cameraRef.current.setCamera({
+            centerCoordinate: coords,
+            zoomLevel: undefined,
+            animationDuration: 500,
+            heading: mapBearingRef.current !== 0 ? mapBearingRef.current : undefined,
+          });
+          setTimeout(() => (isProgrammaticRef.current = false), 650);
+        } catch (e) {
+          isProgrammaticRef.current = false;
+        }
+      }
+    }
+  }, []);
+
   // ── GPS + heading watchers (mounted ONCE, use refs for all mutable deps) ──
   useEffect(() => {
     let mounted = true;
@@ -198,6 +308,12 @@ export default function TestMap() {
       if (status !== "granted") {
         setLoading(false);
         return;
+      }
+
+      // Request Background Permissions for robust tracking
+      const bgStatus = await Location.requestBackgroundPermissionsAsync();
+      if (bgStatus.status !== 'granted') {
+          console.warn('[Activity] Background location permission denied');
       }
 
       const initial = await Location.getCurrentPositionAsync({
@@ -209,119 +325,37 @@ export default function TestMap() {
       setMapBearing(0);
       setLoading(false);
 
-      locSubRef.current = await Location.watchPositionAsync(
-        {
-          accuracy: Location.Accuracy.BestForNavigation,
-          timeInterval: 1000,
-          distanceInterval: 2,
+      // Start Background Updates
+      await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
+        accuracy: Location.Accuracy.BestForNavigation,
+        timeInterval: 1000,
+        distanceInterval: 2,
+        // Android foreground service
+        foregroundService: {
+          notificationTitle: "Recording Activity",
+          notificationBody: "Location tracking is active",
         },
-        (pos) => {
-          const coords: [number, number] = [
-            pos.coords.longitude,
-            pos.coords.latitude,
-          ];
+        // iOS background indicator
+        showsBackgroundLocationIndicator: true,
+        activityType: Location.ActivityType.Fitness,
+      });
 
-          // Always store latest position in ref (UI update throttled to 2 s while recording)
-          latestCoordsRef.current = coords;
-
-          // ── Recording logic (writes to REFS only — zero re-renders) ──
-          if (refs.recording.current) {
-            // Filter out points with poor accuracy (> 20 m)
-            if (pos.coords.accuracy && pos.coords.accuracy > 20) {
-              return;
-            }
-
-            // Append to route ref (no state update — GeoJSON throttled separately)
-            refs.routeCoords.current.push(coords);
-
-            const currentTimestamp = Date.now();
-            const currentLat = pos.coords.latitude;
-            const currentLon = pos.coords.longitude;
-
-            let instantaneousSpeed = (pos.coords.speed ?? 0) * 3.6;
-            if (instantaneousSpeed < 0) instantaneousSpeed = 0;
-
-            if (prevLocationRef.current && prevTimestampRef.current) {
-              const [prevLon, prevLat] = prevLocationRef.current;
-              const segmentDistance = calculateDistance(prevLat, prevLon, currentLat, currentLon);
-              const MOVEMENT_THRESHOLD = 0.001; // 1 meter in km
-
-              if (segmentDistance > MOVEMENT_THRESHOLD) {
-                totalDistanceRef.current += segmentDistance;
-                // Write to ref — state flushed on interval
-                refs.distance.current = totalDistanceRef.current;
-
-                prevLocationRef.current = coords;
-                prevTimestampRef.current = currentTimestamp;
-
-                // Split detection
-                const currentSplitIndex = Math.floor(totalDistanceRef.current / SPLIT_DISTANCE_KM);
-                if (currentSplitIndex > lastSplitIndexRef.current) {
-                  const splitTime = refs.time.current - splitStartTimeRef.current;
-                  const splitPace = splitTime / SPLIT_DISTANCE_KM;
-                  const splitLabel = currentSplitIndex * SPLIT_DISTANCE_KM;
-
-                  console.log(`[Split] Completed split ${currentSplitIndex}: ${splitLabel.toFixed(2)}km, time=${splitTime}s, pace=${splitPace.toFixed(1)}s/km`);
-
-                  addSplit({
-                    km: Number(splitLabel.toFixed(2)),
-                    time: splitTime,
-                    pace: splitPace,
-                  });
-
-                  lastSplitIndexRef.current = currentSplitIndex;
-                  splitStartTimeRef.current = refs.time.current;
-                }
-              }
-
-              // Fallback speed from distance if OS speed unavailable
-              if (instantaneousSpeed === 0 && segmentDistance > MOVEMENT_THRESHOLD) {
-                const timeDiff = (currentTimestamp - (prevTimestampRef.current || currentTimestamp)) / 1000 / 3600;
-                if (timeDiff > 0) instantaneousSpeed = segmentDistance / timeDiff;
-              }
-            } else if (!prevLocationRef.current) {
-              prevLocationRef.current = coords;
-              prevTimestampRef.current = currentTimestamp;
-            }
-
-            // EMA smoothing → write to ref
-            const alpha = 0.2;
-            currentSpeedRef.current = alpha * instantaneousSpeed + (1 - alpha) * currentSpeedRef.current;
-            refs.speed.current = currentSpeedRef.current < 1.0 ? 0 : Math.min(currentSpeedRef.current, 120);
-
-          } else {
-            // Not recording — update marker immediately + reset trackers
-            setLocation(coords);
-            prevLocationRef.current = null;
-            prevTimestampRef.current = null;
-            currentSpeedRef.current = 0;
-
-            // Camera follow (while recording this is handled by the 2 s throttle)
-            if (followingRef.current && cameraRef.current) {
-              try {
-                isProgrammaticRef.current = true;
-                cameraRef.current.setCamera({
-                  centerCoordinate: coords,
-                  zoomLevel: undefined,
-                  animationDuration: 500,
-                  heading: mapBearingRef.current !== 0 ? mapBearingRef.current : undefined,
-                });
-                setTimeout(() => (isProgrammaticRef.current = false), 650);
-              } catch (e) {
-                isProgrammaticRef.current = false;
-              }
-            }
-          }
+      // Listen for updates from the Task
+      const subscription = DeviceEventEmitter.addListener('location-update', (locations) => {
+        if (Array.isArray(locations)) {
+             locations.forEach(processLocation);
         }
-      );
+      });
 
+      // Also start a foreground watcher as backup/immediate feedback if task is slow?
+      // Actually, startLocationUpdatesAsync usually prevents watchPositionAsync from working in parallel on some OS versions.
+      // So we rely on the Event Emitter.
+
+      // Heading is separate
       headSubRef.current = await Location.watchHeadingAsync((h) => {
         const newHeading = h.trueHeading ?? h.magHeading ?? 0;
         headingRef.current = newHeading;
 
-        // During recording, heading is flushed to state every 2 s
-        // by the throttled UI updater. Only update immediately when
-        // NOT recording (marker updates are realtime then).
         if (!refs.recording.current) {
           setHeading(newHeading);
           Animated.timing(compassAnim, {
@@ -331,7 +365,6 @@ export default function TestMap() {
           }).start();
         }
 
-        // Camera heading follow (compass mode) — always immediate
         if (followingRef.current && mapBearingRef.current === -1) {
           if (cameraRef.current) {
             try {
@@ -351,10 +384,12 @@ export default function TestMap() {
 
     return () => {
       mounted = false;
-      if (locSubRef.current) locSubRef.current.remove();
       if (headSubRef.current) headSubRef.current.remove();
+      // Stop background updates when component unmounts
+      Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME).catch(() => {});
+      DeviceEventEmitter.removeAllListeners('location-update');
     };
-  }, []); // ← mounted ONCE — no more teardown on every state change
+  }, []); // ← mounted ONCE
 
   // helper: check whether user's location is within current visible bounds
   const isLocationVisible = async (): Promise<boolean> => {
@@ -468,25 +503,9 @@ export default function TestMap() {
     }
   };
 
-  // Timer effect — ticks every 1 s into the ref, NO state updates here.
-  // The context auto-flush interval handles pushing to state every 2 s.
-  useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | null = null;
+  // Timer effect removed: Time is now calculated from location timestamps
+  // to ensure accuracy even if app is backgrounded.
 
-    if (contextRecording) {
-      interval = setInterval(() => {
-        // Auto-pause: only count "moving time" (like Strava)
-        // refs.speed.current is 0 when EMA-smoothed speed < 1 km/h
-        if (refs.speed.current > 0) {
-          refs.time.current += 1;
-        }
-      }, 1000);
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [contextRecording]);
 
   // Format time helper function
   const formatTime = (totalSeconds: number) => {
@@ -565,22 +584,16 @@ export default function TestMap() {
           }
         }
 
-        const formData = new FormData();
-        formData.append("activity_type", getActivityId(activityType));
-        formData.append("distance_km", finalDistance.toString());
-        formData.append("avg_pace", avgPace.toString());
-        formData.append("moving_time_sec", finalTime.toString());
-        formData.append("calories_burned", caloriesBurned.toString());
-        formData.append("started_at", new Date(Date.now() - finalTime * 1000).toISOString());
-        formData.append("ended_at", new Date().toISOString());
-        formData.append("route_coordinates", JSON.stringify(routeForSave));
-
-        if (snapshotUri) {
-          const filename = snapshotUri.split('/').pop() || "map_snapshot.png";
-          const match = /\.(\w+)$/.exec(filename);
-          const type = match ? `image/${match[1]}` : `image/png`;
-          formData.append("preview_image", { uri: snapshotUri, name: filename, type } as any);
-        }
+        const sessionData = {
+          activity_type: getActivityId(activityType),
+          distance_km: finalDistance.toString(),
+          avg_pace: avgPace.toString(),
+          moving_time_sec: finalTime.toString(),
+          calories_burned: caloriesBurned.toString(),
+          started_at: new Date(Date.now() - finalTime * 1000).toISOString(),
+          ended_at: new Date().toISOString(),
+          route_coordinates: JSON.stringify(routeForSave),
+        };
 
         // ── Offline-first: check connectivity ──
         const net = await NetInfo.fetch();
@@ -589,18 +602,18 @@ export default function TestMap() {
 
         if (net.isConnected) {
           try {
-            response = await createGeoSession(formData);
+            response = await sendQueuedSession(sessionData, snapshotUri);
             console.log('[Activity] Session saved online, calories:', caloriesBurned);
             // Refresh calorie balance
             getTodayCalorieBalance().catch(() => { });
           } catch {
             // Network call failed — queue offline
-            await enqueueSession(formData, snapshotUri);
+            await enqueueSession(sessionData, snapshotUri);
             savedOffline = true;
             console.log('[Activity] Online save failed, queued offline');
           }
         } else {
-          await enqueueSession(formData, snapshotUri);
+          await enqueueSession(sessionData, snapshotUri);
           savedOffline = true;
           console.log('[Activity] No connection, queued offline');
         }
