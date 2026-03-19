@@ -322,7 +322,7 @@ export default function Landing() {
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <Smartphone size={16} className="text-blue-400" />
-                      <span className="text-sm font-bold text-white">Download the App</span>
+                      <Link to="https://drive.google.com/drive/folders/1VRg6Tb4R15JJiWEyhwH06YAp2HfaN5Hb?usp=drive_link" target="_blank" className="text-sm font-bold text-white underline">Download the App</Link>
                     </div>
                     <p className="text-xs text-landing-muted leading-relaxed">
                       Scan this QR code with your phone's camera to download the Lyniva mobile app (APK).
@@ -504,17 +504,6 @@ export default function Landing() {
                 <ul className="space-y-3">
                   <li>
                     <a
-                      href="https://github.com/thenielthevis/capstone-project"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm transition-colors"
-                      style={{ color: theme.colors.textSecondary }}
-                    >
-                      GitHub
-                    </a>
-                  </li>
-                  <li>
-                    <a
                       href="mailto:contact@lyniva.com"
                       className="text-sm transition-colors"
                       style={{ color: theme.colors.textSecondary }}
@@ -529,7 +518,7 @@ export default function Landing() {
               <div>
                 <h4 className="font-bold mb-4" style={{ color: theme.colors.text }}>Built With</h4>
                 <div className="flex flex-wrap gap-2">
-                  {['React', 'TypeScript', 'Tailwind', 'Vite'].map((tech) => (
+                  {['React', 'TypeScript', 'Tailwind', 'Node.js', 'Unity'].map((tech) => (
                     <span key={tech} className="px-3 py-1 text-xs rounded-full" style={{ backgroundColor: theme.colors.background, color: theme.colors.textSecondary }}>
                       {tech}
                     </span>
@@ -544,9 +533,9 @@ export default function Landing() {
                   © 2026 Lyniva. All rights reserved.
                 </p>
                 <div className="flex gap-6">
-                  <a href="#" className="text-sm hover:text-blue-400 transition-colors">
+                  <Link to="/privacy" className="text-sm hover:text-blue-400 transition-colors">
                     Privacy Policy
-                  </a>
+                  </Link>
                   <Link to="/terms" className="text-sm hover:text-blue-400 transition-colors">
                     Terms of Service
                   </Link>
