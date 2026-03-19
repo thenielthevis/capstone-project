@@ -28,8 +28,7 @@ import {
 } from "../../utils/offlineSessionQueue";
 import NetInfo from "@react-native-community/netinfo";
 import * as TaskManager from 'expo-task-manager';
-import { DeviceEventEmitter } from "react-native";
-import { LOCATION_TASK_NAME } from "../../services/LocationTask";
+import { LOCATION_TASK_NAME, setLocationUpdateCallback } from "../../services/LocationTask";
 import {
   downloadTilesForRecording,
   expandIfNeeded,
@@ -105,6 +104,7 @@ export default function TestMap() {
   const totalDistanceRef = useRef<number>(0);
   const lastSplitIndexRef = useRef<number>(0);
   const splitStartTimeRef = useRef<number>(0);
+  const lastTickRef = useRef<number>(0);
 
   const mapRef = useRef<any>(null);
   const cameraRef = useRef<any>(null);
@@ -205,6 +205,10 @@ export default function TestMap() {
 
     // ── Recording logic (writes to REFS only — zero re-renders) ──
     if (refs.recording.current) {
+      
+      // TICK: Catch up time if interval was paused (e.g. background)
+      tick();
+
       // Filter out points with poor accuracy (> 20 m)
       if (pos.coords.accuracy && pos.coords.accuracy > 20) {
         return;
@@ -230,12 +234,8 @@ export default function TestMap() {
           // Write to ref — state flushed on interval
           refs.distance.current = totalDistanceRef.current;
 
-          // Calculate time elapsed since last valid point
-          // This ensures time continues even if app was backgrounded
-          const timeDiffSeconds = (currentTimestamp - prevTimestampRef.current) / 1000;
-          if (timeDiffSeconds > 0 && timeDiffSeconds < 3600) { // sanity check < 1 hour gap
-             refs.time.current += timeDiffSeconds;
-          }
+          // Time is now handled by tick() independently of movement threshold
+          // so we don't accidentally pause time when stationary.
 
           prevLocationRef.current = coords;
           prevTimestampRef.current = currentTimestamp;
@@ -340,16 +340,25 @@ export default function TestMap() {
         activityType: Location.ActivityType.Fitness,
       });
 
-      // Listen for updates from the Task
-      const subscription = DeviceEventEmitter.addListener('location-update', (locations) => {
+      // Register callback for background task location updates
+      // (fires when the app is backgrounded and the headless task delivers GPS)
+      setLocationUpdateCallback((locations) => {
         if (Array.isArray(locations)) {
-             locations.forEach(processLocation);
+          locations.forEach(processLocation);
         }
       });
 
-      // Also start a foreground watcher as backup/immediate feedback if task is slow?
-      // Actually, startLocationUpdatesAsync usually prevents watchPositionAsync from working in parallel on some OS versions.
-      // So we rely on the Event Emitter.
+      // Primary foreground watcher — provides responsive GPS while the app
+      // is in the foreground. The background task callback above supplements
+      // this when the OS suspends the foreground watcher.
+      locSubRef.current = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.BestForNavigation,
+          timeInterval: 1000,
+          distanceInterval: 2,
+        },
+        (pos) => processLocation(pos),
+      );
 
       // Heading is separate
       headSubRef.current = await Location.watchHeadingAsync((h) => {
@@ -384,10 +393,13 @@ export default function TestMap() {
 
     return () => {
       mounted = false;
+      // Remove foreground watchers
+      if (locSubRef.current) locSubRef.current.remove();
       if (headSubRef.current) headSubRef.current.remove();
+      // Unregister background task callback
+      setLocationUpdateCallback(null);
       // Stop background updates when component unmounts
       Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME).catch(() => {});
-      DeviceEventEmitter.removeAllListeners('location-update');
     };
   }, []); // ← mounted ONCE
 
@@ -503,14 +515,51 @@ export default function TestMap() {
     }
   };
 
-  // Timer effect removed: Time is now calculated from location timestamps
-  // to ensure accuracy even if app is backgrounded.
+  // ── Unified Time Ticker ──
+  // Updates accumulated time based on the delta from the last update.
+  // Can be called by:
+  // 1. setInterval (every 1s, foreground)
+  // 2. processLocation (whenever GPS arrives, background or foreground)
+  const tick = React.useCallback(() => {
+    if (!refs.recording.current || refs.speed.current < 0) return; // if paused logic required
+    // Note: If you want to support PAUSE, you'd check a paused ref here.
+
+    const now = Date.now();
+    // If this is the first tick (start), just init lastTickRef
+    if (lastTickRef.current === 0) {
+      lastTickRef.current = now;
+      return;
+    }
+
+    const deltaMs = now - lastTickRef.current;
+    if (deltaMs > 0) {
+      refs.time.current += deltaMs / 1000;
+      lastTickRef.current = now;
+    }
+  }, []);
+
+  // Timer effect — ticks every 1 s into the ref for smooth UI updates.
+  // This keeps the timer running visually when the app is open.
+  useEffect(() => {
+      let interval: ReturnType<typeof setInterval> | null = null;
+      if (contextRecording) {
+        // Initialize tick ref if starting fresh
+        if (lastTickRef.current === 0) lastTickRef.current = Date.now();
+        
+        interval = setInterval(() => {
+           tick(); 
+        }, 1000);
+      }
+      return () => {
+        if (interval) clearInterval(interval);
+      };
+  }, [contextRecording, tick]);
 
 
   // Format time helper function
   const formatTime = (totalSeconds: number) => {
     const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
+    const seconds = Math.floor(totalSeconds % 60);
     return `${minutes.toString().padStart(2, "0")}:${seconds
       .toString()
       .padStart(2, "0")}`;
@@ -518,6 +567,10 @@ export default function TestMap() {
 
 
   const handleRecordingChange = (isRecording: boolean) => {
+    // FIX: Reset tick reference when resuming to avoid time jumps inclusive of paused duration
+    if (isRecording) {
+      lastTickRef.current = Date.now();
+    }
     setContextRecording(isRecording);
     // When starting recording, initialize previous location if we have current location
     if (isRecording && location) {

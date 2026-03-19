@@ -90,8 +90,8 @@ export default function HomeTabs() {
       <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.surface }}>
         <StatusBar
           style={theme.mode === 'dark' ? 'light' : 'dark'}
-          backgroundColor={theme.colors.surface}
-          translucent={false}
+          backgroundColor="transparent"
+          translucent={true}
         />
         <Header />
         <View style={{ flex: 1 }}>

@@ -69,8 +69,37 @@ const resolveScreen = (data: Record<string, any> | undefined): { screen: string;
 
     // 2. If notification has an explicit screen, prefer that
     if (data.screen) {
-        const screen = data.screen as string;
-        targetScreen = screen.startsWith('/') ? screen : `/screens/record/${screen}`;
+        let screen = data.screen as string;
+
+        // Handle URL-like paths or malformed paths (e.g. from deep links)
+        // Remove scheme if present (e.g. mobile:// or mobile;///)
+        if (screen.includes('://') || screen.includes(';///')) {
+            const separator = screen.includes('://') ? '://' : ';///';
+            const parts = screen.split(separator);
+            if (parts.length > 1) {
+                // Remove scheme and leading generic parts, ensure we get the path
+                screen = parts[1];
+            }
+        }
+
+        // Clean up common path errors
+        // Fix: screens/(tabs)/... -> (tabs)/...
+        if (screen.includes('screens/(tabs)')) {
+            screen = screen.replace('screens/(tabs)', '(tabs)');
+        }
+
+        // Ensure path starts with /
+        if (!screen.startsWith('/')) {
+            // If it's a tabs route, it should be at root
+            if (screen.startsWith('(tabs)')) {
+                screen = '/' + screen;
+            } else {
+                // Default to record screen for simple names
+                screen = `/screens/record/${screen}`;
+            }
+        }
+        
+        targetScreen = screen;
     }
 
     // 3. Attach relevant params
