@@ -72,15 +72,11 @@ const resolveScreen = (data: Record<string, any> | undefined): { screen: string;
         let screen = data.screen as string;
 
         // Handle URL-like paths or malformed paths (e.g. from deep links)
-        // Remove scheme if present (e.g. mobile:// or mobile;///)
-        if (screen.includes('://') || screen.includes(';///')) {
-            const separator = screen.includes('://') ? '://' : ';///';
-            const parts = screen.split(separator);
-            if (parts.length > 1) {
-                // Remove scheme and leading generic parts, ensure we get the path
-                screen = parts[1];
-            }
-        }
+        // Remove any scheme prefix (e.g. mobile://, mobile;///, myapp://, etc.)
+        screen = screen.replace(/^[a-zA-Z][a-zA-Z0-9+.-]*[:;]\/\/\/?/g, '');
+
+        // Remove any leading slashes left after scheme removal
+        screen = screen.replace(/^\/+/, '');
 
         // Clean up common path errors
         // Fix: screens/(tabs)/... -> (tabs)/...
@@ -158,6 +154,10 @@ export const initializeNotificationRouter = (router: Router): (() => void) => {
     }, 800);
 
     // Handle cold-start: check if the app was launched by tapping a notification
+    // On cold start, the navigation tree (tabs, screens) is NOT ready yet because
+    // index.tsx shows a splash animation first. Instead of navigating immediately,
+    // we save the target as a pending navigation that index.tsx will pick up after
+    // the splash finishes and the user is authenticated.
     (async () => {
         try {
             const lastResponse = await Notifications.getLastNotificationResponseAsync();
@@ -165,7 +165,7 @@ export const initializeNotificationRouter = (router: Router): (() => void) => {
                 const alreadyHandled = await wasAlreadyHandled(lastResponse);
                 if (!alreadyHandled) {
                     console.log('[NotificationRouter] Cold-start notification detected');
-                    await handleNotificationResponse(lastResponse);
+                    await handleColdStartNotification(lastResponse);
                 }
             }
         } catch (error) {
@@ -201,7 +201,31 @@ export const initializeNotificationRouter = (router: Router): (() => void) => {
 };
 
 /**
- * Handle notification tap response
+ * Handle cold-start notification (app was killed)
+ * Always saves as pending navigation since the navigation tree isn't mounted yet.
+ * index.tsx will pick this up after splash finishes.
+ */
+const handleColdStartNotification = async (
+    response: Notifications.NotificationResponse
+): Promise<void> => {
+    try {
+        const data = response.notification.request.content.data;
+        const { screen: targetScreen, params: targetParams } = resolveScreen(data);
+
+        console.log('[NotificationRouter] Cold-start target screen:', targetScreen, 'Params:', targetParams);
+
+        // On cold start, always save as pending navigation.
+        // The splash screen and auth check in index.tsx need to finish first
+        // before the navigation tree (tabs layout, etc.) is available.
+        await savePendingNavigation(targetScreen, targetParams);
+        console.log('[NotificationRouter] Saved cold-start navigation for after splash/auth');
+    } catch (error) {
+        console.error('[NotificationRouter] Error handling cold-start notification:', error);
+    }
+};
+
+/**
+ * Handle notification tap response (foreground & background resume)
  * Checks auth state and navigates accordingly
  */
 const handleNotificationResponse = async (

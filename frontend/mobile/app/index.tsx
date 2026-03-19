@@ -5,6 +5,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import GuestScreen from './screens/auth/guest';
 import { tokenStorage } from '../utils/tokenStorage';
 import SplashAnimation from './components/SplashAnimation';
+import { executePendingNavigation } from './services/notificationRouter';
 
 export default function Index() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -42,9 +43,16 @@ export default function Index() {
     prepare();
   }, []);
 
-  const handleSplashFinish = () => {
+  const handleSplashFinish = async () => {
     setShowSplash(false);
-    // Navigate after splash animation completes
+    
+    // Try to execute any pending notification navigation first
+    const handledNotification = await executePendingNavigation(router);
+    if (handledNotification) {
+      return; // Navigation was handled by notification router
+    }
+
+    // Default navigation after splash animation completes
     if (navTarget === 'assessment') {
       router.replace('/screens/analysis_input/prediction_input' as any);
     } else if (navTarget === 'home') {

@@ -675,7 +675,7 @@ export default function HealthCheckupSettingsScreen() {
                         flex: 1,
                         lineHeight: 18,
                     }}>
-                        You'll receive reminders at 8:00 AM (breakfast), 12:00 PM (lunch), and 6:00 PM (dinner) to log your food intake.
+                        You'll receive reminders breakfast, 12:00 PM (lunch), and dinner to log your food intake.
                     </Text>
                 </View>
 

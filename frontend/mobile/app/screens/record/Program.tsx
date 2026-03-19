@@ -78,7 +78,7 @@ export default function ProgramRecordScreen() {
         alignItems: 'center',
         justifyContent: 'space-between',
       }}>
-        <TouchableOpacity onPress={() => router.back()} className="flex-row items-center">
+        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/Record')} className="flex-row items-center">
           <Ionicons name="chevron-back" size={theme.fontSizes.xl + 4} color={theme.colors.text} />
           <Text
             className="ml-2"

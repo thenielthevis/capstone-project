@@ -379,7 +379,7 @@ export default function HealthCheckup() {
                 <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
                     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                         <TouchableOpacity
-                            onPress={() => router.back()}
+                            onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/Record')}
                             style={{
                                 width: 40,
                                 height: 40,
