@@ -18,6 +18,7 @@ import { ToastProvider } from './components/Toast/Toast';
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { initializeFeedbackNotifications } from './services/feedbackNotifications';
 import { initializeNotificationRouter } from './services/notificationRouter';
+import { initSessionAutoSync, syncPendingSessions } from './api/geoSessionApi';
 import './services/LocationTask';
 import './globals.css';
 
@@ -67,6 +68,10 @@ export default function App() {
       }
     };
     initNotifications();
+    
+    // Initialize offline geo-session sync
+    initSessionAutoSync();
+    syncPendingSessions().catch(() => {});
   }, []);
 
   if (!fontsLoaded && !fontError) {

@@ -599,7 +599,7 @@ export default function TestMap() {
     if (user?.isGuest) {
       Alert.alert(
         "Guest Mode",
-        "You are in guest mode. Please log in to save your activity.",
+        "You are in guest mode. Please log in to save your activity next time.",
         [
           { text: "Cancel", style: "cancel" },
           { text: "Sign In", onPress: () => { setUser(null); router.replace("/screens/auth/guest"); } }

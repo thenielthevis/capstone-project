@@ -39,9 +39,10 @@ export const createGeoSessionOffline = async (
 
     if (net.isConnected) {
         try {
-            const data = await createGeoSession(payload);
+            const data = await sendQueuedSession(payload, snapshotUri);
             return { online: true, data };
-        } catch {
+        } catch (error) {
+            console.warn('[geoSessionApi] Immediate sync failed, queuing offline:', error);
             const localId = await enqueueSession(payload, snapshotUri);
             return { online: false, localId };
         }
