@@ -659,11 +659,17 @@ export default function TestMap() {
             console.log('[Activity] Session saved online, calories:', caloriesBurned);
             // Refresh calorie balance
             getTodayCalorieBalance().catch(() => { });
-          } catch {
-            // Network call failed — queue offline
-            await enqueueSession(sessionData, snapshotUri);
-            savedOffline = true;
-            console.log('[Activity] Online save failed, queued offline');
+          } catch (err: any) {
+            console.error('[Activity] Online save failed:', err?.message, err?.response?.status);
+            // Only queue offline for actual network errors (no response received).
+            // If the server responded with an error (4xx/5xx), don't re-queue — it'll just fail again.
+            if (!err?.response) {
+              await enqueueSession(sessionData, snapshotUri);
+              savedOffline = true;
+              console.log('[Activity] Network error, queued offline');
+            } else {
+              console.error('[Activity] Server error:', err.response.status, err.response.data);
+            }
           }
         } else {
           await enqueueSession(sessionData, snapshotUri);
@@ -765,8 +771,21 @@ export default function TestMap() {
       }
     } catch (error) {
       console.error('[Activity] Error saving activity session:', error);
-      // Last-resort: still try to queue offline
-      try { await enqueueSession({}, null); } catch { }
+      // Last-resort: try to queue with actual session data
+      try {
+        const emergencyData = {
+          activity_type: getActivityId(activityType),
+          distance_km: refs.distance.current.toString(),
+          moving_time_sec: refs.time.current.toString(),
+          calories_burned: calculateCaloriesBurned(user?.physicalMetrics?.weight?.value || 70).toString(),
+          started_at: new Date(Date.now() - refs.time.current * 1000).toISOString(),
+          ended_at: new Date().toISOString(),
+          route_coordinates: JSON.stringify(
+            refs.routeCoords.current.map(([lon, lat]) => ({ latitude: lat, longitude: lon }))
+          ),
+        };
+        await enqueueSession(emergencyData, null);
+      } catch { }
       Alert.alert(
         'Saved Offline',
         'Your activity will be synced when you reconnect.',

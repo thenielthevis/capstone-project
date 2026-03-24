@@ -19,11 +19,10 @@ export type GeoSessionPayload = {
  * This is the raw network call — callers should handle offline queueing.
  */
 export const createGeoSession = async (payload: any) => {
-    const { data } = await axiosInstance.post("/geo-sessions/createGeoSession", payload, {
-        headers: {
-            "Content-Type": "multipart/form-data",
-        },
-    });
+    // No explicit Content-Type header — the axiosInstance interceptor
+    // deletes it for FormData, letting React Native auto-set the correct
+    // multipart/form-data boundary.
+    const { data } = await axiosInstance.post("/geo-sessions/createGeoSession", payload);
     return data;
 };
 
