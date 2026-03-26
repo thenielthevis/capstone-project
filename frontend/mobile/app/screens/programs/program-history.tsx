@@ -1,11 +1,14 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator, Image } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator, Image, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 // import { getToken } from '@/utils/tokenStorage'; // Not needed with axiosInstance
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { historyApi } from '../../api/historyApi';
+import { getPendingSessions, dequeueSession } from '../../utils/offlineSessionQueue';
+import { sendQueuedSession } from '../../api/geoSessionApi';
+import NetInfo from '@react-native-community/netinfo';
 
 export default function ProgramHistory() {
     const { theme } = useTheme();
@@ -13,20 +16,41 @@ export default function ProgramHistory() {
     // const token = getToken(); // Not needed
 
     const [history, setHistory] = useState<any[]>([]);
+    const [offlineSessions, setOfflineSessions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(false);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
 
     const fetchHistory = useCallback(async (pageNum: number, shouldRefresh = false) => {
         try {
+            // Fetch offline sessions
+            const pending = await getPendingSessions();
+            const formattedPending = pending.map(p => ({
+                ...p.payload, 
+                _id: p.id,
+                isOfflinePending: true,
+                type: 'GeoSession', 
+                started_at: p.payload.started_at || p.createdAt,
+                activity_type: { name: 'Saved Offline' }, 
+                distance_km: Number(p.payload.distance_km || 0),
+                moving_time_sec: Number(p.payload.moving_time_sec || 0),
+                calories_burned: Number(p.payload.calories_burned || 0),
+                snapshotUri: p.snapshotUri
+            }));
+
             // historyApi.getHistory handles auth automatically via axiosInstance
             const newData = await historyApi.getHistory(pageNum, 20);
 
             if (shouldRefresh) {
-                setHistory(newData);
+                setHistory([...formattedPending, ...newData]);
             } else {
-                setHistory(prev => [...prev, ...newData]);
+                if (pageNum === 1) {
+                    setHistory([...formattedPending, ...newData]);
+                } else {
+                    setHistory(prev => [...prev, ...newData]);
+                }
             }
 
             setHasMore(newData.length === 20);
@@ -56,7 +80,42 @@ export default function ProgramHistory() {
         }
     };
 
-    const handlePressSession = (item: any) => {
+    const handlePressSession = async (item: any) => {
+        if (item.isOfflinePending) {
+            if (isSyncing) return;
+            const net = await NetInfo.fetch();
+            if (!net.isConnected) {
+                Alert.alert("Offline", "Please connect to the internet to sync this activity.");
+                return;
+            }
+            
+            Alert.alert("Sync Activity", "Do you want to upload this offline session now?", [
+                { text: "Cancel", style: "cancel" },
+                { text: "Upload", onPress: async () => {
+                    try {
+                        setIsSyncing(true);
+                        // Convert back to original string format for FormData if needed
+                        const syncPayload = { ...item };
+                        delete syncPayload._id;
+                        delete syncPayload.isOfflinePending;
+                        delete syncPayload.type;
+                        delete syncPayload.snapshotUri;
+                        delete syncPayload.activity_type;
+
+                        await sendQueuedSession(syncPayload, item.snapshotUri);
+                        await dequeueSession(item._id);
+                        onRefresh();
+                        Alert.alert("Success", "Activity synced successfully!");
+                    } catch (e) {
+                         Alert.alert("Error", "Failed to sync activity. Please try again later.");
+                    } finally {
+                        setIsSyncing(false);
+                    }
+                }}
+            ]);
+            return;
+        }
+
         router.push({
             pathname: '/components/feed/SessionDetails',
             params: {
@@ -82,11 +141,12 @@ export default function ProgramHistory() {
 
     const renderItem = ({ item }: { item: any }) => {
         const isProgram = item.type === "ProgramSession";
+        const isOffline = item.isOfflinePending;
 
         let dateVal = item.started_at;
         if (isProgram) dateVal = item.performed_at;
 
-        const date = new Date(dateVal);
+        const date = new Date(dateVal || Date.now());
 
         // Formatting helper
         const formatDate = (date: Date) => {
@@ -101,6 +161,7 @@ export default function ProgramHistory() {
 
         let title = "Activity";
         if (isProgram) title = item.program_name || "Untitled Program";
+        else if (isOffline) title = item.activity_type?.name || "Pending Sync";
         else title = item.activity_type?.name || "Outdoor Activity";
 
         let subtitle = "";
@@ -115,7 +176,7 @@ export default function ProgramHistory() {
             <TouchableOpacity
                 onPress={() => handlePressSession(item)}
                 style={{
-                    backgroundColor: theme.colors.surface,
+                    backgroundColor: isOffline ? theme.colors.surface + '80' : theme.colors.surface,
                     borderRadius: 16,
                     marginBottom: 8,
                     overflow: 'hidden',
@@ -126,7 +187,9 @@ export default function ProgramHistory() {
                     elevation: 1,
                     flexDirection: 'row',
                     alignItems: 'center', // Center vertically
-                    paddingRight: 12
+                    paddingRight: 12,
+                    borderWidth: isOffline ? 1 : 0,
+                    borderColor: isOffline ? theme.colors.primary + '33' : 'transparent',
                 }}
                 activeOpacity={0.7}
             >
@@ -134,11 +197,13 @@ export default function ProgramHistory() {
                 <View style={{
                     width: 60,
                     alignSelf: 'stretch',
-                    backgroundColor: theme.colors.primary + '15',
+                    backgroundColor: isOffline ? '#88888820' : theme.colors.primary + '15',
                     alignItems: 'center',
                     justifyContent: 'center',
                 }}>
-                    {isProgram ? (
+                    {isOffline ? (
+                        <Ionicons name="cloud-offline-outline" size={24} color="#888" />
+                    ) : isProgram ? (
                         <Ionicons name="barbell" size={24} color={theme.colors.primary} />
                     ) : (
                         <MaterialCommunityIcons name="map-marker-radius-outline" size={24} color={theme.colors.primary} />
@@ -155,10 +220,10 @@ export default function ProgramHistory() {
                                 <Text style={{
                                     fontFamily: theme.fonts.bodyBold,
                                     fontSize: 10,
-                                    color: theme.colors.primary,
+                                    color: isOffline ? "#888" : theme.colors.primary,
                                     textTransform: 'uppercase',
                                 }}>
-                                    {isProgram ? "Program" : "Outdoor"}
+                                    {isOffline ? "Not Recorded" : (isProgram ? "Program" : "Outdoor")}
                                 </Text>
                                 <Text style={{
                                     fontFamily: theme.fonts.body,
@@ -174,7 +239,7 @@ export default function ProgramHistory() {
                                 style={{
                                     fontFamily: theme.fonts.heading,
                                     fontSize: 15,
-                                    color: theme.colors.text,
+                                    color: isOffline ? theme.colors.text + '80' : theme.colors.text,
                                     marginBottom: 2,
                                 }}
                                 numberOfLines={1}
@@ -191,8 +256,32 @@ export default function ProgramHistory() {
                             </Text>
                         </View>
 
-                        {/* Post Button (if not posted) */}
-                        {!item.isPosted && (
+                        {/* Button area based on state */}
+                        {isOffline ? (
+                             <TouchableOpacity
+                             onPress={() => handlePressSession(item)}
+                             style={{
+                                 backgroundColor: 'transparent',
+                                 paddingHorizontal: 10,
+                                 paddingVertical: 6,
+                                 borderRadius: 12,
+                                 flexDirection: 'row',
+                                 alignItems: 'center',
+                                 borderWidth: 1,
+                                 borderColor: theme.colors.primary
+                             }}
+                            >
+                                <MaterialCommunityIcons name="cloud-upload" size={14} color={theme.colors.primary} />
+                                <Text style={{
+                                    fontFamily: theme.fonts.bodyBold,
+                                    fontSize: 11,
+                                    color: theme.colors.primary,
+                                    marginLeft: 4
+                                }}>
+                                    Sync
+                                </Text>
+                            </TouchableOpacity>
+                        ) : !item.isPosted ? (
                             <TouchableOpacity
                                 onPress={() => handlePostSession(item)}
                                 style={{
@@ -214,9 +303,8 @@ export default function ProgramHistory() {
                                     Post
                                 </Text>
                             </TouchableOpacity>
-                        )}
-                        {item.isPosted && (
-                            <View style={{ padding: 4 }}>
+                        ) : (
+                             <View style={{ padding: 4 }}>
                                 <Ionicons name="checkmark-circle" size={16} color={theme.colors.text + '33'} />
                             </View>
                         )}
