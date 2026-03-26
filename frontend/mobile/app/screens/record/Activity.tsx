@@ -626,16 +626,24 @@ export default function TestMap() {
           longitude: lon,
         }));
 
-        // Capture map snapshot
+        // Capture map snapshot — use false to get a file:// URI (not base64)
+        // FormData file uploads require a real file URI, not a base64 string.
         let snapshotUri: string | null = null;
         if (mapRef.current) {
           try {
-            snapshotUri = await mapRef.current.takeSnap(true);
-            console.log('[Activity] Map Snapshot taken:', snapshotUri);
+            const snap = await mapRef.current.takeSnap(false);
+            // Only use it if it's an actual file URI (not a data: URI)
+            if (snap && snap.startsWith('file://')) {
+              snapshotUri = snap;
+              console.log('[Activity] Map Snapshot taken:', snapshotUri);
+            } else {
+              console.warn('[Activity] Snapshot not a file URI, skipping upload:', snap?.substring(0, 50));
+            }
           } catch (e) {
             console.warn('[Activity] Failed to take map snapshot', e);
           }
         }
+
 
         const sessionData = {
           activity_type: getActivityId(activityType),

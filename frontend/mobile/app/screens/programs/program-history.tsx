@@ -6,7 +6,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { historyApi } from '../../api/historyApi';
-import { getPendingSessions, dequeueSession } from '../../utils/offlineSessionQueue';
+import { getPendingSessions, dequeueSession, enqueueSession } from '../../utils/offlineSessionQueue';
 import { sendQueuedSession } from '../../api/geoSessionApi';
 import NetInfo from '@react-native-community/netinfo';
 
@@ -28,12 +28,12 @@ export default function ProgramHistory() {
             // Fetch offline sessions
             const pending = await getPendingSessions();
             const formattedPending = pending.map(p => ({
-                ...p.payload, 
+                ...p.payload,
                 _id: p.id,
                 isOfflinePending: true,
-                type: 'GeoSession', 
+                type: 'GeoSession',
                 started_at: p.payload.started_at || p.createdAt,
-                activity_type: { name: 'Saved Offline' }, 
+                activity_type: { name: 'Saved Offline' },
                 distance_km: Number(p.payload.distance_km || 0),
                 moving_time_sec: Number(p.payload.moving_time_sec || 0),
                 calories_burned: Number(p.payload.calories_burned || 0),
@@ -80,6 +80,25 @@ export default function ProgramHistory() {
         }
     };
 
+    const handleAddMockSession = async () => {
+        // A valid looking 24-character hex ID for Mongoose
+        const mockActivityId = "60f6c2c62c954b00155b4122";
+        const mockPayload = {
+            activity_type: mockActivityId,
+            activity_type_id: mockActivityId,
+            distance_km: 1.5,
+            moving_time_sec: 1250,
+            route_coordinates: [{ latitude: 37.7749, longitude: -122.4194 }, { latitude: 37.7750, longitude: -122.4195 }],
+            avg_pace: 833,
+            calories_burned: 155,
+            started_at: new Date(Date.now() - 3600000).toISOString(),
+            ended_at: new Date().toISOString()
+        };
+        await enqueueSession(mockPayload);
+        onRefresh();
+        Alert.alert("Development Tools", "Added Mock Offline Session to Queue.");
+    };
+
     const handlePressSession = async (item: any) => {
         if (item.isOfflinePending) {
             if (isSyncing) return;
@@ -88,30 +107,46 @@ export default function ProgramHistory() {
                 Alert.alert("Offline", "Please connect to the internet to sync this activity.");
                 return;
             }
-            
+
             Alert.alert("Sync Activity", "Do you want to upload this offline session now?", [
                 { text: "Cancel", style: "cancel" },
-                { text: "Upload", onPress: async () => {
-                    try {
-                        setIsSyncing(true);
-                        // Convert back to original string format for FormData if needed
-                        const syncPayload = { ...item };
-                        delete syncPayload._id;
-                        delete syncPayload.isOfflinePending;
-                        delete syncPayload.type;
-                        delete syncPayload.snapshotUri;
-                        delete syncPayload.activity_type;
+                {
+                    text: "Upload", onPress: async () => {
+                        try {
+                            setIsSyncing(true);
+                            // Convert back to original string format for FormData if needed
+                            const syncPayload = { ...item };
+                            delete syncPayload._id;
+                            delete syncPayload.isOfflinePending;
+                            delete syncPayload.type;
+                            delete syncPayload.snapshotUri;
+                            delete syncPayload.activity_type;
 
-                        await sendQueuedSession(syncPayload, item.snapshotUri);
-                        await dequeueSession(item._id);
-                        onRefresh();
-                        Alert.alert("Success", "Activity synced successfully!");
-                    } catch (e) {
-                         Alert.alert("Error", "Failed to sync activity. Please try again later.");
-                    } finally {
-                        setIsSyncing(false);
+                            // Map UI state keys back to backend expected keys
+                            const queuePayload = {
+                                activity_type: syncPayload.activity_type_id || syncPayload.activity_type,
+                                distance_km: syncPayload.distance_km?.toString(),
+                                moving_time_sec: syncPayload.moving_time_sec?.toString(),
+                                route_coordinates: (typeof syncPayload.route_coordinates === 'string')
+                                    ? syncPayload.route_coordinates
+                                    : JSON.stringify(syncPayload.route_coordinates || []),
+                                avg_pace: syncPayload.avg_pace?.toString(),
+                                calories_burned: syncPayload.calories_burned?.toString(),
+                                started_at: syncPayload.started_at,
+                                ended_at: syncPayload.ended_at
+                            };
+
+                            await sendQueuedSession(queuePayload, item.snapshotUri);
+                            await dequeueSession(item._id);
+                            onRefresh();
+                            Alert.alert("Success", "Activity synced successfully!");
+                        } catch (e) {
+                            Alert.alert("Error", "Failed to sync activity. Please try again later.");
+                        } finally {
+                            setIsSyncing(false);
+                        }
                     }
-                }}
+                }
             ]);
             return;
         }
@@ -162,7 +197,7 @@ export default function ProgramHistory() {
         let title = "Activity";
         if (isProgram) title = item.program_name || "Untitled Program";
         else if (isOffline) title = item.activity_type?.name || "Pending Sync";
-        else title = item.activity_type?.name || "Outdoor Activity";
+        else title = item.activity_type?.name || "Outdoor Activity Test";
 
         let subtitle = "";
         if (isProgram) subtitle = `${(item.workouts?.length || 0) + (item.geo_activities?.length || 0)} Exercises`;
@@ -258,18 +293,18 @@ export default function ProgramHistory() {
 
                         {/* Button area based on state */}
                         {isOffline ? (
-                             <TouchableOpacity
-                             onPress={() => handlePressSession(item)}
-                             style={{
-                                 backgroundColor: 'transparent',
-                                 paddingHorizontal: 10,
-                                 paddingVertical: 6,
-                                 borderRadius: 12,
-                                 flexDirection: 'row',
-                                 alignItems: 'center',
-                                 borderWidth: 1,
-                                 borderColor: theme.colors.primary
-                             }}
+                            <TouchableOpacity
+                                onPress={() => handlePressSession(item)}
+                                style={{
+                                    backgroundColor: 'transparent',
+                                    paddingHorizontal: 10,
+                                    paddingVertical: 6,
+                                    borderRadius: 12,
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    borderWidth: 1,
+                                    borderColor: theme.colors.primary
+                                }}
                             >
                                 <MaterialCommunityIcons name="cloud-upload" size={14} color={theme.colors.primary} />
                                 <Text style={{
@@ -304,7 +339,7 @@ export default function ProgramHistory() {
                                 </Text>
                             </TouchableOpacity>
                         ) : (
-                             <View style={{ padding: 4 }}>
+                            <View style={{ padding: 4 }}>
                                 <Ionicons name="checkmark-circle" size={16} color={theme.colors.text + '33'} />
                             </View>
                         )}
@@ -338,6 +373,13 @@ export default function ProgramHistory() {
                         History
                     </Text>
                 </TouchableOpacity>
+
+                {/* Development Mock Button */}
+                {__DEV__ && (
+                    <TouchableOpacity onPress={handleAddMockSession} style={{ padding: 8, backgroundColor: theme.colors.primary + '20', borderRadius: 8 }}>
+                        <Text style={{ color: theme.colors.primary, fontFamily: theme.fonts.bodyBold, fontSize: 12 }}>+ Mock Sync</Text>
+                    </TouchableOpacity>
+                )}
             </View>
 
             <FlatList

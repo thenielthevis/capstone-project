@@ -19,9 +19,8 @@ export type GeoSessionPayload = {
  * This is the raw network call — callers should handle offline queueing.
  */
 export const createGeoSession = async (payload: any) => {
-    // No explicit Content-Type header — the axiosInstance interceptor
-    // deletes it for FormData, letting React Native auto-set the correct
-    // multipart/form-data boundary.
+    // Pass FormData directly — the axiosInstance interceptor already removes
+    // Content-Type for FormData so React Native can set it with the correct boundary.
     const { data } = await axiosInstance.post("/geo-sessions/createGeoSession", payload);
     return data;
 };
@@ -58,24 +57,44 @@ export const syncPendingSessions = () => flushQueue(sendQueuedSession);
 export const initSessionAutoSync = () => startAutoSync(sendQueuedSession);
 
 /**
- * Reconstruct FormData from plain object + snapshotUri and send.
+ * Reconstruct payload and send to backend.
+ * - If there's a snapshotUri (image), use multipart FormData.
+ * - Otherwise, send plain JSON — text-only FormData is unreliable in React Native
+ *   and can silently hang before even reaching Express.
  * Used by the offline queue flusher.
  */
 export const sendQueuedSession = async (data: any, snapshotUri?: string | null) => {
+    if (!snapshotUri) {
+        // No image — send as plain JSON. The backend handles route_coordinates
+        // as both a parsed array (JSON body) and a JSON string (FormData).
+        const jsonPayload = {
+            ...data,
+            // Ensure route_coordinates is a parsed array, not a string
+            route_coordinates: typeof data.route_coordinates === 'string'
+                ? JSON.parse(data.route_coordinates)
+                : (data.route_coordinates || []),
+        };
+        return createGeoSession(jsonPayload);
+    }
+
+    // Has image — use multipart FormData
     const formData = new FormData();
-    
-    // Append all text fields
+
+    // Append all text fields — arrays/objects must be JSON-stringified so
+    // FormData doesn't coerce them to "[object Object]" strings.
     Object.keys(data).forEach(key => {
-        formData.append(key, data[key]);
+        const value = data[key];
+        if (Array.isArray(value) || (value !== null && typeof value === 'object')) {
+            formData.append(key, JSON.stringify(value));
+        } else {
+            formData.append(key, value);
+        }
     });
 
-    // Append image if present
-    if (snapshotUri) {
-        const filename = snapshotUri.split('/').pop() || "map_snapshot.png";
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : `image/png`;
-        formData.append("preview_image", { uri: snapshotUri, name: filename, type } as any);
-    }
+    const filename = snapshotUri.split('/').pop() || "map_snapshot.png";
+    const match = /\.(\w+)$/.exec(filename);
+    const type = match ? `image/${match[1]}` : `image/png`;
+    formData.append("preview_image", { uri: snapshotUri, name: filename, type } as any);
 
     return createGeoSession(formData);
 };
