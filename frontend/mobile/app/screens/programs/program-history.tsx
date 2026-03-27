@@ -6,7 +6,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { historyApi } from '../../api/historyApi';
-import { getPendingSessions, dequeueSession, enqueueSession } from '../../utils/offlineSessionQueue';
+import { getPendingSessions, dequeueSession } from '../../utils/offlineSessionQueue';
 import { sendQueuedSession } from '../../api/geoSessionApi';
 import NetInfo from '@react-native-community/netinfo';
 
@@ -78,25 +78,6 @@ export default function ProgramHistory() {
             setPage(nextPage);
             fetchHistory(nextPage);
         }
-    };
-
-    const handleAddMockSession = async () => {
-        // A valid looking 24-character hex ID for Mongoose
-        const mockActivityId = "60f6c2c62c954b00155b4122";
-        const mockPayload = {
-            activity_type: mockActivityId,
-            activity_type_id: mockActivityId,
-            distance_km: 1.5,
-            moving_time_sec: 1250,
-            route_coordinates: [{ latitude: 37.7749, longitude: -122.4194 }, { latitude: 37.7750, longitude: -122.4195 }],
-            avg_pace: 833,
-            calories_burned: 155,
-            started_at: new Date(Date.now() - 3600000).toISOString(),
-            ended_at: new Date().toISOString()
-        };
-        await enqueueSession(mockPayload);
-        onRefresh();
-        Alert.alert("Development Tools", "Added Mock Offline Session to Queue.");
     };
 
     const handlePressSession = async (item: any) => {
@@ -197,7 +178,7 @@ export default function ProgramHistory() {
         let title = "Activity";
         if (isProgram) title = item.program_name || "Untitled Program";
         else if (isOffline) title = item.activity_type?.name || "Pending Sync";
-        else title = item.activity_type?.name || "Outdoor Activity Test";
+        else title = item.activity_type?.name || "Outdoor Activity";
 
         let subtitle = "";
         if (isProgram) subtitle = `${(item.workouts?.length || 0) + (item.geo_activities?.length || 0)} Exercises`;
@@ -373,13 +354,6 @@ export default function ProgramHistory() {
                         History
                     </Text>
                 </TouchableOpacity>
-
-                {/* Development Mock Button */}
-                {__DEV__ && (
-                    <TouchableOpacity onPress={handleAddMockSession} style={{ padding: 8, backgroundColor: theme.colors.primary + '20', borderRadius: 8 }}>
-                        <Text style={{ color: theme.colors.primary, fontFamily: theme.fonts.bodyBold, fontSize: 12 }}>+ Mock Sync</Text>
-                    </TouchableOpacity>
-                )}
             </View>
 
             <FlatList
