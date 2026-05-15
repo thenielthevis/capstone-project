@@ -19,14 +19,22 @@ Lyniva is an innovative application that combines the features of Strava and Pou
 5. **Social Network**
    - Connect with friends, share achievements, and participate in challenges within a supportive community.
 
+## Documentation
+
+To help onboard both future maintainers and end-users, detailed guides can be found below:
+
+- **[Developer Setup Tutorial](./docs/DEVELOPER_TUTORIAL.md)**: A comprehensive guide on scaffolding the project locally for development, configuring the backend, ML pipelines, frontend stacks, and deploying to production.
+- **[User Manual](./docs/USER_MANUAL.md)**: A complete walkthrough meant for app users detailing core functionalities (like the virtual companion, activity tracking, food logging, and social features) and how to interact with the application.
+- **[Admin Manual](./docs/ADMIN_MANUAL.md)**: A detailed guide for system administrators covering the web dashboard, user moderation, sentiment analysis monitoring, and content governance.
+
 ## Technologies Used
 
-- **Frontend:** (e.g., React Native, React)  
-- **Backend:** (e.g., Node.js, Express, Python Flask/Django)  
-- **Database:** (e.g., MongoDB, PostgreSQL)  
-- **Geolocation APIs:** (e.g., Google Maps API, Mapbox)  
+- **Frontend:** (React Native, React, Tailwind, Nativewind, Unity)  
+- **Backend:** (Node.js, Express)
+- **Database:** (MongoDB)  
+- **Geolocation APIs:** (MapLibre)  
 - **Machine Learning:** (e.g., TensorFlow, scikit-learn, spaCy for sentiment analysis)  
-- **Image Recognition:** (e.g., OpenCV, TensorFlow, or cloud-based APIs)  
+- **Image Recognition:** (Gemini Image Recognition API)  
 - **Authentication & Social:** (e.g., OAuth, Firebase Auth)  
 
 ## Project Overview
