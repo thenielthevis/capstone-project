@@ -161,7 +161,7 @@ export async function getSentimentOverview(params?: {
 export async function getSentimentTimeline(params?: {
   days?: number;
   userId?: string;
-}): Promise<{ timeline: TimelinePoint[]; days: number }> {
+}): Promise<{ timeline: TimelinePoint[]; days: number | null }> {
   const response = await axiosInstance.get('/sentiment-dashboard/timeline', { params });
   return response.data;
 }

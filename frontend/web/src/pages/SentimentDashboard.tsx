@@ -53,7 +53,7 @@ export default function SentimentDashboard() {
   const { theme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<TabId>('sentiment');
-  const [days, setDays] = useState(30);
+  const [days, setDays] = useState<number | 'all'>('all');
   const [selectedUserId, setSelectedUserId] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
@@ -98,7 +98,10 @@ export default function SentimentDashboard() {
 
   const fetchTabData = useCallback(async (tab: TabId) => {
     setTabLoading(tab, true);
-    const params = { days, userId: selectedUserId || undefined };
+    const params = {
+      days: days === 'all' ? undefined : days,
+      userId: selectedUserId || undefined,
+    };
 
     try {
       switch (tab) {
@@ -129,13 +132,13 @@ export default function SentimentDashboard() {
           break;
         }
         case 'affinity': {
-          const data = await getAffinity({ days });
+          const data = await getAffinity({ days: days === 'all' ? undefined : days });
           setAffinityData(data.emotionCategoryAffinity);
           setUserPatterns(data.userPatterns);
           break;
         }
         case 'narrative': {
-          const data = await getNarrative({ days });
+          const data = await getNarrative({ days: days === 'all' ? undefined : days });
           setNarrativeData(data);
           break;
         }
@@ -259,10 +262,11 @@ export default function SentimentDashboard() {
               {/* Days Filter */}
               <select
                 value={days}
-                onChange={e => setDays(Number(e.target.value))}
+                onChange={e => setDays(e.target.value === 'all' ? 'all' : Number(e.target.value))}
                 className="px-3 py-1.5 rounded-lg border text-sm"
                 style={{ borderColor: theme.colors.border, color: theme.colors.text, backgroundColor: theme.colors.surface }}
               >
+                <option value="all">All time</option>
                 <option value={7}>Last 7 days</option>
                 <option value={14}>Last 14 days</option>
                 <option value={30}>Last 30 days</option>

@@ -1,6 +1,18 @@
 const Assessment = require("../models/assessmentModel");
 const User = require("../models/userModel");
 
+function buildDateMatch(days) {
+  const parsedDays = Number.parseInt(days, 10);
+
+  if (!Number.isFinite(parsedDays) || parsedDays <= 0) {
+    return null;
+  }
+
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - parsedDays);
+  return { createdAt: { $gte: startDate } };
+}
+
 // Get overall sentiment statistics for admin dashboard
 exports.getSentimentOverview = async (req, res) => {
   try {
@@ -91,14 +103,16 @@ exports.getSentimentOverview = async (req, res) => {
 // Get sentiment timeline data (daily aggregation)
 exports.getSentimentTimeline = async (req, res) => {
   try {
-    const { days = 30, userId } = req.query;
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - parseInt(days));
+    const { days, userId } = req.query;
 
     const matchStage = {
-      createdAt: { $gte: startDate },
       "sentimentAnalysis.sentiment.primary": { $exists: true },
     };
+
+    const dateMatch = buildDateMatch(days);
+    if (dateMatch) {
+      Object.assign(matchStage, dateMatch);
+    }
 
     if (userId) {
       const mongoose = require("mongoose");
@@ -164,7 +178,10 @@ exports.getSentimentTimeline = async (req, res) => {
       };
     });
 
-    res.status(200).json({ timeline: result, days: parseInt(days) });
+    res.status(200).json({
+      timeline: result,
+      days: Number.isFinite(Number.parseInt(days, 10)) ? Number.parseInt(days, 10) : null,
+    });
   } catch (error) {
     console.error("Error fetching sentiment timeline:", error);
     res.status(500).json({ message: "Error fetching sentiment timeline", error: error.message });
@@ -174,14 +191,16 @@ exports.getSentimentTimeline = async (req, res) => {
 // Get heatmap data (hour x day-of-week sentiment matrix)
 exports.getSentimentHeatmap = async (req, res) => {
   try {
-    const { days = 90, userId } = req.query;
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - parseInt(days));
+    const { days, userId } = req.query;
 
     const matchStage = {
-      createdAt: { $gte: startDate },
       "sentimentAnalysis.sentiment.primary": { $exists: true },
     };
+
+    const dateMatch = buildDateMatch(days);
+    if (dateMatch) {
+      Object.assign(matchStage, dateMatch);
+    }
 
     if (userId) {
       const mongoose = require("mongoose");
@@ -227,17 +246,19 @@ exports.getSentimentHeatmap = async (req, res) => {
 // Get tag cloud data from user text inputs
 exports.getTagCloud = async (req, res) => {
   try {
-    const { days = 90, userId } = req.query;
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - parseInt(days));
+    const { days, userId } = req.query;
 
     const matchStage = {
-      createdAt: { $gte: startDate },
       $or: [
         { "sentimentResult.userTextInput": { $exists: true, $ne: "" } },
         { "sentimentResult.selectedChoice.text": { $exists: true, $ne: "" } },
       ],
     };
+
+    const dateMatch = buildDateMatch(days);
+    if (dateMatch) {
+      Object.assign(matchStage, dateMatch);
+    }
 
     if (userId) {
       const mongoose = require("mongoose");
@@ -329,14 +350,16 @@ exports.getTagCloud = async (req, res) => {
 // Get topics breakdown (by assessment category)
 exports.getTopics = async (req, res) => {
   try {
-    const { days = 90, userId } = req.query;
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - parseInt(days));
+    const { days, userId } = req.query;
 
     const matchStage = {
-      createdAt: { $gte: startDate },
       "sentimentAnalysis.sentiment.primary": { $exists: true },
     };
+
+    const dateMatch = buildDateMatch(days);
+    if (dateMatch) {
+      Object.assign(matchStage, dateMatch);
+    }
 
     if (userId) {
       const mongoose = require("mongoose");
@@ -392,15 +415,14 @@ exports.getTopics = async (req, res) => {
 // Get affinity data (co-occurrence of emotions across users/categories)
 exports.getAffinity = async (req, res) => {
   try {
-    const { days = 90 } = req.query;
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - parseInt(days));
+    const { days } = req.query;
+    const dateMatch = buildDateMatch(days);
 
     // Get emotion-category co-occurrence
     const affinityData = await Assessment.aggregate([
       {
         $match: {
-          createdAt: { $gte: startDate },
+          ...(dateMatch || {}),
           "sentimentAnalysis.emotion.primary": { $exists: true },
         },
       },
@@ -422,7 +444,7 @@ exports.getAffinity = async (req, res) => {
     const userPatterns = await Assessment.aggregate([
       {
         $match: {
-          createdAt: { $gte: startDate },
+          ...(dateMatch || {}),
           "sentimentAnalysis.sentiment.primary": { $exists: true },
         },
       },
@@ -503,14 +525,13 @@ exports.getAffinity = async (req, res) => {
 // Get narrative summary (AI-generated insights)
 exports.getNarrative = async (req, res) => {
   try {
-    const { days = 30 } = req.query;
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - parseInt(days));
+    const { days } = req.query;
+    const dateMatch = buildDateMatch(days);
 
     const stats = await Assessment.aggregate([
       {
         $match: {
-          createdAt: { $gte: startDate },
+          ...(dateMatch || {}),
           "sentimentAnalysis.sentiment.primary": { $exists: true },
         },
       },
@@ -637,7 +658,7 @@ exports.getNarrative = async (req, res) => {
         byStressLevel: facets.byStressLevel,
         byCategory: facets.byCategory,
       },
-      timeframe: `${days} days`,
+      timeframe: Number.isFinite(Number.parseInt(days, 10)) ? `${Number.parseInt(days, 10)} days` : "All time",
     });
   } catch (error) {
     console.error("Error fetching narrative:", error);
