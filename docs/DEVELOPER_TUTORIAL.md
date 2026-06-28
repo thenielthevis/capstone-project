@@ -35,6 +35,8 @@ The backend handles the server, database connectivity, and runs localized machin
    ```
 3. Install Python dependencies for the ML system:
    ```bash
+   cd backend/ml_models/utils
+   .\.venv\Scripts\Activate.ps1
    pip install -r requirements.txt # Make sure you have the required libs in ml_models
    ```
 
@@ -76,17 +78,34 @@ The Mobile App serves as the primary way users interact with the Lyniva service.
    ```
 
 ### Environment Variables
-Create a `.env` file in the `frontend/mobile` directory:
+Create a `.env` file in the `frontend/mobile` directory.
+
+> [!IMPORTANT]
+> If you are testing on a physical device, you **must** use your computer's local IPv4 address instead of `localhost`. You can find this by running `ipconfig` in a new terminal.
+
 ```env
-EXPO_PUBLIC_API_URL=http://localhost:5000/api # URL of the local backend
+# Example using an IP address for physical device testing
+EXPO_PUBLIC_API_URL=http://192.168.1.17:5000/api 
+
+# Or use localhost if ONLY testing on an emulator on the same machine
+# EXPO_PUBLIC_API_URL=http://localhost:5000/api
 ```
 
 ### Running the Mobile App
-Start the Expo development server:
+Start the Expo development server (for Expo Go):
 ```bash
 npx expo start
 ```
-You can press `a` to run it on an Android emulator, `i` for iOS Simulator (requires Mac), or scan the QR code using the Expo Go app on your physical device.
+
+If you are using a Custom Development Build (APK), start the server with this command instead:
+```bash
+npx expo start --dev-client
+```
+
+You can press `a` to run it on an Android emulator, `i` for iOS Simulator (requires Mac), or run it on your physical device using a development build:
+1. Install the development APK on your phone.
+2. Open a terminal on your PC and run `ipconfig` to find your local IPv4 address.
+3. Open the installed app on your phone and enter `exp://<your-ip-address>:8081` (e.g., `exp://192.168.1.5:8081`) to connect to the local development server.
 
 ---
 
